@@ -11,10 +11,13 @@ public class Main {
 
     private static IngatlanCom ic = new IngatlanCom();
 
+    private static DunaHause dh = new DunaHause();
+
     public static void main(String[] args){
         List<String> collection = new LinkedList<String>();
         IngatlanHelper.startContent();
         Set<String> urlList = ic.getUrls();
+        urlList.addAll(dh.getUrls());
         collection.add("======================================");
         collection.add("Elindítva : " + new SimpleDateFormat("yyyy-MMMMM-dd HH:mm:ss").format(new Date()));
         collection.add("Új URL Száma : " + urlList.size());

@@ -1,7 +1,9 @@
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -18,13 +20,49 @@ public class DunaHause extends IngatlanStart implements Ingatlan {
     private int numberOfCard;
 
     public void init() {
-        String urlContent = getUrlContent(1,url);
+        System.out.println("URL : " + url);
+        String urlContent = getUrlContent(1, url);
         Document document = Jsoup.parse(urlContent);
-        Element resultPageSize = document.select("span.results__number__count").first();
-        numberOfCard = Integer.valueOf(resultPageSize.ownText());
+        Element resultPageSize = document.select("div.selected-regions-title").first();
+        numberOfCard = getCardNumber(resultPageSize);
     }
 
     public Set<String> getUrls() {
-        return null;
+        init();
+        Set<String> result = new HashSet<String>();
+        int page = numberOfCard / 10;
+        page = page == 0 ? 1 : page;
+        for (int i = 1; i <= page; i++) {
+            String urlContent = getUrlContent(i, url);
+            Document document = Jsoup.parse(urlContent);
+            Elements cards = document.select("div.picBox");
+            for (Element div : cards) {
+                Elements child = div.select("a[href].listEstateWithPicOnPicture");
+                if (child.isEmpty()) {
+                    child = div.select("a[href].listEstateWithoutPicOnPicture");
+                }
+                String link = BASE_URL + child.attr("href");
+                if (IngatlanDataBaseMock.getUrls().contains(link)) {
+                } else {
+                    result.add(link);
+                }
+            }
+        }
+        System.out.println("dh.hu Új URL száma : " + result.size());
+        return result;
+    }
+
+    public int getCardNumber(Element resultPageSize) {
+        int result = 0;
+        String text = resultPageSize.ownText();
+        String[] split = text.split(" ");
+        for (String i : split) {
+            try {
+                result = Integer.parseInt(i);
+                break;
+            } catch (NumberFormatException e) {
+            }
+        }
+        return result;
     }
 }
