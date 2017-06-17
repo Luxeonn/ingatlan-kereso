@@ -1,3 +1,5 @@
+import org.jsoup.nodes.Element;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Scanner;
@@ -9,6 +11,8 @@ public abstract class IngatlanStart {
 
     public abstract void init();
 
+    public abstract int getCardNumber(Element resultPageSize);
+
     public String getUrlContent(int page, String url){
         String out = null;
         try {
@@ -19,4 +23,5 @@ public abstract class IngatlanStart {
         }
         return out;
     }
+
 }

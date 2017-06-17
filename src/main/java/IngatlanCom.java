@@ -23,7 +23,16 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
         String urlContent = getUrlContent(1, url);
         Document document = Jsoup.parse(urlContent);
         Element resultPageSize = document.select("span.results__number__count").first();
-        numberOfCard = Integer.valueOf(resultPageSize.ownText());
+        numberOfCard = getCardNumber(resultPageSize);
+    }
+
+    public int getCardNumber(Element resultPageSize) {
+        int result = 0;
+        try {
+            result = Integer.valueOf(resultPageSize.ownText());
+        }catch (NumberFormatException e){
+        }
+        return result;
     }
 
     public Set<String> getUrls() {
@@ -36,7 +45,7 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
             Elements cards = document.select("div.listing__card");
             for (Element div : cards) {
                 Elements child = div.select("a[href].listing__link");
-                String link = "http://ingatlan.com" + child.attr("href");
+                String link = BASE_URL + child.attr("href");
                 if (IngatlanDataBaseMock.getUrls().contains(link)) {
                 } else {
                     result.add(link);
