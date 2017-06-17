@@ -1,3 +1,5 @@
+package ingatlanok.service;
+
 import java.util.Set;
 
 /**

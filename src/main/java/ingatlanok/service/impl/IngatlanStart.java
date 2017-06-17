@@ -1,3 +1,5 @@
+package ingatlanok.service.impl;
+
 import org.jsoup.nodes.Element;
 
 import java.io.IOException;

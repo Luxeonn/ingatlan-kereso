@@ -1,3 +1,6 @@
+package ingatlanok.helper;
+
+import ingatlanok.persistence.IngatlanDataBaseMock;
 import org.apache.commons.io.FileUtils;
 
 import java.io.*;

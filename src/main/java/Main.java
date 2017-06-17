@@ -1,3 +1,7 @@
+import ingatlanok.helper.IngatlanHelper;
+import ingatlanok.service.impl.DunaHause;
+import ingatlanok.service.impl.IngatlanCom;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;

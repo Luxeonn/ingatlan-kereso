@@ -1,3 +1,7 @@
+package ingatlanok.service.impl;
+
+import ingatlanok.persistence.IngatlanDataBaseMock;
+import ingatlanok.service.Ingatlan;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
