@@ -12,7 +12,7 @@ public class IngatlanHelper {
 
     private static String fileName = "2017_06_06.txt";
 
-    public static void startContent(){
+    public static void startContent() {
         BufferedReader br = openFile();
         try {
             String line = br.readLine();
@@ -31,18 +31,18 @@ public class IngatlanHelper {
         }
     }
 
-    public static void saveIngatlanToFile(List<String> urlList ){
+    public static void saveIngatlanToFile(List<String> urlList) {
         try {
-            FileUtils.writeLines(new File(fileName),urlList,true);
+            FileUtils.writeLines(new File(fileName), urlList, true);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static List<String> openUrl(Set<String> urlList){
+    public static List<String> openUrl(Set<String> urlList) {
         List<String> result = new LinkedList<String>();
         Runtime rt = Runtime.getRuntime();
-        for(String url : urlList){
+        for (String url : urlList) {
             System.out.println("URL : " + url);
             try {
                 rt.exec("rundll32 url.dll,FileProtocolHandler " + url);
@@ -55,7 +55,7 @@ public class IngatlanHelper {
     }
 
 
-    private static BufferedReader openFile(){
+    private static BufferedReader openFile() {
         try {
             return new BufferedReader(new FileReader(fileName));
         } catch (FileNotFoundException e) {
@@ -64,7 +64,7 @@ public class IngatlanHelper {
         return openFile();
     }
 
-    private static void createNewFile(){
+    private static void createNewFile() {
         FileOutputStream oFile = null;
         try {
             oFile = new FileOutputStream(fileName, false);

@@ -13,7 +13,7 @@ public abstract class IngatlanStart {
 
     public abstract int getCardNumber(Element resultPageSize);
 
-    public String getUrlContent(int page, String url){
+    public String getUrlContent(int page, String url) {
         String out = null;
         try {
             String s = url + page;

@@ -30,7 +30,7 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
         int result = 0;
         try {
             result = Integer.valueOf(resultPageSize.ownText());
-        }catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
         }
         return result;
     }
@@ -40,7 +40,7 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
         Set<String> result = new HashSet<String>();
         int page = numberOfCard / 20;
         for (int i = 1; i < page; i++) {
-            String urlContent = getUrlContent(i,url);
+            String urlContent = getUrlContent(i, url);
             Document document = Jsoup.parse(urlContent);
             Elements cards = document.select("div.listing__card");
             for (Element div : cards) {
