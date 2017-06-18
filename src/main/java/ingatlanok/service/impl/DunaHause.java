@@ -25,8 +25,7 @@ public class DunaHause extends IngatlanStart implements Ingatlan {
 
     public void init() {
         System.out.println("URL : " + url);
-        String urlContent = getUrlContent(1, url);
-        Document document = Jsoup.parse(urlContent);
+        Document document = getUrlContent(1, url);
         Element resultPageSize = document.select("div.selected-regions-title").first();
         numberOfCard = getCardNumber(resultPageSize);
     }
@@ -37,8 +36,7 @@ public class DunaHause extends IngatlanStart implements Ingatlan {
         int page = numberOfCard / 10;
         page = page == 0 ? 1 : page;
         for (int i = 1; i <= page; i++) {
-            String urlContent = getUrlContent(i, url);
-            Document document = Jsoup.parse(urlContent);
+            Document document = getUrlContent(i, url);
             Elements cards = document.select("div.picBox");
             for (Element div : cards) {
                 Elements child = div.select("a[href].listEstateWithPicOnPicture");

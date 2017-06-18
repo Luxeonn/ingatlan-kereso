@@ -1,5 +1,6 @@
 import ingatlanok.helper.IngatlanHelper;
 import ingatlanok.service.impl.DunaHause;
+import ingatlanok.service.impl.IngatlanBazar;
 import ingatlanok.service.impl.IngatlanCom;
 
 import java.text.SimpleDateFormat;
@@ -17,11 +18,14 @@ public class Main {
 
     private static DunaHause dh = new DunaHause();
 
+    private static IngatlanBazar ib = new IngatlanBazar();
+
     public static void main(String[] args){
         List<String> collection = new LinkedList<String>();
         IngatlanHelper.startContent();
         Set<String> urlList = ic.getUrls();
         urlList.addAll(dh.getUrls());
+        urlList.addAll(ib.getUrls());
         collection.add("======================================");
         collection.add("Elindítva : " + new SimpleDateFormat("yyyy-MMMMM-dd HH:mm:ss").format(new Date()));
         collection.add("Új URL Száma : " + urlList.size());

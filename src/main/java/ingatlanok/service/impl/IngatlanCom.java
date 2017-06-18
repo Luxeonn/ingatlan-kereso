@@ -24,8 +24,7 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
 
     public void init() {
         System.out.println("URL : " + url);
-        String urlContent = getUrlContent(1, url);
-        Document document = Jsoup.parse(urlContent);
+        Document document = getUrlContent(1, url);
         Element resultPageSize = document.select("span.results__number__count").first();
         numberOfCard = getCardNumber(resultPageSize);
     }
@@ -44,8 +43,7 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
         Set<String> result = new HashSet<String>();
         int page = numberOfCard / 20;
         for (int i = 1; i < page; i++) {
-            String urlContent = getUrlContent(i, url);
-            Document document = Jsoup.parse(urlContent);
+            Document document = getUrlContent(i, url);
             Elements cards = document.select("div.listing__card");
             for (Element div : cards) {
                 Elements child = div.select("a[href].listing__link");

@@ -8,7 +8,6 @@ import java.util.Set;
  */
 public class IngatlanDataBaseMock {
 
-
     private static Set<String> urls = new HashSet<String>();
 
     public static void addUrl(String url){
