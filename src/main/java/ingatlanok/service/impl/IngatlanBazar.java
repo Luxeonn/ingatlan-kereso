@@ -56,7 +56,7 @@ public class IngatlanBazar extends IngatlanStart implements Ingatlan {
                 }
             }
         }
-        System.out.println("Ingatlan.com Új URL száma : " + result.size());
+        System.out.println("Ingatlan bazár Új URL száma : " + result.size());
         return result;
     }
 }
