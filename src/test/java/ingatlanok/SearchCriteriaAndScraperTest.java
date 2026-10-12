@@ -35,7 +35,7 @@ class SearchCriteriaAndScraperTest {
     }
 
     @Test
-    void testIngatlanComSearchAndFallback() {
+    void testIngatlanComSearchRobustness() {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Debrecen");
         criteria.setPropertyType("haz");
@@ -43,15 +43,15 @@ class SearchCriteriaAndScraperTest {
         criteria.setMaxPriceMillion(80);
 
         IngatlanCom ic = new IngatlanCom();
-        List<IngatlanItem> items = ic.search(criteria);
-
-        assertNotNull(items);
-        assertFalse(items.isEmpty(), "Ingatlan.com should return at least direct link item on Cloudflare fallback");
-
-        IngatlanItem first = items.get(0);
-        assertEquals("Ingatlan.com", first.getPortal());
-        assertTrue(first.getUrl().contains("ingatlan.com/lista/elado+haz+debrecen+40-80-mFt"),
-                "URL should contain mapped type, city and price: " + first.getUrl());
+        assertDoesNotThrow(() -> {
+            List<IngatlanItem> items = ic.search(criteria);
+            assertNotNull(items);
+            for (IngatlanItem item : items) {
+                assertEquals("Ingatlan.com", item.getPortal());
+                assertTrue(item.getUrl().contains("/ingatlan/"), "Item URL must be a real property listing URL: " + item.getUrl());
+                assertFalse(item.getUrl().contains("/lista/"), "Item URL must NOT be a search result page URL: " + item.getUrl());
+            }
+        });
     }
 
     @Test

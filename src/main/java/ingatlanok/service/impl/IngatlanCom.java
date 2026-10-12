@@ -123,48 +123,8 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
             }
         }
 
-        // Intelligens Cloudflare / bot-védelem fallback
-        // Amennyiben a közvetlen HTML letöltés nem hozott elemeket a védelem miatt,
-        // generálunk egy közvetlen élő keresési elemet, hogy a felhasználó egyetlen kattintással
-        // elérhesse a legfrissebb találatokat a hivatalos oldalon
         if (items.isEmpty()) {
-            System.out.println("Ingatlan.com: Közvetlen élő keresési hivatkozás létrehozása az árszűréssel.");
-            String priceLabel;
-            if (criteria.getMinPriceMillion() != null && criteria.getMaxPriceMillion() != null) {
-                priceLabel = criteria.getMinPriceMillion() + " - " + criteria.getMaxPriceMillion() + " M Ft";
-            } else if (criteria.getMinPriceMillion() != null) {
-                priceLabel = criteria.getMinPriceMillion() + " M Ft-tól";
-            } else if (criteria.getMaxPriceMillion() != null) {
-                priceLabel = criteria.getMaxPriceMillion() + " M Ft-ig";
-            } else {
-                priceLabel = "Árszűrő nélkül";
-            }
-
-            String typeTitle = switch (rawType) {
-                case "haz" -> "Eladó ház";
-                case "garazs" -> "Garázs";
-                case "telek" -> "Telek";
-                case "nyaralo" -> "Nyaraló";
-                case "iroda" -> "Iroda / Üzlethelyiség";
-                case "osszes" -> "Összes ingatlan";
-                default -> "Eladó lakás";
-            };
-
-            String id = "ic-" + UUID.randomUUID().toString().substring(0, 8);
-            boolean isNew = !IngatlanRepository.getInstance().containsUrl(searchUrl);
-
-            IngatlanItem directSearchItem = new IngatlanItem(
-                    id,
-                    "Ingatlan.com",
-                    searchUrl,
-                    "Ingatlan.com – " + typeTitle + " (" + criteria.getCity() + ")",
-                    priceLabel,
-                    criteria.getCity(),
-                    "⚡ Élő keresési találatok az Ingatlan.com-on. Kattints a hirdetésre a friss lista megtekintéséhez!",
-                    now,
-                    isNew
-            );
-            items.add(directSearchItem);
+            System.out.println("Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni (a portál bot-védelme aktív).");
         }
 
         System.out.println("ingatlan.com Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
