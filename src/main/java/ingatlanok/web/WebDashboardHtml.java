@@ -220,11 +220,41 @@ public class WebDashboardHtml {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
         }
 
+        .price-range-inputs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .price-range-inputs .form-control {
+            flex: 1;
+            min-width: 0;
+        }
+        .price-range-separator {
+            color: var(--text-secondary);
+            font-weight: 700;
+            user-select: none;
+        }
+
+        .portals-filter-section {
+            padding-top: 16px;
+            border-top: 1px dashed var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .form-section-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
         .portal-checkboxes {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
-            margin-top: 8px;
         }
 
         .portal-chip {
@@ -243,6 +273,57 @@ public class WebDashboardHtml {
         .portal-chip input {
             accent-color: var(--accent);
             cursor: pointer;
+        }
+
+        .btn-star {
+            background: transparent;
+            border: 1px solid transparent;
+            font-size: 19px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            line-height: 1;
+            padding: 4px 6px;
+            border-radius: 8px;
+            transition: transform 0.15s ease, color 0.15s ease, background 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-star:hover {
+            transform: scale(1.15);
+            color: #facc15;
+            background: rgba(250, 204, 21, 0.1);
+        }
+        .btn-star.active {
+            color: #facc15;
+            text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+        }
+
+        .result-portal-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .portal-filter-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 7px 13px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .portal-filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .portal-filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
         }
 
         .action-row {
@@ -594,28 +675,29 @@ public class WebDashboardHtml {
                     </div>
                     <div class="form-group">
                         <label>Ársáv (Millió Ft)</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="number" id="min-price-input" class="form-control" placeholder="Min (M Ft)" min="0" step="1" style="flex: 1;">
-                            <span style="color: var(--text-secondary); font-weight: 700;">-</span>
-                            <input type="number" id="max-price-input" class="form-control" placeholder="Max (M Ft)" min="0" step="1" style="flex: 1;">
+                        <div class="price-range-inputs">
+                            <input type="number" id="min-price-input" class="form-control" placeholder="Min (M Ft)" min="0" step="1">
+                            <span class="price-range-separator">-</span>
+                            <input type="number" id="max-price-input" class="form-control" placeholder="Max (M Ft)" min="0" step="1">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Aktív weboldalak</label>
-                        <div class="portal-checkboxes">
-                            <label class="portal-chip">
-                                <input type="checkbox" id="portal-dh" value="dh" checked> Duna House
-                            </label>
-                            <label class="portal-chip">
-                                <input type="checkbox" id="portal-oc" value="oc" checked> Otthon Centrum
-                            </label>
-                            <label class="portal-chip">
-                                <input type="checkbox" id="portal-jf" value="jofogas" checked> Jófogás
-                            </label>
-                            <label class="portal-chip">
-                                <input type="checkbox" id="portal-ic" value="ingatlancom" checked> Ingatlan.com
-                            </label>
-                        </div>
+                </div>
+
+                <div class="portals-filter-section">
+                    <label class="form-section-label">🌐 Aktív weboldalak keresése</label>
+                    <div class="portal-checkboxes">
+                        <label class="portal-chip">
+                            <input type="checkbox" id="portal-dh" value="dh" checked> Duna House
+                        </label>
+                        <label class="portal-chip">
+                            <input type="checkbox" id="portal-oc" value="oc" checked> Otthon Centrum
+                        </label>
+                        <label class="portal-chip">
+                            <input type="checkbox" id="portal-jf" value="jofogas" checked> Jófogás
+                        </label>
+                        <label class="portal-chip">
+                            <input type="checkbox" id="portal-ic" value="ingatlancom" checked> Ingatlan.com
+                        </label>
                     </div>
                 </div>
 
@@ -642,6 +724,17 @@ public class WebDashboardHtml {
                 <button class="tab-btn" id="tab-history" onclick="switchTab('history')">
                     📚 Teljes archívum (<span id="history-count">0</span>)
                 </button>
+                <button class="tab-btn" id="tab-starred" onclick="switchTab('starred')">
+                    ⭐ Kedvencek (<span id="starred-count">0</span>)
+                </button>
+            </div>
+
+            <div class="result-portal-filters">
+                <button class="portal-filter-btn active" data-portal="all" onclick="filterByPortal('all')">Összes forrás</button>
+                <button class="portal-filter-btn" data-portal="dh" onclick="filterByPortal('dh')">Duna House</button>
+                <button class="portal-filter-btn" data-portal="oc" onclick="filterByPortal('oc')">Otthon Centrum</button>
+                <button class="portal-filter-btn" data-portal="jf" onclick="filterByPortal('jf')">Jófogás</button>
+                <button class="portal-filter-btn" data-portal="ic" onclick="filterByPortal('ic')">Ingatlan.com</button>
             </div>
 
             <div class="search-box">
@@ -677,7 +770,36 @@ public class WebDashboardHtml {
         // State
         let currentItems = [];
         let historyItems = [];
-        let activeTab = 'current';
+        let activeTab = 'current'; // 'current', 'history', 'starred'
+        let selectedResultPortal = 'all'; // 'all', 'dh', 'oc', 'jf', 'ic'
+        let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
+
+        function updateStarredCount() {
+            const starredCountEl = document.getElementById('starred-count');
+            if (starredCountEl) starredCountEl.textContent = starredUrls.size;
+        }
+
+        function toggleStar(encodedUrl) {
+            const url = decodeURIComponent(encodedUrl);
+            if (starredUrls.has(url)) {
+                starredUrls.delete(url);
+                showToast("⭐ Eltávolítva a kedvencek közül");
+            } else {
+                starredUrls.add(url);
+                showToast("⭐ Hozzáadva a kedvencekhez!");
+            }
+            localStorage.setItem('starred_urls', JSON.stringify(Array.from(starredUrls)));
+            updateStarredCount();
+            renderListings();
+        }
+
+        function filterByPortal(portalKey) {
+            selectedResultPortal = portalKey;
+            document.querySelectorAll('.portal-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-portal') === portalKey);
+            });
+            renderListings();
+        }
 
         // Elements
         const form = document.getElementById('search-form');
@@ -730,6 +852,7 @@ public class WebDashboardHtml {
 
                 // Fetch history
                 await refreshHistory();
+                updateStarredCount();
             } catch (e) {
                 console.error("Hiba az inicializáláskor:", e);
             }
@@ -817,15 +940,42 @@ public class WebDashboardHtml {
             activeTab = tab;
             document.getElementById('tab-current').classList.toggle('active', tab === 'current');
             document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+            document.getElementById('tab-starred').classList.toggle('active', tab === 'starred');
             renderListings();
         }
 
         // Render Cards
         function renderListings() {
-            const listToRender = activeTab === 'current' ? currentItems : historyItems;
+            let listToRender;
+            if (activeTab === 'current') {
+                listToRender = currentItems;
+            } else if (activeTab === 'starred') {
+                const allKnown = [...currentItems, ...historyItems];
+                const seen = new Set();
+                listToRender = allKnown.filter(item => {
+                    if (starredUrls.has(item.url) && !seen.has(item.url)) {
+                        seen.add(item.url);
+                        return true;
+                    }
+                    return false;
+                });
+            } else {
+                listToRender = historyItems;
+            }
+
             const filterTerm = filterInput.value.toLowerCase().trim();
 
             const filtered = listToRender.filter(item => {
+                // Portál szerinti szűrés a találatok között
+                if (selectedResultPortal !== 'all') {
+                    const p = (item.portal || '').toLowerCase();
+                    if (selectedResultPortal === 'dh' && !p.includes('duna')) return false;
+                    if (selectedResultPortal === 'oc' && !p.includes('otthon')) return false;
+                    if (selectedResultPortal === 'jf' && !p.includes('jófogás') && !p.includes('jofogas')) return false;
+                    if (selectedResultPortal === 'ic' && !p.includes('ingatlan.com')) return false;
+                }
+
+                // Szöveges szűrés
                 if (!filterTerm) return true;
                 return (item.title && item.title.toLowerCase().includes(filterTerm)) ||
                        (item.price && item.price.toLowerCase().includes(filterTerm)) ||
@@ -838,7 +988,11 @@ public class WebDashboardHtml {
                 listingsContainer.innerHTML = '';
                 emptyState.style.display = 'block';
                 if (filterTerm) {
-                    emptyState.innerHTML = `<div class="empty-state-icon">❌</div><h3>Nincs egyezés a keresésre: "${filterTerm}"</h3><p>Próbáld meg módosítani a kifejezést.</p>`;
+                    emptyState.innerHTML = `<div class="empty-state-icon">❌</div><h3>Nincs egyezés a keresésre: "${filterTerm}"</h3><p>Próbáld meg módosítani a kifejezést vagy a weboldal szűrőt.</p>`;
+                } else if (selectedResultPortal !== 'all') {
+                    emptyState.innerHTML = `<div class="empty-state-icon">🔎</div><h3>Nincs találat a kiválasztott weboldalhoz</h3><p>Válassz másik portált vagy kattints az "Összes forrás" gombra!</p>`;
+                } else if (activeTab === 'starred') {
+                    emptyState.innerHTML = `<div class="empty-state-icon">⭐</div><h3>Még nincsenek kedvenc hirdetéseid</h3><p>Kattints a csillag (☆) ikonra bármelyik kártyán a mentéshez!</p>`;
                 } else if (activeTab === 'current') {
                     emptyState.innerHTML = `<div class="empty-state-icon">🔎</div><h3>Nincs találat az aktuális keresésben</h3><p>Indíts új keresést a fenti gombbal!</p>`;
                 } else {
@@ -854,12 +1008,21 @@ public class WebDashboardHtml {
                 if (item.portal && item.portal.includes('Jófogás')) portalClass = 'jf';
                 if (item.portal && item.portal.toLowerCase().includes('ingatlan.com')) portalClass = 'ic';
 
+                const isStarred = starredUrls.has(item.url);
+
                 return `
                     <div class="listing-card ${item.isNew ? 'is-new' : ''}">
                         <div>
                             <div class="card-top">
-                                <span class="portal-badge ${portalClass}">${item.portal || 'Hirdetés'}</span>
-                                ${item.isNew ? '<span class="badge-new">✨ ÚJ TALÁLAT</span>' : ''}
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="portal-badge ${portalClass}">${item.portal || 'Hirdetés'}</span>
+                                    ${item.isNew ? '<span class="badge-new">✨ ÚJ TALÁLAT</span>' : ''}
+                                </div>
+                                <button class="btn-star ${isStarred ? 'active' : ''}" 
+                                        onclick="toggleStar('${encodeURIComponent(item.url)}')" 
+                                        title="${isStarred ? 'Eltávolítás a kedvencek közül' : 'Mentés a kedvencek közé'}">
+                                    ${isStarred ? '★' : '☆'}
+                                </button>
                             </div>
                             <h3 class="card-title">${escapeHtml(item.title || 'Ingatlan')}</h3>
                             <p class="card-details">${escapeHtml(item.details || item.location || '')}</p>
