@@ -157,12 +157,24 @@ mvn exec:java "-Dexec.args=--cli"
 
 ## 🤝 Verziókezelési Irányelvek
 
-A projekt szigorú, automatizált Pull Request alapú munkafolyamatot követ:
-* **Közvetlen `master` / `main` commit és push TILOS:** Minden feladatot új munkavégző ágon kell elvégezni.
-* **Strukturált branch elnevezés:** Kötelező a típus szerinti prefix használata (`feature/...`, `fix/...`, `docs/...`, `refactor/...`, `chore/...`).
+A projekt szigorú, GitFlow-ihlette és automatizált Pull Request alapú munkafolyamatot követ:
+* **Fő ágak (`main` és `develop`):**
+  * `main`: A stabil, kiadásra kész főág. Közvetlen commit és push szigorúan TILOS.
+  * `develop`: A folyamatos integrációs ág. Az új fejlesztések ide érkeznek PR-en keresztül. Közvetlen commit és push szintén TILOS.
+* **Munkavégző ágak és elnevezésük:** Minden feladatot a `develop` ágból indított új ágon kell végezni, típusprefixummal:
+  * `feature/...` – új funkció, fejlesztés
+  * `fix/...` – hibajavítás
+  * `docs/...` – dokumentáció
+  * `refactor/...` – kódrefaktorálás
+  * `chore/...` – karbantartás, CI/CD konfiguráció
+* **Automatikus GitHub Actions CI & Védelem:**
+  * **Java CI (`ci.yml`):** Java 21 build és JUnit tesztfuttatás minden PR és push esetén.
+  * **PR & Branch Guard (`pr-guard.yml`):** PR elnevezési konvenció (Conventional Commits), ágnév-struktúra és leírás validálás.
+  * **Dependabot (`dependabot.yml`):** Heti Maven és GitHub Actions függőségfrissítés-ellenőrzés a `develop` ágra célozva.
+  * **Helyi védelem (`.githooks/pre-push`):** Megakadályozza a véletlen közvetlen push-t `main` és `develop` ágakra (`git config core.hooksPath .githooks`).
 * **Mindig új commit:** Minden változtatáshoz különálló, leíró üzenetű commit tartozik; a korábbi commitok push utáni felülírása tilos.
-* **Angol nyelvű PR címek:** A Pull Requestek neve angol nyelvű, Conventional Commits formátumú legyen (`feat:`, `fix:`, `docs:`, stb.).
-* **Kötelező GitHub Címkék (Labels):** Minden PR-t megfelelő címkével kell megnyitni (`enhancement`, `bug`, `documentation`).
+* **Angol nyelvű PR címek:** A Pull Requestek neve angol nyelvű, Conventional Commits formátumú (`feat:`, `fix:`, `docs:`, stb.).
+* **Kötelező GitHub Címkék (Labels):** Minden PR-t megfelelő címkével kell megnyitni (`enhancement`, `bug`, `documentation`, `dependencies`).
 * **Beszédes magyar összefoglaló:** A PR leírásában és az átadásban részletes, beszédes magyar összefoglaló szerepel (cél, technikai változtatások, hatások, tesztek).
 
 
