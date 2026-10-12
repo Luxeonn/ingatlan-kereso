@@ -7,10 +7,11 @@ A program periodikusan vagy igény szerint lekéri a keresési találati listák
 
 * **Eredeti szerző:** Pusinszky Viktor (2017)
 * **Kezelt portálok:**
-  * Ingatlan.com (`ingatlan.com`)
-  * Duna House (`dh.hu`)
-  * Ingatlanbazár (`ingatlanbazar.hu`)
-  * Otthon Centrum (`oc.hu`)
+  * Duna House (`dh.hu`) – *Működik (élő adatokkal)*
+  * Otthon Centrum (`oc.hu`) – *Működik (élő adatokkal)*
+  * Jófogás Ingatlan (`ingatlan.jofogas.hu`) – *Működik (élő adatokkal)*
+  * Ingatlan.com (`ingatlan.com`) – *Cloudflare bot-védelem alatt*
+  * Ingatlanbazár (`ingatlanbazar.hu`) – *Kliensoldali Angular SPA*
 
 ---
 
@@ -44,11 +45,12 @@ ingatlan-kereso/
         └── service/
             ├── Ingatlan.java                    # Interfész a portál scannerekhez (`getUrls()`)
             └── impl/
-                ├── IngatlanStart.java           # Közös absztrakt ősosztály (Jsoup letöltés: `getUrlContent`)
-                ├── IngatlanCom.java             # ingatlan.com scraper
-                ├── DunaHause.java               # dh.hu scraper
-                ├── IngatlanBazar.java           # ingatlanbazar.hu scraper
-                └── OtthonCentrum.java           # oc.hu scraper
+                ├── IngatlanStart.java           # Közös absztrakt ősosztály (Jsoup letöltés: `getDocument`)
+                ├── DunaHause.java               # dh.hu scraper (működő, modern DOM)
+                ├── OtthonCentrum.java           # oc.hu scraper (működő, modern DOM)
+                ├── JofogasIngatlan.java         # jofogas.hu scraper (működő, modern DOM)
+                ├── IngatlanCom.java             # ingatlan.com scraper (Cloudflare védelem miatt kezelt fallback)
+                └── IngatlanBazar.java           # ingatlanbazar.hu scraper (Angular SPA miatt kezelt fallback)
 ```
 
 ---
@@ -58,14 +60,15 @@ ingatlan-kereso/
 ```mermaid
 flowchart TD
     A[Start: Main.java] --> B[IngatlanHelper.startContent]
-    B --> C[(Fájl olvasása: 2017_06_06.txt -> IngatlanDataBaseMock memóriába)]
-    C --> D[Portálok lekérdezése párhuzamosan/egymás után]
-    D --> D1[IngatlanCom.getUrls]
-    D --> D2[DunaHause.getUrls]
-    D --> D3[IngatlanBazar.getUrls]
-    D --> D4[OtthonCentrum.getUrls]
-    D1 & D2 & D3 & D4 --> E{Új URL-ek szűrése}
-    E --> F[IngatlanHelper.openUrl: Megnyitás böngészőben]
+    B --> C[(Fájl olvasása: elmentett linkek memóriába)]
+    C --> D[Portálok lekérdezése robusztus hibatűréssel]
+    D --> D1[DunaHause.getUrls: dh.hu]
+    D --> D2[OtthonCentrum.getUrls: oc.hu]
+    D --> D3[JofogasIngatlan.getUrls: jofogas.hu]
+    D --> D4[IngatlanCom.getUrls: ingatlan.com]
+    D --> D5[IngatlanBazar.getUrls: ingatlanbazar.hu]
+    D1 & D2 & D3 & D4 & D5 --> E{Új URL-ek szűrése}
+    E --> F[IngatlanHelper.openUrl: Megnyitás böngészőben - limitáltan]
     E --> G[IngatlanHelper.saveIngatlanToFile: Új URL-ek mentése fájlba]
     F & G --> H[Kész]
 ```
@@ -104,14 +107,18 @@ flowchart TD
 * [x] **Modernizáció és Függőségfrissítés (Elkészült):**
   * Java 21 LTS beállítása a `pom.xml`-ben (`maven.compiler.source`/`target`).
   * Jsoup frissítve `1.23.2`-re, Commons IO `2.22.0`-ra, Exec Maven Plugin `3.6.4`-re.
-  * Modern böngészési metódus (`java.awt.Desktop`) bevezetése `ProcessBuilder` fallbackkel.
-* [ ] **Scraper réteg felülvizsgálata:**
-  * Fejlesztői/REST végpontok vagy publikus JSON API-k felkutatása a nyers HTML scraping helyett.
-  * Szükség esetén headless böngésző integráció (Playwright Java vagy Selenium) a dinamikus JS és bot-védelem kezelésére.
+  * Modern böngészési metódus (`java.awt.Desktop`) bevezetése `ProcessBuilder` fallbackkel és megnyitási korlátozással.
+* [x] **Scraper réteg felülvizsgálata és működőképessé tétele (Elkészült):**
+  * **Duna House (`dh.hu`):** Frissítve a modern DOM és keresési struktúrára (élő debreceni hirdetések).
+  * **Otthon Centrum (`oc.hu`):** Frissítve a legújabb keresési paraméterezésre és kártyaszelektorokra (élő debreceni hirdetések).
+  * **Jófogás Ingatlan (`jofogas.hu`):** Új scraper modul bevezetve a kieső források pótlására (több tucat élő debreceni hirdetés).
+  * **Robusztus hibakezelés:** Az Ingatlan.com (Cloudflare bot-védelem) és Ingatlanbazár (Angular SPA) esetén graceful fallback (nincs NullPointerException vagy összeomlás).
+* [ ] **Konfigurációs réteg kialakítása:**
+  * Keresési profilok (város, ár sáv, szobaszám, méret) külső JSON vagy properties fájlba helyezése.
 * [ ] **Adatperzisztencia korszerűsítése:**
-  * Egyszerű SQLite vagy H2 adatbázis bevezetése a sima szöveges fájl helyett (időbélyeg, ár, státusz, hirdetés címe tárolásával).
+  * Egyszerű SQLite vagy H2 adatbázis bevezetése a sima szöveges fájl helyett.
 * [ ] **Értesítési csatornák bővítése:**
-  * Böngésző ablakok tömeges felnyitása helyett opcionálisan Telegram bot, Discord webhook vagy e-mail értesítés küldése.
+  * Opcionálisan Telegram bot, Discord webhook vagy e-mail értesítés küldése.
 
 ---
 
