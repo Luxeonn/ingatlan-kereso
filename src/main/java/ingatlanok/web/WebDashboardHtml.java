@@ -220,14 +220,78 @@ public class WebDashboardHtml {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
         }
 
+        /* Rejtsük el a csúnya böngészős natív number nyilakat */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
         .price-range-inputs {
             display: flex;
             gap: 8px;
             align-items: center;
         }
-        .price-range-inputs .form-control {
+        .stepper-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
             flex: 1;
             min-width: 0;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stepper-box:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        .stepper-box .stepper-input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            padding: 10px 32px 10px 14px;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+            min-width: 0;
+        }
+        .stepper-arrows {
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            bottom: 4px;
+            display: flex;
+            flex-direction: column;
+            width: 22px;
+            justify-content: center;
+            gap: 2px;
+        }
+        .stepper-arrow-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 8px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .stepper-arrow-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
         }
         .price-range-separator {
             color: var(--text-secondary);
@@ -666,19 +730,28 @@ public class WebDashboardHtml {
                         <select id="type-select" class="form-control">
                             <option value="lakas" selected>Eladó lakás</option>
                             <option value="haz">Eladó ház</option>
-                            <option value="garazs">Garázs</option>
                             <option value="telek">Telek</option>
-                            <option value="nyaralo">Nyaraló</option>
-                            <option value="iroda">Iroda / Üzlethelyiség</option>
                             <option value="osszes">Összes típus</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Ársáv (Millió Ft)</label>
                         <div class="price-range-inputs">
-                            <input type="number" id="min-price-input" class="form-control" placeholder="Min (M Ft)" min="0" step="1">
+                            <div class="stepper-box">
+                                <input type="number" id="min-price-input" class="stepper-input" placeholder="Min (M Ft)" min="0" step="1">
+                                <div class="stepper-arrows">
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('min-price-input', 1)" title="Növelés">▲</button>
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('min-price-input', -1)" title="Csökkentés">▼</button>
+                                </div>
+                            </div>
                             <span class="price-range-separator">-</span>
-                            <input type="number" id="max-price-input" class="form-control" placeholder="Max (M Ft)" min="0" step="1">
+                            <div class="stepper-box">
+                                <input type="number" id="max-price-input" class="stepper-input" placeholder="Max (M Ft)" min="0" step="1">
+                                <div class="stepper-arrows">
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('max-price-input', 1)" title="Növelés">▲</button>
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('max-price-input', -1)" title="Csökkentés">▼</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -730,11 +803,11 @@ public class WebDashboardHtml {
             </div>
 
             <div class="result-portal-filters">
-                <button class="portal-filter-btn active" data-portal="all" onclick="filterByPortal('all')">Összes forrás</button>
-                <button class="portal-filter-btn" data-portal="dh" onclick="filterByPortal('dh')">Duna House</button>
-                <button class="portal-filter-btn" data-portal="oc" onclick="filterByPortal('oc')">Otthon Centrum</button>
-                <button class="portal-filter-btn" data-portal="jf" onclick="filterByPortal('jf')">Jófogás</button>
-                <button class="portal-filter-btn" data-portal="ic" onclick="filterByPortal('ic')">Ingatlan.com</button>
+                <button class="portal-filter-btn active" data-portal="all" onclick="filterByPortal('all')">Összes forrás (<span id="count-portal-all">0</span>)</button>
+                <button class="portal-filter-btn" data-portal="dh" onclick="filterByPortal('dh')">Duna House (<span id="count-portal-dh">0</span>)</button>
+                <button class="portal-filter-btn" data-portal="oc" onclick="filterByPortal('oc')">Otthon Centrum (<span id="count-portal-oc">0</span>)</button>
+                <button class="portal-filter-btn" data-portal="jf" onclick="filterByPortal('jf')">Jófogás (<span id="count-portal-jf">0</span>)</button>
+                <button class="portal-filter-btn" data-portal="ic" onclick="filterByPortal('ic')">Ingatlan.com (<span id="count-portal-ic">0</span>)</button>
             </div>
 
             <div class="search-box">
@@ -791,6 +864,60 @@ public class WebDashboardHtml {
             localStorage.setItem('starred_urls', JSON.stringify(Array.from(starredUrls)));
             updateStarredCount();
             renderListings();
+        }
+
+        function stepNumber(inputId, step) {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            let val = parseInt(el.value, 10);
+            if (isNaN(val)) val = 0;
+            val = Math.max(0, val + step);
+            el.value = val;
+        }
+
+        function updatePortalFilterCounts() {
+            let list;
+            if (activeTab === 'current') {
+                list = currentItems;
+            } else if (activeTab === 'starred') {
+                const allKnown = [...currentItems, ...historyItems];
+                const seen = new Set();
+                list = allKnown.filter(item => {
+                    if (starredUrls.has(item.url) && !seen.has(item.url)) {
+                        seen.add(item.url);
+                        return true;
+                    }
+                    return false;
+                });
+            } else {
+                list = historyItems;
+            }
+
+            const counts = { all: list.length, dh: 0, oc: 0, jf: 0, ic: 0 };
+            list.forEach(item => {
+                const p = (item.portal || '').toLowerCase();
+                if (p.includes('duna')) counts.dh++;
+                else if (p.includes('otthon')) counts.oc++;
+                else if (p.includes('jófogás') || p.includes('jofogas')) counts.jf++;
+                else if (p.includes('ingatlan.com')) counts.ic++;
+            });
+
+            const countAll = document.getElementById('count-portal-all');
+            const countDh = document.getElementById('count-portal-dh');
+            const countOc = document.getElementById('count-portal-oc');
+            const countJf = document.getElementById('count-portal-jf');
+            const countIc = document.getElementById('count-portal-ic');
+
+            if (countAll) countAll.textContent = counts.all;
+            if (countDh) countDh.textContent = counts.dh;
+            if (countOc) countOc.textContent = counts.oc;
+            if (countJf) countJf.textContent = counts.jf;
+            if (countIc) countIc.textContent = counts.ic;
+
+            ['dh', 'oc', 'jf', 'ic'].forEach(k => {
+                const btn = document.querySelector(`.portal-filter-btn[data-portal="${k}"]`);
+                if (btn) btn.style.opacity = counts[k] === 0 ? '0.45' : '1';
+            });
         }
 
         function filterByPortal(portalKey) {
@@ -924,6 +1051,12 @@ public class WebDashboardHtml {
                 }
 
                 await refreshHistory();
+                // Szűrők automatikus nullázása új kereséskor alapértelmezettre
+                filterInput.value = '';
+                selectedResultPortal = 'all';
+                document.querySelectorAll('.portal-filter-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-portal') === 'all');
+                });
                 switchTab('current');
                 showToast(`✅ Kész! ${data.totalFound} hirdetés feldolgozva (${data.newCount} új)`);
             } catch (err) {
@@ -946,6 +1079,7 @@ public class WebDashboardHtml {
 
         // Render Cards
         function renderListings() {
+            updatePortalFilterCounts();
             let listToRender;
             if (activeTab === 'current') {
                 listToRender = currentItems;
