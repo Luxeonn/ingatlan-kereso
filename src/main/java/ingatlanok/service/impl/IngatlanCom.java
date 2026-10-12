@@ -20,6 +20,11 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
     public static final String URL = BASE_URL + SEARCH_ROUTE;
 
     @Override
+    public String getName() {
+        return "Ingatlan.com";
+    }
+
+    @Override
     public void init() {
         System.out.println("Ingatlan.com keresés: " + URL);
     }

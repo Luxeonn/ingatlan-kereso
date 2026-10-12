@@ -1,62 +1,88 @@
 import ingatlanok.helper.IngatlanHelper;
-import ingatlanok.service.impl.DunaHause;
-import ingatlanok.service.impl.IngatlanBazar;
-import ingatlanok.service.impl.IngatlanCom;
-import ingatlanok.service.impl.JofogasIngatlan;
-import ingatlanok.service.impl.OtthonCentrum;
+import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchResult;
+import ingatlanok.persistence.IngatlanRepository;
+import ingatlanok.service.IngatlanSearchService;
+import ingatlanok.web.WebServer;
 
+import java.awt.Desktop;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Ingatlan kereső fő belépési pont.
+ * Ingatlan kereső belépési pont.
+ * Alapértelmezetten a modern Web Dashboardot indítja el és megnyitja a böngészőt.
+ * A '--cli' kapcsolóval a korábbi parancssori kötegelt mód is futtatható.
  */
 public class Main {
 
     public static void main(String[] args) {
-        System.out.println("==================================================");
-        System.out.println("  Ingatlan Kereső - Debreceni Eladó Lakások Scraper");
-        System.out.println("==================================================");
+        boolean isCli = Arrays.asList(args).contains("--cli") || Boolean.getBoolean("cli");
 
-        List<String> collection = new LinkedList<>();
-        Set<String> urlList = new LinkedHashSet<>();
-
-        // Adatbázis/történet inicializálás
-        IngatlanHelper.startContent();
-
-        System.out.println("\n[1/5] Duna House lekérdezése...");
-        urlList.addAll(new DunaHause().getUrls());
-
-        System.out.println("\n[2/5] Otthon Centrum lekérdezése...");
-        urlList.addAll(new OtthonCentrum().getUrls());
-
-        System.out.println("\n[3/5] Jófogás Ingatlan lekérdezése...");
-        urlList.addAll(new JofogasIngatlan().getUrls());
-
-        System.out.println("\n[4/5] Ingatlan.com lekérdezése...");
-        urlList.addAll(new IngatlanCom().getUrls());
-
-        System.out.println("\n[5/5] Ingatlanbazár lekérdezése...");
-        urlList.addAll(new IngatlanBazar().getUrls());
-
-        System.out.println("\n==================================================");
-        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-        System.out.println("Lefutva: " + timestamp);
-        System.out.println("Összesített ÚJ URL száma: " + urlList.size());
-        System.out.println("==================================================");
-
-        collection.add("======================================");
-        collection.add("Elindítva : " + timestamp);
-        collection.add("Új URL Száma : " + urlList.size());
-
-        if (!urlList.isEmpty()) {
-            collection.addAll(IngatlanHelper.openUrl(urlList));
+        if (isCli) {
+            runCliMode();
         } else {
-            System.out.println("Nem található új ingatlanhirdetés az előző futtatás óta.");
+            runWebDashboard();
         }
-
-        IngatlanHelper.saveIngatlanToFile(collection);
-        System.out.println("\nFolyamat sikeresen befejeződött.");
     }
 
+    private static void runWebDashboard() {
+        System.out.println("==================================================");
+        System.out.println("  Ingatlan Kereső - Web Dashboard Indítása");
+        System.out.println("==================================================");
+
+        // Inicializáljuk a JSON / txt adatbázist
+        IngatlanRepository.getInstance();
+
+        int defaultPort = Integer.getInteger("server.port", 8080);
+        WebServer server = new WebServer(defaultPort);
+
+        try {
+            server.start();
+            int actualPort = server.getPort();
+            String url = "http://localhost:" + actualPort;
+
+            System.out.println("\n[Siker] A felület elérhető a következő címen: " + url);
+            System.out.println("Böngésző megnyitása folyamatban...");
+
+            // Automatikus böngésző megnyitás
+            try {
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                    Desktop.getDesktop().browse(new URI(url));
+                } else {
+                    new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", url).start();
+                }
+            } catch (Exception e) {
+                System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
+            }
+
+            System.out.println("\nA szerver a háttérben fut. Nyomj Ctrl+C billentyűkombinációt a leállításhoz.");
+
+            // Életben tartjuk a folyamatot amíg fut a szerver
+            Thread.currentThread().join();
+        } catch (Exception e) {
+            System.err.println("Nem sikerült elindítani a webszervert: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void runCliMode() {
+        System.out.println("==================================================");
+        System.out.println("  Ingatlan Kereső - Parancssori Keresés (CLI Mód)");
+        System.out.println("==================================================");
+
+        IngatlanRepository.getInstance();
+        SearchCriteria criteria = IngatlanRepository.getInstance().getLastCriteria();
+        criteria.setAutoOpenBrowser(true);
+
+        SearchResult result = IngatlanSearchService.getInstance().executeSearch(criteria);
+
+        System.out.println("\n==================================================");
+        System.out.println("Lefutva: " + result.getExecutedAt());
+        System.out.println("Összesített találat: " + result.getTotalFound());
+        System.out.println("ÚJ hirdetések száma: " + result.getNewCount());
+        System.out.println("==================================================");
+        System.out.println("Folyamat sikeresen befejeződött.");
+    }
 }

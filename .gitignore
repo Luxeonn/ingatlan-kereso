@@ -1,11 +1,14 @@
 # Compiled class file
 *.class
 
-# Log file
+# Log & data files
 *.log
-*.bat
 *.txt
 *.iml
+data/
+run.ps1
+run.bat
+!start-ui.bat
 
 # BlueJ files
 *.ctxt

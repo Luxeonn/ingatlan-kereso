@@ -20,6 +20,11 @@ public class IngatlanBazar extends IngatlanStart implements Ingatlan {
     public static final String URL = BASE_URL + SEARCH_ROUTE;
 
     @Override
+    public String getName() {
+        return "Ingatlanbazár";
+    }
+
+    @Override
     public void init() {
         System.out.println("Ingatlanbazár keresés: " + URL);
     }

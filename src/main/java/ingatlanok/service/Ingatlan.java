@@ -1,12 +1,24 @@
 package ingatlanok.service;
 
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.SearchCriteria;
+
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 /**
- * Created by Pusinszky on 2017. 06. 14..
+ * Ingatlan scraper szolgáltatás interfész.
  */
 public interface Ingatlan {
 
     Set<String> getUrls();
 
+    default List<IngatlanItem> search(SearchCriteria criteria) {
+        return Collections.emptyList();
+    }
+
+    default String getName() {
+        return getClass().getSimpleName();
+    }
 }
