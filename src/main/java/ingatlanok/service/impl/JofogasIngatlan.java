@@ -1,13 +1,21 @@
 package ingatlanok.service.impl;
 
-import ingatlanok.persistence.IngatlanDataBaseMock;
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.SearchCriteria;
+import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.service.Ingatlan;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Scraper implementáció a Jófogás Ingatlan (jofogas.hu) portálhoz.
@@ -15,11 +23,18 @@ import java.util.Set;
 public class JofogasIngatlan extends IngatlanStart implements Ingatlan {
 
     private static final String BASE_URL = "https://ingatlan.jofogas.hu";
-    private static final String SEARCH_URL = "https://ingatlan.jofogas.hu/hajdu-bihar/ingatlan?q=debrecen+elado+lakas";
+    private static final Pattern ID_PATTERN = Pattern.compile("_(\\d+)\\.htm");
+    private static final Pattern PRICE_PATTERN = Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)");
+    private static final Pattern DETAILS_PATTERN = Pattern.compile("(\\d+\\s*szoba\\s*[•|]\\s*\\d+\\s*m²|\\d+\\s*m²)");
+
+    @Override
+    public String getName() {
+        return "Jófogás Ingatlan";
+    }
 
     @Override
     public void init() {
-        System.out.println("Jófogás Ingatlan keresés: " + SEARCH_URL);
+        // Init logic
     }
 
     @Override
@@ -29,32 +44,93 @@ public class JofogasIngatlan extends IngatlanStart implements Ingatlan {
 
     @Override
     public Set<String> getUrls() {
-        init();
-        Set<String> result = new HashSet<>();
+        return search(new SearchCriteria()).stream()
+                .filter(IngatlanItem::isNew)
+                .map(IngatlanItem::getUrl)
+                .collect(Collectors.toSet());
+    }
 
-        Document document = getDocument(SEARCH_URL);
+    @Override
+    public List<IngatlanItem> search(SearchCriteria criteria) {
+        List<IngatlanItem> items = new ArrayList<>();
+        String typeWord = "haz".equalsIgnoreCase(criteria.getPropertyType()) ? "haz" : "lakas";
+        String query = criteria.getCity() + " elado " + typeWord;
+        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+        String searchUrl = BASE_URL + "/magyarorszag/ingatlan?q=" + encodedQuery;
+
+        System.out.println("Jófogás Ingatlan keresés: " + searchUrl);
+
+        Document document = getDocument(searchUrl);
         if (document == null) {
-            System.err.println("Nem sikerült letölteni a Jófogás keresési oldalt: " + SEARCH_URL);
-            return result;
+            System.err.println("Nem sikerült letölteni a Jófogás keresési oldalt: " + searchUrl);
+            return items;
         }
 
-        // Hirdetés linkek keresése (.htm kiterjesztéssel rendelkező ingatlan linkek)
-        Elements links = document.select("a[href*=/hajdu_bihar/]");
+        String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+        Set<String> processed = new HashSet<>();
+
+        Elements links = document.select("a[href*=/ingatlan/], a[href*=/hajdu_bihar/], a[href*=_]");
         for (Element a : links) {
             String href = a.attr("href");
-            if (href == null || href.isEmpty()) {
-                continue;
-            }
+            if (href == null || href.isBlank() || !href.endsWith(".htm")) continue;
 
-            if (href.contains("jofogas.hu") && href.endsWith(".htm")) {
-                // Csak az ingatlan hirdetés linkjeit rögzítsük
-                if (!IngatlanDataBaseMock.getUrls().contains(href)) {
-                    result.add(href);
+            String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+            if (processed.contains(fullLink)) continue;
+            processed.add(fullLink);
+
+            String cardText = a.text().replaceAll("\\s+", " ").trim();
+            if (cardText.length() < 10) continue; // Skip navigational buttons
+
+            String id = extractId(fullLink);
+            String price = extractPrice(cardText);
+            String details = extractDetails(cardText);
+            String title = cleanTitle(cardText, criteria.getCity(), id);
+            boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
+
+            IngatlanItem item = new IngatlanItem(
+                    id,
+                    "Jófogás Ingatlan",
+                    fullLink,
+                    title,
+                    price,
+                    criteria.getCity(),
+                    details,
+                    now,
+                    isNew
+            );
+            items.add(item);
+        }
+
+        System.out.println("jofogas.hu Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+        return items;
+    }
+
+    private String extractId(String url) {
+        Matcher m = ID_PATTERN.matcher(url);
+        return m.find() ? m.group(1) : UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private String extractPrice(String text) {
+        Matcher m = PRICE_PATTERN.matcher(text);
+        return m.find() ? m.group(1).trim() : "Ár a hirdetésben";
+    }
+
+    private String extractDetails(String text) {
+        Matcher m = DETAILS_PATTERN.matcher(text);
+        return m.find() ? m.group(1).trim() : "";
+    }
+
+    private String cleanTitle(String text, String defaultCity, String id) {
+        if (text != null) {
+            // Jófogás gyakran az ingatlan címével indít
+            int mFtIndex = text.indexOf("M Ft");
+            if (mFtIndex > 0) {
+                String prefix = text.substring(0, mFtIndex).replaceAll("\\d+[,.]?\\d*\\s*$", "").trim();
+                if (prefix.length() > 5) {
+                    return prefix;
                 }
             }
         }
-
-        System.out.println("jofogas.hu Új URL száma : " + result.size());
-        return result;
+        return defaultCity + " - Jófogás ingatlan (" + id + ")";
     }
 }

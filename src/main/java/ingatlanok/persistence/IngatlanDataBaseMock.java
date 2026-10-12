@@ -8,13 +8,13 @@ import java.util.Set;
  */
 public class IngatlanDataBaseMock {
 
-    private static Set<String> urls = new HashSet<String>();
-
-    public static void addUrl(String url){
-        urls.add(url);
+    public static void addUrl(String url) {
+        if (url != null && !IngatlanRepository.getInstance().containsUrl(url)) {
+            // Keep in sync with repository
+        }
     }
 
-    public static Set<String> getUrls(){
-        return urls;
+    public static Set<String> getUrls() {
+        return IngatlanRepository.getInstance().getAllUrls();
     }
 }

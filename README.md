@@ -11,19 +11,25 @@ Java 21 LTS alapú asztali segédprogram magyar ingatlanhirdetési portálok (De
 
 ## 📌 Áttekintés (TL;DR)
 
-Az **ingatlan-kereso** rendszeresen vagy igény szerint lekérdezi a meghatározott ingatlanhirdetési oldalakat, összeveti a talált hirdetéseket a korábban mentett előzményekkel, és az **új hirdetéseket** automatikusan megnyitja a böngészőben, valamint rögzíti egy helyi UTF-8 szöveges naplófájlban.
+Az **ingatlan-kereso** egy Java 21 LTS alapú, modern webes felülettel és beágyazott HTTP REST szerverrel ellátott hazai ingatlanfigyelő rendszer.
+Segítségével egyetlen kattintással vagy parancs kiadásával elindul a helyi webes vezérlőpult (`http://localhost:8080`), ahol testreszabhatók a keresési szűrők (település, lakás/ház, aktív weboldalak), követhetők az élő találatok, és vizuális hirdetéskártyákon böngészhetők a legfrissebb hirdetések.
 
-Egyetlen futtatással jelenleg **több mint 60 valós, élő eladó lakás hirdetését** képes begyűjteni Debrecen területéről.
+* **Elérhető egykattintásos indító:** Dupla kattintás a `start-ui.bat` fájlra, és automatikusan megnyílik a böngésző.
+* **Támogatott portálok:** Duna House (`dh.hu`), Otthon Centrum (`oc.hu`), Jófogás Ingatlan (`jofogas.hu`).
+* **Kinyert adatok:** Cím, ár, szobaszám, alapterület, település és közvetlen linkek.
+* **0-Crash hibakezelés:** Cloudflare és Angular SPA fallback kezelés, Graceful kivételkezelés.
 
 ---
 
 ## 🚀 Főbb Funkciók
 
-* **Élő többportálos adatgyűjtés:** Párhuzamosítható lekérdezések a legnépszerűbb magyar ingatlanportálokról.
-* **Modern HTML Parsing (Jsoup 1.23.2):** Reális böngésző `User-Agent` és fejlécek használata modern szerveroldali DOM elemzéssel.
-* **Robusztus, 0-Crash hibakezelés:** Ha egy portál átmenetileg elérhetetlen vagy bot-védelem alá esik (pl. Cloudflare), a program nem omlik össze NullPointerExceptionnel, hanem elegánsan naplózza a hibát és folytatja a többi portál feldolgozását.
-* **Intelligens duplikátumszűrés:** Memóriabeli (`Set<String>`) és fájlalapú nyilvántartás (`ingatlanok_history.txt`), ami megakadályozza a már látott hirdetések ismételt megnyitását.
-* **Kíméletes böngészőértesítés:** Modern `java.awt.Desktop` böngészőhívás konfigurálható maximális nyitási limittel (`-Dmax.open.browser=N`), hogy sok új találat esetén se terhelje túl a rendszert.
+* **Modern Web Dashboard (SPA):** Beépített, villámgyors egyoldalas felület sötét/világos móddal (Dark/Light toggle), azonnali gépelés közbeni gyorskeresővel és reszponzív kártyarácsal.
+* **Egykattintásos asztali indítás:** `start-ui.bat` és `start-ui.ps1` fájlokkal azonnal elindítható a szerver és megnyílik az alapértelmezett böngésző.
+* **Dinamikus keresési szűrők:** Település megadása (nem csak Debrecen!), lakás/ház típusválasztó, valamint forrásoldalak külön ki- és bekapcsolhatósága.
+* **Vizuális hirdetéskártyák:** Portál színkódok, árkiemelés, szoba- és méretadatok, valamint feltűnő zöld **✨ ÚJ TALÁLAT** matrica a friss hirdetéseken.
+* **Strukturált JSON Adatbázis:** A találatok és beállítások a `data/ingatlanok_db.json` fájlban tárolódnak, automatikus előzmény-visszanézési lehetőséggel és duplikátumszűréssel.
+* **Állítható böngészős viselkedés:** Kapcsoló az új találatok füleken történő azonnali megnyitásához, illetve egy gomb az összes új találat egyidejű megnyitásához.
+* **Fejlett Java 21 Stack:** Beépített `HttpServer` Java 21 Virtual Threads (`Executors.newVirtualThreadPerTaskExecutor()`) alapú aszinkron kiszolgálással.
 
 ---
 
@@ -41,11 +47,12 @@ Egyetlen futtatással jelenleg **több mint 60 valós, élő eladó lakás hirde
 
 ## 🛠 Technológiai Stack és Követelmények
 
-* **Java JDK:** Java 21 LTS (OpenJDK / Eclipse Temurin / Oracle JDK)
+* **Java JDK:** Java 21 LTS (OpenJDK / Eclipse Temurin / Oracle JDK / JetBrains JBR)
 * **Build eszköz:** Apache Maven 3.9+
 * **Főbb könyvtárak:**
-  * [Jsoup 1.23.2](https://jsoup.org/) – Korszerű HTML letöltés, DOM parszer és CSS szelektorok
-  * [Commons IO 2.22.0](https://commons.apache.org/proper/commons-io/) – I/O és UTF-8 fájlműveletek
+  * [Jsoup 1.23.2](https://jsoup.org/) – Web scraping, HTML letöltés és DOM elemzés
+  * [Gson 2.11.0](https://github.com/google/gson) – JSON adatbázis és REST API szerializáció
+  * [Commons IO 2.22.0](https://commons.apache.org/proper/commons-io/) – Fájlműveletek és UTF-8 I/O
   * [Exec Maven Plugin 3.6.4](https://www.mojohaus.org/exec-maven-plugin/) – Parancssori futtatás Mavenből
 
 ---
@@ -54,101 +61,96 @@ Egyetlen futtatással jelenleg **több mint 60 valós, élő eladó lakás hirde
 
 ```mermaid
 flowchart TD
-    Start([Alkalmazás indítása: Main.java]) --> InitDB[Előzmények betöltése fájlból]
-    InitDB --> MockDB[(IngatlanDataBaseMock in-memory Set)]
+    User([Felhasználó]) -->|Dupla kattintás: start-ui.bat| App[Main.java: Web Dashboard]
+    App --> Server[Beágyazott HttpServer: port 8080]
+    App --> Browser[Böngésző megnyitása: localhost:8080]
     
-    InitDB --> Scraping[Portálok lekérdezése hibatűréssel]
-    Scraping --> P1[Duna House Scraper: dh.hu]
-    Scraping --> P2[Otthon Centrum Scraper: oc.hu]
-    Scraping --> P3[Jófogás Scraper: jofogas.hu]
-    Scraping --> P4[Ingatlan.com: Graceful fallback]
-    Scraping --> P5[Ingatlanbazár: Graceful fallback]
+    Browser -->|Keresés indítása: POST /api/search| SearchService[IngatlanSearchService]
+    SearchService --> P1[Duna House Scraper]
+    SearchService --> P2[Otthon Centrum Scraper]
+    SearchService --> P3[Jófogás Scraper]
     
-    P1 & P2 & P3 & P4 & P5 --> Filter{Ismert már a link?}
-    Filter -- Igen --> Skip[Kihagyás]
-    Filter -- Nem --> Collect[Új URL gyűjteménybe helyezése]
+    P1 & P2 & P3 --> Dedup{Új hirdetés?}
+    Dedup -->|Nem| Archive[(JSON Adatbázis: data/ingatlanok_db.json)]
+    Dedup -->|Igen| FlagNew[Megjelölés: ÚJ TALÁLAT]
+    FlagNew --> Archive
     
-    Collect --> Open[Megnyitás böngészőben - limitáltan]
-    Collect --> Save[Mentés: ingatlanok_history.txt]
-    Open & Save --> Done([Befejezés])
+    Archive --> Response[Válasz JSON: Kártyák & Statisztikák]
+    Response --> Browser
 ```
 
 ### Projekt Struktúra
 
 ```text
 ingatlan-kereso/
-├── pom.xml                                      # Maven konfiguráció és függőségek (Java 21)
+├── pom.xml                                      # Maven konfiguráció és függőségek (Java 21, Gson, Jsoup)
 ├── README.md                                    # Felhasználói és fejlesztői dokumentáció
 ├── gemini.md                                    # Rendszer- és architektúra kontextus (AI & Dev)
-├── LICENSE                                      # GNU General Public License v3
-├── .gitignore
+├── start-ui.bat                                 # Egykattintásos indító Windowsra
+├── start-ui.ps1                                 # PowerShell indító script
+├── data/                                        # Helyi adatbázis mappa (.gitignore alatt)
+│   ├── ingatlanok_db.json                       # Hirdetési előzmények és kinyert metaadatok
+│   └── last_config.json                         # Utolsó mentett keresési szűrők
 └── src/main/java/
-    ├── Main.java                                # Belépési pont, orchestrator
+    ├── Main.java                                # Belépési pont (Web Dashboard & CLI fallback)
     └── ingatlanok/
         ├── helper/
-        │   └── IngatlanHelper.java              # Fájlkezelés, duplikátumszűrés, böngészőkezelés
+        │   └── IngatlanHelper.java              # Böngészőkezelés, kompatibilitási fájlműveletek
+        ├── model/
+        │   ├── IngatlanItem.java                # Hirdetés adatmodell (cím, ár, méret, url, stádium)
+        │   ├── SearchCriteria.java              # Keresési paraméterek (város, típus, portálok)
+        │   └── SearchResult.java                # Összesített találati eredmény modell
         ├── persistence/
-        │   └── IngatlanDataBaseMock.java        # In-memory duplikátumszűrő halmaz
-        └── service/
-            ├── Ingatlan.java                    # Scraper interfész (`getUrls()`)
-            └── impl/
-                ├── IngatlanStart.java           # Jsoup bázisosztály, biztonságos letöltés
-                ├── DunaHause.java               # dh.hu scraper (élő találatok)
-                ├── OtthonCentrum.java           # oc.hu scraper (élő találatok)
-                ├── JofogasIngatlan.java         # jofogas.hu scraper (élő találatok)
-                ├── IngatlanCom.java             # ingatlan.com scraper (Cloudflare fallback)
-                └── IngatlanBazar.java           # ingatlanbazar.hu scraper (Angular SPA fallback)
+        │   ├── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
+        │   └── IngatlanDataBaseMock.java        # Visszafelé kompatibilitási réteg
+        ├── service/
+        │   ├── Ingatlan.java                    # Scraper interfész (`search` és `getUrls`)
+        │   ├── IngatlanSearchService.java       # Keresést vezérlő orchestrator szolgáltatás
+        │   └── impl/
+        │       ├── IngatlanStart.java           # Jsoup bázisosztály, biztonságos letöltés
+        │       ├── DunaHause.java               # dh.hu scraper (részletes adatokkal)
+        │       ├── OtthonCentrum.java           # oc.hu scraper (részletes adatokkal)
+        │       ├── JofogasIngatlan.java         # jofogas.hu scraper (részletes adatokkal)
+        │       ├── IngatlanCom.java             # ingatlan.com scraper (Cloudflare fallback)
+        │       └── IngatlanBazar.java           # ingatlanbazar.hu scraper (Angular SPA fallback)
+        └── web/
+            ├── WebServer.java                   # Beágyazott REST API szerver (Virtual Threads)
+            └── WebDashboardHtml.java            # Modern reszponzív SPA HTML/CSS/JS felület
 ```
 
 ---
 
-## 💻 Telepítés és Futtatás
+## 💻 Használat és Indítás
 
-### 1. Repository klónozása
-```bash
-git clone https://github.com/Luxeonn/ingatlan-kereso.git
-cd ingatlan-kereso
-```
+### 1. Indítás egyetlen kattintással (Legkönnyebb mód)
+Kattints duplán a gyökérkönyvtárban lévő **`start-ui.bat`** fájlra!
+A rendszer elindítja a webszervert és automatikusan megnyitja a böngészőt a `http://localhost:8080` címen.
 
-### 2. Projekt fordítása
+### 2. Indítás parancssorból
 ```bash
-mvn clean compile
-```
-
-### 3. Futtatás alapértelmezett beállításokkal
-```bash
+# Webes felület indítása (alapértelmezett):
 mvn exec:java
+
+# Vagy PowerShellből:
+./start-ui.ps1
 ```
 
-### 4. Futtatási paraméterek (Testreszabás)
-
-A program viselkedése egyszerű Java rendszerparaméterekkel szabályozható:
-
-* **Böngészőlapok nyitásának szabályozása:**
-  ```bash
-  # Egyszerre maximum 3 link megnyitása:
-  mvn exec:java -Dmax.open.browser=3
-
-  # Csak naplózás, egyetlen böngészőfül megnyitása nélkül:
-  mvn exec:java -Dmax.open.browser=0
-  ```
-
-* **Egyedi naplófájl megadása:**
-  ```bash
-  mvn exec:java -Dingatlan.file=sajat_mentes.txt
-  ```
+### 3. Hagyományos Parancssori (CLI) futtatás
+Ha böngésző és felület nélkül, pusztán a háttérben szeretnéd futtatni a keresést:
+```bash
+mvn exec:java "-Dexec.args=--cli"
+```
 
 ---
 
 ## 🗺 Ütemterv (Roadmap)
 
 - [x] **Java 21 LTS & Függőségfrissítés:** Java 21 compiler target, Jsoup 1.23.2, Commons IO 2.22.0.
-- [x] **Platformfüggetlen böngészés:** Modern `java.awt.Desktop` bevezetése `ProcessBuilder` fallbackkel és nyitási limittel.
-- [x] **Scraper réteg modernizálása:** Duna House és Otthon Centrum élő lekérdezések helyreállítása.
-- [x] **Új portál integrálása:** Jófogás Ingatlan scraper elkészítése.
-- [x] **0-Crash hibatűrés:** Cloudflare challenge és Angular SPA elegáns lekezelése NPE nélkül.
-- [ ] **Konfigurációs réteg kialakítása:** Keresési profilok (város, ár sáv, szobaszám, méret) külső JSON vagy properties fájlba helyezése.
-- [ ] **Modern adatperzisztencia:** Beágyazott SQLite vagy H2 adatbázis bevezetése a szöveges fájl helyett.
+- [x] **Modern Web Dashboard:** Letisztult egyoldalas felület sötét/világos móddal és hirdetéskártyákkal.
+- [x] **Dinamikus Keresési Szűrők:** Település, típus, és forrásoldalak kiválasztása felületről.
+- [x] **Strukturált JSON Perzisztencia:** Hirdetés metaadatok és beállítások fájlalapú tárolása.
+- [x] **Egykattintásos indítás Windowsra:** `start-ui.bat` és `start-ui.ps1`.
+- [x] **Scraper réteg gazdagítása:** Részletes adatok (ár, szobák, m2) kinyerése a kártyákról.
 - [ ] **Értesítési csatornák:** Telegram bot vagy Discord webhook integráció az azonnali értesítésekhez.
 
 ---
