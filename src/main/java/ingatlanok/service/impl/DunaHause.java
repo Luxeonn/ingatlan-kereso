@@ -2,7 +2,6 @@ package ingatlanok.service.impl;
 
 import ingatlanok.persistence.IngatlanDataBaseMock;
 import ingatlanok.service.Ingatlan;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -11,60 +10,67 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Created by Pusinszky on 2017. 06. 17..
+ * Scraper implementáció a Duna House (dh.hu) portálhoz.
  */
 public class DunaHause extends IngatlanStart implements Ingatlan {
 
     private static final String BASE_URL = "https://dh.hu";
-    private static final String START_ROUTE = "/elado-ingatlan/lakas/hajdu-bihar-megye/debrecen/-/";
-    private static final String ROUTE_PRICE = "9-11-mFt";
-    private static final String END_ROUTE = "/35-m2-tol/1-3-szoba/oldal-";
-    public static String url = BASE_URL + START_ROUTE + ROUTE_PRICE + END_ROUTE;
+    private static final String SEARCH_ROUTE = "/elado-ingatlan/lakas/hajdu-bihar/debrecen";
+    public static final String URL = BASE_URL + SEARCH_ROUTE;
 
-    private int numberOfCard;
-
+    @Override
     public void init() {
-        System.out.println("URL : " + url);
-        Document document = getUrlContent(1, url);
-        Element resultPageSize = document.select("div.selected-regions-title").first();
-        numberOfCard = getCardNumber(resultPageSize);
+        System.out.println("Duna House keresés: " + URL);
     }
 
+    @Override
+    public int getCardNumber(Element resultPageSize) {
+        return 20;
+    }
+
+    @Override
     public Set<String> getUrls() {
         init();
-        Set<String> result = new HashSet<String>();
-        int page = numberOfCard / 10;
-        page = page == 0 ? 1 : page;
-        for (int i = 1; i <= page; i++) {
-            Document document = getUrlContent(i, url);
-            Elements cards = document.select("div.picBox");
-            for (Element div : cards) {
-                Elements child = div.select("a[href].listEstateWithPicOnPicture");
-                if (child.isEmpty()) {
-                    child = div.select("a[href].listEstateWithoutPicOnPicture");
-                }
-                String link = BASE_URL + child.attr("href");
-                if (IngatlanDataBaseMock.getUrls().contains(link)) {
-                } else {
-                    result.add(link);
-                }
+        Set<String> result = new HashSet<>();
+
+        // Az első 2 oldalt olvassuk be a friss találatokhoz
+        int maxPages = 2;
+        for (int i = 1; i <= maxPages; i++) {
+            String pageUrl = (i == 1) ? URL : URL + "/oldal-" + i;
+            Document document = getDocument(pageUrl);
+            if (document == null) {
+                System.err.println("Nem sikerült letölteni a Duna House oldalt: " + pageUrl);
+                continue;
+            }
+
+            // Kártyák linkjei a meta vagy a tagekből
+            Elements metaUrls = document.select("meta[itemprop=url]");
+            for (Element meta : metaUrls) {
+                String href = meta.attr("content");
+                processLink(href, result);
+            }
+
+            Elements anchorLinks = document.select("a[href*=/ingatlan/]");
+            for (Element a : anchorLinks) {
+                String href = a.attr("href");
+                processLink(href, result);
             }
         }
+
         System.out.println("dh.hu Új URL száma : " + result.size());
         return result;
     }
 
-    public int getCardNumber(Element resultPageSize) {
-        int result = 0;
-        String text = resultPageSize.ownText();
-        String[] split = text.split(" ");
-        for (String i : split) {
-            try {
-                result = Integer.parseInt(i);
-                break;
-            } catch (NumberFormatException e) {
+    private void processLink(String href, Set<String> result) {
+        if (href == null || href.trim().isEmpty()) {
+            return;
+        }
+        String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+        // Csak konkrét hirdetés oldalakat gyűjtsünk (amiben szerepel ingatlan azonosító)
+        if (fullLink.matches(".*/ingatlan/[A-Za-z0-9]+/.*") || fullLink.matches(".*/ingatlan/[A-Za-z0-9]+$")) {
+            if (!IngatlanDataBaseMock.getUrls().contains(fullLink)) {
+                result.add(fullLink);
             }
         }
-        return result;
     }
 }

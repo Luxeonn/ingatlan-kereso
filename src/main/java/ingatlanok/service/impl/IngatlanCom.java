@@ -2,7 +2,6 @@ package ingatlanok.service.impl;
 
 import ingatlanok.persistence.IngatlanDataBaseMock;
 import ingatlanok.service.Ingatlan;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -11,49 +10,47 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Created by Pusinszky on 2017. 06. 05..
+ * Scraper implementáció az Ingatlan.com portálhoz.
+ * Megjegyzés: A portál jelenleg szigorú Cloudflare bot-védelmet alkalmaz.
  */
 public class IngatlanCom extends IngatlanStart implements Ingatlan {
 
-    private static final String BASE_URL = "http://ingatlan.com";
-    private static final String START_ROUTE = "/szukites/elado+lakas+csak-kepes+debrecen+";
-    private static final String ROUTE_PRICE = "9-11-mFt";
-    private static final String END_ROUTE = "+35-m2-felett?page=";
-    public static String url = BASE_URL + START_ROUTE + ROUTE_PRICE + END_ROUTE;
-    private int numberOfCard;
+    private static final String BASE_URL = "https://ingatlan.com";
+    private static final String SEARCH_ROUTE = "/lista/elado+lakas+debrecen";
+    public static final String URL = BASE_URL + SEARCH_ROUTE;
 
+    @Override
     public void init() {
-        System.out.println("URL : " + url);
-        Document document = getUrlContent(1, url);
-        Element resultPageSize = document.select("span.results__number__count").first();
-        numberOfCard = getCardNumber(resultPageSize);
+        System.out.println("Ingatlan.com keresés: " + URL);
     }
 
+    @Override
     public int getCardNumber(Element resultPageSize) {
-        int result = 0;
-        try {
-            result = Integer.valueOf(resultPageSize.ownText());
-        } catch (NumberFormatException e) {
-        }
-        return result;
+        return 0;
     }
 
+    @Override
     public Set<String> getUrls() {
         init();
-        Set<String> result = new HashSet<String>();
-        int page = numberOfCard / 20;
-        for (int i = 1; i < page; i++) {
-            Document document = getUrlContent(i, url);
-            Elements cards = document.select("div.listing__card");
-            for (Element div : cards) {
-                Elements child = div.select("a[href].listing__link");
-                String link = BASE_URL + child.attr("href");
-                if (IngatlanDataBaseMock.getUrls().contains(link)) {
-                } else {
+        Set<String> result = new HashSet<>();
+
+        Document document = getDocument(URL);
+        if (document == null) {
+            System.out.println("Ingatlan.com: A lekérés meghiúsult (Cloudflare bot-védelem aktív, átugorva).");
+            return result;
+        }
+
+        Elements cards = document.select("a[href*=/ingatlan/]");
+        for (Element a : cards) {
+            String href = a.attr("href");
+            if (href != null && !href.isEmpty()) {
+                String link = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+                if (!IngatlanDataBaseMock.getUrls().contains(link)) {
                     result.add(link);
                 }
             }
         }
+
         System.out.println("Ingatlan.com Új URL száma : " + result.size());
         return result;
     }

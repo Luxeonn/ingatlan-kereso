@@ -10,55 +10,53 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Created by Pusinszky on 2017. 06. 05..
+ * Scraper implementáció az Otthon Centrum (oc.hu) portálhoz.
  */
 public class OtthonCentrum extends IngatlanStart implements Ingatlan {
 
     private static final String BASE_URL = "https://www.oc.hu";
-    private static final String START_ROUTE = "/ingatlanok/lista/oldalszam:12/rendezes:relevance/felhasznalas:elado";
-    private static final String ROUTE_1 = "/tipus:flat/hely-ertek:debrecen/hely-id:debrecen,";
-    private static final String ROUTE_PRICE = "/ar:9~11";
-    private static final String ROUTE_2 = "/netto-alapterulet:35~/szobak:2~3/emelet:2,24/szobak:2~3/emelet:2,24";
-    private static final String END_ROUTE = "?page=";
-    public static String url = BASE_URL + START_ROUTE + ROUTE_1 + ROUTE_PRICE + ROUTE_2 + END_ROUTE;
-    private int numberOfCard;
+    private static final String SEARCH_ROUTE = "/ingatlanok/kereses?realestate%5Bertekesites%5D=elado&realestate%5Bjelleg%5D=lakas&debrecen=on";
+    public static final String URL = BASE_URL + SEARCH_ROUTE;
 
+    @Override
     public void init() {
-        System.out.println("URL : " + url);
-        Document document = getUrlContent(1, url);
-        Element resultPageSize = document.select("span.atEstateList-totalCount").first();
-        numberOfCard = Integer.parseInt(resultPageSize.getAllElements().tagName("strong").get(1).html());
+        System.out.println("Otthon Centrum keresés: " + URL);
     }
 
+    @Override
     public int getCardNumber(Element resultPageSize) {
-        int result = 1;
-        try {
-            result = Integer.valueOf(resultPageSize.ownText());
-        } catch (NumberFormatException e) {
-        }
-        return result;
+        return 12;
     }
 
+    @Override
     public Set<String> getUrls() {
         init();
-        Set<String> result = new HashSet<String>();
-        int page = numberOfCard / 12;
-        page = page == 0 ? 1 : page;
-        for (int i = 1; i <= page; i++) {
-            Document document = getUrlContent(i, url);
-            Elements cards = document.getElementsByClass("col-md-4 col-sm-6 col-s-6 col-xs-12 ");
-            cards.addAll(document.getElementsByClass("col-md-4 col-sm-6 col-s-6 col-xs-12 row-breaker-tablet"));
-            cards.addAll(document.getElementsByClass("col-md-4 col-sm-6 col-s-6 col-xs-12 row-breaker"));
-            for (Element div : cards) {
-                Elements child = div.select("a[href]");
-                String link = BASE_URL + child.attr("href");
-                if (IngatlanDataBaseMock.getUrls().contains(link)) {
-                } else {
-                    result.add(link);
+        Set<String> result = new HashSet<>();
+
+        Document document = getDocument(URL);
+        if (document == null) {
+            System.err.println("Nem sikerült letölteni az Otthon Centrum keresési oldalt: " + URL);
+            return result;
+        }
+
+        // Hirdetés linkek keresése a kártyákból és az ingatlan hivatkozásokból
+        Elements links = document.select("a[href*=/ingatlanok/]");
+        for (Element a : links) {
+            String href = a.attr("href");
+            if (href == null || href.isEmpty()) {
+                continue;
+            }
+
+            // Kizárjuk a navigációs linkeket (/ingatlanok/lista, /ingatlanok/kereses, stb.)
+            if (href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
+                String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+                if (!IngatlanDataBaseMock.getUrls().contains(fullLink)) {
+                    result.add(fullLink);
                 }
             }
         }
-        System.out.println("Otthon centrum Új URL száma : " + result.size());
+
+        System.out.println("oc.hu Új URL száma : " + result.size());
         return result;
     }
 }
