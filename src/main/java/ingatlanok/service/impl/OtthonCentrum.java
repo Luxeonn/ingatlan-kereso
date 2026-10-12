@@ -51,9 +51,33 @@ public class OtthonCentrum extends IngatlanStart implements Ingatlan {
     @Override
     public List<IngatlanItem> search(SearchCriteria criteria) {
         List<IngatlanItem> items = new ArrayList<>();
-        String jelleg = "haz".equalsIgnoreCase(criteria.getPropertyType()) ? "haz" : "lakas";
+        String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
+        String jellegParam = switch (rawType) {
+            case "haz" -> "2";
+            case "nyaralo" -> "3";
+            case "telek" -> "4";
+            case "garazs" -> "5";
+            case "iroda" -> "6";
+            case "osszes" -> "";
+            default -> "1";
+        };
+
         String cityParam = criteria.getCity().toLowerCase().contains("debrecen") ? "debrecen=on" : "q=" + criteria.getCity();
-        String searchUrl = BASE_URL + "/ingatlanok/kereses?realestate%5Bertekesites%5D=elado&realestate%5Bjelleg%5D=" + jelleg + "&" + cityParam;
+        StringBuilder urlBuilder = new StringBuilder(BASE_URL)
+                .append("/ingatlanok/kereses?realestate%5Bertekesites%5D=elado");
+
+        if (!jellegParam.isEmpty()) {
+            urlBuilder.append("&realestate%5Bjelleg%5D=").append(jellegParam);
+        }
+        if (criteria.getMinPriceMillion() != null) {
+            urlBuilder.append("&realestate%5Bar%5D%5Bmin%5D=").append(criteria.getMinPriceMillion());
+        }
+        if (criteria.getMaxPriceMillion() != null) {
+            urlBuilder.append("&realestate%5Bar%5D%5Bmax%5D=").append(criteria.getMaxPriceMillion());
+        }
+        urlBuilder.append("&").append(cityParam);
+
+        String searchUrl = urlBuilder.toString();
 
         System.out.println("Otthon Centrum keresés: " + searchUrl);
 

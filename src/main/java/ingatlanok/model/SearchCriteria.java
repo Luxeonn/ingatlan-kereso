@@ -10,7 +10,7 @@ import java.util.List;
 public class SearchCriteria implements Serializable {
 
     private String city = "Debrecen";
-    private String propertyType = "lakas"; // "lakas", "haz", "osszes"
+    private String propertyType = "lakas"; // "lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"
     private Integer minPriceMillion;
     private Integer maxPriceMillion;
     private Integer minRooms;
@@ -22,6 +22,7 @@ public class SearchCriteria implements Serializable {
         portals.add("dh");
         portals.add("oc");
         portals.add("jofogas");
+        portals.add("ingatlancom");
     }
 
     public String getCity() {
