@@ -141,8 +141,46 @@ flowchart TD
 ## 7. Munkafolyamat és Verziókezelési Szabályzat (Workflow Rule)
 
 > [!IMPORTANT]
-> **Kötelező GitHub PR Szabályzat az AI Asszisztens számára:**
-> 1. **Közvetlen `master`/`main` ágra commitolás és pusholás TILOS.** Minden módosítást új munkavégző ágon (`git checkout -b <branch-name>`) kell elvégezni.
-> 2. **Pull Request automatikus létrehozása:** A változtatásokat fel kell tölteni a GitHub-ra (`git push -u origin <branch-name>`), majd Pull Request-et kell nyitni (`gh pr create`).
-> 3. **PR Link a válaszban:** A beszélgetésben a feladat befejezésekor **mindig kötelező közvetlen linket adni az elkészült GitHub Pull Request-re**.
+> **Kötelező GitHub PR és Verziókezelési Szabályzat az AI Asszisztens számára:**
+>
+> 1. **Közvetlen `master`/`main` ágra commitolás és pusholás TILOS:**
+>    - Minden feladatot új munkavégző ágon kell elvégezni.
+>
+> 2. **Strukturált branch elnevezés (`feature/`, `fix/`, stb.):**
+>    - Az ágak neve kötelezően kövesse a típus szerinti struktúrát és angol leírást:
+>      - `feature/<rovid-angol-leiras>` – új funkció, felületi vagy logikai fejlesztés
+>      - `fix/<rovid-angol-leiras>` – hibajavítás, rendellenesség elhárítása
+>      - `docs/<rovid-angol-leiras>` – dokumentáció, szabályzat vagy README módosítása
+>      - `refactor/<rovid-angol-leiras>` – kódstruktúra tisztítása, refaktorálás viselkedésváltozás nélkül
+>      - `chore/<rovid-angol-leiras>` – build beállítások, függőségek vagy karbantartási feladatok
+>
+> 3. **Mindig új commit a PR-ba:**
+>    - Minden változtatáshoz külön, leíró üzenetű új commitot kell készíteni (`git commit -m "..."`).
+>    - Tilos már pusholt commitokat felülírni (`--amend` tilos push után); minden módosítás vagy javítás új committal bővítse a branch történetét.
+>
+> 4. **Angol nyelvű, beszédes PR elnevezés (Title):**
+>    - A Pull Request neve **mindig kötelezően angol nyelvű** legyen, és pontosan mutassa be a feladat típusát és tartalmát Conventional Commits formátumban:
+>      - Pl.: `feat: add stepper controls and portal counters to dashboard`
+>      - Pl.: `fix: resolve timeout issue in jofogas scraper`
+>      - Pl.: `docs: update workflow rules with branch structure and label requirements`
+>
+> 5. **Kötelező GitHub Label (Címke) a PR-on:**
+>    - A PR-t kötelező címkével ellátva létrehozni (`gh pr create --label "<label>"`).
+>    - Használandó címkék:
+>      - `enhancement` – új funkcionalitás vagy UI bővítés esetén
+>      - `bug` – hibajavítás esetén
+>      - `documentation` – leírások, dokumentáció és szabályzat esetén
+>      - Ha a címke még nem létezik a repóban, a `gh label create` paranccsal azonnal létre kell hozni.
+>
+> 6. **Beszédes, részletes magyar nyelvű összefoglaló (Summary / Description):**
+>    - A PR törzse (`--body`) és a chat-válasz záró összefoglalója magyar nyelvű legyen.
+>    - Az összefoglalónak kifejezetten **beszédesnek és részletesnek** kell lennie (nem 1 mondatos összegzés), hogy világosan érthető legyen:
+>      - **Mi a cél és kontextus:** Miért készült a módosítás?
+>      - **Részletes technikai változtatások:** Mely fájlok, komponensek és logikák változtak és hogyan?
+>      - **Felhasználói és működési hatás:** Mit tapasztal a felhasználó, hogyan változik a működés?
+>      - **Verifikáció és tesztelés:** Hogyan lett ellenőrizve a módosítás helyessége?
+>
+> 7. **Közvetlen PR Link a válaszban:**
+>    - A feladat befejezésekor a beszélgetésben **mindig kötelező közvetlen kattintható linket adni az elkészült GitHub Pull Request-re**.
+
 
