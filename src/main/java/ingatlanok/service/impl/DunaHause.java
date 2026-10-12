@@ -57,8 +57,27 @@ public class DunaHause extends IngatlanStart implements Ingatlan {
                 .replace("ű", "u").replace("ü", "u").replace("í", "i")
                 .replaceAll("[^a-z0-9]", "-");
 
-        String typeSlug = "haz".equalsIgnoreCase(criteria.getPropertyType()) ? "haz" : "lakas";
-        String searchRoute = "/elado-ingatlan/" + typeSlug + "/" + (citySlug.equals("debrecen") ? "hajdu-bihar/debrecen" : citySlug);
+        String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
+        String typeSlug = switch (rawType) {
+            case "haz" -> "haz";
+            case "garazs" -> "garazs";
+            case "telek" -> "telek";
+            case "nyaralo" -> "nyaralo";
+            case "iroda" -> "iroda";
+            case "osszes" -> "lakas-haz";
+            default -> "lakas";
+        };
+
+        String priceSlug = "";
+        if (criteria.getMinPriceMillion() != null && criteria.getMaxPriceMillion() != null) {
+            priceSlug = "/" + criteria.getMinPriceMillion() + "-" + criteria.getMaxPriceMillion() + "-mFt";
+        } else if (criteria.getMinPriceMillion() != null) {
+            priceSlug = "/" + criteria.getMinPriceMillion() + "-mFt-tol";
+        } else if (criteria.getMaxPriceMillion() != null) {
+            priceSlug = "/" + criteria.getMaxPriceMillion() + "-mFt-ig";
+        }
+
+        String searchRoute = "/elado-ingatlan/" + typeSlug + "/" + (citySlug.equals("debrecen") ? "hajdu-bihar/debrecen" : citySlug) + priceSlug;
         String searchUrl = BASE_URL + searchRoute;
 
         System.out.println("Duna House keresés: " + searchUrl);

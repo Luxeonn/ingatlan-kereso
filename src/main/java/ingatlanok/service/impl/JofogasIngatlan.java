@@ -53,10 +53,30 @@ public class JofogasIngatlan extends IngatlanStart implements Ingatlan {
     @Override
     public List<IngatlanItem> search(SearchCriteria criteria) {
         List<IngatlanItem> items = new ArrayList<>();
-        String typeWord = "haz".equalsIgnoreCase(criteria.getPropertyType()) ? "haz" : "lakas";
+        String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
+        String typeWord = switch (rawType) {
+            case "haz" -> "haz";
+            case "garazs" -> "garazs";
+            case "telek" -> "telek";
+            case "nyaralo" -> "nyaralo";
+            case "iroda" -> "iroda";
+            case "osszes" -> "ingatlan";
+            default -> "lakas";
+        };
+
         String query = criteria.getCity() + " elado " + typeWord;
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        String searchUrl = BASE_URL + "/magyarorszag/ingatlan?q=" + encodedQuery;
+        StringBuilder urlBuilder = new StringBuilder(BASE_URL)
+                .append("/magyarorszag/ingatlan?q=").append(encodedQuery);
+
+        if (criteria.getMinPriceMillion() != null) {
+            urlBuilder.append("&min_price=").append(criteria.getMinPriceMillion() * 1_000_000L);
+        }
+        if (criteria.getMaxPriceMillion() != null) {
+            urlBuilder.append("&max_price=").append(criteria.getMaxPriceMillion() * 1_000_000L);
+        }
+
+        String searchUrl = urlBuilder.toString();
 
         System.out.println("Jófogás Ingatlan keresés: " + searchUrl);
 

@@ -419,6 +419,7 @@ public class WebDashboardHtml {
         .portal-badge.dh { background: #1e3a8a; color: #93c5fd; }
         .portal-badge.oc { background: #831843; color: #fbcfe8; }
         .portal-badge.jf { background: #7c2d12; color: #fed7aa; }
+        .portal-badge.ic { background: #9a3412; color: #ffedd5; }
 
         .badge-new {
             background: rgba(16, 185, 129, 0.2);
@@ -584,7 +585,20 @@ public class WebDashboardHtml {
                         <select id="type-select" class="form-control">
                             <option value="lakas" selected>Eladó lakás</option>
                             <option value="haz">Eladó ház</option>
+                            <option value="garazs">Garázs</option>
+                            <option value="telek">Telek</option>
+                            <option value="nyaralo">Nyaraló</option>
+                            <option value="iroda">Iroda / Üzlethelyiség</option>
+                            <option value="osszes">Összes típus</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ársáv (Millió Ft)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" id="min-price-input" class="form-control" placeholder="Min (M Ft)" min="0" step="1" style="flex: 1;">
+                            <span style="color: var(--text-secondary); font-weight: 700;">-</span>
+                            <input type="number" id="max-price-input" class="form-control" placeholder="Max (M Ft)" min="0" step="1" style="flex: 1;">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Aktív weboldalak</label>
@@ -596,7 +610,10 @@ public class WebDashboardHtml {
                                 <input type="checkbox" id="portal-oc" value="oc" checked> Otthon Centrum
                             </label>
                             <label class="portal-chip">
-                                <input type="checkbox" id="portal-jf" value="jofogas" checked> Jófogás Ingatlan
+                                <input type="checkbox" id="portal-jf" value="jofogas" checked> Jófogás
+                            </label>
+                            <label class="portal-chip">
+                                <input type="checkbox" id="portal-ic" value="ingatlancom" checked> Ingatlan.com
                             </label>
                         </div>
                     </div>
@@ -701,10 +718,13 @@ public class WebDashboardHtml {
                     if (conf.city) document.getElementById('city-input').value = conf.city;
                     if (conf.propertyType) document.getElementById('type-select').value = conf.propertyType;
                     if (conf.autoOpenBrowser !== undefined) document.getElementById('auto-open-toggle').checked = conf.autoOpenBrowser;
+                    if (conf.minPriceMillion !== undefined && conf.minPriceMillion !== null) document.getElementById('min-price-input').value = conf.minPriceMillion;
+                    if (conf.maxPriceMillion !== undefined && conf.maxPriceMillion !== null) document.getElementById('max-price-input').value = conf.maxPriceMillion;
                     if (conf.portals) {
                         document.getElementById('portal-dh').checked = conf.portals.includes('dh');
                         document.getElementById('portal-oc').checked = conf.portals.includes('oc');
                         document.getElementById('portal-jf').checked = conf.portals.includes('jofogas');
+                        document.getElementById('portal-ic').checked = conf.portals.includes('ingatlancom');
                     }
                 }
 
@@ -731,15 +751,21 @@ public class WebDashboardHtml {
             if (document.getElementById('portal-dh').checked) portals.push('dh');
             if (document.getElementById('portal-oc').checked) portals.push('oc');
             if (document.getElementById('portal-jf').checked) portals.push('jofogas');
+            if (document.getElementById('portal-ic').checked) portals.push('ingatlancom');
 
             if (portals.length === 0) {
                 showToast("Válassz ki legalább egy weboldalt a kereséshez!");
                 return;
             }
 
+            const minPriceVal = document.getElementById('min-price-input').value.trim();
+            const maxPriceVal = document.getElementById('max-price-input').value.trim();
+
             const payload = {
                 city: document.getElementById('city-input').value.trim() || 'Debrecen',
                 propertyType: document.getElementById('type-select').value,
+                minPriceMillion: minPriceVal ? parseInt(minPriceVal, 10) : null,
+                maxPriceMillion: maxPriceVal ? parseInt(maxPriceVal, 10) : null,
                 autoOpenBrowser: document.getElementById('auto-open-toggle').checked,
                 portals: portals
             };
@@ -826,6 +852,7 @@ public class WebDashboardHtml {
                 let portalClass = 'dh';
                 if (item.portal && item.portal.includes('Otthon')) portalClass = 'oc';
                 if (item.portal && item.portal.includes('Jófogás')) portalClass = 'jf';
+                if (item.portal && item.portal.toLowerCase().includes('ingatlan.com')) portalClass = 'ic';
 
                 return `
                     <div class="listing-card ${item.isNew ? 'is-new' : ''}">

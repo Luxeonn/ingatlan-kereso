@@ -46,7 +46,7 @@ public class IngatlanSearchService {
         // 1. Duna House
         if (criteria.isPortalEnabled("dh")) {
             try {
-                System.out.println("\n[1/3] Duna House lekérdezése...");
+                System.out.println("\n[1/4] Duna House lekérdezése...");
                 List<IngatlanItem> dhItems = new DunaHause().search(criteria);
                 allFoundItems.addAll(dhItems);
                 portalCounts.put("Duna House", dhItems.size());
@@ -59,7 +59,7 @@ public class IngatlanSearchService {
         // 2. Otthon Centrum
         if (criteria.isPortalEnabled("oc")) {
             try {
-                System.out.println("\n[2/3] Otthon Centrum lekérdezése...");
+                System.out.println("\n[2/4] Otthon Centrum lekérdezése...");
                 List<IngatlanItem> ocItems = new OtthonCentrum().search(criteria);
                 allFoundItems.addAll(ocItems);
                 portalCounts.put("Otthon Centrum", ocItems.size());
@@ -72,13 +72,26 @@ public class IngatlanSearchService {
         // 3. Jófogás Ingatlan
         if (criteria.isPortalEnabled("jofogas")) {
             try {
-                System.out.println("\n[3/3] Jófogás Ingatlan lekérdezése...");
+                System.out.println("\n[3/4] Jófogás Ingatlan lekérdezése...");
                 List<IngatlanItem> jfItems = new JofogasIngatlan().search(criteria);
                 allFoundItems.addAll(jfItems);
                 portalCounts.put("Jófogás Ingatlan", jfItems.size());
             } catch (Exception e) {
                 System.err.println("Hiba a Jófogás keresésekor: " + e.getMessage());
                 portalCounts.put("Jófogás Ingatlan", 0);
+            }
+        }
+
+        // 4. Ingatlan.com
+        if (criteria.isPortalEnabled("ingatlancom")) {
+            try {
+                System.out.println("\n[4/4] Ingatlan.com lekérdezése...");
+                List<IngatlanItem> icItems = new IngatlanCom().search(criteria);
+                allFoundItems.addAll(icItems);
+                portalCounts.put("Ingatlan.com", icItems.size());
+            } catch (Exception e) {
+                System.err.println("Hiba az Ingatlan.com keresésekor: " + e.getMessage());
+                portalCounts.put("Ingatlan.com", 0);
             }
         }
 
