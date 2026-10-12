@@ -1,0 +1,13 @@
+#!/bin/sh
+# Git pre-push hook a közvetlen main és develop ágra történő push megakadályozására.
+# Telepítéshez futtasd: git config core.hooksPath .githooks
+
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+if [ "$current_branch" = "main" ] || [ "$current_branch" = "develop" ]; then
+    echo "❌ HIBA: Közvetlen push a(z) '$current_branch' ágra nem engedélyezett!"
+    echo "👉 Kérjük, készíts munkavégző ágat (pl. feature/..., fix/...), és nyiss Pull Request-et a 'develop' ágra!"
+    exit 1
+fi
+
+exit 0

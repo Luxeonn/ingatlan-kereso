@@ -1,0 +1,43 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Test (Java 21)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Compile and Test with Maven
+        run: mvn --batch-mode --no-transfer-progress clean test package
+
+      - name: Report Build Summary
+        if: always()
+        run: |
+          echo "### 🚀 CI Építés és Teszt Eredmények" >> $GITHUB_STEP_SUMMARY
+          echo "- **Java Verzió:** 21 LTS (Eclipse Temurin)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Állapot:** ${{ job.status == 'success' && '✅ Sikeres' || '❌ Sikertelen' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

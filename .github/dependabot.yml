@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Heti Maven függőségfrissítések keresése
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Budapest"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+
+  # Heti GitHub Actions verziófrissítések figyelése
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Budapest"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    labels:
+      - "dependencies"

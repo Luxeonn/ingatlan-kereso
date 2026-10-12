@@ -1,0 +1,56 @@
+name: PR & Branch Protection Guard
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - main
+      - develop
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  pr-compliance:
+    name: Validate PR Standards & Branch Conventions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR Title (Conventional Commits)
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "Ellenőrzés alatt álló PR cím: '$TITLE'"
+          REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .+"
+          if [[ ! "$TITLE" =~ $REGEX ]]; then
+            echo "::error::A PR címe nem felel meg a Conventional Commits szabályzatnak! Helyes formátum: 'feat: leírás' vagy 'feat(modul): leírás'."
+            echo "Megengedett típusok: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+            exit 1
+          fi
+          echo "✅ PR cím érvényes."
+
+      - name: Validate Source Branch Name Convention
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "Ellenőrzés alatt álló forráság: '$BRANCH'"
+          # Ha a develop mergeli a maint vagy forditva release esetén, azt is engedjuk
+          if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" ]]; then
+            echo "✅ Rendszerág összefésülés engedélyezve: $BRANCH"
+            exit 0
+          fi
+          
+          REGEX="^(feature|fix|hotfix|docs|refactor|test|chore|release)\/[a-zA-Z0-9._-]+$"
+          if [[ ! "$BRANCH" =~ $REGEX ]]; then
+            echo "::error::A forráság neve ('$BRANCH') nem követi a megengedett sémát! Követelmény: prefix/név (pl. feature/uj-funkcio, fix/hiba, docs/leiras)."
+            exit 1
+          fi
+          echo "✅ Forráság elnevezése megfelelő."
+
+      - name: Verify PR Description is not empty
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          if [ -z "$BODY" ] || [ ${#BODY} -lt 15 ]; then
+            echo "::warning::A Pull Request leírása túl rövid vagy hiányos! Kérjük, adj meg részletes összefoglalót a változtatásokról."
+          else
+            echo "✅ PR leírás kitöltve (${#BODY} karakter)."
+          fi

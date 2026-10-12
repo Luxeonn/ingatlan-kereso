@@ -143,8 +143,10 @@ flowchart TD
 > [!IMPORTANT]
 > **Kötelező GitHub PR és Verziókezelési Szabályzat az AI Asszisztens számára:**
 >
-> 1. **Közvetlen `master`/`main` ágra commitolás és pusholás TILOS:**
->    - Minden feladatot új munkavégző ágon kell elvégezni.
+> 1. **Közvetlen `main` és `develop` ágra commitolás és pusholás szigorúan TILOS:**
+>    - A `main` a védett, stabil kiadási ág.
+>    - A `develop` a védett integrációs ág.
+>    - Minden feladatot új munkavégző ágon (`feature/*`, `fix/*`, `docs/*`, stb.) kell elvégezni, amely a `develop` ágból indul ki.
 >
 > 2. **Strukturált branch elnevezés (`feature/`, `fix/`, stb.):**
 >    - Az ágak neve kötelezően kövesse a típus szerinti struktúrát és angol leírást:
@@ -152,7 +154,7 @@ flowchart TD
 >      - `fix/<rovid-angol-leiras>` – hibajavítás, rendellenesség elhárítása
 >      - `docs/<rovid-angol-leiras>` – dokumentáció, szabályzat vagy README módosítása
 >      - `refactor/<rovid-angol-leiras>` – kódstruktúra tisztítása, refaktorálás viselkedésváltozás nélkül
->      - `chore/<rovid-angol-leiras>` – build beállítások, függőségek vagy karbantartási feladatok
+>      - `chore/<rovid-angol-leiras>` – build beállítások, függőségek, CI/CD karbantartás
 >
 > 3. **Mindig új commit a PR-ba:**
 >    - Minden változtatáshoz külön, leíró üzenetű új commitot kell készíteni (`git commit -m "..."`).
