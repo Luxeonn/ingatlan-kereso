@@ -157,9 +157,14 @@ mvn exec:java "-Dexec.args=--cli"
 
 ## 🤝 Verziókezelési Irányelvek
 
-A projekt szigorú Pull Request alapú munkafolyamatot követ:
-* Közvetlenül a `master` / `main` ágra commitolni és pusholni **tilos**.
-* Minden új fejlesztést külön ágon (`feature/...`, `docs/...`, `fix/...`) kell elvégezni, és GitHub Pull Requesten keresztül mergelni.
+A projekt szigorú, automatizált Pull Request alapú munkafolyamatot követ:
+* **Közvetlen `master` / `main` commit és push TILOS:** Minden feladatot új munkavégző ágon kell elvégezni.
+* **Strukturált branch elnevezés:** Kötelező a típus szerinti prefix használata (`feature/...`, `fix/...`, `docs/...`, `refactor/...`, `chore/...`).
+* **Mindig új commit:** Minden változtatáshoz különálló, leíró üzenetű commit tartozik; a korábbi commitok push utáni felülírása tilos.
+* **Angol nyelvű PR címek:** A Pull Requestek neve angol nyelvű, Conventional Commits formátumú legyen (`feat:`, `fix:`, `docs:`, stb.).
+* **Kötelező GitHub Címkék (Labels):** Minden PR-t megfelelő címkével kell megnyitni (`enhancement`, `bug`, `documentation`).
+* **Beszédes magyar összefoglaló:** A PR leírásában és az átadásban részletes, beszédes magyar összefoglaló szerepel (cél, technikai változtatások, hatások, tesztek).
+
 
 ---
 
