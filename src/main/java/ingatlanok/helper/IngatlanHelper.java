@@ -36,7 +36,7 @@ public class IngatlanHelper {
 
     public static void saveIngatlanToFile(List<String> urlList) {
         try {
-            FileUtils.writeLines(new File(fileName), urlList, true);
+            FileUtils.writeLines(new File(fileName), java.nio.charset.StandardCharsets.UTF_8.name(), urlList, true);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -44,12 +44,15 @@ public class IngatlanHelper {
 
     public static List<String> openUrl(Set<String> urlList) {
         List<String> result = new LinkedList<String>();
-        Runtime rt = Runtime.getRuntime();
         for (String url : urlList) {
             System.out.println("URL : " + url);
             try {
-                rt.exec("rundll32 url.dll,FileProtocolHandler " + url);
-            } catch (IOException e) {
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                    java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+                } else {
+                    new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", url).start();
+                }
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             result.add(url);

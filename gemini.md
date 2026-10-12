@@ -16,12 +16,12 @@ A program periodikusan vagy igény szerint lekéri a keresési találati listák
 
 ## 2. Technológiai Stack
 
-* **Nyelv & Keretrendszer:** Java (alapértelmezetten Java 8 körüli szintaktika)
+* **Nyelv & Keretrendszer:** Java 21 LTS
 * **Build rendszer:** Apache Maven (`pom.xml`)
-  * `org.jsoup:jsoup:1.10.3` – HTML letöltés, DOM parszer és CSS szelektálás
-  * `commons-io:commons-io:2.5` – Fájlműveletek (`FileUtils.writeLines`)
-  * `org.codehaus.mojo:exec-maven-plugin:1.6.0` – Parancssori futtatás támogatása
-* **Rendszerszintű integráció:** Windows API hívás (`rundll32 url.dll,FileProtocolHandler`) a böngészőfülök megnyitásához
+  * `org.jsoup:jsoup:1.23.2` – HTML letöltés, DOM parszer és CSS szelektálás
+  * `commons-io:commons-io:2.22.0` – Fájlműveletek és I/O segédeszközök
+  * `org.codehaus.mojo:exec-maven-plugin:3.6.4` – Parancssori futtatás támogatása
+* **Rendszerszintű integráció:** Modern `java.awt.Desktop` böngészőhívás `ProcessBuilder` fallbackkel
 
 ---
 
@@ -101,10 +101,10 @@ flowchart TD
 
 * [ ] **Konfigurációs réteg kialakítása:**
   * Keresési profilok (város, ár sáv, szobaszám, méret) külső JSON vagy properties fájlba helyezése.
-* [ ] **Modernizáció és Függőségfrissítés:**
-  * Java 17 vagy 21 beállítása a `pom.xml`-ben.
-  * Jsoup frissítése a legfrissebb verzióra.
-  * Modern böngészési metódus (`java.awt.Desktop`) bevezetése.
+* [x] **Modernizáció és Függőségfrissítés (Elkészült):**
+  * Java 21 LTS beállítása a `pom.xml`-ben (`maven.compiler.source`/`target`).
+  * Jsoup frissítve `1.23.2`-re, Commons IO `2.22.0`-ra, Exec Maven Plugin `3.6.4`-re.
+  * Modern böngészési metódus (`java.awt.Desktop`) bevezetése `ProcessBuilder` fallbackkel.
 * [ ] **Scraper réteg felülvizsgálata:**
   * Fejlesztői/REST végpontok vagy publikus JSON API-k felkutatása a nyers HTML scraping helyett.
   * Szükség esetén headless böngésző integráció (Playwright Java vagy Selenium) a dinamikus JS és bot-védelem kezelésére.
