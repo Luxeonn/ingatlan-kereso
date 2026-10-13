@@ -138,6 +138,26 @@ ingatlan-kereso/
   * Felügyeli a duplikátumszűrést az `IngatlanRepository`-n keresztül.
   * Rendezi a találatokat ár és dátum szerint, valamint előállítja a portálonkénti találati statisztikákat.
 
+### Projekt Szintű AI Szakértői Skillek (`.agents/skills/`)
+
+A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkezik, amelyek az adott szakterület mély ismeretével ruházzák fel a fejlesztést segítő ágenseket:
+
+* **`deep-architect` (`.agents/skills/deep-architect/`):**
+  * Mélytervező rendszerszintű architekt és szoftvertervezési specialista.
+  * Fókusz: Clean Architecture, réteg-izoláció, Java 21 Virtual Threads és strukturált konkurencia, 0-Crash elv, hibrid Java-Sidecar minták, és Architecture Decision Record (ADR) sablon.
+* **`ui-designer` (`.agents/skills/ui-designer/`):**
+  * UI/UX designer és beágyazott frontend specialista.
+  * Fókusz: `WebDashboardHtml.java` zéró külső függőségű SPA, Tailwind-ihletésű design tokenek, numerikus stepperek, shimmer loading skeletonok, piaci KPI kártyák, akadálymentesítés és mikróinterakciók.
+* **`security-specialist` (`.agents/skills/security-specialist/`):**
+  * Alkalmazásbiztonsági (AppSec) és hardening specialista.
+  * Fókusz: Beágyazott `WebServer` localhost kötés és HTTP fejléc védelem, Path Traversal prevenció a városszintű JSON perzisztenciában, XSS védelem a hirdetéskártyáknál, ProcessBuilder parancsinjektálás elleni védelem, valamint böngésző URL megnyitási korlátok és sémavalidáció.
+* **`database-specialist` (`.agents/skills/database-specialist/`):**
+  * Adatbázis és tárolási architektúra specialista.
+  * Fókusz: `IngatlanRepository` kétszintű JSON perzisztencia optimalizáció, `ReentrantReadWriteLock` konkurenciakezelés, atomi lemezre írás (`ATOMIC_MOVE`), O(1) duplikátumszűrés, visszafelé kompatibilis sémaevolúció, és SQLite átállási terv.
+* **`workflow-engineer` (`.agents/skills/workflow-engineer/`):**
+  * GitHub Actions és CI/CD automatizálási mérnök és workflow specialista.
+  * Fókusz: Professzionális, biztonságos és optimalizált `.github/workflows/` scriptek, jogosultság-minimalizálás (`permissions`), shell injection prevenció, gyorstárazás (`cache`), concurrency menedzsment és PR guard kapuk.
+
 ---
 
 ## 3. Főbb Tervezési Minták és Technikai Döntések
@@ -233,3 +253,23 @@ ingatlan-kereso/
 >
 > 7. **Közvetlen PR Link a válaszban:**
 >    - A feladat befejezésekor a beszélgetésben **mindig kötelező közvetlen kattintható linket adni az elkészült GitHub Pull Request-re**.
+>
+> 8. **Kötelező Tematikus Agent Jóváhagyási Kapu (Thematic Agent Approval Gate & Review-and-Fix):**
+>    - Egyetlen Pull Request sem fogadható el és nem fésülhető össze a védett ágakba (`develop`, `main`) anélkül, hogy a módosítás által érintett szakterület kijelölt AI ágense azt jóvá nem hagyta:
+>      - **Rendszerarchitektúra & Scraper réteg (`service/`, `scraper/`, szálkezelés):** A `deep-architect` ágens jóváhagyása kötelező (Clean Architecture, 0-crash garancia).
+>      - **Frontend és Felület (`WebDashboardHtml.java`, CSS, JS komponensek):** A `ui-designer` ágens jóváhagyása kötelező (zéró külső függőség, reszponzivitás, UX).
+>      - **Biztonság, Hálózat és Folyamatkezelés (`WebServer.java`, `SidecarCliExecutor`, `BrowserUtils`):** A `security-specialist` ágens jóváhagyása kötelező (localhost kötés, CSP, Path Traversal, XSS és command injection védelem).
+>      - **Perzisztencia és Adatbázis (`persistence/`, `IngatlanRepository`, `data/`):** A `database-specialist` ágens jóváhagyása kötelező (atomi lemezre írás, ReentrantReadWriteLock, duplikátumszűrés).
+>      - **CI/CD és GitHub Actions (`.github/workflows/`, `.githooks/`):** A `workflow-engineer` ágens jóváhagyása kötelező (least privilege permissions, shell injection védelem, caching, concurrency).
+>    - A felülvizsgálat lefolytatásához és az észlelt hiányosságok automatikus javításához a `.gemini/commands/review-and-fix.toml` parancs, illetve a `.agents/skills/review-and-fix/` skill használandó.
+>    - A PR leírásában kötelezően szerepelnie kell az alábbi ellenőrzött jóváhagyási blokknak:
+>      ```markdown
+>      ### 🛡️ Thematic Agent Approval Gate
+>      - [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`)
+>      - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`)
+>      - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`)
+>      - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`)
+>      - [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`)
+>      ```
+>      *(A nem érintett témakörök esetén a státusz: `N/A (nem érintett)`)*
+>    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.

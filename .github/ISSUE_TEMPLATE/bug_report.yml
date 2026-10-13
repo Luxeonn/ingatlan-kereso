@@ -1,0 +1,76 @@
+name: '🐛 Hibajelentés (Bug Report)'
+description: 'Hibajelenség vagy rendellenes működés bejelentése az ingatlan-kereso alkalmazásban'
+title: 'fix: [Rövid leírás a hibáról]'
+labels: ['bug']
+body:
+  - type: 'markdown'
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Köszönjük, hogy időt szánsz a hiba bejelentésére!
+        > Kérjük, mielőtt beküldenéd, keress a **[létező Issue-k](https://github.com/Luxeonn/ingatlan-kereso/issues)** között, hogy elkerüljük a duplikációt.
+
+  - type: 'textarea'
+    id: 'problem'
+    attributes:
+      label: 'Mi történt? (Probléma leírása)'
+      description: 'Egyértelmű, pontos összefoglaló a hibajelenségről.'
+      placeholder: 'Pl. A Duna House scraper nem találja az árakat bizonyos keresési feltételek mellett...'
+    validations:
+      required: true
+
+  - type: 'textarea'
+    id: 'expected'
+    attributes:
+      label: 'Mi lett volna az elvárt működés?'
+      description: 'Mit kellett volna tapasztalnod a hibás viselkedés helyett?'
+      placeholder: 'Pl. A találati listában meg kellett volna jelenniük a hirdetéskártyáknak a helyes árral.'
+    validations:
+      required: true
+
+  - type: 'textarea'
+    id: 'reproduction'
+    attributes:
+      label: 'Hogyan reprodukálható? (Lépések)'
+      description: 'Lépésről-lépésre leírás a hiba előidézéséhez.'
+      placeholder: |
+        1. Indítsd el az alkalmazást: `start-ui.bat`
+        2. Állítsd be a keresési szűrőt: Település = Debrecen, Típus = Lakás
+        3. Kattints a "Keresés indítása" gombra
+        4. Figyeld meg a konzol kimenetet vagy a felületet...
+    validations:
+      required: true
+
+  - type: 'dropdown'
+    id: 'component'
+    attributes:
+      label: 'Érintett szakterület / komponens'
+      description: 'Melyik alrendszerhez kapcsolódik a hiba?'
+      options:
+        - 'Duna House Scraper (dh.hu)'
+        - 'Otthon Centrum Scraper (oc.hu)'
+        - 'Jófogás Ingatlan Scraper (jofogas.hu)'
+        - 'Ingatlan.com Scraper & Sidecar'
+        - 'Ingatlanbazár Scraper (ingatlanbazar.hu)'
+        - 'Web Dashboard SPA Felület (UI)'
+        - 'Beágyazott WebServer (REST API)'
+        - 'Perzisztencia & Adatbázis (JSON tároló)'
+        - 'Egyéb / Általános'
+    validations:
+      required: true
+
+  - type: 'input'
+    id: 'environment'
+    attributes:
+      label: 'Környezet'
+      description: 'Operációs rendszer, Java verzió, böngésző'
+      placeholder: 'Pl. Windows 11, Java 21 LTS (Temurin), Chrome 124'
+    validations:
+      required: true
+
+  - type: 'textarea'
+    id: 'logs'
+    attributes:
+      label: 'Naplók és Hibaüzenetek (Logs / Stacktrace)'
+      description: 'Kérjük, másold be a releváns konzol kimenetet vagy hibát kódblokkban.'
+      render: 'shell'
