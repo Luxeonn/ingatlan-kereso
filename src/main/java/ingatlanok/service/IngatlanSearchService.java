@@ -1,15 +1,13 @@
 package ingatlanok.service;
 
-import ingatlanok.helper.IngatlanHelper;
+import ingatlanok.common.BrowserUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
-import ingatlanok.service.impl.DunaHause;
-import ingatlanok.service.impl.IngatlanBazar;
-import ingatlanok.service.impl.IngatlanCom;
-import ingatlanok.service.impl.JofogasIngatlan;
-import ingatlanok.service.impl.OtthonCentrum;
+import ingatlanok.scraper.IngatlanScraper;
+import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.scraper.ScraperRegistry;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,7 +16,7 @@ import java.util.stream.Collectors;
 
 /**
  * Központi keresési szolgáltatás, amely vezérli az egyes portálok lekérdezését
- * több kiválasztott városra, szegmentált adatbázis-kezeléssel és aggregációval.
+ * több kiválasztott városra dinamikus ScraperRegistry segítségével.
  */
 public class IngatlanSearchService {
 
@@ -50,7 +48,7 @@ public class IngatlanSearchService {
         SearchResult result = new SearchResult();
 
         List<IngatlanItem> allAggregatedItems = new ArrayList<>();
-        Map<String, Integer> portalCounts = new HashMap<>();
+        Map<String, Integer> portalCounts = new LinkedHashMap<>();
         portalCounts.put("Duna House", 0);
         portalCounts.put("Otthon Centrum", 0);
         portalCounts.put("Jófogás Ingatlan", 0);
@@ -82,51 +80,18 @@ public class IngatlanSearchService {
             SearchCriteria cityCriteria = criteria.cloneForCity(currentCity);
             List<IngatlanItem> cityFoundItems = new ArrayList<>();
 
-            // 1. Duna House
-            if (cityCriteria.isPortalEnabled("dh")) {
+            // Dinamikus portál scraperek lekérdezése ScraperRegistry segítségével (OCP elv)
+            List<IngatlanScraper> activeScrapers = ScraperRegistry.getInstance().getActiveScrapers(cityCriteria);
+            for (IngatlanScraper scraper : activeScrapers) {
                 try {
-                    System.out.println("[" + cityIndex + "/" + citiesToSearch.size() + "] Duna House lekérdezése (" + currentCity + ")...");
-                    List<IngatlanItem> dhItems = new DunaHause().search(cityCriteria);
-                    cityFoundItems.addAll(dhItems);
-                    portalCounts.put("Duna House", portalCounts.get("Duna House") + dhItems.size());
+                    System.out.println("[" + cityIndex + "/" + citiesToSearch.size() + "] " + scraper.getName() + " lekérdezése (" + currentCity + ")...");
+                    PortalScrapeResult scrapeResult = scraper.scrape(cityCriteria);
+                    result.getPortalResults().add(scrapeResult);
+                    List<IngatlanItem> items = scrapeResult.getItems();
+                    cityFoundItems.addAll(items);
+                    portalCounts.put(scraper.getName(), portalCounts.getOrDefault(scraper.getName(), 0) + items.size());
                 } catch (Exception e) {
-                    System.err.println("Hiba a Duna House keresésekor (" + currentCity + "): " + e.getMessage());
-                }
-            }
-
-            // 2. Otthon Centrum
-            if (cityCriteria.isPortalEnabled("oc")) {
-                try {
-                    System.out.println("[" + cityIndex + "/" + citiesToSearch.size() + "] Otthon Centrum lekérdezése (" + currentCity + ")...");
-                    List<IngatlanItem> ocItems = new OtthonCentrum().search(cityCriteria);
-                    cityFoundItems.addAll(ocItems);
-                    portalCounts.put("Otthon Centrum", portalCounts.get("Otthon Centrum") + ocItems.size());
-                } catch (Exception e) {
-                    System.err.println("Hiba az Otthon Centrum keresésekor (" + currentCity + "): " + e.getMessage());
-                }
-            }
-
-            // 3. Jófogás Ingatlan
-            if (cityCriteria.isPortalEnabled("jofogas")) {
-                try {
-                    System.out.println("[" + cityIndex + "/" + citiesToSearch.size() + "] Jófogás Ingatlan lekérdezése (" + currentCity + ")...");
-                    List<IngatlanItem> jfItems = new JofogasIngatlan().search(cityCriteria);
-                    cityFoundItems.addAll(jfItems);
-                    portalCounts.put("Jófogás Ingatlan", portalCounts.get("Jófogás Ingatlan") + jfItems.size());
-                } catch (Exception e) {
-                    System.err.println("Hiba a Jófogás keresésekor (" + currentCity + "): " + e.getMessage());
-                }
-            }
-
-            // 4. Ingatlan.com
-            if (cityCriteria.isPortalEnabled("ingatlancom")) {
-                try {
-                    System.out.println("[" + cityIndex + "/" + citiesToSearch.size() + "] Ingatlan.com lekérdezése (" + currentCity + ")...");
-                    List<IngatlanItem> icItems = new IngatlanCom().search(cityCriteria);
-                    cityFoundItems.addAll(icItems);
-                    portalCounts.put("Ingatlan.com", portalCounts.get("Ingatlan.com") + icItems.size());
-                } catch (Exception e) {
-                    System.err.println("Hiba az Ingatlan.com keresésekor (" + currentCity + "): " + e.getMessage());
+                    System.err.println("Hiba a(z) " + scraper.getName() + " keresésekor (" + currentCity + "): " + e.getMessage());
                 }
             }
 
@@ -176,7 +141,7 @@ public class IngatlanSearchService {
         // Kizárólag a ténylegesen új hirdetéseket nyitja meg (így új város első futásakor semmit)
         if (criteria.isAutoOpenBrowser() && !newItems.isEmpty()) {
             Set<String> urlsToOpen = newItems.stream().map(IngatlanItem::getUrl).collect(Collectors.toCollection(LinkedHashSet::new));
-            IngatlanHelper.openUrl(urlsToOpen);
+            BrowserUtils.openUrls(urlsToOpen);
         }
 
         // Rendezés: új elemek legelöl, majd dátum szerint

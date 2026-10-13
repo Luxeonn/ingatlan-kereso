@@ -24,13 +24,13 @@ flowchart TD
         HTTP_EP --> V_Thread
     end
 
-    subgraph Service ["Szolgáltatási Réteg (Orchestrator)"]
+    subgraph Service ["Szolgáltatási és Scraper Réteg"]
         Orchestrator["IngatlanSearchService: Koordináció"]
-        P1["DunaHause: dh.hu"]
-        P2["OtthonCentrum: oc.hu"]
-        P3["JofogasIngatlan: jofogas.hu"]
-        P4["IngatlanCom: fallback"]
-        P5["IngatlanBazar: fallback"]
+        P1["DunaHouseScraper: dh.hu"]
+        P2["OtthonCentrumScraper: oc.hu"]
+        P3["JofogasScraper: jofogas.hu"]
+        P4["IngatlanComScraper: fallback"]
+        P5["IngatlanBazarScraper: fallback"]
         
         Orchestrator --> P1 & P2 & P3 & P4 & P5
     end
@@ -58,10 +58,10 @@ flowchart TD
 
 1. **Konfiguráció betöltése:** Induláskor az `IngatlanRepository` betölti a legutóbbi keresési paramétereket a `data/last_config.json` fájlból, valamint memóriába olvassa a városonkénti előzményeket a `data/cities/*.json` fájlokból.
 2. **Keresési kérés fogadása:** A felhasználó a webes felületen vagy a CLI-n keresztül keresést indít. A `WebServer` virtuális szálon továbbítja a `SearchCriteria` objektumot az `IngatlanSearchService` felé.
-3. **Párhuzamos scraping:** Az orchestrator végighívja az aktív portálok scraper implementációit (`Ingatlan` interfész). A scraperek a Jsoup segítségével letöltik a HTML tartalmat, feldolgozzák a hirdetéskártyákat, és kinyerik az árat, alapterületet, szobaszámot és a közvetlen linket.
+3. **Párhuzamos scraping:** Az orchestrator végighívja az aktív portálok scraper implementációit (`IngatlanScraper` interfész). A scraperek a közös `HttpFetcher` és `PropertyParser` modulok segítségével letöltik a HTML tartalmat, feldolgozzák a hirdetéskártyákat, és kinyerik az árat, alapterületet, szobaszámot és a közvetlen linket.
 4. **Duplikátumszűrés és frissesség megállapítása:** Az `IngatlanRepository` ellenőrzi, hogy a talált URL szerepel-e már az adott város vagy a globális adatbázis ismert linkjei között.
    - Ha a link korábban nem volt ismert, megkapja a `✨ ÚJ TALÁLAT` jelölést (`newItem = true`), és rögzítésre kerül az adatbázisban a felfedezés időpontjával.
-5. **Kliens értesítés és asztali böngészés:** Az aggregált `SearchResult` JSON válaszként visszakerül a frontendhez. Amennyiben a felhasználó engedélyezte a lapmegnyitást, az `IngatlanHelper.openNewUrls()` megnyitja a friss linkeket az operációs rendszer alapértelmezett böngészőjében (biztonsági limitekkel védve a tab-túlcsordulás ellen).
+5. **Kliens értesítés és asztali böngészés:** Az aggregált `SearchResult` JSON válaszként visszakerül a frontendhez. Amennyiben a felhasználó engedélyezte a lapmegnyitást, a `BrowserUtils.openUrls()` megnyitja a friss linkeket az operációs rendszer alapértelmezett böngészőjében (biztonsági limitekkel védve a tab-túlcsordulás ellen).
 
 ---
 
@@ -70,28 +70,41 @@ flowchart TD
 ```text
 ingatlan-kereso/
 ├── src/main/java/
-│   ├── Main.java                                # Belépési pont (Web Dashboard szerver és CLI mód vezérlő)
 │   └── ingatlanok/
-│       ├── helper/
+│       ├── Main.java                            # Belépési pont (Web Dashboard szerver és CLI mód vezérlő)
+│       ├── common/                              # Közös megosztott modul (lapos hierarchia)
+│       │   ├── BrowserUtils.java                # Asztali böngészőkezelés (Desktop API / process fallback), limitekkel
 │       │   ├── CityUtils.java                   # Településnevek normalizálása, előre definiált városlista, presetek
-│       │   └── IngatlanHelper.java              # Asztali böngészőkezelés (Desktop API / process fallback), I/O
+│       │   ├── HttpFetcher.java                 # Jsoup HTTP kliens: User-Agent, fejlécek, timeout, hibatűrés
+│       │   ├── PropertyParser.java              # Ár, méret, szobaszám és azonosító regex kinyerés és normalizálás
+│       │   └── SlugUtils.java                   # Diakritikus ékezetmentesítés és keresési URL slug generálás
 │       ├── model/
-│       │   ├── IngatlanItem.java                # Hirdetés adatmodell (ár, méret, szobaszám, link, cím, új státusz)
+│       │   ├── IngatlanItem.java                # Hirdetés adatmodell (gazdag értékobjektumokkal)
+│       │   ├── PortalSource.java                # Portálforrás metaadat (azonosító, szín, közvetlen típus)
+│       │   ├── PriceInfo.java                   # Strukturált ár (nyers szöveg, numerikus Ft és M Ft)
+│       │   ├── PropertyDetails.java             # Részletek (alapterület m², szobaszám, számított Ft/m²)
 │       │   ├── SearchCriteria.java              # Keresési paraméterek (városok, árhatárok, típus, aktív portálok)
 │       │   └── SearchResult.java                # Keresési aggregáció és portálstatisztikák modellje
 │       ├── persistence/
-│       │   ├── IngatlanRepository.java          # Fájlalapú thread-safe JSON adatbázis és beállításkezelő
-│       │   └── IngatlanDataBaseMock.java        # Visszafelé kompatibilitási réteg a korábbi memóriakezeléshez
+│       │   └── IngatlanRepository.java          # Fájlalapú thread-safe JSON adatbázis és beállításkezelő
+│       ├── presentation/                        # Prezentációs és Facade réteg (UI & csatorna izoláció)
+│       │   ├── DashboardPresentationService.java# Facade: KPI statisztikák, portál állapotok, aggregáció
+│       │   ├── DashboardResponseDto.java        # Gazdagított válaszmodell a felület és kliensek felé
+│       │   ├── MarketStatsDto.java              # Piaci KPI mutatók (átlagár, átlagos m² ár, új arány)
+│       │   └── PortalStatusDto.java             # Portál egészségügyi és hibaállapot információs kártyák
+│       ├── scraper/                             # Dedikált web scraping réteg
+│       │   ├── IngatlanScraper.java             # Portálfüggetlen scraper interfész (search, getUrls, getName)
+│       │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & lapozási logika)
+│       │   ├── PortalScrapeResult.java          # Állapotgazdag és izolált kimenet per portál
+│       │   ├── PortalScrapeStatus.java          # Portál futási státusz (SUCCESS, BOT_PROTECTED, stb.)
+│       │   ├── ScraperRegistry.java             # Dinamikus Scraper Provider Factory (OCP elv)
+│       │   ├── DunaHouseScraper.java            # dh.hu scraper (élő találatok és kártya metaadatok)
+│       │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok és paraméteres szűrés)
+│       │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok és kártyainformációk)
+│       │   ├── IngatlanComScraper.java          # ingatlan.com scraper (Cloudflare bot-védelem graceful fallback)
+│       │   └── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (Angular SPA graceful fallback)
 │       ├── service/
-│       │   ├── Ingatlan.java                    # Általános scraper interfész (search és getUrls)
-│       │   ├── IngatlanSearchService.java       # Keresést vezérlő és portálokat összesítő orchestrator
-│       │   └── impl/
-│       │       ├── IngatlanStart.java           # Jsoup bázisosztály: timeout, User-Agent mimic, hibakezelés
-│       │       ├── DunaHause.java               # dh.hu scraper (élő találatok és kártya metaadatok)
-│       │       ├── OtthonCentrum.java           # oc.hu scraper (élő találatok és paraméteres szűrés)
-│       │       ├── JofogasIngatlan.java         # jofogas.hu scraper (élő találatok és kártyainformációk)
-│       │       ├── IngatlanCom.java             # ingatlan.com scraper (Cloudflare bot-védelem graceful fallback)
-│       │       └── IngatlanBazar.java           # ingatlanbazar.hu scraper (Angular SPA graceful fallback)
+│       │   └── IngatlanSearchService.java       # Keresést vezérlő és portálokat összesítő orchestrator
 │       └── web/
 │           ├── WebServer.java                   # Beágyazott REST API szerver Java 21 Virtual Threads alapon
 │           └── WebDashboardHtml.java            # Beágyazott reszponzív SPA sablon (HTML5, Tailwind-stílus, JS)
@@ -120,7 +133,7 @@ ingatlan-kereso/
   * Automatikus adatmigráció régebbi adatbázis- és szöveges naplóformátumokból (`2017_06_06.txt`, `ingatlanok_history.txt`).
 
 * **`IngatlanSearchService` (`ingatlanok.service`):**
-  * Felelős a scraper példányok életciklusáért és párhuzamos lekérdezéséért.
+  * Felelős a scraper példányok életciklusáért és koordinált lekérdezéséért.
   * Felügyeli a duplikátumszűrést az `IngatlanRepository`-n keresztül.
   * Rendezi a találatokat ár és dátum szerint, valamint előállítja a portálonkénti találati statisztikákat.
 
@@ -131,11 +144,13 @@ ingatlan-kereso/
 1. **Java 21 Virtual Threads:**
    * A webkiszolgáló és a hálózati I/O műveletek könnyűsúlyú szálakon futnak, így a web scraping hálózati késleltetése nem blokkolja a rendszert.
 2. **Polimorf Web Scraping (`Strategy / Template Method` minta):**
-   * Minden portál scraper az `Ingatlan` interfészt valósítja meg és az `IngatlanStart` ősosztályból öröklődik.
-   * Az `IngatlanStart` központosítja a HTTP letöltési paramétereket: realisztikus Chrome User-Agent, referer fejlécek, 15 másodperces hálózati időkorlát és SSL tanúsítványkezelés.
-3. **0-Crash és Robusztus Graceful Degradation:**
+   * Minden portál scraper az `IngatlanScraper` interfészt valósítja meg és a `BaseScraper` ősosztályból öröklődik.
+   * A letöltést a közös `HttpFetcher` modul biztosítja: realisztikus Chrome User-Agent, referer fejlécek, 15 másodperces hálózati időkorlát és SSL tanúsítványkezelés.
+3. **Közös segédeszközök rétege (`ingatlanok.common`):**
+   * Ár-, méret- és szobaszám parsing (`PropertyParser`), ékezetmentesítés és slugosítás (`SlugUtils`), településkezelés (`CityUtils`) és asztali integráció (`BrowserUtils`) egy helyre szervezve az SRP és DRY elvek mentén.
+4. **0-Crash és Robusztus Graceful Degradation:**
    * Egyetlen weboldal hálózati hibája vagy DOM struktúra-változása sem okozhatja az alkalmazás leállását. A scraperek elkapják a helyi kivételeket, és hibaüzenettel kísért üres találati listát vagy fallback linket szolgáltatnak.
-4. **Zéró Külső Frontend Függőség:**
+5. **Zéró Külső Frontend Függőség:**
    * A webes felület teljesen önálló, offline is működő Single Page Applicationként van beágyazva a `WebDashboardHtml` osztályba, elkerülve a Node.js/NPM és külső frontend build lépések szükségességét.
 
 ---
@@ -161,6 +176,8 @@ ingatlan-kereso/
 - [x] Kétszintű, városonként szeparált és aggregált JSON hirdetésperzisztencia.
 - [x] Vizuális hirdetéskártyák: ár szerinti dinamikus rendezés, szűrés kizárólag az új találatokra.
 - [x] Egykattintásos Windows asztali indítók (`start-ui.bat`, `start-ui.ps1`).
+- [x] Moduláris projektarchitektúra: közös `common` modul és dedikált `scraper` réteg kialakítása.
+- [x] Elavult legacy mock és helper osztályok kivezetése és törlése.
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.

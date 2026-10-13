@@ -60,7 +60,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>${exec-maven-plugin.version}</version>
                 <configuration>
-                    <mainClass>Main</mainClass>
+                    <mainClass>ingatlanok.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>

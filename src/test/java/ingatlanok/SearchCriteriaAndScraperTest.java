@@ -2,10 +2,10 @@ package ingatlanok;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.service.impl.DunaHause;
-import ingatlanok.service.impl.IngatlanCom;
-import ingatlanok.service.impl.JofogasIngatlan;
-import ingatlanok.service.impl.OtthonCentrum;
+import ingatlanok.scraper.DunaHouseScraper;
+import ingatlanok.scraper.IngatlanComScraper;
+import ingatlanok.scraper.JofogasScraper;
+import ingatlanok.scraper.OtthonCentrumScraper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -42,7 +42,7 @@ class SearchCriteriaAndScraperTest {
         criteria.setMinPriceMillion(40);
         criteria.setMaxPriceMillion(80);
 
-        IngatlanCom ic = new IngatlanCom();
+        IngatlanComScraper ic = new IngatlanComScraper();
         assertDoesNotThrow(() -> {
             List<IngatlanItem> items = ic.search(criteria);
             assertNotNull(items);
@@ -63,17 +63,17 @@ class SearchCriteriaAndScraperTest {
         criteria.setMaxPriceMillion(50);
 
         assertDoesNotThrow(() -> {
-            List<IngatlanItem> dh = new DunaHause().search(criteria);
+            List<IngatlanItem> dh = new DunaHouseScraper().search(criteria);
             assertNotNull(dh);
         });
 
         assertDoesNotThrow(() -> {
-            List<IngatlanItem> oc = new OtthonCentrum().search(criteria);
+            List<IngatlanItem> oc = new OtthonCentrumScraper().search(criteria);
             assertNotNull(oc);
         });
 
         assertDoesNotThrow(() -> {
-            List<IngatlanItem> jf = new JofogasIngatlan().search(criteria);
+            List<IngatlanItem> jf = new JofogasScraper().search(criteria);
             assertNotNull(jf);
         });
     }

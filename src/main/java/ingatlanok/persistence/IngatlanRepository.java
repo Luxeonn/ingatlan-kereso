@@ -3,7 +3,7 @@ package ingatlanok.persistence;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import ingatlanok.helper.CityUtils;
+import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import org.apache.commons.io.FileUtils;

@@ -142,4 +142,15 @@ public class SearchCriteria implements Serializable {
     public boolean isPortalEnabled(String portalKey) {
         return portals != null && portals.contains(portalKey);
     }
+
+    public void setPortalEnabled(String portalKey, boolean enabled) {
+        if (this.portals == null) {
+            this.portals = new ArrayList<>();
+        }
+        if (enabled && !this.portals.contains(portalKey)) {
+            this.portals.add(portalKey);
+        } else if (!enabled) {
+            this.portals.remove(portalKey);
+        }
+    }
 }

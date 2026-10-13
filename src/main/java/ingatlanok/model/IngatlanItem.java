@@ -4,7 +4,8 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Ingatlan hirdetési adatmodell.
+ * Ingatlan hirdetési adatmodell gazdag típusokkal (PriceInfo, PropertyDetails, PortalSource)
+ * és teljes visszafelé kompatibilitással.
  */
 public class IngatlanItem implements Serializable {
 
@@ -19,31 +20,44 @@ public class IngatlanItem implements Serializable {
     private String discoveredAt;
     private boolean isNew;
 
+    // Strukturált értékobjektumok (Value Objects)
+    private PriceInfo priceInfo;
+    private PropertyDetails detailsInfo;
+    private PortalSource source;
+
     public IngatlanItem() {
     }
 
     public IngatlanItem(String id, String portal, String url, String title, String price, String location, String details, String discoveredAt, boolean isNew) {
-        this.id = id;
-        this.portal = portal;
-        this.url = url;
-        this.title = title;
-        this.price = price;
-        this.location = location;
-        this.city = location;
-        this.details = details;
-        this.discoveredAt = discoveredAt;
-        this.isNew = isNew;
+        this(id, portal, url, title, price, location, location, details, discoveredAt, isNew);
     }
 
     public IngatlanItem(String id, String portal, String url, String title, String price, String location, String city, String details, String discoveredAt, boolean isNew) {
         this.id = id;
         this.portal = portal;
+        this.source = PortalSource.of(portal);
         this.url = url;
         this.title = title;
         this.price = price;
         this.location = location;
-        this.city = city;
+        this.city = city != null && !city.isBlank() ? city : location;
         this.details = details;
+        this.discoveredAt = discoveredAt;
+        this.isNew = isNew;
+    }
+
+    public IngatlanItem(String id, PortalSource source, String url, String title, PriceInfo priceInfo, String city, PropertyDetails detailsInfo, String discoveredAt, boolean isNew) {
+        this.id = id;
+        this.source = source;
+        this.portal = source != null ? source.getPortalName() : "Ismeretlen";
+        this.url = url;
+        this.title = title;
+        this.priceInfo = priceInfo;
+        this.price = priceInfo != null ? priceInfo.getRawText() : "Ár a hirdetésben";
+        this.city = city;
+        this.location = city;
+        this.detailsInfo = detailsInfo;
+        this.details = detailsInfo != null ? detailsInfo.getRawText() : "";
         this.discoveredAt = discoveredAt;
         this.isNew = isNew;
     }
@@ -62,6 +76,21 @@ public class IngatlanItem implements Serializable {
 
     public void setPortal(String portal) {
         this.portal = portal;
+        this.source = PortalSource.of(portal);
+    }
+
+    public PortalSource getSource() {
+        if (source == null && portal != null) {
+            source = PortalSource.of(portal);
+        }
+        return source;
+    }
+
+    public void setSource(PortalSource source) {
+        this.source = source;
+        if (source != null) {
+            this.portal = source.getPortalName();
+        }
     }
 
     public String getUrl() {
@@ -86,6 +115,17 @@ public class IngatlanItem implements Serializable {
 
     public void setPrice(String price) {
         this.price = price;
+    }
+
+    public PriceInfo getPriceInfo() {
+        return priceInfo;
+    }
+
+    public void setPriceInfo(PriceInfo priceInfo) {
+        this.priceInfo = priceInfo;
+        if (priceInfo != null && priceInfo.getRawText() != null) {
+            this.price = priceInfo.getRawText();
+        }
     }
 
     public String getLocation() {
@@ -116,6 +156,17 @@ public class IngatlanItem implements Serializable {
 
     public void setDetails(String details) {
         this.details = details;
+    }
+
+    public PropertyDetails getDetailsInfo() {
+        return detailsInfo;
+    }
+
+    public void setDetailsInfo(PropertyDetails detailsInfo) {
+        this.detailsInfo = detailsInfo;
+        if (detailsInfo != null && detailsInfo.getRawText() != null) {
+            this.details = detailsInfo.getRawText();
+        }
     }
 
     public String getDiscoveredAt() {

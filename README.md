@@ -35,13 +35,68 @@ Az **ingatlan-kereso** egy modern, beágyazott REST API szerverrel és reszponz�
 
 ## 🌐 Támogatott Portálok és Állapotuk
 
-| Portál | Weboldal | Állapot | Megjegyzés |
+| Portál | Weboldal | Állapot | Implementáció / Megjegyzés |
 | :--- | :--- | :---: | :--- |
-| **Duna House** | [dh.hu](https://dh.hu) | **Működik** | Élő találatok, ár, alapterület, szobaszám kinyerése |
-| **Otthon Centrum** | [oc.hu](https://www.oc.hu) | **Működik** | Élő találatok és kártya metaadatok kinyerése |
-| **Jófogás Ingatlan** | [jofogas.hu](https://ingatlan.jofogas.hu) | **Működik** | Élő találatok kinyerése ár- és lokációszűrőkkel |
-| **Ingatlan.com** | [ingatlan.com](https://ingatlan.com) | ⚠️ *Korlátozott* | Cloudflare bot-védelem alatt; közvetlen keresési linkkel kezelt fallback |
-| **Ingatlanbazár** | [ingatlanbazar.hu](https://ingatlanbazar.hu) | ⚠️ *Korlátozott* | Kliensoldali Angular SPA renderelés; közvetlen hivatkozással kezelt fallback |
+| **Duna House** | [dh.hu](https://dh.hu) | **Működik** (élő adatok) | `ingatlanok.scraper.DunaHouseScraper` (ár, alapterület, szobák) |
+| **Otthon Centrum** | [oc.hu](https://www.oc.hu) | **Működik** (élő adatok) | `ingatlanok.scraper.OtthonCentrumScraper` (kártya metaadatok) |
+| **Jófogás Ingatlan** | [jofogas.hu](https://ingatlan.jofogas.hu) | **Működik** (élő adatok) | `ingatlanok.scraper.JofogasScraper` (ár- és lokációszűrőkkel) |
+| **Ingatlan.com** | [ingatlan.com](https://ingatlan.com) | ⚠️ *Korlátozott (kezelt)* | `ingatlanok.scraper.IngatlanComScraper` (Cloudflare fallback) |
+| **Ingatlanbazár** | [ingatlanbazar.hu](https://ingatlanbazar.hu) | ⚠️ *Korlátozott (kezelt)* | `ingatlanok.scraper.IngatlanBazarScraper` (Angular SPA fallback) |
+
+---
+
+## 🏗 Projekt Struktúra
+
+```text
+ingatlan-kereso/
+├── pom.xml                                      # Maven konfiguráció és függőségek (Java 21, Gson, Jsoup)
+├── README.md                                    # Felhasználói és fejlesztői dokumentáció
+├── gemini.md                                    # Rendszer- és architektúra leírás
+├── start-ui.bat                                 # Egykattintásos indító Windowsra
+├── start-ui.ps1                                 # PowerShell indító script
+├── data/                                        # Helyi perzisztens JSON adatbázis mappa (.gitignore)
+│   ├── ingatlanok_db.json                       # Hirdetés adatok, ár, alapterület, időpont
+│   ├── last_config.json                         # Mentett keresési szűrők
+│   └── cities/                                  # Városonként szegmentált hirdetés cache
+└── src/main/java/
+    └── ingatlanok/
+        ├── Main.java                            # Belépési pont (Web Dashboard & CLI fallback)
+        ├── common/                              # Közös megosztott modul
+        │   ├── BrowserUtils.java                # Böngészőfül megnyitása Desktop és fallback támogatással
+        │   ├── CityUtils.java                   # Településnevek normalizálása, listája és sablonok
+        │   ├── HttpFetcher.java                 # Jsoup HTTP kliens (User-Agent, timeoutok, hibatűrés)
+        │   ├── PropertyParser.java              # Ár, méret, szobaszám regex kinyerés és normalizálás
+        │   └── SlugUtils.java                   # Ékezetmentesítés és URL slug generálás
+        ├── model/
+        │   ├── IngatlanItem.java                # Hirdetés adatmodell (gazdag értékobjektumokkal)
+        │   ├── PriceInfo.java                   # Strukturált ár (nyers szöveg, numerikus Ft és M Ft)
+        │   ├── PropertyDetails.java             # Részletek (alapterület m², szobaszám, számított Ft/m²)
+        │   ├── PortalSource.java                # Portálforrás metaadat (azonosító, szín, típus)
+        │   ├── SearchCriteria.java              # Keresési paraméterek (városok, típus, portálok)
+        │   └── SearchResult.java                # Találati aggregáció modell
+        ├── persistence/
+        │   └── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
+        ├── presentation/                        # Prezentációs és Facade réteg (UI & csatorna izoláció)
+        │   ├── DashboardPresentationService.java# Facade: KPI statisztikák, portál állapotok
+        │   ├── DashboardResponseDto.java        # Gazdagított válaszmodell a felület és kliensek felé
+        │   ├── MarketStatsDto.java              # Piaci KPI mutatók (átlagár, átlagos m² ár)
+        │   └── PortalStatusDto.java             # Portál egészségügyi és információs kártyák
+        ├── scraper/                             # Dedikált web scraping réteg
+        │   ├── IngatlanScraper.java             # Scraper interfész (`search`, `scrape`)
+        │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & letöltés)
+        │   ├── PortalScrapeResult.java          # Állapotgazdag és izolált kimenet per portál
+        │   ├── ScraperRegistry.java             # Dinamikus Scraper Provider Factory (OCP elv)
+        │   ├── DunaHouseScraper.java            # dh.hu scraper (élő találatok + metaadatok)
+        │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok + metaadatok)
+        │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok + metaadatok)
+        │   ├── IngatlanComScraper.java          # ingatlan.com scraper (Cloudflare fallback)
+        │   └── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (Angular SPA fallback)
+        ├── service/
+        │   └── IngatlanSearchService.java       # Központi keresési orchestrator
+        └── web/
+            ├── WebServer.java                   # Beágyazott Java 21 REST API szerver
+            └── WebDashboardHtml.java            # Modern reszponzív SPA HTML/CSS/JS sablon
+```
 
 ---
 

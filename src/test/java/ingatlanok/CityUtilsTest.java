@@ -1,6 +1,6 @@
 package ingatlanok;
 
-import ingatlanok.helper.CityUtils;
+import ingatlanok.common.CityUtils;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
