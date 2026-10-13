@@ -203,6 +203,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 - [x] Strukturált és szintezett naplózási keretrendszer (`AppLogger`, `logs/scraper.log`, `/api/logs` REST végpont, metrikák).
 - [x] Portál diagnosztika, hiba felugró ablak és technikai státuszkódok (`PortalStatusDto`, diagnosztikai modal, egykattintásos vágólap export).
 - [x] Költözzbe.hu élő ház és debreceni agglomeráció scraper adapter (`KoltozzbeScraper`, kártya és JSON-LD parsing, település és árszűrés).
+- [x] Egységes, bolondbiztos asztali indító (`START.bat`), elavult fájlok takarítása, megerősített `.gitignore` és tesztlefedettség növelés (78.75%).
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.
