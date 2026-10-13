@@ -99,10 +99,17 @@ public class SidecarResponse implements Serializable {
         @SerializedName("roomCount")
         private Double roomCount;
 
+        @SerializedName("imageUrl")
+        private String imageUrl;
+
         public SidecarItem() {
         }
 
         public SidecarItem(String id, String url, String title, Double priceMillion, String priceRaw, Double areaSquareMeters, Double roomCount) {
+            this(id, url, title, priceMillion, priceRaw, areaSquareMeters, roomCount, null);
+        }
+
+        public SidecarItem(String id, String url, String title, Double priceMillion, String priceRaw, Double areaSquareMeters, Double roomCount, String imageUrl) {
             this.id = id;
             this.url = url;
             this.title = title;
@@ -110,6 +117,7 @@ public class SidecarResponse implements Serializable {
             this.priceRaw = priceRaw;
             this.areaSquareMeters = areaSquareMeters;
             this.roomCount = roomCount;
+            this.imageUrl = imageUrl;
         }
 
         public String getId() {
@@ -138,6 +146,14 @@ public class SidecarResponse implements Serializable {
 
         public Double getRoomCount() {
             return roomCount;
+        }
+
+        public String getImageUrl() {
+            return imageUrl;
+        }
+
+        public void setImageUrl(String imageUrl) {
+            this.imageUrl = imageUrl;
         }
 
         public IngatlanItem toIngatlanItem(PortalSource source, String city, String discoveredAt, boolean isNew) {
@@ -189,6 +205,7 @@ public class SidecarResponse implements Serializable {
                     isNew
             );
             item.setLocation(city);
+            item.setImageUrl(imageUrl);
             return item;
         }
     }

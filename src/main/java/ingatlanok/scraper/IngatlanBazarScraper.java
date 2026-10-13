@@ -296,6 +296,34 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
                 );
                 item.setLocation(location);
 
+                String imageUrl = null;
+                if (hit.has("photo") && !hit.get("photo").isJsonNull()) {
+                    JsonElement p = hit.get("photo");
+                    if (p.isJsonPrimitive()) {
+                        imageUrl = p.getAsString();
+                    } else if (p.isJsonObject() && p.getAsJsonObject().has("url")) {
+                        imageUrl = p.getAsJsonObject().get("url").getAsString();
+                    }
+                } else if (hit.has("picture") && !hit.get("picture").isJsonNull()) {
+                    imageUrl = hit.get("picture").getAsString();
+                } else if (hit.has("images") && hit.get("images").isJsonArray()) {
+                    JsonArray imgs = hit.getAsJsonArray("images");
+                    if (!imgs.isEmpty()) {
+                        JsonElement first = imgs.get(0);
+                        if (first.isJsonPrimitive()) {
+                            imageUrl = first.getAsString();
+                        } else if (first.isJsonObject() && first.getAsJsonObject().has("url")) {
+                            imageUrl = first.getAsJsonObject().get("url").getAsString();
+                        }
+                    }
+                }
+                if (imageUrl != null && !imageUrl.isBlank()) {
+                    if (imageUrl.startsWith("//")) {
+                        imageUrl = "https:" + imageUrl;
+                    }
+                    item.setImageUrl(imageUrl);
+                }
+
                 result.add(item);
             }
         } catch (Exception e) {

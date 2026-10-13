@@ -181,6 +181,12 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                     );
                     item.setLocation(actualCity);
 
+                    String imageUrl = PropertyParser.extractImageUrl(card);
+                    if (imageUrl == null && card.parent() != null) {
+                        imageUrl = PropertyParser.extractImageUrl(card.parent());
+                    }
+                    item.setImageUrl(imageUrl);
+
                     if (!criteria.matches(item)) {
                         continue;
                     }
