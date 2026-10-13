@@ -4,6 +4,7 @@
 # Log & data files
 *.log
 *.txt
+!tools/requirements.txt
 *.iml
 data/
 run.ps1
