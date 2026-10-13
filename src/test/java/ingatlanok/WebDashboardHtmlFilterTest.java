@@ -56,4 +56,18 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("function markItemViewed("));
         assertTrue(html.contains("markItemViewed("));
     }
+
+    @Test
+    void testHtmlContainsDistinctCardVisualStates() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains(".listing-card.is-new"));
+        assertTrue(html.contains(".listing-card.is-viewed"));
+        assertTrue(html.contains(".listing-card.is-archive"));
+        assertTrue(html.contains(".card-title.pulse-title"));
+        assertTrue(html.contains("@keyframes titlePulse"));
+        assertTrue(html.contains("const stateClass = isViewed ? 'is-viewed' : (isNew ? 'is-new' : 'is-archive');"));
+        assertTrue(html.contains("const titlePulseClass = (isNew && !isViewed) ? 'pulse-title' : '';"));
+    }
 }
