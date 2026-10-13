@@ -390,6 +390,37 @@ public class WebDashboardHtml {
             border-color: var(--accent);
         }
 
+        .filter-only-new-btn {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #10b981;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .filter-only-new-btn:hover {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #10b981;
+            transform: translateY(-1px);
+        }
+        .filter-only-new-btn.active {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+        .filter-only-new-btn.disabled-btn {
+            opacity: 0.45;
+            cursor: pointer;
+        }
+
         .action-row {
             display: flex;
             align-items: center;
@@ -808,6 +839,9 @@ public class WebDashboardHtml {
                 <button class="portal-filter-btn" data-portal="oc" onclick="filterByPortal('oc')">Otthon Centrum (<span id="count-portal-oc">0</span>)</button>
                 <button class="portal-filter-btn" data-portal="jf" onclick="filterByPortal('jf')">Jófogás (<span id="count-portal-jf">0</span>)</button>
                 <button class="portal-filter-btn" data-portal="ic" onclick="filterByPortal('ic')">Ingatlan.com (<span id="count-portal-ic">0</span>)</button>
+                <button class="filter-only-new-btn" id="filter-only-new-btn" onclick="toggleOnlyNewFilter()" title="Kizárólag az új hirdetések megjelenítése">
+                    ✨ Csak újak (<span id="only-new-count">0</span>)
+                </button>
             </div>
 
             <div class="search-box">
@@ -845,6 +879,7 @@ public class WebDashboardHtml {
         let historyItems = [];
         let activeTab = 'current'; // 'current', 'history', 'starred'
         let selectedResultPortal = 'all'; // 'all', 'dh', 'oc', 'jf', 'ic'
+        let onlyNewFilter = false;
         let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
 
         function updateStarredCount() {
@@ -863,6 +898,15 @@ public class WebDashboardHtml {
             }
             localStorage.setItem('starred_urls', JSON.stringify(Array.from(starredUrls)));
             updateStarredCount();
+            renderListings();
+        }
+
+        function toggleOnlyNewFilter() {
+            onlyNewFilter = !onlyNewFilter;
+            const btn = document.getElementById('filter-only-new-btn');
+            if (btn) {
+                btn.classList.toggle('active', onlyNewFilter);
+            }
             renderListings();
         }
 
@@ -894,7 +938,9 @@ public class WebDashboardHtml {
             }
 
             const counts = { all: list.length, dh: 0, oc: 0, jf: 0, ic: 0 };
+            let newItemsCount = 0;
             list.forEach(item => {
+                if (item.isNew) newItemsCount++;
                 const p = (item.portal || '').toLowerCase();
                 if (p.includes('duna')) counts.dh++;
                 else if (p.includes('otthon')) counts.oc++;
@@ -907,12 +953,16 @@ public class WebDashboardHtml {
             const countOc = document.getElementById('count-portal-oc');
             const countJf = document.getElementById('count-portal-jf');
             const countIc = document.getElementById('count-portal-ic');
+            const onlyNewCountEl = document.getElementById('only-new-count');
+            const onlyNewBtn = document.getElementById('filter-only-new-btn');
 
             if (countAll) countAll.textContent = counts.all;
             if (countDh) countDh.textContent = counts.dh;
             if (countOc) countOc.textContent = counts.oc;
             if (countJf) countJf.textContent = counts.jf;
             if (countIc) countIc.textContent = counts.ic;
+            if (onlyNewCountEl) onlyNewCountEl.textContent = newItemsCount;
+            if (onlyNewBtn) onlyNewBtn.classList.toggle('disabled-btn', newItemsCount === 0);
 
             ['dh', 'oc', 'jf', 'ic'].forEach(k => {
                 const btn = document.querySelector(`.portal-filter-btn[data-portal="${k}"]`);
@@ -1054,6 +1104,9 @@ public class WebDashboardHtml {
                 // Szűrők automatikus nullázása új kereséskor alapértelmezettre
                 filterInput.value = '';
                 selectedResultPortal = 'all';
+                onlyNewFilter = false;
+                const onlyNewBtn = document.getElementById('filter-only-new-btn');
+                if (onlyNewBtn) onlyNewBtn.classList.remove('active');
                 document.querySelectorAll('.portal-filter-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.getAttribute('data-portal') === 'all');
                 });
@@ -1100,6 +1153,11 @@ public class WebDashboardHtml {
             const filterTerm = filterInput.value.toLowerCase().trim();
 
             const filtered = listToRender.filter(item => {
+                // Csak új találatok szűrése
+                if (onlyNewFilter && !item.isNew) {
+                    return false;
+                }
+
                 // Portál szerinti szűrés a találatok között
                 if (selectedResultPortal !== 'all') {
                     const p = (item.portal || '').toLowerCase();
@@ -1122,7 +1180,9 @@ public class WebDashboardHtml {
                 listingsContainer.innerHTML = '';
                 emptyState.style.display = 'block';
                 if (filterTerm) {
-                    emptyState.innerHTML = `<div class="empty-state-icon">❌</div><h3>Nincs egyezés a keresésre: "${filterTerm}"</h3><p>Próbáld meg módosítani a kifejezést vagy a weboldal szűrőt.</p>`;
+                    emptyState.innerHTML = `<div class="empty-state-icon">❌</div><h3>Nincs egyezés a keresésre: "${filterTerm}"</h3><p>Próbáld meg módosítani a kifejezést vagy a szűrőket.</p>`;
+                } else if (onlyNewFilter) {
+                    emptyState.innerHTML = `<div class="empty-state-icon">✨</div><h3>Nincs új találat ebben a nézetben</h3><p>Kapcsold ki a "Csak újak" szűrőt a korábbi hirdetések megjelenítéséhez!</p>`;
                 } else if (selectedResultPortal !== 'all') {
                     emptyState.innerHTML = `<div class="empty-state-icon">🔎</div><h3>Nincs találat a kiválasztott weboldalhoz</h3><p>Válassz másik portált vagy kattints az "Összes forrás" gombra!</p>`;
                 } else if (activeTab === 'starred') {
