@@ -45,6 +45,12 @@ jobs:
             echo "✅ Rendszerág összefésülés engedélyezve: $BRANCH"
             exit 0
           fi
+
+          # Dependabot által automatikusan létrehozott ágak engedélyezése
+          if [[ "$BRANCH" =~ ^dependabot\/ ]]; then
+            echo "✅ Dependabot automatikus ág engedélyezve: $BRANCH"
+            exit 0
+          fi
           
           REGEX="^(feature|fix|hotfix|docs|refactor|test|chore|release)\/[a-zA-Z0-9._-]+$"
           if [[ ! "$BRANCH" =~ $REGEX ]]; then
@@ -67,8 +73,17 @@ jobs:
         env:
           BODY: ${{ github.event.pull_request.body }}
           BASE_REF: ${{ github.base_ref }}
+          ACTOR: ${{ github.actor }}
+          BRANCH: ${{ github.head_ref }}
         run: |
           echo "=== 🛡️ Thematic Agent Approval Gate Ellenőrzése ==="
+
+          # Dependabot automatikus függőségfrissítések kezelése
+          if [[ "$ACTOR" == "dependabot[bot]" || "$ACTOR" == "dependabot" || "$BRANCH" =~ ^dependabot\/ ]]; then
+            echo "🤖 Dependabot automatikus függőségfrissítés észlelve ($BRANCH / $ACTOR)."
+            echo "✅ Thematic Agent Approval Gate: Dependabot bot által nyitott frissítés automatikusan jóváhagyva."
+            exit 0
+          fi
           
           # Módosított fájlok lekérése a célág és a PR között
           CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" || true)
