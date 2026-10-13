@@ -70,4 +70,19 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("const stateClass = isViewed ? 'is-viewed' : (isNew ? 'is-new' : 'is-archive');"));
         assertTrue(html.contains("const titlePulseClass = (isNew && !isViewed) ? 'pulse-title' : '';"));
     }
+
+    @Test
+    void testHtmlContainsExpandedQuickSearchLogic() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("function buildSearchableString(item)"));
+        assertTrue(html.contains("function itemMatchesQuickSearch(item, filterTerm)"));
+        assertTrue(html.contains("item.priceInfo.amountMillion != null"));
+        assertTrue(html.contains("item.detailsInfo.areaSquareMeters != null"));
+        assertTrue(html.contains("item.detailsInfo.roomCount != null"));
+        assertTrue(html.contains("tokens.every(token => {"));
+        assertTrue(html.contains("itemMatchesQuickSearch(item, filterTerm)"));
+        assertTrue(html.contains("updatePortalFilterCounts(filterTerm ? filtered : listToRender);"));
+    }
 }
