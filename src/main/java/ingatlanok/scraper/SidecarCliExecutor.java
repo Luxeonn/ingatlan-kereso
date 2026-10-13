@@ -2,6 +2,7 @@ package ingatlanok.scraper;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SidecarCliExecutor {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
     private static final int DEFAULT_TIMEOUT_SECONDS = 20;
     private static final Gson GSON = new Gson();
 
@@ -41,9 +43,11 @@ public class SidecarCliExecutor {
         List<String> cliArgs = buildArguments(portalId, criteria);
         List<String> fullCommand = resolveCommand(cliArgs);
         if (fullCommand == null || fullCommand.isEmpty()) {
+            LOGGER.debug("Sidecar parancs nem érhető el a(z) {} portálhoz", portalId);
             return Optional.empty();
         }
 
+        LOGGER.info("Sidecar futtatása: {}", String.join(" ", fullCommand));
         try {
             ProcessBuilder pb = new ProcessBuilder(fullCommand);
             pb.redirectErrorStream(false);
@@ -76,7 +80,7 @@ public class SidecarCliExecutor {
             boolean finished = process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
-                System.err.println("[SidecarCliExecutor] Időtúllépés a sidecar futtatása során (" + portalId + ")");
+                LOGGER.warn("Időtúllépés a sidecar futtatása során ({})", portalId);
                 return Optional.empty();
             }
 
@@ -86,7 +90,7 @@ public class SidecarCliExecutor {
             String stdoutJson = stdout.toString().trim();
             if (stdoutJson.isEmpty()) {
                 if (!stderr.isEmpty()) {
-                    System.err.println("[SidecarCliExecutor] Üres stdout válasz (" + portalId + "). Stderr: " + stderr.toString().trim());
+                    LOGGER.warn("Üres stdout válasz ({}). Stderr: {}", portalId, stderr.toString().trim());
                 }
                 return Optional.empty();
             }
@@ -101,10 +105,10 @@ public class SidecarCliExecutor {
             return Optional.ofNullable(response);
 
         } catch (JsonSyntaxException e) {
-            System.err.println("[SidecarCliExecutor] JSON szintaxis hiba a sidecar kimenetében: " + e.getMessage());
+            LOGGER.error("JSON szintaxis hiba a sidecar kimenetében: {}", e.getMessage(), e);
             return Optional.empty();
         } catch (Exception e) {
-            System.err.println("[SidecarCliExecutor] Hiba a sidecar futtatásakor: " + e.getMessage());
+            LOGGER.error("Hiba a sidecar futtatásakor: {}", e.getMessage(), e);
             return Optional.empty();
         }
     }

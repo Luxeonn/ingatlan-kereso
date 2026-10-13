@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.common.SlugUtils;
 
@@ -15,11 +16,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class IngatlanBazarLocationResolver {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarLocationResolver.class);
     private static final String GEO_MATCH_URL = "https://www.ingatlanbazar.hu/api/geo/get-matches?name=%s&types=3&needLocation=1";
     private static final Map<String, Integer> LOCATION_CACHE = new ConcurrentHashMap<>();
 
     static {
-
         registerLocation("budapest", 1050);
         registerLocation("debrecen", 1435);
         registerLocation("szeged", 1099);
@@ -72,6 +73,7 @@ public final class IngatlanBazarLocationResolver {
         try {
             String encoded = URLEncoder.encode(cityName.trim(), StandardCharsets.UTF_8);
             String url = String.format(GEO_MATCH_URL, encoded);
+            LOGGER.debug("Ingatlanbazár településkód lekérdezése: {} -> {}", cityName, url);
             String json = HttpFetcher.fetchJson(url);
 
             if (json != null && !json.isBlank()) {
@@ -84,6 +86,7 @@ public final class IngatlanBazarLocationResolver {
                             if (obj.has("id") && !obj.get("id").isJsonNull()) {
                                 int id = obj.get("id").getAsInt();
                                 LOCATION_CACHE.put(slug, id);
+                                LOGGER.debug("Ingatlanbazár településkód megtalálva: {} -> {}", cityName, id);
                                 return Optional.of(id);
                             }
                         }
@@ -91,7 +94,7 @@ public final class IngatlanBazarLocationResolver {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Nem sikerült feloldani a településkódot (" + cityName + "): " + e.getMessage());
+            LOGGER.warn("Nem sikerült feloldani a településkódot ({}): {}", cityName, e.getMessage());
         }
 
         return Optional.empty();

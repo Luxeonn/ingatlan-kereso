@@ -69,6 +69,7 @@ tools/scraper-sidecar.exe
 # ==============================================================================
 # Persistent application storage
 data/
+logs/
 
 # Local databases (JSON, SQLite)
 *.db

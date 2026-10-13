@@ -1,5 +1,6 @@
 package ingatlanok.scraper;
 
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
@@ -20,6 +21,7 @@ import java.util.regex.Pattern;
 
 public class JofogasScraper extends BaseScraper implements IngatlanScraper {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(JofogasScraper.class);
     private static final String BASE_URL = "https://ingatlan.jofogas.hu";
     private static final Pattern ID_PATTERN = Pattern.compile("_(\\d+)\\.htm");
     private static final PortalSource SOURCE = PortalSource.of("Jófogás Ingatlan");
@@ -84,13 +86,13 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
         }
 
         String searchUrl = buildSearchUrl(criteria);
-        System.out.println("Jófogás Ingatlan keresés: " + searchUrl);
+        LOGGER.info("Jófogás Ingatlan keresés indítása: {}", searchUrl);
 
         try {
             Document document = getDocument(searchUrl);
             if (document == null) {
                 long elapsed = System.currentTimeMillis() - startTime;
-                System.err.println("Nem sikerült letölteni a Jófogás keresési oldalt: " + searchUrl);
+                LOGGER.warn("Nem sikerült letölteni a Jófogás keresési oldalt [{} ms]: {}", elapsed, searchUrl);
                 return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült letölteni az oldalt", elapsed);
             }
 
@@ -98,6 +100,8 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
             Set<String> processed = new HashSet<>();
 
             Elements links = document.select("a[href*=/ingatlan/], a[href*=_]");
+            LOGGER.debug("Jófogás találati link elemek száma: {}", links.size());
+
             for (Element a : links) {
                 String href = a.attr("href");
                 if (href == null || href.isBlank() || !href.endsWith(".htm")) continue;
@@ -135,6 +139,7 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
                 item.setImageUrl(imageUrl);
 
                 if (!criteria.matches(item)) {
+                    LOGGER.debug("Jófogás tétel kiszűrve keresési feltételek miatt: {} (Ár: {})", item.getUrl(), item.getPrice());
                     continue;
                 }
 
@@ -142,11 +147,12 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
             }
 
             long elapsed = System.currentTimeMillis() - startTime;
-            System.out.println("jofogas.hu Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+            long newCount = items.stream().filter(IngatlanItem::isNew).count();
+            LOGGER.info("jofogas.hu Találatok száma: {} (Új: {}) [{} ms]", items.size(), newCount, elapsed);
             return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
-            System.err.println("Hiba a Jófogás keresésekor: " + e.getMessage());
+            LOGGER.error("Hiba a Jófogás keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
             return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
     }

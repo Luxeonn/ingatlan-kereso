@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import ingatlanok.common.SlugUtils;
+import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
@@ -19,6 +19,7 @@ import java.util.*;
 
 public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarScraper.class);
     public static final String BASE_URL = "https://www.ingatlanbazar.hu";
     public static final String API_SEARCH_URL = "https://www.ingatlanbazar.hu/api/property-search";
     private static final PortalSource SOURCE = PortalSource.of("Ingatlanbazár");
@@ -135,7 +136,7 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
         }
 
         String fallbackUrl = buildSearchUrl(criteria);
-        System.out.println("Ingatlanbazár keresés: " + fallbackUrl);
+        LOGGER.info("Ingatlanbazár keresés indítása: {}", fallbackUrl);
 
         int maxPages = 2;
         String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
@@ -144,11 +145,13 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
         try {
             for (int page = 1; page <= maxPages; page++) {
                 String apiUrl = buildApiSearchUrl(criteria, page);
+                LOGGER.debug("Ingatlanbazár REST API lekérdezése (oldal: {}): {}", page, apiUrl);
                 String json = getJson(apiUrl);
 
                 if (json == null || json.isBlank()) {
                     if (page == 1) {
                         long elapsed = System.currentTimeMillis() - startTime;
+                        LOGGER.warn("Nem sikerült elérni az Ingatlanbazár REST API-t [{} ms]: {}", elapsed, apiUrl);
                         return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült elérni az Ingatlanbazár REST API-t", elapsed);
                     }
                     break;
@@ -163,7 +166,7 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
             }
 
             long elapsed = System.currentTimeMillis() - startTime;
-            System.out.println("ingatlanbazar.hu Találatok száma: " + items.size());
+            LOGGER.info("Ingatlanbazár találatok száma: {} [{} ms]", items.size(), elapsed);
 
             if (items.isEmpty()) {
                 return PortalScrapeResult.empty(getPortalId(), getName(), fallbackUrl, elapsed);
@@ -172,7 +175,7 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
             return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
-            System.err.println("Hiba az Ingatlanbazár scraping során: " + e.getMessage());
+            LOGGER.error("Hiba az Ingatlanbazár scraping során [{} ms]: {}", elapsed, e.getMessage(), e);
             return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
     }
@@ -186,10 +189,12 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
         try {
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
             if (!root.has("hits") || !root.get("hits").isJsonArray()) {
+                LOGGER.warn("Ingatlanbazár API válasz nem tartalmaz 'hits' tömböt");
                 return result;
             }
 
             JsonArray hits = root.getAsJsonArray("hits");
+            LOGGER.debug("Ingatlanbazár nyers találatok száma JSON-ben: {} db", hits.size());
             for (JsonElement el : hits) {
                 if (!el.isJsonObject()) {
                     continue;
@@ -327,7 +332,7 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
                 result.add(item);
             }
         } catch (Exception e) {
-            System.err.println("Hiba a JSON találatok feldolgozásakor: " + e.getMessage());
+            LOGGER.error("Hiba a JSON találatok feldolgozásakor: {}", e.getMessage(), e);
         }
 
         return result;

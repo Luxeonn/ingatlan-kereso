@@ -1,5 +1,6 @@
 package ingatlanok.scraper;
 
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
@@ -20,6 +21,7 @@ import java.util.regex.Pattern;
 
 public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(DunaHouseScraper.class);
     private static final String BASE_URL = "https://dh.hu";
     private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/([A-Za-z0-9\\-]+)");
     private static final PortalSource SOURCE = PortalSource.of("Duna House");
@@ -99,7 +101,7 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
         }
 
         String searchUrl = buildSearchUrl(criteria);
-        System.out.println("Duna House keresés: " + searchUrl);
+        LOGGER.info("Duna House keresés indítása: {}", searchUrl);
 
         int maxPages = 2;
         String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
@@ -110,11 +112,13 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                 String pageUrl = (i == 1) ? searchUrl : searchUrl + "/oldal-" + i;
                 Document document = getDocument(pageUrl);
                 if (document == null) {
-                    System.err.println("Nem sikerült letölteni a Duna House oldalt: " + pageUrl);
+                    LOGGER.warn("Nem sikerült letölteni a Duna House oldalt: {}", pageUrl);
                     continue;
                 }
 
                 Elements anchorLinks = document.select("a[href*=/ingatlan/]");
+                LOGGER.debug("Duna House [{} oldal] -> {} link találat", i, anchorLinks.size());
+
                 for (Element a : anchorLinks) {
                     String href = a.attr("href");
                     if (href == null || href.isBlank()) continue;
@@ -165,6 +169,7 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                     item.setImageUrl(imageUrl);
 
                     if (!criteria.matches(item)) {
+                        LOGGER.debug("Duna House tétel kiszűrve keresési feltételek miatt: {} (Ár: {})", item.getUrl(), item.getPrice());
                         continue;
                     }
 
@@ -173,11 +178,12 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
             }
 
             long elapsed = System.currentTimeMillis() - startTime;
-            System.out.println("dh.hu Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+            long newCount = items.stream().filter(IngatlanItem::isNew).count();
+            LOGGER.info("Duna House találatok feldolgozva: {} db (új: {}) [{} ms]", items.size(), newCount, elapsed);
             return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
-            System.err.println("Hiba a Duna House keresésekor: " + e.getMessage());
+            LOGGER.error("Hiba a Duna House keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
             return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
     }
