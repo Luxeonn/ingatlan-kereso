@@ -38,6 +38,10 @@ public class PortalScrapeResult implements Serializable {
         return new PortalScrapeResult(portalId, portalName, status, items, null, "Sikeres letöltés (" + (items != null ? items.size() : 0) + " találat)", executionTimeMs);
     }
 
+    public static PortalScrapeResult empty(String portalId, String portalName, String fallbackUrl, long executionTimeMs) {
+        return new PortalScrapeResult(portalId, portalName, PortalScrapeStatus.EMPTY, Collections.emptyList(), fallbackUrl, "Nincs találat a megadott feltételekkel", executionTimeMs);
+    }
+
     public static PortalScrapeResult botProtected(String portalId, String portalName, String fallbackUrl, long executionTimeMs) {
         return new PortalScrapeResult(portalId, portalName, PortalScrapeStatus.BOT_PROTECTED, Collections.emptyList(), fallbackUrl, "Cloudflare WAF bot-védelem aktív; közvetlen keresőlink biztosítva", executionTimeMs);
     }

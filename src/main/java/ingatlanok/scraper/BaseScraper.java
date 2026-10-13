@@ -22,4 +22,12 @@ public abstract class BaseScraper {
     public Document getDocument(String targetUrl) {
         return HttpFetcher.fetchDocument(targetUrl);
     }
+
+    public String getJson(String targetUrl) {
+        return HttpFetcher.fetchJson(targetUrl);
+    }
+
+    public String getJson(String targetUrl, int timeoutMs) {
+        return HttpFetcher.fetchJson(targetUrl, timeoutMs);
+    }
 }

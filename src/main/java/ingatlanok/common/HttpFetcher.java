@@ -45,4 +45,34 @@ public final class HttpFetcher {
             return null;
         }
     }
+
+    /**
+     * Letölti a megadott URL JSON szöveges válaszát.
+     */
+    public static String fetchJson(String targetUrl) {
+        return fetchJson(targetUrl, DEFAULT_TIMEOUT_MS);
+    }
+
+    /**
+     * Letölti a megadott URL JSON szöveges válaszát egyedi időtúllépéssel.
+     */
+    public static String fetchJson(String targetUrl, int timeoutMs) {
+        if (targetUrl == null || targetUrl.isBlank()) {
+            return null;
+        }
+        try {
+            return Jsoup.connect(targetUrl)
+                    .userAgent(DEFAULT_USER_AGENT)
+                    .header("Accept", "application/json, text/plain, */*")
+                    .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .ignoreContentType(true)
+                    .followRedirects(true)
+                    .timeout(timeoutMs)
+                    .execute()
+                    .body();
+        } catch (IOException e) {
+            System.err.println("Hiba a JSON letöltés során [" + targetUrl + "]: " + e.getMessage());
+            return null;
+        }
+    }
 }
