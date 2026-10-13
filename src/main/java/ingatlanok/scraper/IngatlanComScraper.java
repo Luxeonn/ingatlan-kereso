@@ -3,6 +3,9 @@ package ingatlanok.scraper;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalSource;
+import ingatlanok.model.PriceInfo;
+import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.IngatlanRepository;
 import org.jsoup.nodes.Document;
@@ -13,7 +16,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Scraper implementáció az Ingatlan.com portálhoz.
@@ -23,6 +25,12 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://ingatlan.com";
     private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/(\\d+)");
+    private static final PortalSource SOURCE = PortalSource.of("Ingatlan.com");
+
+    @Override
+    public String getPortalId() {
+        return "ingatlancom";
+    }
 
     @Override
     public String getName() {
@@ -40,15 +48,8 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
     }
 
     @Override
-    public Set<String> getUrls() {
-        return search(new SearchCriteria()).stream()
-                .filter(IngatlanItem::isNew)
-                .map(IngatlanItem::getUrl)
-                .collect(Collectors.toSet());
-    }
-
-    @Override
-    public List<IngatlanItem> search(SearchCriteria criteria) {
+    public PortalScrapeResult scrape(SearchCriteria criteria) {
+        long startTime = System.currentTimeMillis();
         List<IngatlanItem> items = new ArrayList<>();
         if (criteria == null) {
             criteria = new SearchCriteria();
@@ -85,47 +86,55 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
         String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
         Set<String> processedUrls = new HashSet<>();
 
-        // Kísérlet a találati oldal letöltésére
-        Document document = getDocument(searchUrl);
-        if (document != null) {
-            Elements cards = document.select("a[href*=/ingatlan/]");
-            for (Element a : cards) {
-                String href = a.attr("href");
-                if (href == null || href.isBlank()) continue;
+        try {
+            // Kísérlet a találati oldal letöltésére
+            Document document = getDocument(searchUrl);
+            if (document != null) {
+                Elements cards = document.select("a[href*=/ingatlan/]");
+                for (Element a : cards) {
+                    String href = a.attr("href");
+                    if (href == null || href.isBlank()) continue;
 
-                String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-                if (!fullLink.matches(".*/ingatlan/\\d+.*")) continue;
-                if (processedUrls.contains(fullLink)) continue;
-                processedUrls.add(fullLink);
+                    String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+                    if (!fullLink.matches(".*/ingatlan/\\d+.*")) continue;
+                    if (processedUrls.contains(fullLink)) continue;
+                    processedUrls.add(fullLink);
 
-                String cardText = a.text().replaceAll("\\s+", " ").trim();
-                String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
-                String price = PropertyParser.extractPrice(cardText);
-                String details = PropertyParser.extractDetails(cardText);
-                String title = criteria.getCity() + " - " + extractTitle(cardText, criteria.getCity(), id);
-                boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
+                    String cardText = a.text().replaceAll("\\s+", " ").trim();
+                    String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
+                    PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
+                    PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
+                    String title = criteria.getCity() + " - " + extractTitle(cardText, criteria.getCity(), id);
+                    boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
 
-                IngatlanItem item = new IngatlanItem(
-                        id,
-                        "Ingatlan.com",
-                        fullLink,
-                        title,
-                        price,
-                        criteria.getCity(),
-                        details,
-                        now,
-                        isNew
-                );
-                items.add(item);
+                    IngatlanItem item = new IngatlanItem(
+                            id,
+                            SOURCE,
+                            fullLink,
+                            title,
+                            priceInfo,
+                            criteria.getCity(),
+                            detailsInfo,
+                            now,
+                            isNew
+                    );
+                    items.add(item);
+                }
             }
-        }
 
-        if (items.isEmpty()) {
-            System.out.println("Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni (a portál bot-védelme aktív).");
-        }
+            long elapsed = System.currentTimeMillis() - startTime;
+            if (items.isEmpty()) {
+                System.out.println("Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni (a portál bot-védelme aktív).");
+                return PortalScrapeResult.botProtected(getPortalId(), getName(), searchUrl, elapsed);
+            }
 
-        System.out.println("ingatlan.com Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
-        return items;
+            System.out.println("ingatlan.com Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+            return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
+        } catch (Exception e) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            System.err.println("Hiba az Ingatlan.com keresésekor: " + e.getMessage());
+            return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
+        }
     }
 
     private String extractTitle(String text, String defaultCity, String id) {

@@ -79,14 +79,25 @@ ingatlan-kereso/
 │       │   ├── PropertyParser.java              # Ár, méret, szobaszám és azonosító regex kinyerés és normalizálás
 │       │   └── SlugUtils.java                   # Diakritikus ékezetmentesítés és keresési URL slug generálás
 │       ├── model/
-│       │   ├── IngatlanItem.java                # Hirdetés adatmodell (ár, méret, szobaszám, link, cím, új státusz)
+│       │   ├── IngatlanItem.java                # Hirdetés adatmodell (gazdag értékobjektumokkal)
+│       │   ├── PortalSource.java                # Portálforrás metaadat (azonosító, szín, közvetlen típus)
+│       │   ├── PriceInfo.java                   # Strukturált ár (nyers szöveg, numerikus Ft és M Ft)
+│       │   ├── PropertyDetails.java             # Részletek (alapterület m², szobaszám, számított Ft/m²)
 │       │   ├── SearchCriteria.java              # Keresési paraméterek (városok, árhatárok, típus, aktív portálok)
 │       │   └── SearchResult.java                # Keresési aggregáció és portálstatisztikák modellje
 │       ├── persistence/
 │       │   └── IngatlanRepository.java          # Fájlalapú thread-safe JSON adatbázis és beállításkezelő
+│       ├── presentation/                        # Prezentációs és Facade réteg (UI & csatorna izoláció)
+│       │   ├── DashboardPresentationService.java# Facade: KPI statisztikák, portál állapotok, aggregáció
+│       │   ├── DashboardResponseDto.java        # Gazdagított válaszmodell a felület és kliensek felé
+│       │   ├── MarketStatsDto.java              # Piaci KPI mutatók (átlagár, átlagos m² ár, új arány)
+│       │   └── PortalStatusDto.java             # Portál egészségügyi és hibaállapot információs kártyák
 │       ├── scraper/                             # Dedikált web scraping réteg
 │       │   ├── IngatlanScraper.java             # Portálfüggetlen scraper interfész (search, getUrls, getName)
 │       │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & lapozási logika)
+│       │   ├── PortalScrapeResult.java          # Állapotgazdag és izolált kimenet per portál
+│       │   ├── PortalScrapeStatus.java          # Portál futási státusz (SUCCESS, BOT_PROTECTED, stb.)
+│       │   ├── ScraperRegistry.java             # Dinamikus Scraper Provider Factory (OCP elv)
 │       │   ├── DunaHouseScraper.java            # dh.hu scraper (élő találatok és kártya metaadatok)
 │       │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok és paraméteres szűrés)
 │       │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok és kártyainformációk)

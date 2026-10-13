@@ -1,11 +1,15 @@
 package ingatlanok.scraper;
 
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.IngatlanRepository;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -17,6 +21,11 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
     private static final String BASE_URL = "https://www.ingatlanbazar.hu";
     private static final String SEARCH_ROUTE = "/ingatlan-Debrecen-Elado-Lakas";
     public static final String URL = BASE_URL + SEARCH_ROUTE;
+
+    @Override
+    public String getPortalId() {
+        return "ingatlanbazar";
+    }
 
     @Override
     public String getName() {
@@ -34,34 +43,36 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
     }
 
     @Override
-    public Set<String> getUrls() {
+    public PortalScrapeResult scrape(SearchCriteria criteria) {
+        long startTime = System.currentTimeMillis();
         init();
-        Set<String> result = new HashSet<>();
+        List<IngatlanItem> items = new ArrayList<>();
 
-        Document document = getDocument(URL);
-        if (document == null) {
-            System.out.println("Ingatlanbazár: A lekérés meghiúsult.");
-            return result;
-        }
+        try {
+            Document document = getDocument(URL);
+            if (document == null) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült letölteni a kezdőoldalt", elapsed);
+            }
 
-        // Linkek keresése ha van statikus tartalom
-        Elements links = document.select("a[href*=/ingatlan-]");
-        for (Element a : links) {
-            String href = a.attr("href");
-            if (href != null && !href.isEmpty()) {
-                String link = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-                if (!IngatlanRepository.getInstance().containsUrl(link)) {
-                    result.add(link);
+            // Linkek keresése ha van statikus tartalom
+            Elements links = document.select("a[href*=/ingatlan-]");
+            for (Element a : links) {
+                String href = a.attr("href");
+                if (href != null && !href.isEmpty()) {
+                    String link = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+                    if (!IngatlanRepository.getInstance().containsUrl(link)) {
+                        // Statikus link jelenléte esetén
+                    }
                 }
             }
-        }
 
-        if (result.isEmpty()) {
+            long elapsed = System.currentTimeMillis() - startTime;
             System.out.println("Ingatlanbazár: Az oldal kliensoldali JavaScript renderelést (Angular SPA) használ, statikus HTML-ből nem nyerhető ki link.");
-        } else {
-            System.out.println("Ingatlanbazár Új URL száma : " + result.size());
+            return PortalScrapeResult.spaFallback(getPortalId(), getName(), URL, elapsed);
+        } catch (Exception e) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
-
-        return result;
     }
 }

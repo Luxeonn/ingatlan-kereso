@@ -12,6 +12,8 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
+import ingatlanok.presentation.DashboardPresentationService;
+import ingatlanok.presentation.DashboardResponseDto;
 import ingatlanok.service.IngatlanSearchService;
 
 import java.io.*;
@@ -196,7 +198,7 @@ public class WebServer {
                 criteria = new SearchCriteria();
             }
 
-            SearchResult result = IngatlanSearchService.getInstance().executeSearch(criteria);
+            DashboardResponseDto result = DashboardPresentationService.getInstance().executeSearch(criteria);
             sendJsonResponse(exchange, 200, result);
         }
     }

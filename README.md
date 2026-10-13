@@ -68,14 +68,24 @@ ingatlan-kereso/
         │   ├── PropertyParser.java              # Ár, méret, szobaszám regex kinyerés és normalizálás
         │   └── SlugUtils.java                   # Ékezetmentesítés és URL slug generálás
         ├── model/
-        │   ├── IngatlanItem.java                # Hirdetés adatmodell (ár, méret, szobák, link)
+        │   ├── IngatlanItem.java                # Hirdetés adatmodell (gazdag értékobjektumokkal)
+        │   ├── PriceInfo.java                   # Strukturált ár (nyers szöveg, numerikus Ft és M Ft)
+        │   ├── PropertyDetails.java             # Részletek (alapterület m², szobaszám, számított Ft/m²)
+        │   ├── PortalSource.java                # Portálforrás metaadat (azonosító, szín, típus)
         │   ├── SearchCriteria.java              # Keresési paraméterek (városok, típus, portálok)
         │   └── SearchResult.java                # Találati aggregáció modell
         ├── persistence/
         │   └── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
+        ├── presentation/                        # Prezentációs és Facade réteg (UI & csatorna izoláció)
+        │   ├── DashboardPresentationService.java# Facade: KPI statisztikák, portál állapotok
+        │   ├── DashboardResponseDto.java        # Gazdagított válaszmodell a felület és kliensek felé
+        │   ├── MarketStatsDto.java              # Piaci KPI mutatók (átlagár, átlagos m² ár)
+        │   └── PortalStatusDto.java             # Portál egészségügyi és információs kártyák
         ├── scraper/                             # Dedikált web scraping réteg
-        │   ├── IngatlanScraper.java             # Scraper interfész (`search` és `getUrls`)
+        │   ├── IngatlanScraper.java             # Scraper interfész (`search`, `scrape`)
         │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & letöltés)
+        │   ├── PortalScrapeResult.java          # Állapotgazdag és izolált kimenet per portál
+        │   ├── ScraperRegistry.java             # Dinamikus Scraper Provider Factory (OCP elv)
         │   ├── DunaHouseScraper.java            # dh.hu scraper (élő találatok + metaadatok)
         │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok + metaadatok)
         │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok + metaadatok)
