@@ -3,6 +3,7 @@ package ingatlanok.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,8 @@ public class SearchResult implements Serializable {
     private int totalFound;
     private String executedAt;
     private Map<String, Integer> portalCounts = new HashMap<>();
+    private Map<String, Integer> cityCounts = new LinkedHashMap<>();
+    private List<String> newCitiesInitialized = new ArrayList<>();
 
     public SearchResult() {
     }
@@ -58,5 +61,21 @@ public class SearchResult implements Serializable {
 
     public void setPortalCounts(Map<String, Integer> portalCounts) {
         this.portalCounts = portalCounts;
+    }
+
+    public Map<String, Integer> getCityCounts() {
+        return cityCounts;
+    }
+
+    public void setCityCounts(Map<String, Integer> cityCounts) {
+        this.cityCounts = cityCounts;
+    }
+
+    public List<String> getNewCitiesInitialized() {
+        return newCitiesInitialized;
+    }
+
+    public void setNewCitiesInitialized(List<String> newCitiesInitialized) {
+        this.newCitiesInitialized = newCitiesInitialized;
     }
 }

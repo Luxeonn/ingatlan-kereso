@@ -14,6 +14,7 @@ public class IngatlanItem implements Serializable {
     private String title;
     private String price;
     private String location;
+    private String city;
     private String details;
     private String discoveredAt;
     private boolean isNew;
@@ -28,6 +29,20 @@ public class IngatlanItem implements Serializable {
         this.title = title;
         this.price = price;
         this.location = location;
+        this.city = location;
+        this.details = details;
+        this.discoveredAt = discoveredAt;
+        this.isNew = isNew;
+    }
+
+    public IngatlanItem(String id, String portal, String url, String title, String price, String location, String city, String details, String discoveredAt, boolean isNew) {
+        this.id = id;
+        this.portal = portal;
+        this.url = url;
+        this.title = title;
+        this.price = price;
+        this.location = location;
+        this.city = city;
         this.details = details;
         this.discoveredAt = discoveredAt;
         this.isNew = isNew;
@@ -79,6 +94,20 @@ public class IngatlanItem implements Serializable {
 
     public void setLocation(String location) {
         this.location = location;
+        if (this.city == null || this.city.isBlank()) {
+            this.city = location;
+        }
+    }
+
+    public String getCity() {
+        if (city != null && !city.isBlank()) {
+            return city;
+        }
+        return location != null && !location.isBlank() ? location : "Debrecen";
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public String getDetails() {

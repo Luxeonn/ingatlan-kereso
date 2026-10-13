@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import ingatlanok.helper.CityUtils;
 import ingatlanok.helper.IngatlanHelper;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
@@ -16,6 +17,7 @@ import ingatlanok.service.IngatlanSearchService;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -61,6 +63,7 @@ public class WebServer {
         server.createContext("/", new RootHandler(port));
         server.createContext("/api/status", new StatusHandler(port));
         server.createContext("/api/config", new ConfigHandler());
+        server.createContext("/api/cities", new CitiesHandler());
         server.createContext("/api/history", new HistoryHandler());
         server.createContext("/api/search", new SearchHandler());
         server.createContext("/api/open-urls", new OpenUrlsHandler());
@@ -116,7 +119,23 @@ public class WebServer {
             status.put("port", port);
             status.put("totalInDb", IngatlanRepository.getInstance().getTotalCount());
             status.put("lastRunTime", IngatlanRepository.getInstance().getLastRunTime());
+            status.put("trackedCities", IngatlanRepository.getInstance().getTrackedCitiesInfo());
             sendJsonResponse(exchange, 200, status);
+        }
+    }
+
+    private static class CitiesHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("predefined", CityUtils.getPredefinedCities());
+            data.put("presets", CityUtils.getPresets());
+            data.put("trackedCities", IngatlanRepository.getInstance().getTrackedCitiesInfo());
+            sendJsonResponse(exchange, 200, data);
         }
     }
 
@@ -142,7 +161,23 @@ public class WebServer {
     private static class HistoryHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            List<IngatlanItem> items = IngatlanRepository.getInstance().getAll();
+            String query = exchange.getRequestURI().getQuery();
+            String cityParam = null;
+            if (query != null && query.contains("city=")) {
+                for (String part : query.split("&")) {
+                    if (part.startsWith("city=")) {
+                        cityParam = URLDecoder.decode(part.substring(5), StandardCharsets.UTF_8);
+                        break;
+                    }
+                }
+            }
+
+            List<IngatlanItem> items;
+            if (cityParam != null && !cityParam.isBlank()) {
+                items = IngatlanRepository.getInstance().getItemsByCity(cityParam);
+            } else {
+                items = IngatlanRepository.getInstance().getAll();
+            }
             sendJsonResponse(exchange, 200, items);
         }
     }
@@ -191,8 +226,39 @@ public class WebServer {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
             }
-            IngatlanRepository.getInstance().clearHistory();
-            sendJsonResponse(exchange, 200, Map.of("success", true));
+
+            String query = exchange.getRequestURI().getQuery();
+            String cityParam = null;
+            if (query != null && query.contains("city=")) {
+                for (String part : query.split("&")) {
+                    if (part.startsWith("city=")) {
+                        cityParam = URLDecoder.decode(part.substring(5), StandardCharsets.UTF_8);
+                        break;
+                    }
+                }
+            }
+
+            if (cityParam == null || cityParam.isBlank()) {
+                // Megvizsgáljuk van-e a body-ban city paraméter
+                String body = readBody(exchange);
+                if (body != null && !body.isBlank()) {
+                    try {
+                        Map<?, ?> map = GSON.fromJson(body, Map.class);
+                        if (map != null && map.get("city") != null) {
+                            cityParam = map.get("city").toString();
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+
+            if (cityParam != null && !cityParam.isBlank()) {
+                IngatlanRepository.getInstance().clearCityHistory(cityParam);
+                sendJsonResponse(exchange, 200, Map.of("success", true, "clearedCity", cityParam));
+            } else {
+                IngatlanRepository.getInstance().clearHistory();
+                sendJsonResponse(exchange, 200, Map.of("success", true, "clearedAll", true));
+            }
         }
     }
 
