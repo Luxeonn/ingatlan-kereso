@@ -8,6 +8,10 @@ package ingatlanok.web;
 public class WebDashboardHtml {
 
     public static String getHtml(int port) {
+        return (getHeaderAndCss() + getBodyMarkup() + getScriptJs()).replace("{{PORT}}", String.valueOf(port));
+    }
+
+    private static String getHeaderAndCss() {
         return """
 <!DOCTYPE html>
 <html lang="hu">
@@ -931,7 +935,11 @@ public class WebDashboardHtml {
             </div>
         </div>
     </header>
+""";
+    }
 
+    private static String getBodyMarkup() {
+        return """
     <main>
         <!-- Filter Card -->
         <section class="filter-card">
@@ -1087,7 +1095,11 @@ public class WebDashboardHtml {
 
     <!-- Toast Notification -->
     <div id="toast"></div>
+""";
+    }
 
+    private static String getScriptJs() {
+        return """
     <script>
         // State
         let currentItems = [];
@@ -1138,22 +1150,42 @@ public class WebDashboardHtml {
             renderListings();
         }
 
-        function parsePrice(priceStr) {
-            if (!priceStr) return null;
-            const clean = priceStr.replace(/\\s+/g, '').replace(',', '.');
-            const match = clean.match(/([\\d.]+)\\s*(M|millió|ezer)?\\s*Ft/i);
-            if (!match) {
-                const numMatch = clean.match(/([\\d.]+)/);
-                return numMatch ? parseFloat(numMatch[1]) : null;
+        function parsePrice(raw) {
+            if (!raw || typeof raw !== 'string') return null;
+            let str = raw.trim();
+            if (!str || str.toLowerCase().includes('ár a hirdetésben') || str.toLowerCase().includes('érdeklődjön')) {
+                return null;
             }
-            let val = parseFloat(match[1]);
-            const unit = (match[2] || '').toLowerCase();
-            if (unit.startsWith('m')) {
-                val = val * 1000000;
-            } else if (unit.startsWith('e')) {
-                val = val * 1000;
+
+            // Ha van ártartomány (pl. "70 - 120 M Ft"), az alsó határt vesszük
+            if (str.includes('-')) {
+                const parts = str.split('-');
+                if (parts.length > 0 && parts[0].trim()) {
+                    const parsedFirst = parsePrice(parts[0].trim());
+                    if (parsedFirst !== null) return parsedFirst;
+                }
             }
-            return isNaN(val) ? null : val;
+
+            // Millió Ft mintázat felismerése (pl. "51,90 M Ft", "124,5M Ft", "800M Ft", "54,9 millió Ft")
+            const millionMatch = str.match(/([0-9]+(?:[.,][0-9]+)?)\\s*(?:m\\s*ft|mft|millió|m)/i);
+            if (millionMatch) {
+                const numStr = millionMatch[1].replace(',', '.');
+                const val = parseFloat(numStr);
+                if (!isNaN(val) && val > 0) {
+                    return Math.round(val * 1000000);
+                }
+            }
+
+            // Normál Ft mintázat (pl. "74 900 000 Ft", "49.900.000 Ft")
+            const digitsOnly = str.replace(/[^0-9]/g, '');
+            if (digitsOnly.length >= 6) { // legalább százezer vagy millió Ft
+                const val = parseInt(digitsOnly, 10);
+                if (!isNaN(val) && val > 0) {
+                    return val;
+                }
+            }
+
+            return null;
         }
 
         function stepNumber(inputId, step) {
@@ -1819,6 +1851,6 @@ public class WebDashboardHtml {
     </script>
 </body>
 </html>
-        """.replace("{{PORT}}", String.valueOf(port));
+""";
     }
 }
