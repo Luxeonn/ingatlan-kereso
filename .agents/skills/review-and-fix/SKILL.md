@@ -48,6 +48,7 @@ Minden PR-t kizárólag akkor engedünk át, ha az érintett szakterület dedik�
 | `web/WebDashboardHtml.java`, CSS, JS | **`ui-designer`** | Zéró külső függőség, reszponzív nézet (360px-2560px), azonnali visszajelzés flicker nélkül, design tokenek követése. |
 | `web/WebServer.java`, `SidecarCliExecutor.java`, `BrowserUtils.java` | **`security-specialist`** | `127.0.0.1` localhost binding, `405 Method Not Allowed`, CSP/nosniff fejlécek, Path Traversal prevenció, XSS escaping, safe process execution. |
 | `persistence/*`, `IngatlanRepository.java`, `data/*` | **`database-specialist`** | Thread-safe kollekciók, `ReentrantReadWriteLock`, atomi fájlírás (`.tmp` + `ATOMIC_MOVE`), O(1) duplikátumszűrés, visszafelé kompatibilis séma. |
+| `.github/workflows/*`, `.githooks/*` | **`workflow-engineer`** | Minimális jogosultságok (`permissions`), shell injection védelem, gyorstárazás (`cache`), concurrency és PR kapu integritás. |
 
 ---
 
@@ -61,6 +62,7 @@ Amikor a vizsgálat sikeresen lezárult, a PR leírásába kötelező beilleszte
 - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`)
 - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`)
 - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`)
+- [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`)
 ```
 
 Amennyiben egy PR egy adott témakört nem érint, a státusz:

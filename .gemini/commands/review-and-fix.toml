@@ -37,6 +37,9 @@ Follow these steps to conduct a thorough review:
    * **Persistence & Database (`database-specialist` required):**
      Touching `ingatlanok.persistence.*`, `IngatlanRepository.java`, `data/`, model serialization, or storage formats.
      *Criteria:* Thread-safe collections, ReentrantReadWriteLock, atomic write (.tmp + ATOMIC_MOVE), O(1) deduplication, backward compatibility.
+   * **CI/CD & Workflows (`workflow-engineer` required):**
+     Touching `.github/workflows/*`, `.githooks/*`, CI scripts, or automated pipelines.
+     *Criteria:* Least privilege permissions, safe environment variables, shell injection safety, caching, concurrency cancel-in-progress.
 
 4. **Execute Thematic Audits**:
    For each triggered domain, evaluate the diff against the corresponding specialist skill:
@@ -44,6 +47,7 @@ Follow these steps to conduct a thorough review:
    - UI/UX: `.agents/skills/ui-designer/SKILL.md`
    - Security: `.agents/skills/security-specialist/SKILL.md`
    - Database: `.agents/skills/database-specialist/SKILL.md`
+   - Workflows/CI: `.agents/skills/workflow-engineer/SKILL.md`
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
@@ -54,6 +58,7 @@ Follow these steps to conduct a thorough review:
      - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`)
      - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`)
      - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`)
+     - [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`)
      ```
    * Advance to Phase 2.
 

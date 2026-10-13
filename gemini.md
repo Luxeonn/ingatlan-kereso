@@ -154,6 +154,9 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 * **`database-specialist` (`.agents/skills/database-specialist/`):**
   * Adatbázis és tárolási architektúra specialista.
   * Fókusz: `IngatlanRepository` kétszintű JSON perzisztencia optimalizáció, `ReentrantReadWriteLock` konkurenciakezelés, atomi lemezre írás (`ATOMIC_MOVE`), O(1) duplikátumszűrés, visszafelé kompatibilis sémaevolúció, és SQLite átállási terv.
+* **`workflow-engineer` (`.agents/skills/workflow-engineer/`):**
+  * GitHub Actions és CI/CD automatizálási mérnök és workflow specialista.
+  * Fókusz: Professzionális, biztonságos és optimalizált `.github/workflows/` scriptek, jogosultság-minimalizálás (`permissions`), shell injection prevenció, gyorstárazás (`cache`), concurrency menedzsment és PR guard kapuk.
 
 ---
 
@@ -257,6 +260,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      - **Frontend és Felület (`WebDashboardHtml.java`, CSS, JS komponensek):** A `ui-designer` ágens jóváhagyása kötelező (zéró külső függőség, reszponzivitás, UX).
 >      - **Biztonság, Hálózat és Folyamatkezelés (`WebServer.java`, `SidecarCliExecutor`, `BrowserUtils`):** A `security-specialist` ágens jóváhagyása kötelező (localhost kötés, CSP, Path Traversal, XSS és command injection védelem).
 >      - **Perzisztencia és Adatbázis (`persistence/`, `IngatlanRepository`, `data/`):** A `database-specialist` ágens jóváhagyása kötelező (atomi lemezre írás, ReentrantReadWriteLock, duplikátumszűrés).
+>      - **CI/CD és GitHub Actions (`.github/workflows/`, `.githooks/`):** A `workflow-engineer` ágens jóváhagyása kötelező (least privilege permissions, shell injection védelem, caching, concurrency).
 >    - A felülvizsgálat lefolytatásához és az észlelt hiányosságok automatikus javításához a `.gemini/commands/review-and-fix.toml` parancs, illetve a `.agents/skills/review-and-fix/` skill használandó.
 >    - A PR leírásában kötelezően szerepelnie kell az alábbi ellenőrzött jóváhagyási blokknak:
 >      ```markdown
@@ -265,6 +269,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`)
 >      - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`)
 >      - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`)
+>      - [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`)
 >      ```
 >      *(A nem érintett témakörök esetén a státusz: `N/A (nem érintett)`)*
 >    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.

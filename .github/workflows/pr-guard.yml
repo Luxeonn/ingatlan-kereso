@@ -110,6 +110,14 @@ jobs:
             fi
           fi
 
+          # 5. CI/CD és GitHub Actions (workflow-engineer)
+          if echo "$CHANGED_FILES" | grep -qE "\.github/workflows/|\.githooks/"; then
+            echo "-> Érintett téma: CI/CD és GitHub Actions (workflow-engineer szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Workflow|CI|workflow-engineer)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ⚙️ Workflow Engineer Agent (\`workflow-engineer\`): GitHub Actions, CI/CD és automatizáció jóváhagyása szükséges."
+            fi
+          fi
+
           if [ -n "$MISSING_APPROVALS" ]; then
             echo "::error::Hiányzó Tematikus Agent Jóváhagyás(ok)! A PR nem engedélyezett a megfelelő szakértői ágens igazolása nélkül:${MISSING_APPROVALS}"
             echo ""
