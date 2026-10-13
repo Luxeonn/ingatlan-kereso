@@ -125,4 +125,26 @@ class ModelClassesTest {
         assertEquals(1, result.getPortalCounts().get("dh"));
         assertEquals(1, result.getPortalCounts().get("oc"));
     }
+
+    @Test
+    @DisplayName("SearchCriteria area and price defaults and clone")
+    void testSearchCriteriaModel() {
+        SearchCriteria criteria = new SearchCriteria();
+        assertEquals(70, criteria.getMinPriceMillion());
+        assertEquals(120, criteria.getMaxPriceMillion());
+        assertEquals(90, criteria.getMinArea());
+        assertEquals(200, criteria.getMaxArea());
+
+        criteria.setMinArea(60);
+        criteria.setMaxArea(180);
+        assertEquals(60, criteria.getMinArea());
+        assertEquals(180, criteria.getMaxArea());
+
+        SearchCriteria clone = criteria.cloneForCity("Miskolc");
+        assertEquals("Miskolc", clone.getCity());
+        assertEquals(60, clone.getMinArea());
+        assertEquals(180, clone.getMaxArea());
+        assertEquals(70, clone.getMinPriceMillion());
+        assertEquals(120, clone.getMaxPriceMillion());
+    }
 }

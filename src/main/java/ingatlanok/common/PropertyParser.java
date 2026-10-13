@@ -114,7 +114,6 @@ public final class PropertyParser {
             return true;
         }
         if (priceInfo == null || priceInfo.getAmountMillion() == null) {
-
             return false;
         }
         double amount = priceInfo.getAmountMillion();
@@ -122,6 +121,27 @@ public final class PropertyParser {
             return false;
         }
         if (maxMillion != null && amount > (maxMillion + 0.001)) {
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean isAreaInRange(PropertyDetails details, Integer minArea, Integer maxArea) {
+        Double area = details != null ? details.getAreaSquareMeters() : null;
+        return isAreaInRange(area, minArea, maxArea);
+    }
+
+    public static boolean isAreaInRange(Double area, Integer minArea, Integer maxArea) {
+        if (minArea == null && maxArea == null) {
+            return true;
+        }
+        if (area == null) {
+            return true;
+        }
+        if (minArea != null && area < (minArea - 0.001)) {
+            return false;
+        }
+        if (maxArea != null && area > (maxArea + 0.001)) {
             return false;
         }
         return true;

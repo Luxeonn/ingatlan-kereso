@@ -20,6 +20,10 @@ class SearchCriteriaAndScraperTest {
 
         assertEquals("Debrecen", criteria.getCity());
         assertEquals("lakas", criteria.getPropertyType());
+        assertEquals(70, criteria.getMinPriceMillion());
+        assertEquals(120, criteria.getMaxPriceMillion());
+        assertEquals(90, criteria.getMinArea());
+        assertEquals(200, criteria.getMaxArea());
         assertTrue(criteria.isPortalEnabled("dh"));
         assertTrue(criteria.isPortalEnabled("oc"));
         assertTrue(criteria.isPortalEnabled("jofogas"));
@@ -27,10 +31,14 @@ class SearchCriteriaAndScraperTest {
 
         criteria.setMinPriceMillion(30);
         criteria.setMaxPriceMillion(60);
+        criteria.setMinArea(80);
+        criteria.setMaxArea(150);
         criteria.setPropertyType("garazs");
 
         assertEquals(30, criteria.getMinPriceMillion());
         assertEquals(60, criteria.getMaxPriceMillion());
+        assertEquals(80, criteria.getMinArea());
+        assertEquals(150, criteria.getMaxArea());
         assertEquals("garazs", criteria.getPropertyType());
     }
 

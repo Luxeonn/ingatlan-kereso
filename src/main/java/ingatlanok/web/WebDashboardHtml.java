@@ -968,7 +968,7 @@ public class WebDashboardHtml {
                         <label>Ársáv (Millió Ft)</label>
                         <div class="price-range-inputs">
                             <div class="stepper-box">
-                                <input type="number" id="min-price-input" class="stepper-input" placeholder="Min (M Ft)" min="0" step="1">
+                                <input type="number" id="min-price-input" class="stepper-input" value="70" placeholder="Min (M Ft)" min="0" step="1">
                                 <div class="stepper-arrows">
                                     <button type="button" class="stepper-arrow-btn" onclick="stepNumber('min-price-input', 1)" title="Növelés">▲</button>
                                     <button type="button" class="stepper-arrow-btn" onclick="stepNumber('min-price-input', -1)" title="Csökkentés">▼</button>
@@ -976,10 +976,30 @@ public class WebDashboardHtml {
                             </div>
                             <span class="price-range-separator">-</span>
                             <div class="stepper-box">
-                                <input type="number" id="max-price-input" class="stepper-input" placeholder="Max (M Ft)" min="0" step="1">
+                                <input type="number" id="max-price-input" class="stepper-input" value="120" placeholder="Max (M Ft)" min="0" step="1">
                                 <div class="stepper-arrows">
                                     <button type="button" class="stepper-arrow-btn" onclick="stepNumber('max-price-input', 1)" title="Növelés">▲</button>
                                     <button type="button" class="stepper-arrow-btn" onclick="stepNumber('max-price-input', -1)" title="Csökkentés">▼</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Alapterület (m²)</label>
+                        <div class="price-range-inputs">
+                            <div class="stepper-box">
+                                <input type="number" id="min-area-input" class="stepper-input" value="90" placeholder="Min (m²)" min="0" step="5">
+                                <div class="stepper-arrows">
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('min-area-input', 5)" title="Növelés">▲</button>
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('min-area-input', -5)" title="Csökkentés">▼</button>
+                                </div>
+                            </div>
+                            <span class="price-range-separator">-</span>
+                            <div class="stepper-box">
+                                <input type="number" id="max-area-input" class="stepper-input" value="200" placeholder="Max (m²)" min="0" step="5">
+                                <div class="stepper-arrows">
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('max-area-input', 5)" title="Növelés">▲</button>
+                                    <button type="button" class="stepper-arrow-btn" onclick="stepNumber('max-area-input', -5)" title="Csökkentés">▼</button>
                                 </div>
                             </div>
                         </div>
@@ -1509,6 +1529,8 @@ public class WebDashboardHtml {
                     if (conf.autoOpenBrowser !== undefined) document.getElementById('auto-open-toggle').checked = conf.autoOpenBrowser;
                     if (conf.minPriceMillion !== undefined && conf.minPriceMillion !== null) document.getElementById('min-price-input').value = conf.minPriceMillion;
                     if (conf.maxPriceMillion !== undefined && conf.maxPriceMillion !== null) document.getElementById('max-price-input').value = conf.maxPriceMillion;
+                    if (conf.minArea !== undefined && conf.minArea !== null) document.getElementById('min-area-input').value = conf.minArea;
+                    if (conf.maxArea !== undefined && conf.maxArea !== null) document.getElementById('max-area-input').value = conf.maxArea;
                     if (conf.portals) {
                         document.getElementById('portal-dh').checked = conf.portals.includes('dh');
                         document.getElementById('portal-oc').checked = conf.portals.includes('oc');
@@ -1558,6 +1580,8 @@ public class WebDashboardHtml {
 
             const minPriceVal = document.getElementById('min-price-input').value.trim();
             const maxPriceVal = document.getElementById('max-price-input').value.trim();
+            const minAreaVal = document.getElementById('min-area-input').value.trim();
+            const maxAreaVal = document.getElementById('max-area-input').value.trim();
 
             const payload = {
                 city: selectedCities[0] || 'Debrecen',
@@ -1565,6 +1589,8 @@ public class WebDashboardHtml {
                 propertyType: document.getElementById('type-select').value,
                 minPriceMillion: minPriceVal ? parseInt(minPriceVal, 10) : null,
                 maxPriceMillion: maxPriceVal ? parseInt(maxPriceVal, 10) : null,
+                minArea: minAreaVal ? parseInt(minAreaVal, 10) : null,
+                maxArea: maxAreaVal ? parseInt(maxAreaVal, 10) : null,
                 autoOpenBrowser: document.getElementById('auto-open-toggle').checked,
                 portals: portals
             };
