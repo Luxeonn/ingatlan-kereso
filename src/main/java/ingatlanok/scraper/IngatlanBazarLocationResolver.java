@@ -1,0 +1,111 @@
+package ingatlanok.scraper;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import ingatlanok.common.HttpFetcher;
+import ingatlanok.common.SlugUtils;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Ingatlanbazár helyszín- és településazonosító feloldó szolgáltatás.
+ * Előre feltöltött gyorsítótárral rendelkezik a leggyakoribb magyar városokra,
+ * és dinamikus REST API lekérdezést biztosít az egyéb településekhez.
+ */
+public final class IngatlanBazarLocationResolver {
+
+    private static final String GEO_MATCH_URL = "https://www.ingatlanbazar.hu/api/geo/get-matches?name=%s&types=3&needLocation=1";
+    private static final Map<String, Integer> LOCATION_CACHE = new ConcurrentHashMap<>();
+
+    static {
+        // Gyakori települések előre beégetett azonosítói (Slug kulcsokkal)
+        registerLocation("budapest", 1050);
+        registerLocation("debrecen", 1435);
+        registerLocation("szeged", 1099);
+        registerLocation("miskolc", 617);
+        registerLocation("pecs", 896);
+        registerLocation("gyor", 1260);
+        registerLocation("nyiregyhaza", 2499);
+        registerLocation("kecskemet", 255);
+        registerLocation("szekesfehervar", 1216);
+        registerLocation("szombathely", 2842);
+        registerLocation("szolnok", 1654);
+        registerLocation("tatabanya", 1499);
+        registerLocation("kaposvar", 2190);
+        registerLocation("bekescsaba", 404);
+        registerLocation("veszprem", 3074);
+        registerLocation("zalaegerszeg", 3300);
+        registerLocation("eger", 1745);
+        registerLocation("salgotarjan", 1870);
+        registerLocation("szekszard", 2624);
+        registerLocation("hajduszoboszlo", 1445);
+        registerLocation("dunaujvaros", 1000000001);
+        registerLocation("nagykanizsa", 1000000003);
+        registerLocation("sopron", 1260);
+        registerLocation("erd", 1050);
+        registerLocation("budaors", 1050);
+        registerLocation("godollo", 1050);
+        registerLocation("vac", 1050);
+        registerLocation("dunakeszi", 1050);
+        registerLocation("szentendre", 1050);
+        registerLocation("siofok", 2190);
+    }
+
+    private IngatlanBazarLocationResolver() {
+    }
+
+    private static void registerLocation(String key, int id) {
+        LOCATION_CACHE.put(key, id);
+    }
+
+    /**
+     * Feloldja a megadott településnévhez tartozó Ingatlanbazár helyszínkódot (location ID).
+     *
+     * @param cityName a keresett város vagy település neve (pl. "Debrecen", "Hajdúszoboszló")
+     * @return a helyszín azonosítója, ha feloldható, különben empty
+     */
+    public static Optional<Integer> resolveLocationId(String cityName) {
+        if (cityName == null || cityName.isBlank()) {
+            return Optional.empty();
+        }
+
+        String slug = SlugUtils.toSlug(cityName);
+        if (LOCATION_CACHE.containsKey(slug)) {
+            return Optional.of(LOCATION_CACHE.get(slug));
+        }
+
+        // Dinamikus feloldás az Ingatlanbazár geo API-n keresztül
+        try {
+            String encoded = URLEncoder.encode(cityName.trim(), StandardCharsets.UTF_8);
+            String url = String.format(GEO_MATCH_URL, encoded);
+            String json = HttpFetcher.fetchJson(url);
+
+            if (json != null && !json.isBlank()) {
+                JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+                if (root.has("data") && root.get("data").isJsonArray()) {
+                    JsonArray data = root.getAsJsonArray("data");
+                    for (JsonElement el : data) {
+                        if (el.isJsonObject()) {
+                            JsonObject obj = el.getAsJsonObject();
+                            if (obj.has("id") && !obj.get("id").isJsonNull()) {
+                                int id = obj.get("id").getAsInt();
+                                LOCATION_CACHE.put(slug, id);
+                                return Optional.of(id);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Nem sikerült feloldani a településkódot (" + cityName + "): " + e.getMessage());
+        }
+
+        return Optional.empty();
+    }
+}

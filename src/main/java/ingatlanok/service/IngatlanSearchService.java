@@ -53,6 +53,7 @@ public class IngatlanSearchService {
         portalCounts.put("Otthon Centrum", 0);
         portalCounts.put("Jófogás Ingatlan", 0);
         portalCounts.put("Ingatlan.com", 0);
+        portalCounts.put("Ingatlanbazár", 0);
 
         Map<String, Integer> cityCounts = new LinkedHashMap<>();
 

@@ -36,7 +36,7 @@ public class PortalSource implements Serializable {
         } else if (lower.contains("ingatlan.com")) {
             return new PortalSource("ingatlancom", "Ingatlan.com", "#1d4ed8", false);
         } else if (lower.contains("bazár") || lower.contains("bazar")) {
-            return new PortalSource("ingatlanbazar", "Ingatlanbazár", "#8b5cf6", false);
+            return new PortalSource("ingatlanbazar", "Ingatlanbazár", "#d80f31", true);
         }
         return new PortalSource(lower.replaceAll("[^a-z0-9]", ""), portalName, "#6b7280", true);
     }

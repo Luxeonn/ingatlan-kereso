@@ -1012,6 +1012,9 @@ public class WebDashboardHtml {
                         <label class="portal-chip">
                             <input type="checkbox" id="portal-ic" value="ingatlancom" checked> Ingatlan.com
                         </label>
+                        <label class="portal-chip">
+                            <input type="checkbox" id="portal-ib" value="ingatlanbazar" checked> Ingatlanbazár
+                        </label>
                     </div>
                 </div>
 
@@ -1532,6 +1535,7 @@ public class WebDashboardHtml {
                         document.getElementById('portal-oc').checked = conf.portals.includes('oc');
                         document.getElementById('portal-jf').checked = conf.portals.includes('jofogas');
                         document.getElementById('portal-ic').checked = conf.portals.includes('ingatlancom');
+                        document.getElementById('portal-ib').checked = conf.portals.includes('ingatlanbazar');
                     }
                 } else {
                     renderSelectedCityChips();
@@ -1563,6 +1567,7 @@ public class WebDashboardHtml {
             if (document.getElementById('portal-oc').checked) portals.push('oc');
             if (document.getElementById('portal-jf').checked) portals.push('jofogas');
             if (document.getElementById('portal-ic').checked) portals.push('ingatlancom');
+            if (document.getElementById('portal-ib').checked) portals.push('ingatlanbazar');
 
             if (portals.length === 0) {
                 showToast("Válassz ki legalább egy weboldalt a kereséshez!");
