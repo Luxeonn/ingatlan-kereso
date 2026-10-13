@@ -15,6 +15,8 @@ public class IngatlanItem implements Serializable {
     private String details;
     private String discoveredAt;
     private boolean isNew;
+    private boolean viewed;
+    private String viewedAt;
 
     private PriceInfo priceInfo;
     private PropertyDetails detailsInfo;
@@ -178,6 +180,22 @@ public class IngatlanItem implements Serializable {
 
     public void setNew(boolean isNew) {
         this.isNew = isNew;
+    }
+
+    public boolean isViewed() {
+        return viewed;
+    }
+
+    public void setViewed(boolean viewed) {
+        this.viewed = viewed;
+    }
+
+    public String getViewedAt() {
+        return viewedAt;
+    }
+
+    public void setViewedAt(String viewedAt) {
+        this.viewedAt = viewedAt;
     }
 
     @Override

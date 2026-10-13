@@ -7,11 +7,16 @@ import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
 import ingatlanok.presentation.MarketStatsDto;
 import ingatlanok.presentation.PortalStatusDto;
+import ingatlanok.model.PortalSource;
 import ingatlanok.scraper.IngatlanBazarLocationResolver;
+import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.scraper.PortalScrapeStatus;
+import ingatlanok.scraper.SidecarResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,12 +48,37 @@ class RepositoryAndPresentationCoverageTest {
         repo.saveCityItems("TesztVaros", List.of(item));
         assertTrue(repo.hasCityDatabase("TesztVaros"));
         assertFalse(repo.isNewUrl("TesztVaros", item.getUrl()));
+        assertFalse(repo.isViewed(item.getUrl()));
+
+        repo.markAsViewed(item.getUrl());
+        assertTrue(repo.isViewed(item.getUrl()));
 
         List<IngatlanItem> byCity = repo.getItemsByCity("TesztVaros");
         assertNotNull(byCity);
         assertFalse(byCity.isEmpty());
+        assertTrue(byCity.stream().anyMatch(i -> item.getUrl().equals(i.getUrl()) && i.isViewed()));
+
+        assertTrue(repo.containsUrl(item.getUrl()));
+        assertFalse(repo.markAsViewed(null));
+        assertFalse(repo.markAsViewed(""));
+        assertFalse(repo.markAsViewed("https://not-exists.hu/12345"));
+        assertFalse(repo.isViewed(null));
+        assertFalse(repo.isViewed(""));
+        assertFalse(repo.isViewed("https://not-exists.hu/12345"));
+
+        IngatlanItem item2 = new IngatlanItem();
+        item2.setUrl("https://test.hu/save-all-" + System.currentTimeMillis());
+        item2.setCity("TesztVaros2");
+        repo.saveAll(List.of(item2));
+        assertTrue(repo.containsUrl(item2.getUrl()));
+        repo.saveAll(null);
+        repo.saveAll(List.of());
+
+        assertNotNull(repo.getAll());
+        assertNotNull(repo.getAllUrls());
 
         repo.clearCityHistory("TesztVaros");
+        repo.clearCityHistory("TesztVaros2");
         assertNotNull(repo.getLastRunTime());
     }
 
@@ -72,6 +102,36 @@ class RepositoryAndPresentationCoverageTest {
         MarketStatsDto stats = dto.getMarketStats();
         assertNotNull(stats.getCityBreakdown());
 
+        stats.setAveragePriceMillion(65.0);
+        stats.setAveragePricePerM2(850000L);
+        stats.setMinPriceMillion(40.0);
+        stats.setMaxPriceMillion(95.0);
+        stats.setNewRatePercent(40.0);
+        stats.setCityBreakdown(Map.of("Debrecen", 15));
+
+        assertEquals(65.0, stats.getAveragePriceMillion());
+        assertEquals(850000L, stats.getAveragePricePerM2());
+        assertEquals(40.0, stats.getMinPriceMillion());
+        assertEquals(95.0, stats.getMaxPriceMillion());
+        assertEquals(40.0, stats.getNewRatePercent());
+        assertEquals(1, stats.getCityBreakdown().size());
+
+        dto.setTotalFound(20);
+        dto.setNewCount(5);
+        dto.setExecutedAt("2026-10-13 22:30:00");
+        dto.setPortalCounts(Map.of("dh", 5));
+        dto.setCityCounts(Map.of("Debrecen", 5));
+        dto.setNewCitiesInitialized(List.of("Debrecen"));
+        dto.setItems(List.of());
+
+        assertEquals(20, dto.getTotalFound());
+        assertEquals(5, dto.getNewCount());
+        assertEquals("2026-10-13 22:30:00", dto.getExecutedAt());
+        assertEquals(1, dto.getPortalCounts().size());
+        assertEquals(1, dto.getCityCounts().size());
+        assertEquals(1, dto.getNewCitiesInitialized().size());
+        assertTrue(dto.getItems().isEmpty());
+
         PortalStatusDto portalStatus = new PortalStatusDto("dh", "Duna House", "SUCCESS", 5, 120L, "https://dh.hu", "OK");
         assertEquals("dh", portalStatus.getPortalId());
         assertEquals("Duna House", portalStatus.getPortalName());
@@ -90,6 +150,55 @@ class RepositoryAndPresentationCoverageTest {
     }
 
     @Test
+    @DisplayName("SidecarResponse getters, setters, and item conversion")
+    void testSidecarResponseCoverage() {
+        SidecarResponse response = new SidecarResponse();
+        response.setPortalId("ingatlancom");
+        response.setStatus("SUCCESS");
+        response.setErrorMessage(null);
+        response.setElapsedMs(500L);
+
+        assertTrue(response.isSuccess());
+        assertEquals("ingatlancom", response.getPortalId());
+        assertEquals("SUCCESS", response.getStatus());
+        assertNull(response.getErrorMessage());
+        assertEquals(500L, response.getElapsedMs());
+
+        SidecarResponse.SidecarItem sidecarItem = new SidecarResponse.SidecarItem(
+                "sc-1",
+                "https://ingatlan.com/sc-1",
+                "Kiadó vagy eladó ház",
+                55.5,
+                "55.5 M Ft",
+                75.0,
+                3.0
+        );
+
+        assertEquals("sc-1", sidecarItem.getId());
+        assertEquals("https://ingatlan.com/sc-1", sidecarItem.getUrl());
+        assertEquals("Kiadó vagy eladó ház", sidecarItem.getTitle());
+        assertEquals(55.5, sidecarItem.getPriceMillion());
+        assertEquals("55.5 M Ft", sidecarItem.getPriceRaw());
+        assertEquals(75.0, sidecarItem.getAreaSquareMeters());
+        assertEquals(3.0, sidecarItem.getRoomCount());
+
+        IngatlanItem item = sidecarItem.toIngatlanItem(PortalSource.of("ingatlan.com"), "Debrecen", "2026-10-13", true);
+        assertNotNull(item);
+        assertEquals("sc-1", item.getId());
+        assertEquals("Debrecen", item.getCity());
+        assertTrue(item.isNew());
+        assertNotNull(item.getPriceInfo());
+        assertEquals(55.5, item.getPriceInfo().getAmountMillion());
+
+        response.setItems(List.of(sidecarItem));
+        assertEquals(1, response.getItems().size());
+
+        SidecarResponse emptyResponse = new SidecarResponse();
+        assertNotNull(emptyResponse.getItems());
+        assertFalse(emptyResponse.isSuccess());
+    }
+
+    @Test
     @DisplayName("IngatlanBazarLocationResolver cache and resolving")
     void testIngatlanBazarLocationResolver() {
         Optional<Integer> debrecenId = IngatlanBazarLocationResolver.resolveLocationId("Debrecen");
@@ -105,5 +214,47 @@ class RepositoryAndPresentationCoverageTest {
 
         Optional<Integer> unknown = IngatlanBazarLocationResolver.resolveLocationId("IsmeretlenNemLetezoTelepules123");
         assertTrue(unknown.isEmpty());
+    }
+
+    @Test
+    @DisplayName("PortalScrapeResult factory methods and getters/setters")
+    void testPortalScrapeResultCoverage() {
+        PortalScrapeResult emptyResult = new PortalScrapeResult();
+        emptyResult.setPortalId("dh");
+        emptyResult.setPortalName("Duna House");
+        emptyResult.setStatus(PortalScrapeStatus.SUCCESS);
+        emptyResult.setItems(List.of());
+        emptyResult.setFallbackUrl("https://dh.hu");
+        emptyResult.setMessage("OK");
+        emptyResult.setExecutionTimeMs(120L);
+
+        assertEquals("dh", emptyResult.getPortalId());
+        assertEquals("Duna House", emptyResult.getPortalName());
+        assertEquals(PortalScrapeStatus.SUCCESS, emptyResult.getStatus());
+        assertTrue(emptyResult.getItems().isEmpty());
+        assertEquals("https://dh.hu", emptyResult.getFallbackUrl());
+        assertEquals("OK", emptyResult.getMessage());
+        assertEquals(120L, emptyResult.getExecutionTimeMs());
+
+        PortalScrapeResult success = PortalScrapeResult.success("oc", "Otthon Centrum", List.of(new IngatlanItem()), 150L);
+        assertEquals(PortalScrapeStatus.SUCCESS, success.getStatus());
+        assertEquals(1, success.getItems().size());
+
+        PortalScrapeResult successEmpty = PortalScrapeResult.success("oc", "Otthon Centrum", List.of(), 150L);
+        assertEquals(PortalScrapeStatus.EMPTY, successEmpty.getStatus());
+
+        PortalScrapeResult empty = PortalScrapeResult.empty("jf", "Jófogás", "https://jofogas.hu", 200L);
+        assertEquals(PortalScrapeStatus.EMPTY, empty.getStatus());
+        assertEquals("https://jofogas.hu", empty.getFallbackUrl());
+
+        PortalScrapeResult bot = PortalScrapeResult.botProtected("ic", "Ingatlan.com", "https://ingatlan.com", 300L);
+        assertEquals(PortalScrapeStatus.BOT_PROTECTED, bot.getStatus());
+
+        PortalScrapeResult spa = PortalScrapeResult.spaFallback("spa", "SPA Portál", "https://spa.hu", 250L);
+        assertEquals(PortalScrapeStatus.SPA_FALLBACK, spa.getStatus());
+
+        PortalScrapeResult failure = PortalScrapeResult.failure("err", "Hiba Portál", "Connection timeout", 400L);
+        assertEquals(PortalScrapeStatus.FAILED, failure.getStatus());
+        assertTrue(failure.getMessage().contains("Connection timeout"));
     }
 }

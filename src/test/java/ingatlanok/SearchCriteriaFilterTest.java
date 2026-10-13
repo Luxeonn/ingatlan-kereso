@@ -77,6 +77,31 @@ class SearchCriteriaFilterTest {
     }
 
     @Test
+    void testExcludeViewedFiltering() {
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setCity("Debrecen");
+        criteria.setMinPriceMillion(10);
+        criteria.setMaxPriceMillion(200);
+
+        IngatlanItem itemNotViewed = createItem("10", "https://dh.hu/10", "Ház", "50 000 000 Ft", 50.0, "Debrecen");
+        itemNotViewed.setViewed(false);
+
+        IngatlanItem itemViewed = createItem("11", "https://dh.hu/11", "Ház", "60 000 000 Ft", 60.0, "Debrecen");
+        itemViewed.setViewed(true);
+
+        assertTrue(criteria.matches(itemNotViewed));
+        assertTrue(criteria.matches(itemViewed));
+
+        criteria.setExcludeViewed(true);
+        assertTrue(criteria.matches(itemNotViewed));
+        assertFalse(criteria.matches(itemViewed));
+
+        SearchCriteria cloned = criteria.cloneForCity("Debrecen");
+        assertTrue(cloned.isExcludeViewed());
+        assertFalse(cloned.matches(itemViewed));
+    }
+
+    @Test
     void testLocationFilteringRejectsWrongCities() {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Hajdúszoboszló");

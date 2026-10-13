@@ -64,6 +64,7 @@ public class WebServer {
         server.createContext("/api/history", new HistoryHandler());
         server.createContext("/api/search", new SearchHandler());
         server.createContext("/api/open-urls", new OpenUrlsHandler());
+        server.createContext("/api/items/viewed", new MarkViewedHandler());
         server.createContext("/api/history/clear", new ClearHistoryHandler());
 
         server.start();
@@ -209,9 +210,40 @@ public class WebServer {
             Type listType = new TypeToken<List<String>>() {}.getType();
             List<String> urls = GSON.fromJson(body, listType);
             if (urls != null && !urls.isEmpty()) {
+                for (String url : urls) {
+                    IngatlanRepository.getInstance().markAsViewed(url);
+                }
                 BrowserUtils.openUrls(new LinkedHashSet<>(urls));
             }
             sendJsonResponse(exchange, 200, Map.of("success", true, "count", urls != null ? urls.size() : 0));
+        }
+    }
+
+    private static class MarkViewedHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+
+            String body = readBody(exchange);
+            String url = null;
+            if (body != null && !body.isBlank()) {
+                try {
+                    Map<?, ?> map = GSON.fromJson(body, Map.class);
+                    if (map != null && map.get("url") != null) {
+                        url = map.get("url").toString();
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+
+            boolean marked = false;
+            if (url != null && !url.isBlank()) {
+                marked = IngatlanRepository.getInstance().markAsViewed(url);
+            }
+            sendJsonResponse(exchange, 200, Map.of("success", true, "marked", marked, "url", url != null ? url : ""));
         }
     }
 

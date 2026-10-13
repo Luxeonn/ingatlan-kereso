@@ -20,6 +20,7 @@ public class SearchCriteria implements Serializable {
     private Integer minRooms;
     private List<String> portals = new ArrayList<>();
     private boolean autoOpenBrowser = false;
+    private boolean excludeViewed = false;
 
     public SearchCriteria() {
 
@@ -91,6 +92,7 @@ public class SearchCriteria implements Serializable {
         clone.setMinRooms(this.minRooms);
         clone.setPortals(this.portals != null ? new ArrayList<>(this.portals) : new ArrayList<>());
         clone.setAutoOpenBrowser(this.autoOpenBrowser);
+        clone.setExcludeViewed(this.excludeViewed);
         return clone;
     }
 
@@ -158,6 +160,14 @@ public class SearchCriteria implements Serializable {
         this.autoOpenBrowser = autoOpenBrowser;
     }
 
+    public boolean isExcludeViewed() {
+        return excludeViewed;
+    }
+
+    public void setExcludeViewed(boolean excludeViewed) {
+        this.excludeViewed = excludeViewed;
+    }
+
     public boolean isPortalEnabled(String portalKey) {
         return portals != null && portals.contains(portalKey);
     }
@@ -175,6 +185,10 @@ public class SearchCriteria implements Serializable {
 
     public boolean matches(IngatlanItem item) {
         if (item == null) {
+            return false;
+        }
+
+        if (excludeViewed && item.isViewed()) {
             return false;
         }
 

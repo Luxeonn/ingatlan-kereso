@@ -39,4 +39,21 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("minArea: minAreaVal ? parseInt(minAreaVal, 10) : null"), "Payload-ba be kell épülnie a minArea értéknek");
         assertTrue(html.contains("maxArea: maxAreaVal ? parseInt(maxAreaVal, 10) : null"), "Payload-ba be kell épülnie a maxArea értéknek");
     }
+
+    @Test
+    void testHtmlContainsViewedTrackingAndStyles() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains(".badge-viewed"));
+        assertTrue(html.contains(".listing-card.is-viewed"));
+        assertTrue(html.contains("id=\"exclude-viewed-toggle\""));
+        assertTrue(html.contains("id=\"filter-not-viewed-btn\""));
+        assertTrue(html.contains("id=\"not-viewed-count\""));
+        assertTrue(html.contains("onclick=\"toggleNotViewedFilter()\""));
+        assertTrue(html.contains("let notViewedFilter = false;"));
+        assertTrue(html.contains("function toggleNotViewedFilter()"));
+        assertTrue(html.contains("function markItemViewed("));
+        assertTrue(html.contains("markItemViewed("));
+    }
 }
