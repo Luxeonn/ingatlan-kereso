@@ -2,9 +2,6 @@ package ingatlanok.model;
 
 import java.io.Serializable;
 
-/**
- * Ingatlanár strukturált és numerikus értékobjektum (Value Object).
- */
 public class PriceInfo implements Serializable {
 
     private String rawText;

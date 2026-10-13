@@ -7,9 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Egy adott portál scraping futásának állapotgazdag és izolált eredménye.
- */
 public class PortalScrapeResult implements Serializable {
 
     private String portalId;

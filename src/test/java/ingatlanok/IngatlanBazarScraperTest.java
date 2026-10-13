@@ -133,7 +133,6 @@ class IngatlanBazarScraperTest {
         assertEquals("ingatlanbazar", result.getPortalId());
         assertEquals("Ingatlanbazár", result.getPortalName());
 
-        // Az élő API-nak sikeresnek kell lennie és találatokat kell visszaadnia
         if (result.getStatus() == PortalScrapeStatus.SUCCESS) {
             assertFalse(result.getItems().isEmpty(), "Debrecen 40-80 M Ft lakás keresésre kell lennie találatnak");
             IngatlanItem first = result.getItems().get(0);

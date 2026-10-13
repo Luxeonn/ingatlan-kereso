@@ -3,10 +3,6 @@ package ingatlanok.model;
 import java.io.Serializable;
 import java.util.Objects;
 
-/**
- * Ingatlan hirdetési adatmodell gazdag típusokkal (PriceInfo, PropertyDetails, PortalSource)
- * és teljes visszafelé kompatibilitással.
- */
 public class IngatlanItem implements Serializable {
 
     private String id;
@@ -20,7 +16,6 @@ public class IngatlanItem implements Serializable {
     private String discoveredAt;
     private boolean isNew;
 
-    // Strukturált értékobjektumok (Value Objects)
     private PriceInfo priceInfo;
     private PropertyDetails detailsInfo;
     private PortalSource source;

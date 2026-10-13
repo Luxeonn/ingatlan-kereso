@@ -17,11 +17,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 
-/**
- * Scraper implementáció az Ingatlan.com portálhoz.
- * Támogatja a Python CLI sidecar (curl_cffi TLS impersonation) hívást,
- * a közvetlen keresési URL generálást és az intelligens Cloudflare graceful fallbacket.
- */
 public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://ingatlan.com";
@@ -40,7 +35,7 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
     @Override
     public void init() {
-        // Init logic
+
     }
 
     @Override
@@ -48,9 +43,6 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
         return 20;
     }
 
-    /**
-     * Előállítja az Ingatlan.com keresési URL-t a megadott feltételek alapján.
-     */
     public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
@@ -98,7 +90,6 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
         String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
         Set<String> processedUrls = new HashSet<>();
 
-        // 1. Kísérlet a Sidecar futtatására, ha elérhető (curl_cffi TLS impersonation)
         if (SidecarCliExecutor.isAvailable()) {
             System.out.println("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása...");
             try {
@@ -128,7 +119,6 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
             }
         }
 
-        // 2. Fallback: Jsoup kísérlet a találati oldal letöltésére
         try {
             Document document = getDocument(searchUrl);
             if (document != null) {
@@ -162,7 +152,6 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
                     );
                     item.setLocation(criteria.getCity());
 
-                    // Szigorú utólagos szűrés ár és lokáció alapján
                     if (!criteria.matches(item)) {
                         continue;
                     }

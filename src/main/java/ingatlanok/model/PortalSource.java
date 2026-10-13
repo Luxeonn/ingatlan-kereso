@@ -2,9 +2,6 @@ package ingatlanok.model;
 
 import java.io.Serializable;
 
-/**
- * Portál forrás metaadat értékobjektum (Value Object).
- */
 public class PortalSource implements Serializable {
 
     private String portalId;

@@ -9,9 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Keresési futtatási eredmény a webes felület felé.
- */
 public class SearchResult implements Serializable {
 
     private List<IngatlanItem> items = new ArrayList<>();

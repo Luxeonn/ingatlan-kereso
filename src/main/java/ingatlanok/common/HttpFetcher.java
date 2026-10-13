@@ -5,29 +5,19 @@ import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 
-/**
- * Központosított HTTP kliens Jsoup letöltésekhez, egységes böngésző fejlécekkel,
- * időtúllépés-kezeléssel és hibatűréssel.
- */
 public final class HttpFetcher {
 
     public static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     public static final int DEFAULT_TIMEOUT_MS = 15000;
 
     private HttpFetcher() {
-        // Segédosztály, nem példányosítható
+
     }
 
-    /**
-     * Letölti a megadott URL HTML dokumentumát a megadott alapértelmezett konfigurációval.
-     */
     public static Document fetchDocument(String targetUrl) {
         return fetchDocument(targetUrl, DEFAULT_TIMEOUT_MS);
     }
 
-    /**
-     * Letölti a megadott URL HTML dokumentumát egyedi időtúllépéssel.
-     */
     public static Document fetchDocument(String targetUrl, int timeoutMs) {
         if (targetUrl == null || targetUrl.isBlank()) {
             return null;
@@ -46,16 +36,10 @@ public final class HttpFetcher {
         }
     }
 
-    /**
-     * Letölti a megadott URL JSON szöveges válaszát.
-     */
     public static String fetchJson(String targetUrl) {
         return fetchJson(targetUrl, DEFAULT_TIMEOUT_MS);
     }
 
-    /**
-     * Letölti a megadott URL JSON szöveges válaszát egyedi időtúllépéssel.
-     */
     public static String fetchJson(String targetUrl, int timeoutMs) {
         if (targetUrl == null || targetUrl.isBlank()) {
             return null;

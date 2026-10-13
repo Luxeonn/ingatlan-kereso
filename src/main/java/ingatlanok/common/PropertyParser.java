@@ -6,10 +6,6 @@ import ingatlanok.model.PropertyDetails;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Ingatlanhirdetések szöveges adatait (ár, alapterület, szobaszám, azonosítók)
- * kinyerő és normalizáló közös segédosztály strukturált típuskonverzióval.
- */
 public final class PropertyParser {
 
     private static final Pattern PRICE_PATTERN = Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)", Pattern.CASE_INSENSITIVE);
@@ -22,12 +18,9 @@ public final class PropertyParser {
     private static final Pattern ROOM_PATTERN = Pattern.compile("(\\d+[,.]?\\d*)\\s*szoba", Pattern.CASE_INSENSITIVE);
 
     private PropertyParser() {
-        // Segédosztály, nem példányosítható
+
     }
 
-    /**
-     * Kinyeri az ingatlan hirdetési árát a megadott kártyaszövegből formázott szövegként.
-     */
     public static String extractPrice(String text) {
         if (text == null || text.isBlank()) {
             return "Ár a hirdetésben";
@@ -36,9 +29,6 @@ public final class PropertyParser {
         return matcher.find() ? matcher.group(1).trim() : "Ár a hirdetésben";
     }
 
-    /**
-     * Strukturált PriceInfo objektumot készít az ár numerikus értékeivel.
-     */
     public static PriceInfo parsePrice(String text) {
         String raw = extractPrice(text);
         if ("Ár a hirdetésben".equals(raw)) {
@@ -69,9 +59,6 @@ public final class PropertyParser {
         return new PriceInfo(raw, null, null);
     }
 
-    /**
-     * Kinyeri az alapterület és szobaszám információkat a kártyaszövegből.
-     */
     public static String extractDetails(String text) {
         if (text == null || text.isBlank()) {
             return "";
@@ -80,9 +67,6 @@ public final class PropertyParser {
         return matcher.find() ? matcher.group(1).trim() : "";
     }
 
-    /**
-     * Strukturált PropertyDetails objektumot készít az alapterület, szobaszám és m² ár kiszámításával.
-     */
     public static PropertyDetails parseDetails(String text, PriceInfo priceInfo) {
         String raw = extractDetails(text);
         Double area = null;
@@ -114,9 +98,6 @@ public final class PropertyParser {
         return new PropertyDetails(raw, area, rooms, pricePerM2);
     }
 
-    /**
-     * Kinyeri a megadott regex minta első egyező csoportját a szövegből.
-     */
     public static String extractFirstGroup(String text, Pattern pattern, String fallback) {
         if (text == null || pattern == null) {
             return fallback;
@@ -128,15 +109,12 @@ public final class PropertyParser {
     private static final Pattern POSTAL_CITY_PATTERN = Pattern.compile("\\b(\\d{4})\\s+([A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ\\-]+)");
     private static final Pattern DH_URL_CITY_PATTERN = Pattern.compile("/ingatlan/[A-Za-z0-9\\-]+/elado-[a-z]+-(?:[a-z\\-]+-megye-)?([a-z\\-]+?)(?:-\\d{4}|-falu|-varos|-utca|-kertvaros|/|$)");
 
-    /**
-     * Ellenőrzi, hogy a PriceInfo objektum szerinti ár a megadott min-max ársávban van-e.
-     */
     public static boolean isPriceInRange(PriceInfo priceInfo, Integer minMillion, Integer maxMillion) {
         if (minMillion == null && maxMillion == null) {
             return true;
         }
         if (priceInfo == null || priceInfo.getAmountMillion() == null) {
-            // Ha a felhasználó explicit ársávot kért, az ismeretlen árú hirdetések kizárásra kerülnek
+
             return false;
         }
         double amount = priceInfo.getAmountMillion();
@@ -149,9 +127,6 @@ public final class PropertyParser {
         return true;
     }
 
-    /**
-     * Kinyeri a magyarországi irányítószámot és településnevet a kártyaszövegből (pl. "4200 Hajdúszoboszló" -> "Hajdúszoboszló").
-     */
     public static String extractCityFromPostalAddress(String text) {
         if (text == null || text.isBlank()) {
             return null;
@@ -163,9 +138,6 @@ public final class PropertyParser {
         return null;
     }
 
-    /**
-     * Kinyeri a település slugját a Duna House közvetlen hirdetési linkjéből.
-     */
     public static String extractCityFromDhUrl(String url) {
         if (url == null || url.isBlank()) {
             return null;

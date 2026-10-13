@@ -13,18 +13,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Ingatlanbazár helyszín- és településazonosító feloldó szolgáltatás.
- * Előre feltöltött gyorsítótárral rendelkezik a leggyakoribb magyar városokra,
- * és dinamikus REST API lekérdezést biztosít az egyéb településekhez.
- */
 public final class IngatlanBazarLocationResolver {
 
     private static final String GEO_MATCH_URL = "https://www.ingatlanbazar.hu/api/geo/get-matches?name=%s&types=3&needLocation=1";
     private static final Map<String, Integer> LOCATION_CACHE = new ConcurrentHashMap<>();
 
     static {
-        // Gyakori települések előre beégetett azonosítói (Slug kulcsokkal)
+
         registerLocation("budapest", 1050);
         registerLocation("debrecen", 1435);
         registerLocation("szeged", 1099);
@@ -64,12 +59,6 @@ public final class IngatlanBazarLocationResolver {
         LOCATION_CACHE.put(key, id);
     }
 
-    /**
-     * Feloldja a megadott településnévhez tartozó Ingatlanbazár helyszínkódot (location ID).
-     *
-     * @param cityName a keresett város vagy település neve (pl. "Debrecen", "Hajdúszoboszló")
-     * @return a helyszín azonosítója, ha feloldható, különben empty
-     */
     public static Optional<Integer> resolveLocationId(String cityName) {
         if (cityName == null || cityName.isBlank()) {
             return Optional.empty();
@@ -80,7 +69,6 @@ public final class IngatlanBazarLocationResolver {
             return Optional.of(LOCATION_CACHE.get(slug));
         }
 
-        // Dinamikus feloldás az Ingatlanbazár geo API-n keresztül
         try {
             String encoded = URLEncoder.encode(cityName.trim(), StandardCharsets.UTF_8);
             String url = String.format(GEO_MATCH_URL, encoded);

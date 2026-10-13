@@ -24,9 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.Executors;
 
-/**
- * Beágyazott könnyűsúlyú HTTP szerver a Webes Dashboard kiszolgálásához.
- */
 public class WebServer {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -42,7 +39,7 @@ public class WebServer {
     }
 
     public void start() throws IOException {
-        // Port foglaltság esetén automatikus próbálkozás
+
         int attempts = 0;
         while (attempts < 5) {
             try {
@@ -58,10 +55,8 @@ public class WebServer {
             throw new IOException("Nem sikerült elindítani a webszervert a portokon: 8080-" + port);
         }
 
-        // Java 21 Virtual Threads a villámgyors és hatékony kérések kezeléséhez
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
-        // Útvonalak beállítása
         server.createContext("/", new RootHandler(port));
         server.createContext("/api/status", new StatusHandler(port));
         server.createContext("/api/config", new ConfigHandler());
@@ -83,7 +78,6 @@ public class WebServer {
         }
     }
 
-    // Handlers
     private static class RootHandler implements HttpHandler {
         private final int port;
 
@@ -241,7 +235,7 @@ public class WebServer {
             }
 
             if (cityParam == null || cityParam.isBlank()) {
-                // Megvizsgáljuk van-e a body-ban city paraméter
+
                 String body = readBody(exchange);
                 if (body != null && !body.isBlank()) {
                     try {
@@ -264,7 +258,6 @@ public class WebServer {
         }
     }
 
-    // Utilities
     private static String readBody(HttpExchange exchange) throws IOException {
         try (InputStream is = exchange.getRequestBody();
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {

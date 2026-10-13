@@ -17,11 +17,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-/**
- * Scraper implementáció az Ingatlanbazár (ingatlanbazar.hu) portálhoz.
- * A portál Angular SPA architektúrájához illeszkedve a hivatalos és nyílt belső REST JSON API-t
- * (GET /api/property-search) használja az adatok pontos, numerikus és megbízható lekérdezéséhez.
- */
 public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper {
 
     public static final String BASE_URL = "https://www.ingatlanbazar.hu";
@@ -40,7 +35,7 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
 
     @Override
     public void init() {
-        // Init logic
+
     }
 
     @Override
@@ -48,9 +43,6 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
         return 25;
     }
 
-    /**
-     * Előállítja a böngészőben közvetlenül megnyitható keresési és fallback URL-t a megadott kritériumok alapján.
-     */
     public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
@@ -99,15 +91,12 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
         return BASE_URL + "/ingatlan-" + displayCity + "-Elado-" + typeSlug + q;
     }
 
-    /**
-     * Előállítja az Ingatlanbazár belső REST keresési végpontjának URL-jét.
-     */
     public String buildApiSearchUrl(SearchCriteria criteria, int page) {
         if (criteria == null) {
             criteria = new SearchCriteria();
         }
         StringBuilder sb = new StringBuilder(API_SEARCH_URL);
-        sb.append("?property__1=1"); // Eladó
+        sb.append("?property__1=1");
 
         String city = criteria.getCity();
         Optional<Integer> locId = IngatlanBazarLocationResolver.resolveLocationId(city);
@@ -168,7 +157,6 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
                 List<IngatlanItem> pageItems = parseItemsFromJson(json, criteria, processedUrls, now);
                 items.addAll(pageItems);
 
-                // Ha az oldalon kevesebb találat volt mint a limit (50), nincs több oldal
                 if (pageItems.size() < 50) {
                     break;
                 }
@@ -189,9 +177,6 @@ public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper
         }
     }
 
-    /**
-     * Feldolgozza a REST API JSON válaszát IngatlanItem listává.
-     */
     public List<IngatlanItem> parseItemsFromJson(String json, SearchCriteria criteria, Set<String> processedUrls, String now) {
         List<IngatlanItem> result = new ArrayList<>();
         if (json == null || json.isBlank()) {

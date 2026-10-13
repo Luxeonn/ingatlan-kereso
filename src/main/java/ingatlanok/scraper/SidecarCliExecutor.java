@@ -14,13 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-/**
- * On-demand CLI segédfolyamat végrehajtó ProcessBuilder segítségével a bot-védett portálokhoz.
- * Intelligens auto-detect:
- * 1. tools/scraper-sidecar.exe (hordozható Windows futtatható állomány)
- * 2. python/python3/py tools/sidecar.py (fejlesztői környezet)
- * 3. Ha semmi nem érhető el: 0-crash graceful fallback a hívó réteg felé.
- */
 public class SidecarCliExecutor {
 
     private static final int DEFAULT_TIMEOUT_SECONDS = 20;
@@ -28,9 +21,6 @@ public class SidecarCliExecutor {
 
     private static String customExecutable = null;
 
-    /**
-     * Lehetővé teszi tesztekben a futtató felülbírálását.
-     */
     public static void setCustomExecutable(String executable) {
         customExecutable = executable;
     }
@@ -39,16 +29,10 @@ public class SidecarCliExecutor {
         customExecutable = null;
     }
 
-    /**
-     * Megvizsgálja, hogy elérhető-e a sidecar bináris vagy a Python script.
-     */
     public static boolean isAvailable() {
         return resolveCommand(List.of("--help")) != null;
     }
 
-    /**
-     * Futtatja a sidecart a megadott portálra és keresési feltételekre.
-     */
     public static Optional<SidecarResponse> execute(String portalId, SearchCriteria criteria) {
         if (portalId == null || criteria == null) {
             return Optional.empty();
@@ -107,7 +91,6 @@ public class SidecarCliExecutor {
                 return Optional.empty();
             }
 
-            // JSON kinyerése ha esetleg megelőző logsorok lennének az stdout-on
             int jsonStart = stdoutJson.indexOf("{");
             int jsonEnd = stdoutJson.lastIndexOf("}");
             if (jsonStart >= 0 && jsonEnd > jsonStart) {
@@ -126,9 +109,6 @@ public class SidecarCliExecutor {
         }
     }
 
-    /**
-     * Összeállítja a CLI argumentumok listáját.
-     */
     public static List<String> buildArguments(String portalId, SearchCriteria criteria) {
         List<String> args = new ArrayList<>();
         args.add("--portal");
@@ -159,9 +139,6 @@ public class SidecarCliExecutor {
         return args;
     }
 
-    /**
-     * Feloldja a futtatandó parancsot az elérhető binárisok és Python scriptek alapján.
-     */
     private static List<String> resolveCommand(List<String> args) {
         if (customExecutable != null) {
             List<String> cmd = new ArrayList<>();

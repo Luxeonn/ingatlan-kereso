@@ -4,18 +4,12 @@ import java.awt.Desktop;
 import java.net.URI;
 import java.util.*;
 
-/**
- * Operációs rendszer független asztali böngészőfül-megnyitást biztosító segédosztály.
- */
 public final class BrowserUtils {
 
     private BrowserUtils() {
-        // Segédosztály, nem példányosítható
+
     }
 
-    /**
-     * Megnyitja a megadott hivatkozást az operációs rendszer alapértelmezett böngészőjében.
-     */
     public static boolean openUrl(String url) {
         if (url == null || url.isBlank()) {
             return false;
@@ -34,13 +28,6 @@ public final class BrowserUtils {
         }
     }
 
-    /**
-     * Megnyitja a megadott hivatkozások halmazát legfeljebb a beállított korlátig.
-     *
-     * @param urlList     a megnyitandó URL-ek gyűjteménye
-     * @param maxToOpen   maximálisan megnyitható ablakok száma
-     * @return a ténylegesen megnyitott URL-ek listája
-     */
     public static List<String> openUrls(Collection<String> urlList, int maxToOpen) {
         List<String> opened = new ArrayList<>();
         if (urlList == null || urlList.isEmpty()) {
@@ -63,9 +50,6 @@ public final class BrowserUtils {
         return opened;
     }
 
-    /**
-     * Megnyitja a megadott hivatkozásokat a rendszerbeállítás szerinti maximális számmal (alapértelmezetten 5).
-     */
     public static List<String> openUrls(Collection<String> urlList) {
         int max = Integer.getInteger("max.open.browser", 5);
         return openUrls(urlList, max);

@@ -22,9 +22,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Scraper implementáció az Otthon Centrum (oc.hu) portálhoz.
- */
 public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://www.oc.hu";
@@ -43,7 +40,7 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
 
     @Override
     public void init() {
-        // Init logic
+
     }
 
     @Override
@@ -51,9 +48,6 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
         return 12;
     }
 
-    /**
-     * Előállítja az Otthon Centrum keresési URL-t a megadott feltételek alapján.
-     */
     public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
@@ -97,7 +91,6 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                 return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült letölteni az oldalt", elapsed);
             }
 
-            // Ellenőrizzük, hogy van-e "Nincs találat" jelzés az oldalon
             boolean noResults = !document.select("div.option:contains(Nincs találat)").isEmpty()
                     || !document.select(".location-option-no-result:not(.d-none)").isEmpty();
             if (noResults) {
@@ -109,7 +102,6 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
             String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
             Set<String> processed = new HashSet<>();
 
-            // Keressük a kártya elemeket
             Elements cards = document.select("div.real-estate-card, div[data-controller='seo']");
             if (cards.isEmpty()) {
                 cards = document.select("a[href*=/ingatlanok/]");
@@ -133,7 +125,6 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                     String cardText = card.text().replaceAll("\\s+", " ").trim();
                     String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
 
-                    // Strukturált adatok kinyerése a beágyazott JSON-ból (data-seo-select-item-value)
                     String locationCity = null;
                     Long jsonPriceHuf = null;
                     String seoAttr = card.attr("data-seo-select-item-value");
@@ -190,7 +181,6 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                     );
                     item.setLocation(actualCity);
 
-                    // Szigorú szűrés ár és lokáció alapján
                     if (!criteria.matches(item)) {
                         continue;
                     }

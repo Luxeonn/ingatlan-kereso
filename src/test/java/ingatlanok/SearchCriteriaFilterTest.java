@@ -18,23 +18,18 @@ class SearchCriteriaFilterTest {
         criteria.setMinPriceMillion(100);
         criteria.setMaxPriceMillion(120);
 
-        // 8.9 M Ft (Kisnánai hirdetés ára az issue-ból)
         IngatlanItem itemTooLow = createItem("1", "https://dh.hu/ingatlan/1", "Ház", "8 900 000 Ft", 8.9, "Hajdúszoboszló");
         assertFalse(criteria.matches(itemTooLow), "8.9 M Ft árú ingatlant ki kell szűrni, ha a min ár 100 M Ft");
 
-        // 37 M Ft (Hajdúszoboszlói alacsonyabb árú hirdetés)
         IngatlanItem item37M = createItem("2", "https://dh.hu/ingatlan/2", "Ház", "37 000 000 Ft", 37.0, "Hajdúszoboszló");
         assertFalse(criteria.matches(item37M), "37 M Ft árú ingatlant ki kell szűrni a 100-120 M Ft sávból");
 
-        // 134 M Ft (Pécsi hirdetés ára az issue-ból)
         IngatlanItem itemTooHigh = createItem("3", "https://dh.hu/ingatlan/3", "Ház", "134 000 000 Ft", 134.0, "Hajdúszoboszló");
         assertFalse(criteria.matches(itemTooHigh), "134 M Ft árú ingatlant ki kell szűrni, ha a max ár 120 M Ft");
 
-        // 195 M Ft
         IngatlanItem item195M = createItem("4", "https://dh.hu/ingatlan/4", "Ház", "195 000 000 Ft", 195.0, "Hajdúszoboszló");
         assertFalse(criteria.matches(item195M), "195 M Ft árú ingatlant ki kell szűrni a 100-120 M Ft sávból");
 
-        // Érvényes árak (100 - 120 M Ft)
         IngatlanItem item105M = createItem("5", "https://dh.hu/ingatlan/5", "Ház", "105 000 000 Ft", 105.0, "Hajdúszoboszló");
         assertTrue(criteria.matches(item105M), "105 M Ft árú ingatlannak át kell mennie a szűrésen");
 
@@ -68,7 +63,6 @@ class SearchCriteriaFilterTest {
         criteria.setMinPriceMillion(100);
         criteria.setMaxPriceMillion(120);
 
-        // Kisnána hirdetés
         IngatlanItem itemKisnana = createItem(
                 "HZ070659",
                 "https://dh.hu/ingatlan/HZ070659/elado-haz-heves-megye-kisnana-falu",
@@ -79,7 +73,6 @@ class SearchCriteriaFilterTest {
         );
         assertFalse(criteria.matches(itemKisnana), "Kisnánai hirdetést ki kell szűrni Hajdúszoboszló keresésnél");
 
-        // Cegléd hirdetés
         IngatlanItem itemCegled = createItem(
                 "HZ069153",
                 "https://dh.hu/ingatlan/HZ069153/elado-haz-pest-megye-cegled-oroszlan-utca",
@@ -90,7 +83,6 @@ class SearchCriteriaFilterTest {
         );
         assertFalse(criteria.matches(itemCegled), "Ceglédi hirdetést ki kell szűrni Hajdúszoboszló keresésnél");
 
-        // Pécs hirdetés
         IngatlanItem itemPecs = createItem(
                 "HZ071728",
                 "https://dh.hu/ingatlan/HZ071728/elado-haz-baranya-megye-pecs-patacs",
@@ -101,7 +93,6 @@ class SearchCriteriaFilterTest {
         );
         assertFalse(criteria.matches(itemPecs), "Pécsi hirdetést ki kell szűrni Hajdúszoboszló keresésnél");
 
-        // Budapest hirdetés
         IngatlanItem itemBudapest = createItem(
                 "H525239",
                 "https://www.oc.hu/ingatlanok/H525239",
@@ -112,7 +103,6 @@ class SearchCriteriaFilterTest {
         );
         assertFalse(criteria.matches(itemBudapest), "Budapesti hirdetést ki kell szűrni Hajdúszoboszló keresésnél");
 
-        // Hajdúszoboszló és al-részei érvényesek
         IngatlanItem itemSzoboszlo = createItem(
                 "M339414",
                 "https://dh.hu/ingatlan/M339414/elado-haz-hajdu-bihar-megye-hajduszoboszlo-4200-hajduszoboszlo,-kertvaros",

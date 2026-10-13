@@ -125,7 +125,7 @@ public class IngatlanComSidecarIntegrationTest {
 
         assertNotNull(result);
         assertEquals("ingatlancom", result.getPortalId());
-        // A portál bot-védett (Jsoup 403), tehát BOT_PROTECTED vagy FAILED státuszt kell kapnia 0-crash mellett
+
         assertTrue(result.getStatus() == PortalScrapeStatus.BOT_PROTECTED || result.getStatus() == PortalScrapeStatus.FAILED);
         assertNotNull(result.getFallbackUrl());
         assertTrue(result.getFallbackUrl().contains("ingatlan.com/lista/elado+lakas+debrecen"));

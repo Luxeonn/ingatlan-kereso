@@ -41,12 +41,10 @@ class ScraperRegistryTest {
         ScraperRegistry registry = ScraperRegistry.getInstance();
         SearchCriteria criteria = new SearchCriteria();
 
-        // Alapértelmezett beállítások mellett a dh, oc, jofogas, ingatlancom aktív
         List<IngatlanScraper> active = registry.getActiveScrapers(criteria);
         assertTrue(active.stream().anyMatch(s -> s.getPortalId().equals("dh")));
         assertTrue(active.stream().anyMatch(s -> s.getPortalId().equals("oc")));
 
-        // Kikapcsoljuk a duna house-t
         criteria.setPortalEnabled("dh", false);
         List<IngatlanScraper> filtered = registry.getActiveScrapers(criteria);
         assertFalse(filtered.stream().anyMatch(s -> s.getPortalId().equals("dh")), "Kikapcsolt dh portálnak nem szabad szerepelnie");

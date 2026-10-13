@@ -12,16 +12,13 @@ class WebDashboardHtmlFilterTest {
         String html = WebDashboardHtml.getHtml(8080);
         assertNotNull(html);
 
-        // Ellenőrizzük a CSS osztályokat
         assertTrue(html.contains(".filter-only-new-btn"), "HTML-nek tartalmaznia kell a .filter-only-new-btn stílust");
         assertTrue(html.contains(".filter-only-new-btn.active"), "HTML-nek tartalmaznia kell az aktív állapot stílusát");
 
-        // Ellenőrizzük a gomb markupját és a számlálót
         assertTrue(html.contains("id=\"filter-only-new-btn\""), "HTML-nek tartalmaznia kell a filter-only-new-btn gombot");
         assertTrue(html.contains("id=\"only-new-count\""), "HTML-nek tartalmaznia kell az only-new-count azonosítójú számlálót");
         assertTrue(html.contains("onclick=\"toggleOnlyNewFilter()\""), "HTML gombnak meg kell hívnia a toggleOnlyNewFilter függvényt");
 
-        // Ellenőrizzük a JavaScript állapotváltozót és szűrési logikát
         assertTrue(html.contains("let onlyNewFilter = false;"), "JavaScriptben szerepelnie kell az onlyNewFilter változónak");
         assertTrue(html.contains("function toggleOnlyNewFilter()"), "JavaScriptben szerepelnie kell a toggleOnlyNewFilter függvénynek");
         assertTrue(html.contains("if (onlyNewFilter && !item.isNew)"), "renderListings-ben szerepelnie kell az isNew szűrési feltételnek");

@@ -72,12 +72,11 @@ class CityUtilsTest {
 
     @Test
     void testContainsDifferentKnownCity() {
-        // Kisnána URL vagy leírás a cél Hajdúszoboszló keresésnél
+
         assertTrue(CityUtils.containsDifferentKnownCity("elado-haz-heves-megye-kisnana-falu", "hajduszoboszlo"));
         assertTrue(CityUtils.containsDifferentKnownCity("elado-haz-pest-megye-cegled-oroszlan-utca", "hajduszoboszlo"));
         assertTrue(CityUtils.containsDifferentKnownCity("elado-haz-baranya-megye-pecs-patacs", "hajduszoboszlo"));
 
-        // Ha a célváros benne van, nem minősül más városnak
         assertFalse(CityUtils.containsDifferentKnownCity("elado-haz-hajdu-bihar-megye-hajduszoboszlo-kertvaros", "hajduszoboszlo"));
     }
 }

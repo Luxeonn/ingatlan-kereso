@@ -4,10 +4,6 @@ import ingatlanok.common.HttpFetcher;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-/**
- * Közös absztrakt ősosztály ingatlan scraper szolgáltatásokhoz.
- * A hálózati kommunikációt és letöltést a közös HttpFetcher modulon keresztül végzi.
- */
 public abstract class BaseScraper {
 
     public abstract void init();

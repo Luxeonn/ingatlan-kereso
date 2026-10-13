@@ -8,14 +8,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Keresési szűrési paraméterek.
- */
 public class SearchCriteria implements Serializable {
 
     private String city = "Debrecen";
     private List<String> cities = new ArrayList<>();
-    private String propertyType = "lakas"; // "lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"
+    private String propertyType = "lakas";
     private Integer minPriceMillion;
     private Integer maxPriceMillion;
     private Integer minRooms;
@@ -23,7 +20,7 @@ public class SearchCriteria implements Serializable {
     private boolean autoOpenBrowser = false;
 
     public SearchCriteria() {
-        // Alapértelmezett város és aktív portálok
+
         if (cities.isEmpty()) {
             cities.add("Debrecen");
         }
@@ -80,9 +77,6 @@ public class SearchCriteria implements Serializable {
         }
     }
 
-    /**
-     * Klónozza a keresési feltételeket egyetlen konkrét városra (többvárosos keresési ciklushoz).
-     */
     public SearchCriteria cloneForCity(String singleCity) {
         SearchCriteria clone = new SearchCriteria();
         clone.setCity(singleCity);
@@ -159,20 +153,15 @@ public class SearchCriteria implements Serializable {
         }
     }
 
-    /**
-     * Ellenőrzi, hogy a megadott ingatlanhirdetés megfelel-e a keresési feltételeknek (ár és lokáció).
-     */
     public boolean matches(IngatlanItem item) {
         if (item == null) {
             return false;
         }
 
-        // 1. Ársáv ellenőrzése
         if (!PropertyParser.isPriceInRange(item.getPriceInfo(), minPriceMillion, maxPriceMillion)) {
             return false;
         }
 
-        // 2. Lokáció / Város ellenőrzése
         String targetCity = getCity();
         if (targetCity != null && !targetCity.isBlank()) {
             return matchesCity(item, targetCity);
@@ -181,9 +170,6 @@ public class SearchCriteria implements Serializable {
         return true;
     }
 
-    /**
-     * Ellenőrzi, hogy az adott elem lokációja illeszkedik-e a keresett célvároshoz.
-     */
     public static boolean matchesCity(IngatlanItem item, String targetCity) {
         if (item == null || targetCity == null || targetCity.isBlank()) {
             return true;
@@ -194,7 +180,6 @@ public class SearchCriteria implements Serializable {
             return true;
         }
 
-        // 1. Vizsgáljuk a konkrét lokációt (item.getLocation())
         String itemLoc = item.getLocation();
         if (itemLoc != null && !itemLoc.isBlank()) {
             String locSlug = SlugUtils.toSlug(itemLoc);
@@ -206,7 +191,6 @@ public class SearchCriteria implements Serializable {
             }
         }
 
-        // 2. Vizsgáljuk a várost (item.getCity())
         String itemCity = item.getCity();
         if (itemCity != null && !itemCity.isBlank()) {
             String citySlug = SlugUtils.toSlug(itemCity);
@@ -218,7 +202,6 @@ public class SearchCriteria implements Serializable {
             }
         }
 
-        // 3. Vizsgáljuk az URL-t (pl. dh.hu vagy jofogas hirdetés linkje)
         String url = item.getUrl();
         if (url != null && !url.isBlank()) {
             String urlSlug = SlugUtils.toSlug(url);
@@ -230,7 +213,6 @@ public class SearchCriteria implements Serializable {
             }
         }
 
-        // 4. Vizsgáljuk a címet (item.getTitle())
         String title = item.getTitle();
         if (title != null && !title.isBlank()) {
             String titleSlug = SlugUtils.toSlug(title);
