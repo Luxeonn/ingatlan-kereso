@@ -204,6 +204,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 - [x] Portál diagnosztika, hiba felugró ablak és technikai státuszkódok (`PortalStatusDto`, diagnosztikai modal, egykattintásos vágólap export).
 - [x] Költözzbe.hu élő ház és debreceni agglomeráció scraper adapter (`KoltozzbeScraper`, kártya és JSON-LD parsing, település és árszűrés).
 - [x] Egységes, bolondbiztos asztali indító (`START.bat`), elavult fájlok takarítása, megerősített `.gitignore` és tesztlefedettség növelés (78.75%).
+- [x] Otthon Centrum és Ingatlan.com scraper 0 találatos hibáinak elhárítása (#38: oc.hu rejtett autocomplete sablon kiszűrése, gazdag kártya és nagy felbontású kép parsing, Chrome 133 Sec-Ch-Ua fejlécek, robusztus Cloudflare WAF bot-védelem detektálás és egységtesztek, tesztlefedettség növelés 78.99%-ra).
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.

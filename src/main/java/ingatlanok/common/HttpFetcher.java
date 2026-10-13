@@ -10,7 +10,7 @@ public final class HttpFetcher {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
 
-    public static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    public static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
     public static final int DEFAULT_TIMEOUT_MS = 15000;
 
     private HttpFetcher() {
@@ -30,8 +30,16 @@ public final class HttpFetcher {
             LOGGER.debug("HTTP GET Document indítása: {}", targetUrl);
             Document document = Jsoup.connect(targetUrl)
                     .userAgent(DEFAULT_USER_AGENT)
-                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
                     .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"")
+                    .header("sec-ch-ua-mobile", "?0")
+                    .header("sec-ch-ua-platform", "\"Windows\"")
+                    .header("sec-fetch-dest", "document")
+                    .header("sec-fetch-mode", "navigate")
+                    .header("sec-fetch-site", "none")
+                    .header("sec-fetch-user", "?1")
+                    .header("upgrade-insecure-requests", "1")
                     .followRedirects(true)
                     .timeout(timeoutMs)
                     .get();
@@ -66,6 +74,12 @@ public final class HttpFetcher {
                     .userAgent(DEFAULT_USER_AGENT)
                     .header("Accept", "application/json, text/plain, */*")
                     .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"")
+                    .header("sec-ch-ua-mobile", "?0")
+                    .header("sec-ch-ua-platform", "\"Windows\"")
+                    .header("sec-fetch-dest", "empty")
+                    .header("sec-fetch-mode", "cors")
+                    .header("sec-fetch-site", "same-origin")
                     .ignoreContentType(true)
                     .followRedirects(true)
                     .timeout(timeoutMs)

@@ -85,8 +85,13 @@ class IngatlanComScraperUnitTest {
         assertEquals("33445566", item.getId());
         assertEquals("https://ingatlan.com/ingatlan/33445566", item.getUrl());
         assertEquals("Ingatlan.com", item.getPortal());
+        assertEquals("Debrecen, Nagyerdő", item.getTitle());
+        assertEquals("https://ingatlan.com/pic1.jpg", item.getImageUrl());
         assertNotNull(item.getPriceInfo());
         assertEquals(75.0, item.getPriceInfo().getAmountMillion());
+        assertNotNull(item.getDetailsInfo());
+        assertEquals(85.0, item.getDetailsInfo().getAreaSquareMeters());
+        assertEquals(3.0, item.getDetailsInfo().getRoomCount());
     }
 
     @Test
@@ -106,6 +111,76 @@ class IngatlanComScraperUnitTest {
         assertNotNull(result);
         assertEquals(PortalScrapeStatus.BOT_PROTECTED, result.getStatus());
         assertEquals(403, result.getHttpStatusCode());
+        assertNotNull(result.getFallbackUrl());
+        assertTrue(result.getFallbackUrl().contains("ingatlan.com"));
+    }
+
+    @Test
+    @DisplayName("IngatlanComScraper detects Cloudflare Turnstile challenge HTML and returns bot-protected fallback")
+    void testScrapeCloudflareChallengeHtml() {
+        String cloudflareHtml = """
+            <!DOCTYPE html>
+            <html lang="hu">
+            <head>
+                <title>Csak egy gyors ellenőrzés - ingatlan.com</title>
+            </head>
+            <body>
+                <div class="main-content">
+                    <h1>Csak egy gyors ellenőrzés!</h1>
+                    <span id="challenge-error-text">Enable JavaScript and cookies</span>
+                    <svg id="robot-protection-illustration"></svg>
+                </div>
+            </body>
+            </html>
+            """;
+
+        IngatlanComScraper scraper = new IngatlanComScraper() {
+            @Override
+            public Document getDocument(String targetUrl) {
+                return Jsoup.parse(cloudflareHtml);
+            }
+        };
+
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setCity("Debrecen");
+        criteria.setPropertyType("lakas");
+
+        PortalScrapeResult result = scraper.scrape(criteria);
+        assertNotNull(result);
+        assertEquals(PortalScrapeStatus.BOT_PROTECTED, result.getStatus());
+        assertEquals(403, result.getHttpStatusCode());
+        assertNotNull(result.getFallbackUrl());
+        assertTrue(result.getFallbackUrl().contains("ingatlan.com"));
+    }
+
+    @Test
+    @DisplayName("IngatlanComScraper returns empty status when page is accessible but contains 0 cards")
+    void testScrapeEmptyResultsWhenNoCardsAndNoBot() {
+        String emptyHtml = """
+            <!DOCTYPE html>
+            <html>
+            <head><title>Eladó lakások - Debrecen</title></head>
+            <body>
+                <div class="listings-container">
+                    <p>Nincs a keresési feltételeknek megfelelő találat.</p>
+                </div>
+            </body>
+            </html>
+            """;
+
+        IngatlanComScraper scraper = new IngatlanComScraper() {
+            @Override
+            public Document getDocument(String targetUrl) {
+                return Jsoup.parse(emptyHtml);
+            }
+        };
+
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setCity("Debrecen");
+
+        PortalScrapeResult result = scraper.scrape(criteria);
+        assertNotNull(result);
+        assertEquals(PortalScrapeStatus.BOT_PROTECTED, result.getStatus());
         assertNotNull(result.getFallbackUrl());
         assertTrue(result.getFallbackUrl().contains("ingatlan.com"));
     }

@@ -91,22 +91,20 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                 return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült letölteni az oldalt", elapsed);
             }
 
-            boolean noResults = !document.select("div.option:contains(Nincs találat)").isEmpty()
-                    || !document.select(".location-option-no-result:not(.d-none)").isEmpty();
-            if (noResults) {
-                long elapsed = System.currentTimeMillis() - startTime;
-                LOGGER.info("oc.hu: Nincs közvetlen találat a(z) {} keresésre [{} ms]", criteria.getCity(), elapsed);
-                return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
-            }
-
-            String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
-            Set<String> processed = new HashSet<>();
-
-            Elements cards = document.select("div.real-estate-card, div[data-controller='seo']");
+            Elements cards = document.select("div.js-list-item[data-controller='seo'], div.real-estate-card, div[data-controller='seo'], div.js-list-item");
             if (cards.isEmpty()) {
                 cards = document.select("a[href*=/ingatlanok/]");
             }
             LOGGER.debug("Otthon Centrum talált kártyaelemek: {} db", cards.size());
+
+            if (cards.isEmpty()) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                LOGGER.info("oc.hu: Nincs közvetlen találat a(z) {} keresésre [{} ms]", criteria.getCity(), elapsed);
+                return PortalScrapeResult.empty(getPortalId(), getName(), searchUrl, elapsed);
+            }
+
+            String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+            Set<String> processed = new HashSet<>();
 
             for (Element card : cards) {
                 String href = card.is("a") ? card.attr("href") : "";
@@ -166,7 +164,15 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
 
                     PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
                     String actualCity = (locationCity != null && !locationCity.isBlank()) ? locationCity : criteria.getCity();
-                    String title = cleanTitle(cardText, actualCity, id);
+
+                    String title;
+                    Element headingEl = card.selectFirst("div.collapse.description h6, .description h6, h6, h3");
+                    if (headingEl != null && !headingEl.text().isBlank()) {
+                        title = headingEl.text().trim();
+                    } else {
+                        title = cleanTitle(cardText, actualCity, id);
+                    }
+
                     boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
 
                     IngatlanItem item = new IngatlanItem(
@@ -182,8 +188,15 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                     );
                     item.setLocation(actualCity);
 
-                    String imageUrl = PropertyParser.extractImageUrl(card);
-                    if (imageUrl == null && card.parent() != null) {
+                    String imageUrl = null;
+                    Element imgEl = card.selectFirst("img.lazyload[data-src], img[data-src]");
+                    if (imgEl != null && !imgEl.attr("data-src").isBlank()) {
+                        imageUrl = imgEl.attr("data-src");
+                    }
+                    if (imageUrl == null || imageUrl.isBlank()) {
+                        imageUrl = PropertyParser.extractImageUrl(card);
+                    }
+                    if ((imageUrl == null || imageUrl.isBlank()) && card.parent() != null) {
                         imageUrl = PropertyParser.extractImageUrl(card.parent());
                     }
                     item.setImageUrl(imageUrl);
