@@ -53,7 +53,27 @@ class SearchCriteriaFilterTest {
         criteriaNoRange.setCity("Debrecen");
         criteriaNoRange.setMinPriceMillion(null);
         criteriaNoRange.setMaxPriceMillion(null);
+        criteriaNoRange.setMinArea(null);
+        criteriaNoRange.setMaxArea(null);
         assertTrue(criteriaNoRange.matches(itemNoPrice), "Ársáv hiányában az ár nélküli hirdetés is megengedett");
+    }
+
+    @Test
+    void testFloorAreaFiltering() {
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setMinPriceMillion(10);
+        criteria.setMaxPriceMillion(200);
+        criteria.setMinArea(90);
+        criteria.setMaxArea(200);
+
+        IngatlanItem itemSmall = createItemWithArea("1", "https://dh.hu/1", "Kicsi", 100.0, 60.0);
+        assertFalse(criteria.matches(itemSmall));
+
+        IngatlanItem itemLarge = createItemWithArea("2", "https://dh.hu/2", "Nagy", 100.0, 250.0);
+        assertFalse(criteria.matches(itemLarge));
+
+        IngatlanItem itemMatch = createItemWithArea("3", "https://dh.hu/3", "Megfelelő", 100.0, 120.0);
+        assertTrue(criteria.matches(itemMatch));
     }
 
     @Test
@@ -141,5 +161,22 @@ class SearchCriteriaFilterTest {
         );
         item.setLocation(location);
         return item;
+    }
+
+    private IngatlanItem createItemWithArea(String id, String url, String title, Double priceMillion, Double area) {
+        Long priceHuf = priceMillion != null ? Math.round(priceMillion * 1_000_000.0) : null;
+        PriceInfo priceInfo = new PriceInfo(priceMillion + " M Ft", priceHuf, priceMillion);
+        PropertyDetails detailsInfo = new PropertyDetails(area + " m²", area, 3.0, null);
+        return new IngatlanItem(
+                id,
+                PortalSource.of("Duna House"),
+                url,
+                title,
+                priceInfo,
+                "Debrecen",
+                detailsInfo,
+                "2026-10-13 17:00:00",
+                true
+        );
     }
 }

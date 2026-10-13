@@ -24,4 +24,19 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("if (onlyNewFilter && !item.isNew)"), "renderListings-ben szerepelnie kell az isNew szűrési feltételnek");
         assertTrue(html.contains("Nincs új találat ebben a nézetben"), "Empty-state üzenetnek szerepelnie kell");
     }
+
+    @Test
+    void testHtmlContainsFloorAreaAndPriceStepperInputs() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("id=\"min-area-input\""), "HTML-nek tartalmaznia kell a min-area-input mezőt");
+        assertTrue(html.contains("id=\"max-area-input\""), "HTML-nek tartalmaznia kell a max-area-input mezőt");
+        assertTrue(html.contains("value=\"90\""), "Min area alapértelmezett értéke 90 m²");
+        assertTrue(html.contains("value=\"200\""), "Max area alapértelmezett értéke 200 m²");
+        assertTrue(html.contains("value=\"70\""), "Min ár alapértelmezett értéke 70 M Ft");
+        assertTrue(html.contains("value=\"120\""), "Max ár alapértelmezett értéke 120 M Ft");
+        assertTrue(html.contains("minArea: minAreaVal ? parseInt(minAreaVal, 10) : null"), "Payload-ba be kell épülnie a minArea értéknek");
+        assertTrue(html.contains("maxArea: maxAreaVal ? parseInt(maxAreaVal, 10) : null"), "Payload-ba be kell épülnie a maxArea értéknek");
+    }
 }

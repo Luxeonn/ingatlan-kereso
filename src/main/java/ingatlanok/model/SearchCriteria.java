@@ -13,8 +13,10 @@ public class SearchCriteria implements Serializable {
     private String city = "Debrecen";
     private List<String> cities = new ArrayList<>();
     private String propertyType = "lakas";
-    private Integer minPriceMillion;
-    private Integer maxPriceMillion;
+    private Integer minPriceMillion = 70;
+    private Integer maxPriceMillion = 120;
+    private Integer minArea = 90;
+    private Integer maxArea = 200;
     private Integer minRooms;
     private List<String> portals = new ArrayList<>();
     private boolean autoOpenBrowser = false;
@@ -84,6 +86,8 @@ public class SearchCriteria implements Serializable {
         clone.setPropertyType(this.propertyType);
         clone.setMinPriceMillion(this.minPriceMillion);
         clone.setMaxPriceMillion(this.maxPriceMillion);
+        clone.setMinArea(this.minArea);
+        clone.setMaxArea(this.maxArea);
         clone.setMinRooms(this.minRooms);
         clone.setPortals(this.portals != null ? new ArrayList<>(this.portals) : new ArrayList<>());
         clone.setAutoOpenBrowser(this.autoOpenBrowser);
@@ -120,6 +124,22 @@ public class SearchCriteria implements Serializable {
 
     public void setMinRooms(Integer minRooms) {
         this.minRooms = minRooms;
+    }
+
+    public Integer getMinArea() {
+        return minArea;
+    }
+
+    public void setMinArea(Integer minArea) {
+        this.minArea = minArea;
+    }
+
+    public Integer getMaxArea() {
+        return maxArea;
+    }
+
+    public void setMaxArea(Integer maxArea) {
+        this.maxArea = maxArea;
     }
 
     public List<String> getPortals() {
@@ -159,6 +179,15 @@ public class SearchCriteria implements Serializable {
         }
 
         if (!PropertyParser.isPriceInRange(item.getPriceInfo(), minPriceMillion, maxPriceMillion)) {
+            return false;
+        }
+
+        Double area = (item.getDetailsInfo() != null) ? item.getDetailsInfo().getAreaSquareMeters() : null;
+        if (area == null && item.getDetails() != null) {
+            PropertyDetails parsed = PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo());
+            area = parsed.getAreaSquareMeters();
+        }
+        if (!PropertyParser.isAreaInRange(area, minArea, maxArea)) {
             return false;
         }
 
