@@ -19,7 +19,8 @@ import java.util.regex.Pattern;
 
 /**
  * Scraper implementáció az Ingatlan.com portálhoz.
- * Támogatja a közvetlen keresési URL generálást és intelligens Cloudflare fallbacket.
+ * Támogatja a Python CLI sidecar (curl_cffi TLS impersonation) hívást,
+ * a közvetlen keresési URL generálást és az intelligens Cloudflare graceful fallbacket.
  */
 public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
@@ -97,8 +98,38 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
         String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
         Set<String> processedUrls = new HashSet<>();
 
+        // 1. Kísérlet a Sidecar futtatására, ha elérhető (curl_cffi TLS impersonation)
+        if (SidecarCliExecutor.isAvailable()) {
+            System.out.println("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása...");
+            try {
+                Optional<SidecarResponse> sidecarResp = SidecarCliExecutor.execute(getPortalId(), criteria);
+                if (sidecarResp.isPresent() && sidecarResp.get().isSuccess()) {
+                    SidecarResponse resp = sidecarResp.get();
+                    for (SidecarResponse.SidecarItem sidecarItem : resp.getItems()) {
+                        if (sidecarItem.getUrl() == null || sidecarItem.getUrl().isBlank()) continue;
+                        if (!processedUrls.add(sidecarItem.getUrl())) continue;
+
+                        boolean isNew = !IngatlanRepository.getInstance().containsUrl(sidecarItem.getUrl());
+                        IngatlanItem item = sidecarItem.toIngatlanItem(SOURCE, criteria.getCity(), now, isNew);
+
+                        if (criteria.matches(item)) {
+                            items.add(item);
+                        }
+                    }
+
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    if (!items.isEmpty()) {
+                        System.out.println("ingatlan.com (Sidecar) Találatok száma: " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+                        return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Ingatlan.com: Hiba a sidecar végrehajtás során: " + e.getMessage());
+            }
+        }
+
+        // 2. Fallback: Jsoup kísérlet a találati oldal letöltésére
         try {
-            // Kísérlet a találati oldal letöltésére
             Document document = getDocument(searchUrl);
             if (document != null) {
                 Elements cards = document.select("a[href*=/ingatlan/]");
