@@ -154,6 +154,8 @@ public class WebDashboardHtml {
             margin-bottom: 20px;
             padding-bottom: 14px;
             border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
         }
 
         .filter-title {
@@ -161,7 +163,65 @@ public class WebDashboardHtml {
             font-weight: 700;
             display: flex;
             align-items: center;
+            gap: 10px;
+        }
+
+        .btn-collapse-toggle {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            font-size: 12px;
+            border-radius: 6px;
+            transition: color 0.2s ease;
+        }
+        .btn-collapse-toggle:hover {
+            color: var(--accent);
+        }
+        .search-chevron {
+            display: inline-block;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 13px;
+        }
+        .search-chevron.rotated {
+            transform: rotate(-90deg);
+        }
+
+        .search-summary-chips {
+            display: flex;
+            flex-wrap: wrap;
             gap: 8px;
+            align-items: center;
+        }
+        .search-summary-chip {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .search-form-container {
+            max-height: 1400px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.35s ease;
+        }
+        .search-form-container.collapsed {
+            max-height: 0;
+            opacity: 0;
+            pointer-events: none;
+            margin: 0;
+            padding: 0;
         }
 
         .grid-filters {
@@ -745,22 +805,69 @@ public class WebDashboardHtml {
 
         .listings-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 24px;
             margin-top: 16px;
         }
 
         .listing-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: 18px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: relative;
             transition: all 0.2s ease;
             box-shadow: var(--shadow);
+        }
+
+        .card-image-container {
+            width: 100%;
+            height: 190px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(30, 41, 59, 0.45) 100%);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.35s ease;
+            display: block;
+        }
+
+        .listing-card:hover .card-image {
+            transform: scale(1.04);
+        }
+
+        .card-image-container.no-image {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.7) 100%);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-image-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .card-image-fallback .fallback-icon {
+            font-size: 34px;
+            opacity: 0.6;
         }
 
         .listing-card:hover {
@@ -978,14 +1085,19 @@ public class WebDashboardHtml {
         return """
     <main>
         <!-- Filter Card -->
-        <section class="filter-card">
-            <div class="filter-header">
+        <section class="filter-card" id="search-section">
+            <div class="filter-header" onclick="toggleSearchCollapse()">
                 <div class="filter-title">
                     <span>⚡ Keresési Feltételek</span>
+                    <button type="button" class="btn-collapse-toggle" id="btn-collapse-toggle" aria-label="Kereső összecsukása vagy kinyitása">
+                        <span id="search-collapse-chevron" class="search-chevron">▼</span>
+                    </button>
                 </div>
+                <div id="search-summary-bar" class="search-summary-chips" style="display: none;"></div>
             </div>
 
-            <form id="search-form">
+            <div id="search-form-container" class="search-form-container">
+                <form id="search-form">
                 <div class="grid-filters">
                     <div class="form-group">
                         <label for="city-search-input">Települések (több is kiválasztható)</label>
@@ -1092,6 +1204,7 @@ public class WebDashboardHtml {
                     </button>
                 </div>
             </form>
+            </div>
         </section>
 
         <!-- Controls Bar -->
@@ -1563,6 +1676,53 @@ public class WebDashboardHtml {
             renderListings();
         }
 
+        let isSearchCollapsed = false;
+
+        function toggleSearchCollapse() {
+            setSearchCollapsed(!isSearchCollapsed);
+        }
+
+        function setSearchCollapsed(collapsed) {
+            isSearchCollapsed = collapsed;
+            const container = document.getElementById('search-form-container');
+            const chevron = document.getElementById('search-collapse-chevron');
+            const summaryBar = document.getElementById('search-summary-bar');
+            if (container) {
+                container.classList.toggle('collapsed', collapsed);
+            }
+            if (chevron) {
+                chevron.classList.toggle('rotated', collapsed);
+            }
+            if (summaryBar) {
+                if (collapsed) {
+                    updateSearchSummaryChips();
+                    summaryBar.style.display = 'flex';
+                } else {
+                    summaryBar.style.display = 'none';
+                }
+            }
+        }
+
+        function updateSearchSummaryChips() {
+            const summaryBar = document.getElementById('search-summary-bar');
+            if (!summaryBar) return;
+            const citiesStr = selectedCities.length > 0 ? selectedCities.join(', ') : 'Összes';
+            const typeSelect = document.getElementById('type-select');
+            const typeText = typeSelect ? typeSelect.options[typeSelect.selectedIndex].text : 'Lakás';
+            const minP = document.getElementById('min-price-input').value.trim();
+            const maxP = document.getElementById('max-price-input').value.trim();
+            const minA = document.getElementById('min-area-input').value.trim();
+            const maxA = document.getElementById('max-area-input').value.trim();
+
+            const chips = [
+                `<span class="search-summary-chip">📍 ${escapeHtml(citiesStr)}</span>`,
+                `<span class="search-summary-chip">🏠 ${escapeHtml(typeText)}</span>`,
+                `<span class="search-summary-chip">💰 ${minP || '0'} - ${maxP || '∞'} M Ft</span>`,
+                `<span class="search-summary-chip">📐 ${minA || '0'} - ${maxA || '∞'} m²</span>`
+            ];
+            summaryBar.innerHTML = chips.join('');
+        }
+
         const form = document.getElementById('search-form');
         const submitBtn = document.getElementById('submit-btn');
         const btnText = document.getElementById('btn-text');
@@ -1689,6 +1849,7 @@ public class WebDashboardHtml {
                 portals: portals
             };
 
+            setSearchCollapsed(true);
             submitBtn.disabled = true;
             btnText.textContent = "Keresés folyamatban...";
             btnSpinner.style.display = "inline-block";
@@ -1920,6 +2081,7 @@ public class WebDashboardHtml {
                 if (item.portal && item.portal.includes('Otthon')) portalClass = 'oc';
                 if (item.portal && item.portal.includes('Jófogás')) portalClass = 'jf';
                 if (item.portal && item.portal.toLowerCase().includes('ingatlan.com')) portalClass = 'ic';
+                if (item.portal && item.portal.toLowerCase().includes('bazar')) portalClass = 'ib';
 
                 const isStarred = starredUrls.has(item.url);
                 const itemCity = item.city || item.location || 'Debrecen';
@@ -1928,8 +2090,30 @@ public class WebDashboardHtml {
                 const stateClass = isViewed ? 'is-viewed' : (isNew ? 'is-new' : 'is-archive');
                 const titlePulseClass = (isNew && !isViewed) ? 'pulse-title' : '';
 
+                const imageHtml = (item.imageUrl && item.imageUrl.trim().length > 0) ? `
+                    <div class="card-image-container">
+                        <img src="${escapeHtml(item.imageUrl)}"
+                             alt="${escapeHtml(item.title || 'Ingatlan')}"
+                             class="card-image"
+                             loading="lazy"
+                             onerror="this.onerror=null; this.closest('.card-image-container').classList.add('no-image'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="card-image-fallback" style="display: none;">
+                            <span class="fallback-icon">🏠</span>
+                            <span>${escapeHtml(item.portal || 'Ingatlan')}</span>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="card-image-container no-image">
+                        <div class="card-image-fallback">
+                            <span class="fallback-icon">🏠</span>
+                            <span>${escapeHtml(item.portal || 'Ingatlan')}</span>
+                        </div>
+                    </div>
+                `;
+
                 return `
                     <div class="listing-card ${stateClass} ${isNew ? 'is-new' : ''} ${isViewed ? 'is-viewed' : ''}">
+                        ${imageHtml}
                         <div>
                             <div class="card-top">
                                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">

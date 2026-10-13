@@ -168,4 +168,25 @@ public final class PropertyParser {
         }
         return null;
     }
+
+    public static String extractImageUrl(org.jsoup.nodes.Element element) {
+        if (element == null) {
+            return null;
+        }
+        org.jsoup.nodes.Element img = element.is("img") ? element : element.selectFirst("img");
+        if (img == null) {
+            return null;
+        }
+        String[] attrs = {"data-src", "data-original", "data-lazy-src", "src"};
+        for (String attr : attrs) {
+            String src = img.attr(attr);
+            if (src != null && !src.isBlank() && !src.startsWith("data:image")) {
+                if (src.startsWith("//")) {
+                    return "https:" + src;
+                }
+                return src;
+            }
+        }
+        return null;
+    }
 }

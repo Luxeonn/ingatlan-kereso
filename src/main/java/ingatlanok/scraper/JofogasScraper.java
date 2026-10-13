@@ -128,6 +128,12 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
                 );
                 item.setLocation(criteria.getCity());
 
+                String imageUrl = PropertyParser.extractImageUrl(a);
+                if (imageUrl == null && a.parent() != null) {
+                    imageUrl = PropertyParser.extractImageUrl(a.parent());
+                }
+                item.setImageUrl(imageUrl);
+
                 if (!criteria.matches(item)) {
                     continue;
                 }

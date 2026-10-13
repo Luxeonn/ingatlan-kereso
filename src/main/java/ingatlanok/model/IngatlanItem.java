@@ -17,6 +17,7 @@ public class IngatlanItem implements Serializable {
     private boolean isNew;
     private boolean viewed;
     private String viewedAt;
+    private String imageUrl;
 
     private PriceInfo priceInfo;
     private PropertyDetails detailsInfo;
@@ -196,6 +197,14 @@ public class IngatlanItem implements Serializable {
 
     public void setViewedAt(String viewedAt) {
         this.viewedAt = viewedAt;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     @Override

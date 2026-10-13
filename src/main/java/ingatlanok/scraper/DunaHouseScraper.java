@@ -158,6 +158,12 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                     );
                     item.setLocation(actualCity);
 
+                    String imageUrl = PropertyParser.extractImageUrl(a);
+                    if (imageUrl == null && a.parent() != null) {
+                        imageUrl = PropertyParser.extractImageUrl(a.parent());
+                    }
+                    item.setImageUrl(imageUrl);
+
                     if (!criteria.matches(item)) {
                         continue;
                     }

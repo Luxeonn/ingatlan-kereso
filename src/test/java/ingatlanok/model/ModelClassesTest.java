@@ -154,4 +154,25 @@ class ModelClassesTest {
         assertEquals(120, clone.getMaxPriceMillion());
         assertTrue(clone.isExcludeViewed());
     }
+
+    @Test
+    @DisplayName("IngatlanItem and SidecarItem imageUrl getter setter and mapping")
+    void testImageUrlHandling() {
+        IngatlanItem item = new IngatlanItem();
+        assertNull(item.getImageUrl());
+        item.setImageUrl("https://example.com/photo.jpg");
+        assertEquals("https://example.com/photo.jpg", item.getImageUrl());
+        item.setViewedAt("2026-10-13 22:00:00");
+        assertEquals("2026-10-13 22:00:00", item.getViewedAt());
+
+        ingatlanok.scraper.SidecarResponse.SidecarItem sidecarItem =
+                new ingatlanok.scraper.SidecarResponse.SidecarItem("sc1", "https://example.com/prop", "Szép lakás", 85.0, "85 M Ft", 100.0, 3.0, "https://example.com/img.jpg");
+        assertEquals("https://example.com/img.jpg", sidecarItem.getImageUrl());
+
+        IngatlanItem converted = sidecarItem.toIngatlanItem(PortalSource.of("dh"), "Debrecen", "2026-10-13", true);
+        assertEquals("https://example.com/img.jpg", converted.getImageUrl());
+
+        sidecarItem.setImageUrl("https://example.com/updated.jpg");
+        assertEquals("https://example.com/updated.jpg", sidecarItem.getImageUrl());
+    }
 }

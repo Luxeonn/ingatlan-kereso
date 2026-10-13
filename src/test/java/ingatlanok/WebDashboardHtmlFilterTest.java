@@ -85,4 +85,38 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("itemMatchesQuickSearch(item, filterTerm)"));
         assertTrue(html.contains("updatePortalFilterCounts(filterTerm ? filtered : listToRender);"));
     }
+
+    @Test
+    void testHtmlContainsCollapsibleSearchPanelAndStyles() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("id=\"search-section\""));
+        assertTrue(html.contains("id=\"search-form-container\""));
+        assertTrue(html.contains("id=\"search-collapse-chevron\""));
+        assertTrue(html.contains("id=\"search-summary-bar\""));
+        assertTrue(html.contains("onclick=\"toggleSearchCollapse()\""));
+        assertTrue(html.contains(".search-form-container.collapsed"));
+        assertTrue(html.contains(".search-chevron.rotated"));
+        assertTrue(html.contains(".search-summary-chips"));
+        assertTrue(html.contains("function toggleSearchCollapse()"));
+        assertTrue(html.contains("function setSearchCollapsed(collapsed)"));
+        assertTrue(html.contains("function updateSearchSummaryChips()"));
+        assertTrue(html.contains("setSearchCollapsed(true);"));
+    }
+
+    @Test
+    void testHtmlContainsPropertyCardImagesAndSpaciousStyles() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains(".card-image-container"));
+        assertTrue(html.contains(".card-image"));
+        assertTrue(html.contains(".card-image-fallback"));
+        assertTrue(html.contains("loading=\"lazy\""));
+        assertTrue(html.contains("gap: 24px;"));
+        assertTrue(html.contains("border-radius: 18px;"));
+        assertTrue(html.contains("padding: 24px;"));
+        assertTrue(html.contains("item.imageUrl"));
+    }
 }
