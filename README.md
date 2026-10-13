@@ -52,7 +52,8 @@ ingatlan-kereso/
 ├── pom.xml                                      # Maven konfiguráció és függőségek (Java 21, Gson, Jsoup)
 ├── README.md                                    # Felhasználói és fejlesztői dokumentáció
 ├── gemini.md                                    # Rendszer- és architektúra leírás
-├── start-ui.bat                                 # Egykattintásos indító Windowsra
+├── START.bat                                    # Egységes egykattintásos indító Windowsra
+├── start-ui.bat                                 # Kompatibilitási indító wrapper Windowsra
 ├── start-ui.ps1                                 # PowerShell indító script
 ├── data/                                        # Helyi perzisztens JSON adatbázis mappa (.gitignore)
 │   ├── ingatlanok_db.json                       # Hirdetés adatok, ár, alapterület, időpont
@@ -112,8 +113,8 @@ ingatlan-kereso/
 ### Indítási Módok
 
 #### 1. Egykattintásos indítás Windows alatt (Ajánlott)
-Kattints duplán a gyökérkönyvtárban található **`start-ui.bat`** fájlra.  
-A parancsfájl automatikusan felderíti a Java környezetet, elindítja a beágyazott szervert, és megnyitja a böngészőt a `http://localhost:8080` címen.
+Kattints duplán a gyökérkönyvtárban található **`START.bat`** (vagy `start-ui.bat`) fájlra.  
+A parancsfájl automatikusan felderíti a Java 21 és Maven környezetet, lefordítja a szükséges forrásokat, elindítja a beágyazott szervert, és elérhetővé teszi a Web Dashboardot a `http://localhost:8080` címen.
 
 #### 2. Indítás PowerShellből
 ```powershell

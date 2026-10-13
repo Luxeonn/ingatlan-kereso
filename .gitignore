@@ -82,9 +82,10 @@ logs/
 !tools/requirements.txt
 !requirements*.txt
 
-# Legacy launcher scripts replaced by start-ui.*
+# Launcher scripts (START.bat as primary unified entry point)
 run.bat
 run.ps1
+!START.bat
 !start-ui.bat
 !start-ui.ps1
 

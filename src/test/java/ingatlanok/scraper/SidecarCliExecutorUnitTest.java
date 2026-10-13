@@ -1,0 +1,90 @@
+package ingatlanok.scraper;
+
+import com.google.gson.Gson;
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalSource;
+import ingatlanok.model.SearchCriteria;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class SidecarCliExecutorUnitTest {
+
+    @AfterEach
+    void tearDown() {
+        SidecarCliExecutor.resetCustomExecutable();
+    }
+
+    @Test
+    @DisplayName("SidecarCliExecutor handles null inputs safely")
+    void testExecuteWithNullInputs() {
+        SearchCriteria criteria = new SearchCriteria();
+        Optional<SidecarResponse> resp1 = SidecarCliExecutor.execute(null, criteria);
+        assertTrue(resp1.isEmpty());
+
+        Optional<SidecarResponse> resp2 = SidecarCliExecutor.execute("dh", null);
+        assertTrue(resp2.isEmpty());
+    }
+
+    @Test
+    @DisplayName("SidecarCliExecutor custom executable configuration")
+    void testCustomExecutable() {
+        SidecarCliExecutor.setCustomExecutable("test-fake-sidecar");
+        assertTrue(SidecarCliExecutor.isAvailable());
+
+        SidecarCliExecutor.resetCustomExecutable();
+    }
+
+    @Test
+    @DisplayName("SidecarResponse and SidecarItem model deserialization and conversion")
+    void testSidecarResponseMapping() {
+        String json = """
+            {
+                "status": "SUCCESS",
+                "portalId": "ingatlancom",
+                "items": [
+                    {
+                        "id": "12345",
+                        "url": "https://ingatlan.com/12345",
+                        "title": "Szép lakás",
+                        "priceRaw": "65 M Ft",
+                        "priceMillion": 65.0,
+                        "areaSquareMeters": 72.0,
+                        "roomCount": 2.5,
+                        "imageUrl": "https://ingatlan.com/photo.jpg"
+                    }
+                ],
+                "errorMessage": null
+            }
+            """;
+
+        Gson gson = new Gson();
+        SidecarResponse response = gson.fromJson(json, SidecarResponse.class);
+        assertNotNull(response);
+        assertTrue(response.isSuccess());
+        assertEquals("ingatlancom", response.getPortalId());
+        assertEquals(1, response.getItems().size());
+
+        SidecarResponse.SidecarItem item = response.getItems().get(0);
+        assertEquals("12345", item.getId());
+        assertEquals("https://ingatlan.com/12345", item.getUrl());
+        assertEquals(72.0, item.getAreaSquareMeters());
+        assertEquals(2.5, item.getRoomCount());
+
+        IngatlanItem domainItem = item.toIngatlanItem(PortalSource.of("Ingatlan.com"), "Debrecen", "2026-10-13 12:00:00", true);
+        assertNotNull(domainItem);
+        assertEquals("12345", domainItem.getId());
+        assertEquals("https://ingatlan.com/12345", domainItem.getUrl());
+        assertTrue(domainItem.isNew());
+        assertNotNull(domainItem.getPriceInfo());
+        assertEquals(65.0, domainItem.getPriceInfo().getAmountMillion());
+        assertNotNull(domainItem.getDetailsInfo());
+        assertEquals(72.0, domainItem.getDetailsInfo().getAreaSquareMeters());
+        assertEquals(2.5, domainItem.getDetailsInfo().getRoomCount());
+    }
+}
