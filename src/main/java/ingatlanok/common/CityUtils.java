@@ -72,6 +72,178 @@ public final class CityUtils {
         return list;
     }
 
+    private static final Map<String, String> CITY_COUNTY_SLUG_MAP = new LinkedHashMap<>();
+    private static final Map<String, String> CITY_COUNTY_NAME_MAP = new LinkedHashMap<>();
+
+    static {
+        // Inicializáljuk a városonkénti megye-térképet a predefined listából
+        for (Map<String, String> cityInfo : getPredefinedCities()) {
+            String citySlug = cityInfo.get("key");
+            String countyName = cityInfo.get("county");
+            String countySlug = SlugUtils.toSlug(countyName);
+            CITY_COUNTY_SLUG_MAP.put(citySlug, countySlug);
+            CITY_COUNTY_NAME_MAP.put(citySlug, countyName);
+        }
+
+        // További gyakori magyarországi települések (agglomerációk, kisvárosok)
+        registerCityCounty("cegled", "pest", "Pest");
+        registerCityCounty("erd", "pest", "Pest");
+        registerCityCounty("dunakeszi", "pest", "Pest");
+        registerCityCounty("godollo", "pest", "Pest");
+        registerCityCounty("szentendre", "pest", "Pest");
+        registerCityCounty("vac", "pest", "Pest");
+        registerCityCounty("vecses", "pest", "Pest");
+        registerCityCounty("pomaz", "pest", "Pest");
+        registerCityCounty("god", "pest", "Pest");
+        registerCityCounty("budakeszi", "pest", "Pest");
+        registerCityCounty("szigetszentmiklos", "pest", "Pest");
+        registerCityCounty("budaors", "pest", "Pest");
+        registerCityCounty("monor", "pest", "Pest");
+        registerCityCounty("kisnana", "heves", "Heves");
+        registerCityCounty("gyongyospata", "heves", "Heves");
+        registerCityCounty("gyongyos", "heves", "Heves");
+        registerCityCounty("hatvan", "heves", "Heves");
+        registerCityCounty("baja", "bacs-kiskun", "Bács-Kiskun");
+        registerCityCounty("kiskunfelegyhaza", "bacs-kiskun", "Bács-Kiskun");
+        registerCityCounty("kiskunhalas", "bacs-kiskun", "Bács-Kiskun");
+        registerCityCounty("kalocsa", "bacs-kiskun", "Bács-Kiskun");
+        registerCityCounty("hodmezovasarhely", "csongrad-csanad", "Csongrád-Csanád");
+        registerCityCounty("szentes", "csongrad-csanad", "Csongrád-Csanád");
+        registerCityCounty("mako", "csongrad-csanad", "Csongrád-Csanád");
+        registerCityCounty("mor", "fejer", "Fejér");
+        registerCityCounty("bicske", "fejer", "Fejér");
+        registerCityCounty("mosonmagyarovar", "gyor-moson-sopron", "Győr-Moson-Sopron");
+        registerCityCounty("csorna", "gyor-moson-sopron", "Győr-Moson-Sopron");
+        registerCityCounty("jaszbereny", "jasz-nagykun-szolnok", "Jász-Nagykun-Szolnok");
+        registerCityCounty("karcag", "jasz-nagykun-szolnok", "Jász-Nagykun-Szolnok");
+        registerCityCounty("esztergom", "komarom-esztergom", "Komárom-Esztergom");
+        registerCityCounty("tata", "komarom-esztergom", "Komárom-Esztergom");
+        registerCityCounty("salgotarjan", "nograd", "Nógrád");
+        registerCityCounty("siofok", "somogy", "Somogy");
+        registerCityCounty("marcali", "somogy", "Somogy");
+        registerCityCounty("mateszalka", "szabolcs-szatmar-bereg", "Szabolcs-Szatmár-Bereg");
+        registerCityCounty("kisvarda", "szabolcs-szatmar-bereg", "Szabolcs-Szatmár-Bereg");
+        registerCityCounty("nyirbator", "szabolcs-szatmar-bereg", "Szabolcs-Szatmár-Bereg");
+        registerCityCounty("szekszard", "tolna", "Tolna");
+        registerCityCounty("paks", "tolna", "Tolna");
+        registerCityCounty("sarvar", "vas", "Vas");
+        registerCityCounty("papa", "veszprem", "Veszprém");
+        registerCityCounty("ajka", "veszprem", "Veszprém");
+        registerCityCounty("balatonfured", "veszprem", "Veszprém");
+        registerCityCounty("tapolca", "veszprem", "Veszprém");
+        registerCityCounty("nagykanizsa", "zala", "Zala");
+        registerCityCounty("keszthely", "zala", "Zala");
+        registerCityCounty("hajdunanas", "hajdu-bihar", "Hajdú-Bihar");
+        registerCityCounty("polgar", "hajdu-bihar", "Hajdú-Bihar");
+        registerCityCounty("nadudvar", "hajdu-bihar", "Hajdú-Bihar");
+        registerCityCounty("letavertes", "hajdu-bihar", "Hajdú-Bihar");
+        registerCityCounty("ozd", "borsod-abauj-zemplen", "Borsod-Abaúj-Zemplén");
+        registerCityCounty("kazincbarcika", "borsod-abauj-zemplen", "Borsod-Abaúj-Zemplén");
+        registerCityCounty("tiszaujvaros", "borsod-abauj-zemplen", "Borsod-Abaúj-Zemplén");
+        registerCityCounty("mezokovesd", "borsod-abauj-zemplen", "Borsod-Abaúj-Zemplén");
+        registerCityCounty("gyula", "bekes", "Békés");
+        registerCityCounty("oroshaza", "bekes", "Békés");
+        registerCityCounty("komlo", "baranya", "Baranya");
+        registerCityCounty("mohacs", "baranya", "Baranya");
+    }
+
+    private static void registerCityCounty(String citySlug, String countySlug, String countyName) {
+        CITY_COUNTY_SLUG_MAP.put(citySlug, countySlug);
+        CITY_COUNTY_NAME_MAP.put(citySlug, countyName);
+    }
+
+    /**
+     * Visszaadja a megadott település megyéjének URL-barát slugját (pl. "Hajdúszoboszló" -> "hajdu-bihar").
+     */
+    public static Optional<String> getCountySlug(String cityName) {
+        if (cityName == null || cityName.isBlank()) {
+            return Optional.empty();
+        }
+        String key = normalizeCityKey(cityName);
+        String countySlug = CITY_COUNTY_SLUG_MAP.get(key);
+        if (countySlug != null) {
+            return Optional.of(countySlug);
+        }
+        // Részleges illeszkedés (pl. "Debrecen - Józsa" -> "debrecen")
+        for (Map.Entry<String, String> entry : CITY_COUNTY_SLUG_MAP.entrySet()) {
+            if (key.contains(entry.getKey()) || entry.getKey().contains(key)) {
+                return Optional.of(entry.getValue());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Visszaadja a megadott település hivatalos megyenevét.
+     */
+    public static Optional<String> getCountyName(String cityName) {
+        if (cityName == null || cityName.isBlank()) {
+            return Optional.empty();
+        }
+        String key = normalizeCityKey(cityName);
+        String countyName = CITY_COUNTY_NAME_MAP.get(key);
+        if (countyName != null) {
+            return Optional.of(countyName);
+        }
+        for (Map.Entry<String, String> entry : CITY_COUNTY_NAME_MAP.entrySet()) {
+            if (key.contains(entry.getKey()) || entry.getKey().contains(key)) {
+                return Optional.of(entry.getValue());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Eldönti, hogy a megadott név ismert település-e a rendszerben.
+     */
+    public static boolean isKnownCity(String cityName) {
+        if (cityName == null || cityName.isBlank()) {
+            return false;
+        }
+        String key = normalizeCityKey(cityName);
+        return CITY_COUNTY_SLUG_MAP.containsKey(key);
+    }
+
+    /**
+     * Ellenőrzi, hogy két lokáció/városnév azonos vagy egymás részterülete-e
+     * (pl. "Hajdúszoboszló" == "hajduszoboszlo", "Debrecen" és "Debrecen - Józsa").
+     */
+    public static boolean isSameOrSubLocation(String locA, String locB) {
+        if (locA == null || locB == null || locA.isBlank() || locB.isBlank()) {
+            return false;
+        }
+        String slugA = SlugUtils.toSlug(locA);
+        String slugB = SlugUtils.toSlug(locB);
+        if (slugA.equals(slugB)) {
+            return true;
+        }
+        if (slugA.contains(slugB) || slugB.contains(slugA)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Ellenőrzi, hogy egy adott szöveg slug tartalmaz-e a célvárostól eltérő ismert várost,
+     * miközben a célvárost NEM tartalmazza (pl. "kisnana", "cegled", "pecs" amikor a cél "hajduszoboszlo").
+     */
+    public static boolean containsDifferentKnownCity(String textSlug, String targetCitySlug) {
+        if (textSlug == null || targetCitySlug == null || textSlug.isBlank()) {
+            return false;
+        }
+        if (textSlug.contains(targetCitySlug)) {
+            return false;
+        }
+        for (String knownCity : CITY_COUNTY_SLUG_MAP.keySet()) {
+            if (!knownCity.equals(targetCitySlug) && knownCity.length() >= 4) {
+                if (textSlug.contains(knownCity)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static void addCity(List<Map<String, String>> list, String name, String county, String group) {
         Map<String, String> item = new LinkedHashMap<>();
         item.put("name", name);

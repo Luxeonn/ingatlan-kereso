@@ -1,6 +1,11 @@
 package ingatlanok.scraper;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import ingatlanok.common.PropertyParser;
+import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
@@ -14,6 +19,7 @@ import org.jsoup.select.Elements;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -45,6 +51,33 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
         return 12;
     }
 
+    /**
+     * Előállítja az Otthon Centrum keresési URL-t a megadott feltételek alapján.
+     */
+    public String buildSearchUrl(SearchCriteria criteria) {
+        if (criteria == null) {
+            criteria = new SearchCriteria();
+        }
+
+        String citySlug = SlugUtils.toSlug(criteria.getCity());
+        if (citySlug.isEmpty()) {
+            citySlug = "debrecen";
+        }
+
+        String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
+        String typeSlug = switch (rawType) {
+            case "haz" -> "haz";
+            case "nyaralo" -> "nyaralo";
+            case "telek" -> "telek";
+            case "garazs" -> "garazs";
+            case "iroda" -> "uzleticelu";
+            case "osszes" -> "lakas";
+            default -> "lakas";
+        };
+
+        return BASE_URL + "/elado/" + typeSlug + "/" + citySlug;
+    }
+
     @Override
     public PortalScrapeResult scrape(SearchCriteria criteria) {
         long startTime = System.currentTimeMillis();
@@ -53,34 +86,7 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
             criteria = new SearchCriteria();
         }
 
-        String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
-        String jellegParam = switch (rawType) {
-            case "haz" -> "2";
-            case "nyaralo" -> "3";
-            case "telek" -> "4";
-            case "garazs" -> "5";
-            case "iroda" -> "6";
-            case "osszes" -> "";
-            default -> "1";
-        };
-
-        String cityParam = criteria.getCity().toLowerCase().contains("debrecen") ? "debrecen=on" : "q=" + criteria.getCity();
-        StringBuilder urlBuilder = new StringBuilder(BASE_URL)
-                .append("/ingatlanok/kereses?realestate%5Bertekesites%5D=elado");
-
-        if (!jellegParam.isEmpty()) {
-            urlBuilder.append("&realestate%5Bjelleg%5D=").append(jellegParam);
-        }
-        if (criteria.getMinPriceMillion() != null) {
-            urlBuilder.append("&realestate%5Bar%5D%5Bmin%5D=").append(criteria.getMinPriceMillion());
-        }
-        if (criteria.getMaxPriceMillion() != null) {
-            urlBuilder.append("&realestate%5Bar%5D%5Bmax%5D=").append(criteria.getMaxPriceMillion());
-        }
-        urlBuilder.append("&").append(cityParam);
-
-        String searchUrl = urlBuilder.toString();
-
+        String searchUrl = buildSearchUrl(criteria);
         System.out.println("Otthon Centrum keresés: " + searchUrl);
 
         try {
@@ -91,12 +97,32 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                 return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült letölteni az oldalt", elapsed);
             }
 
+            // Ellenőrizzük, hogy van-e "Nincs találat" jelzés az oldalon
+            boolean noResults = !document.select("div.option:contains(Nincs találat)").isEmpty()
+                    || !document.select(".location-option-no-result:not(.d-none)").isEmpty();
+            if (noResults) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                System.out.println("oc.hu: Nincs közvetlen találat a(z) " + criteria.getCity() + " keresésre.");
+                return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
+            }
+
             String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
             Set<String> processed = new HashSet<>();
 
-            Elements links = document.select("a[href*=/ingatlanok/]");
-            for (Element a : links) {
-                String href = a.attr("href");
+            // Keressük a kártya elemeket
+            Elements cards = document.select("div.real-estate-card, div[data-controller='seo']");
+            if (cards.isEmpty()) {
+                cards = document.select("a[href*=/ingatlanok/]");
+            }
+
+            for (Element card : cards) {
+                String href = card.is("a") ? card.attr("href") : "";
+                if (href.isBlank()) {
+                    Element a = card.selectFirst("a[href*=/ingatlanok/]");
+                    if (a != null) {
+                        href = a.attr("href");
+                    }
+                }
                 if (href == null || href.isBlank()) continue;
 
                 if (href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
@@ -104,11 +130,51 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                     if (processed.contains(fullLink)) continue;
                     processed.add(fullLink);
 
-                    String cardText = a.text().replaceAll("\\s+", " ").trim();
+                    String cardText = card.text().replaceAll("\\s+", " ").trim();
                     String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
+
+                    // Strukturált adatok kinyerése a beágyazott JSON-ból (data-seo-select-item-value)
+                    String locationCity = null;
+                    Long jsonPriceHuf = null;
+                    String seoAttr = card.attr("data-seo-select-item-value");
+                    if (seoAttr.isBlank()) {
+                        Element seoHolder = card.selectFirst("[data-seo-select-item-value]");
+                        if (seoHolder != null) {
+                            seoAttr = seoHolder.attr("data-seo-select-item-value");
+                        }
+                    }
+
+                    if (!seoAttr.isBlank()) {
+                        try {
+                            JsonObject seoObj = JsonParser.parseString(seoAttr).getAsJsonObject();
+                            if (seoObj.has("ecommerce")) {
+                                JsonObject ecom = seoObj.getAsJsonObject("ecommerce");
+                                if (ecom.has("items")) {
+                                    JsonArray itemsArray = ecom.getAsJsonArray("items");
+                                    if (!itemsArray.isEmpty()) {
+                                        JsonObject firstItem = itemsArray.get(0).getAsJsonObject();
+                                        if (firstItem.has("location_city")) {
+                                            locationCity = firstItem.get("location_city").getAsString();
+                                        }
+                                        if (firstItem.has("price") && !firstItem.get("price").isJsonNull()) {
+                                            jsonPriceHuf = firstItem.get("price").getAsLong();
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+
                     PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
+                    if (jsonPriceHuf != null && (priceInfo == null || priceInfo.getAmountHuf() == null)) {
+                        double million = Math.round((jsonPriceHuf / 1_000_000.0) * 100.0) / 100.0;
+                        priceInfo = new PriceInfo(jsonPriceHuf + " Ft", jsonPriceHuf, million);
+                    }
+
                     PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
-                    String title = cleanTitle(cardText, criteria.getCity(), id);
+                    String actualCity = (locationCity != null && !locationCity.isBlank()) ? locationCity : criteria.getCity();
+                    String title = cleanTitle(cardText, actualCity, id);
                     boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
 
                     IngatlanItem item = new IngatlanItem(
@@ -117,11 +183,18 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                             fullLink,
                             title,
                             priceInfo,
-                            criteria.getCity(),
+                            actualCity,
                             detailsInfo,
                             now,
                             isNew
                     );
+                    item.setLocation(actualCity);
+
+                    // Szigorú szűrés ár és lokáció alapján
+                    if (!criteria.matches(item)) {
+                        continue;
+                    }
+
                     items.add(item);
                 }
             }

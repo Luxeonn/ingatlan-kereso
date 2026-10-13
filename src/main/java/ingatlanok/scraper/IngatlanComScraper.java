@@ -47,10 +47,10 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
         return 20;
     }
 
-    @Override
-    public PortalScrapeResult scrape(SearchCriteria criteria) {
-        long startTime = System.currentTimeMillis();
-        List<IngatlanItem> items = new ArrayList<>();
+    /**
+     * Előállítja az Ingatlan.com keresési URL-t a megadott feltételek alapján.
+     */
+    public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
         }
@@ -80,7 +80,18 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
             priceSlug = "+" + criteria.getMaxPriceMillion() + "-mFt-ig";
         }
 
-        String searchUrl = BASE_URL + "/lista/elado+" + typeSlug + "+" + citySlug + priceSlug;
+        return BASE_URL + "/lista/elado+" + typeSlug + "+" + citySlug + priceSlug;
+    }
+
+    @Override
+    public PortalScrapeResult scrape(SearchCriteria criteria) {
+        long startTime = System.currentTimeMillis();
+        List<IngatlanItem> items = new ArrayList<>();
+        if (criteria == null) {
+            criteria = new SearchCriteria();
+        }
+
+        String searchUrl = buildSearchUrl(criteria);
         System.out.println("Ingatlan.com keresés: " + searchUrl);
 
         String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
@@ -118,6 +129,13 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
                             now,
                             isNew
                     );
+                    item.setLocation(criteria.getCity());
+
+                    // Szigorú utólagos szűrés ár és lokáció alapján
+                    if (!criteria.matches(item)) {
+                        continue;
+                    }
+
                     items.add(item);
                 }
             }

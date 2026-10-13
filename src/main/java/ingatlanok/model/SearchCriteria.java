@@ -1,5 +1,9 @@
 package ingatlanok.model;
 
+import ingatlanok.common.CityUtils;
+import ingatlanok.common.PropertyParser;
+import ingatlanok.common.SlugUtils;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -152,5 +156,91 @@ public class SearchCriteria implements Serializable {
         } else if (!enabled) {
             this.portals.remove(portalKey);
         }
+    }
+
+    /**
+     * Ellenőrzi, hogy a megadott ingatlanhirdetés megfelel-e a keresési feltételeknek (ár és lokáció).
+     */
+    public boolean matches(IngatlanItem item) {
+        if (item == null) {
+            return false;
+        }
+
+        // 1. Ársáv ellenőrzése
+        if (!PropertyParser.isPriceInRange(item.getPriceInfo(), minPriceMillion, maxPriceMillion)) {
+            return false;
+        }
+
+        // 2. Lokáció / Város ellenőrzése
+        String targetCity = getCity();
+        if (targetCity != null && !targetCity.isBlank()) {
+            return matchesCity(item, targetCity);
+        }
+
+        return true;
+    }
+
+    /**
+     * Ellenőrzi, hogy az adott elem lokációja illeszkedik-e a keresett célvároshoz.
+     */
+    public static boolean matchesCity(IngatlanItem item, String targetCity) {
+        if (item == null || targetCity == null || targetCity.isBlank()) {
+            return true;
+        }
+
+        String targetSlug = SlugUtils.toSlug(targetCity);
+        if (targetSlug.isEmpty()) {
+            return true;
+        }
+
+        // 1. Vizsgáljuk a konkrét lokációt (item.getLocation())
+        String itemLoc = item.getLocation();
+        if (itemLoc != null && !itemLoc.isBlank()) {
+            String locSlug = SlugUtils.toSlug(itemLoc);
+            if (locSlug.equals(targetSlug) || locSlug.contains(targetSlug) || targetSlug.contains(locSlug)) {
+                return true;
+            }
+            if (CityUtils.containsDifferentKnownCity(locSlug, targetSlug)) {
+                return false;
+            }
+        }
+
+        // 2. Vizsgáljuk a várost (item.getCity())
+        String itemCity = item.getCity();
+        if (itemCity != null && !itemCity.isBlank()) {
+            String citySlug = SlugUtils.toSlug(itemCity);
+            if (citySlug.equals(targetSlug) || citySlug.contains(targetSlug) || targetSlug.contains(citySlug)) {
+                return true;
+            }
+            if (CityUtils.containsDifferentKnownCity(citySlug, targetSlug)) {
+                return false;
+            }
+        }
+
+        // 3. Vizsgáljuk az URL-t (pl. dh.hu vagy jofogas hirdetés linkje)
+        String url = item.getUrl();
+        if (url != null && !url.isBlank()) {
+            String urlSlug = SlugUtils.toSlug(url);
+            if (urlSlug.contains(targetSlug)) {
+                return true;
+            }
+            if (CityUtils.containsDifferentKnownCity(urlSlug, targetSlug)) {
+                return false;
+            }
+        }
+
+        // 4. Vizsgáljuk a címet (item.getTitle())
+        String title = item.getTitle();
+        if (title != null && !title.isBlank()) {
+            String titleSlug = SlugUtils.toSlug(title);
+            if (titleSlug.contains(targetSlug)) {
+                return true;
+            }
+            if (CityUtils.containsDifferentKnownCity(titleSlug, targetSlug)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

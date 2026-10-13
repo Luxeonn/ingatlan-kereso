@@ -45,4 +45,39 @@ class CityUtilsTest {
         assertTrue(presets.get("Debrecen és környéke").contains("Debrecen"));
         assertTrue(presets.get("Debrecen és környéke").contains("Hajdúszoboszló"));
     }
+
+    @Test
+    void testCountyLookup() {
+        assertEquals("hajdu-bihar", CityUtils.getCountySlug("Hajdúszoboszló").orElse(null));
+        assertEquals("hajdu-bihar", CityUtils.getCountySlug("Debrecen").orElse(null));
+        assertEquals("baranya", CityUtils.getCountySlug("Pécs").orElse(null));
+        assertEquals("heves", CityUtils.getCountySlug("Kisnána").orElse(null));
+        assertEquals("pest", CityUtils.getCountySlug("Cegléd").orElse(null));
+        assertEquals("csongrad-csanad", CityUtils.getCountySlug("Szeged").orElse(null));
+        assertEquals("szabolcs-szatmar-bereg", CityUtils.getCountySlug("Nyíregyháza").orElse(null));
+
+        assertEquals("Hajdú-Bihar", CityUtils.getCountyName("Hajdúszoboszló").orElse(null));
+        assertEquals("Baranya", CityUtils.getCountyName("Pécs").orElse(null));
+    }
+
+    @Test
+    void testIsSameOrSubLocation() {
+        assertTrue(CityUtils.isSameOrSubLocation("Hajdúszoboszló", "hajduszoboszlo"));
+        assertTrue(CityUtils.isSameOrSubLocation("Hajdúszoboszló, Kertváros", "Hajdúszoboszló"));
+        assertTrue(CityUtils.isSameOrSubLocation("Debrecen - Józsa", "Debrecen"));
+        assertFalse(CityUtils.isSameOrSubLocation("Kisnána", "Hajdúszoboszló"));
+        assertFalse(CityUtils.isSameOrSubLocation("Cegléd", "Hajdúszoboszló"));
+        assertFalse(CityUtils.isSameOrSubLocation("Pécs", "Hajdúszoboszló"));
+    }
+
+    @Test
+    void testContainsDifferentKnownCity() {
+        // Kisnána URL vagy leírás a cél Hajdúszoboszló keresésnél
+        assertTrue(CityUtils.containsDifferentKnownCity("elado-haz-heves-megye-kisnana-falu", "hajduszoboszlo"));
+        assertTrue(CityUtils.containsDifferentKnownCity("elado-haz-pest-megye-cegled-oroszlan-utca", "hajduszoboszlo"));
+        assertTrue(CityUtils.containsDifferentKnownCity("elado-haz-baranya-megye-pecs-patacs", "hajduszoboszlo"));
+
+        // Ha a célváros benne van, nem minősül más városnak
+        assertFalse(CityUtils.containsDifferentKnownCity("elado-haz-hajdu-bihar-megye-hajduszoboszlo-kertvaros", "hajduszoboszlo"));
+    }
 }

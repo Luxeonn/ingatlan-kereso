@@ -1,5 +1,6 @@
 package ingatlanok.scraper;
 
+import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
@@ -23,7 +24,7 @@ import java.util.regex.Pattern;
 public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://dh.hu";
-    private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/([A-Za-z0-9]+)");
+    private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/([A-Za-z0-9\\-]+)");
     private static final PortalSource SOURCE = PortalSource.of("Duna House");
 
     @Override
@@ -46,10 +47,10 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
         return 20;
     }
 
-    @Override
-    public PortalScrapeResult scrape(SearchCriteria criteria) {
-        long startTime = System.currentTimeMillis();
-        List<IngatlanItem> items = new ArrayList<>();
+    /**
+     * Előállítja a Duna House keresési URL-t a megadott kritériumok alapján.
+     */
+    public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
         }
@@ -79,9 +80,31 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
             priceSlug = "/" + criteria.getMaxPriceMillion() + "-mFt-ig";
         }
 
-        String searchRoute = "/elado-ingatlan/" + typeSlug + "/" + (citySlug.equals("debrecen") ? "hajdu-bihar/debrecen" : citySlug) + priceSlug;
-        String searchUrl = BASE_URL + searchRoute;
+        String locationSegment;
+        if (citySlug.equals("budapest")) {
+            locationSegment = "budapest";
+        } else {
+            Optional<String> countySlug = CityUtils.getCountySlug(criteria.getCity());
+            if (countySlug.isPresent()) {
+                locationSegment = countySlug.get() + "/" + citySlug;
+            } else {
+                locationSegment = citySlug;
+            }
+        }
 
+        String searchRoute = "/elado-ingatlan/" + typeSlug + "/" + locationSegment + priceSlug;
+        return BASE_URL + searchRoute;
+    }
+
+    @Override
+    public PortalScrapeResult scrape(SearchCriteria criteria) {
+        long startTime = System.currentTimeMillis();
+        List<IngatlanItem> items = new ArrayList<>();
+        if (criteria == null) {
+            criteria = new SearchCriteria();
+        }
+
+        String searchUrl = buildSearchUrl(criteria);
         System.out.println("Duna House keresés: " + searchUrl);
 
         int maxPages = 2;
@@ -103,7 +126,7 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                     if (href == null || href.isBlank()) continue;
 
                     String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-                    if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9]+/.*") && !fullLink.matches(".*/ingatlan/[A-Za-z0-9]+$")) {
+                    if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+/.*") && !fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+$")) {
                         continue;
                     }
                     if (processedUrls.contains(fullLink)) {
@@ -115,7 +138,18 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                     String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
                     PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
                     PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
-                    String title = cleanTitle(cardText, criteria.getCity(), id);
+
+                    // Valós lokáció és város kinyerése
+                    String extractedCity = PropertyParser.extractCityFromPostalAddress(cardText);
+                    if (extractedCity == null || extractedCity.isBlank()) {
+                        String urlCity = PropertyParser.extractCityFromDhUrl(fullLink);
+                        if (urlCity != null && !urlCity.isBlank()) {
+                            extractedCity = urlCity;
+                        }
+                    }
+                    String actualCity = (extractedCity != null && !extractedCity.isBlank()) ? extractedCity : criteria.getCity();
+
+                    String title = cleanTitle(cardText, actualCity, id);
                     boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
 
                     IngatlanItem item = new IngatlanItem(
@@ -124,11 +158,18 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                             fullLink,
                             title,
                             priceInfo,
-                            criteria.getCity(),
+                            actualCity,
                             detailsInfo,
                             now,
                             isNew
                     );
+                    item.setLocation(actualCity);
+
+                    // Szigorú utólagos szűrés: kizárjuk az ársávon vagy kívánt városon kívül eső hirdetéseket
+                    if (!criteria.matches(item)) {
+                        continue;
+                    }
+
                     items.add(item);
                 }
             }
