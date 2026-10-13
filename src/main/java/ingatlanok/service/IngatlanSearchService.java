@@ -1,7 +1,9 @@
 package ingatlanok.service;
 
 import ingatlanok.common.BrowserUtils;
+import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PriceInfo;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
@@ -149,6 +151,24 @@ public class IngatlanSearchService {
         }
 
         uniqueAggregatedList.sort((a, b) -> {
+            Long priceA = (a.getPriceInfo() != null) ? a.getPriceInfo().getAmountHuf() : null;
+            if (priceA == null && a.getPrice() != null) {
+                priceA = PropertyParser.parsePrice(a.getPrice()).getAmountHuf();
+            }
+            Long priceB = (b.getPriceInfo() != null) ? b.getPriceInfo().getAmountHuf() : null;
+            if (priceB == null && b.getPrice() != null) {
+                priceB = PropertyParser.parsePrice(b.getPrice()).getAmountHuf();
+            }
+
+            if (priceA != null && priceB != null) {
+                int cmp = Long.compare(priceA, priceB);
+                if (cmp != 0) return cmp;
+            } else if (priceA != null) {
+                return -1;
+            } else if (priceB != null) {
+                return 1;
+            }
+
             if (a.isNew() != b.isNew()) {
                 return Boolean.compare(!a.isNew(), !b.isNew());
             }
