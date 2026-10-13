@@ -1,7 +1,9 @@
 package ingatlanok.web;
 
 /**
- * Modern, reszponzív Web Dashboard HTML, CSS és JavaScript sablon.
+ * Modern, reszponzív egyoldalas Web Dashboard (HTML / CSS / Vanilla JS).
+ * Támogatja a kereshető multi-select településválasztót, városonkénti adatbázis szegmentálást,
+ * a kedvencek csillagozását, az ár szerinti rendezést és a csak új hirdetések gyorsszűrését.
  */
 public class WebDashboardHtml {
 
@@ -18,99 +20,90 @@ public class WebDashboardHtml {
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #1e293b;
-            --bg-input: #334155;
-            --border-color: #334155;
+            --bg-body: #0b0f19;
+            --bg-card: #131b2e;
+            --bg-card-hover: #1a243d;
+            --bg-input: #1a2238;
+            --border-color: #263352;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --accent-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --badge-dh: #f97316;
+            --badge-oc: #ef4444;
+            --badge-jf: #10b981;
+            --badge-ic: #8b5cf6;
             --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
         }
 
         body.light-theme {
-            --bg-primary: #f1f5f9;
-            --bg-secondary: #ffffff;
+            --bg-body: #f8fafc;
             --bg-card: #ffffff;
-            --bg-input: #f8fafc;
+            --bg-card-hover: #f1f5f9;
+            --bg-input: #f1f5f9;
             --border-color: #e2e8f0;
             --text-primary: #0f172a;
             --text-secondary: #64748b;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --accent-gradient: linear-gradient(135deg, #2563eb, #7c3aed);
-            --card-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
         body {
-            background-color: var(--bg-primary);
+            background-color: var(--bg-body);
             color: var(--text-primary);
             min-height: 100vh;
-            padding-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.25s ease, color 0.25s ease;
         }
 
-        .container {
-            max-width: 1240px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* Header */
         header {
-            background-color: var(--bg-secondary);
+            background: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
-            padding: 16px 0;
+            padding: 16px 24px;
             position: sticky;
             top: 0;
-            z-index: 100;
-            backdrop-filter: blur(12px);
+            z-index: 50;
+            backdrop-filter: blur(8px);
         }
 
         .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .brand {
+        .logo-area {
             display: flex;
             align-items: center;
             gap: 12px;
-            text-decoration: none;
-            color: var(--text-primary);
         }
 
-        .brand-icon {
+        .logo-icon {
             font-size: 28px;
             background: var(--accent-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .brand-text h1 {
+        .logo-text h1 {
             font-size: 20px;
             font-weight: 800;
             letter-spacing: -0.5px;
         }
 
-        .brand-text p {
+        .logo-text p {
             font-size: 12px;
             color: var(--text-secondary);
-            font-weight: 500;
         }
 
         .header-actions {
@@ -119,68 +112,54 @@ public class WebDashboardHtml {
             gap: 12px;
         }
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 9999px;
-            font-size: 12px;
-            font-weight: 600;
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #10b981;
-            box-shadow: 0 0 8px #10b981;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.9); }
-        }
-
         .theme-toggle-btn {
             background: var(--bg-input);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 8px 12px;
+            padding: 8px 14px;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
         }
+
         .theme-toggle-btn:hover {
             border-color: var(--accent);
         }
 
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            flex: 1;
+            width: 100%;
+        }
+
         /* Filter Panel */
         .filter-card {
-            background-color: var(--bg-card);
+            background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 24px;
-            margin-top: 24px;
-            box-shadow: var(--card-shadow);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
         }
 
         .filter-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .filter-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -189,15 +168,16 @@ public class WebDashboardHtml {
 
         .grid-filters {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
             margin-bottom: 20px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+            position: relative;
         }
 
         .form-group label {
@@ -214,89 +194,220 @@ public class WebDashboardHtml {
             border-radius: 10px;
             font-size: 14px;
             outline: none;
-        }
-        .form-control:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+            transition: all 0.2s ease;
         }
 
-        /* Rejtsük el a csúnya böngészős natív number nyilakat */
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        .form-control:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
-        input[type="number"] {
-            -moz-appearance: textfield;
-            appearance: textfield;
+
+        /* City Multi-Select Chips */
+        .city-chips-box {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 6px 10px;
+            min-height: 44px;
+            cursor: text;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .city-chips-box:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .city-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 3px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .city-chip .chip-remove {
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            opacity: 0.7;
+            line-height: 1;
+        }
+        .city-chip .chip-remove:hover {
+            opacity: 1;
+            color: #ef4444;
+        }
+        .city-search-input {
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 13px;
+            flex: 1;
+            min-width: 120px;
+            padding: 4px 2px;
+        }
+        .city-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            z-index: 100;
+            max-height: 320px;
+            overflow-y: auto;
+            display: none;
+            padding: 8px;
+        }
+        .city-dropdown.show {
+            display: block;
+        }
+        .city-presets-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .preset-badge {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .preset-badge:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.08);
+        }
+        .city-dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.15s ease;
+        }
+        .city-dropdown-item:hover, .city-dropdown-item.active {
+            background: var(--bg-input);
+        }
+        .city-dropdown-item .city-name-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .city-dropdown-item .city-meta-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+        }
+        .city-dropdown-item.selected .city-meta-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+        .city-add-custom {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600;
+            border-top: 1px dashed var(--border-color);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .city-add-custom:hover {
+            background: rgba(59, 130, 246, 0.08);
         }
 
         .price-range-inputs {
             display: flex;
-            gap: 8px;
             align-items: center;
+            gap: 10px;
         }
-        .stepper-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            flex: 1;
-            min-width: 0;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .stepper-box:focus-within {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-        }
-        .stepper-box .stepper-input {
-            background: transparent;
-            border: none;
-            color: var(--text-primary);
-            padding: 10px 32px 10px 14px;
-            font-size: 14px;
-            outline: none;
-            width: 100%;
-            min-width: 0;
-        }
-        .stepper-arrows {
-            position: absolute;
-            right: 4px;
-            top: 4px;
-            bottom: 4px;
-            display: flex;
-            flex-direction: column;
-            width: 22px;
-            justify-content: center;
-            gap: 2px;
-        }
-        .stepper-arrow-btn {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            color: var(--text-secondary);
-            font-size: 8px;
-            height: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-            transition: all 0.15s ease;
-            user-select: none;
-        }
-        .stepper-arrow-btn:hover {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
+
         .price-range-separator {
             color: var(--text-secondary);
             font-weight: 700;
-            user-select: none;
+        }
+
+        .stepper-box {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .stepper-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 38px 10px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .stepper-input::-webkit-outer-spin-button,
+        .stepper-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .stepper-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .stepper-arrows {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .stepper-arrow-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px 8px;
+            font-size: 10px;
+            line-height: 1;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .stepper-arrow-btn:hover {
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.15);
         }
 
         .portals-filter-section {
@@ -390,6 +501,47 @@ public class WebDashboardHtml {
             border-color: var(--accent);
         }
 
+        .result-city-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            width: 100%;
+            margin-top: 4px;
+        }
+        .city-filter-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .city-filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .city-filter-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .city-badge-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(59, 130, 246, 0.12);
+            color: var(--accent);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .filter-only-new-btn {
             background: rgba(16, 185, 129, 0.1);
             border: 1px solid rgba(16, 185, 129, 0.35);
@@ -419,6 +571,49 @@ public class WebDashboardHtml {
         .filter-only-new-btn.disabled-btn {
             opacity: 0.45;
             cursor: pointer;
+        }
+
+        .sort-box {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .sort-box .icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .sort-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 34px 10px 34px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+        .sort-select:hover, .sort-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .sort-box .arrow {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 11px;
+            pointer-events: none;
         }
 
         .action-row {
@@ -555,13 +750,13 @@ public class WebDashboardHtml {
         /* Result Cards Grid */
         .listings-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
             margin-top: 16px;
         }
 
         .listing-card {
-            background-color: var(--bg-card);
+            background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 20px;
@@ -569,68 +764,81 @@ public class WebDashboardHtml {
             flex-direction: column;
             justify-content: space-between;
             position: relative;
-            box-shadow: var(--card-shadow);
-            overflow: hidden;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow);
         }
+
+        .listing-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(59, 130, 246, 0.5);
+            background: var(--bg-card-hover);
+        }
+
         .listing-card.is-new {
-            border-color: rgba(16, 185, 129, 0.6);
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+            border: 2px solid #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
         }
 
         .card-top {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 12px;
+            gap: 8px;
         }
 
         .portal-badge {
-            padding: 4px 10px;
-            border-radius: 6px;
             font-size: 11px;
             font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .portal-badge.dh { background: #1e3a8a; color: #93c5fd; }
-        .portal-badge.oc { background: #831843; color: #fbcfe8; }
-        .portal-badge.jf { background: #7c2d12; color: #fed7aa; }
-        .portal-badge.ic { background: #9a3412; color: #ffedd5; }
+
+        .portal-badge.dh { background: rgba(249, 115, 22, 0.15); color: var(--badge-dh); border: 1px solid rgba(249, 115, 22, 0.3); }
+        .portal-badge.oc { background: rgba(239, 68, 68, 0.15); color: var(--badge-oc); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .portal-badge.jf { background: rgba(16, 185, 129, 0.15); color: var(--badge-jf); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .portal-badge.ic { background: rgba(139, 92, 246, 0.15); color: var(--badge-ic); border: 1px solid rgba(139, 92, 246, 0.3); }
 
         .badge-new {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-            border: 1px solid rgba(16, 185, 129, 0.4);
+            background: #10b981;
+            color: white;
+            font-size: 10px;
+            font-weight: 800;
             padding: 3px 8px;
             border-radius: 6px;
-            font-size: 11px;
-            font-weight: 800;
+            letter-spacing: 0.5px;
             animation: pulse 2s infinite;
         }
 
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
         .card-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             line-height: 1.4;
             margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-
-        .card-details {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            line-height: 1.5;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
+        .card-details {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
         .card-footer {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             padding-top: 14px;
             border-top: 1px solid var(--border-color);
         }
@@ -638,7 +846,7 @@ public class WebDashboardHtml {
         .card-price {
             font-size: 17px;
             font-weight: 800;
-            color: #10b981;
+            color: #38bdf8;
         }
 
         .btn-view {
@@ -648,26 +856,22 @@ public class WebDashboardHtml {
             padding: 6px 14px;
             border-radius: 8px;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
             text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
+            transition: all 0.2s ease;
         }
+
         .btn-view:hover {
             background: var(--accent);
-            color: white;
             border-color: var(--accent);
+            color: white;
         }
 
         /* Empty State */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            background: var(--bg-card);
-            border: 1px dashed var(--border-color);
-            border-radius: 16px;
-            margin-top: 20px;
+            color: var(--text-secondary);
         }
         .empty-state-icon {
             font-size: 48px;
@@ -675,86 +879,84 @@ public class WebDashboardHtml {
         }
         .empty-state h3 {
             font-size: 18px;
-            margin-bottom: 8px;
-        }
-        .empty-state p {
-            color: var(--text-secondary);
-            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
         }
 
-        /* Toast notifications */
+        /* Toast notification */
         #toast {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            background: var(--bg-card);
+            background: #1e293b;
+            color: white;
             border: 1px solid var(--border-color);
-            color: var(--text-primary);
             padding: 12px 20px;
             border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
             box-shadow: 0 10px 25px rgba(0,0,0,0.4);
             display: none;
             align-items: center;
             gap: 10px;
             z-index: 1000;
-            font-size: 14px;
-            font-weight: 600;
         }
 
-        /* Spinner */
         .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid white;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
             animation: spin 0.8s linear infinite;
         }
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-
-    <!-- Header -->
     <header>
-        <div class="container header-content">
-            <a href="/" class="brand">
-                <span class="brand-icon">🏡</span>
-                <div class="brand-text">
+        <div class="header-content">
+            <div class="logo-area">
+                <span class="logo-icon">🏠</span>
+                <div class="logo-text">
                     <h1>Ingatlan Kereső</h1>
-                    <p>Élő ingatlanfigyelő & scraper rendszer</p>
+                    <p id="last-run-info">Adatbázis: <strong id="db-count">0</strong> hirdetés tárolva</p>
                 </div>
-            </a>
+            </div>
             <div class="header-actions">
-                <div class="status-badge">
-                    <span class="status-dot"></span>
-                    <span id="server-status-text">Port: {{PORT}} • Adatbázis: <strong id="db-count">0</strong> db</span>
-                </div>
                 <button class="theme-toggle-btn" id="theme-btn" title="Téma váltása">🌙</button>
             </div>
         </div>
     </header>
 
-    <main class="container">
+    <main>
         <!-- Filter Card -->
         <section class="filter-card">
             <div class="filter-header">
                 <div class="filter-title">
-                    <span>⚡ Keresési Paraméterek</span>
-                </div>
-                <div style="font-size: 13px; color: var(--text-secondary);" id="last-run-info">
-                    Még nem futott keresés ebben a munkamenetben.
+                    <span>⚡ Keresési Feltételek</span>
                 </div>
             </div>
 
             <form id="search-form">
                 <div class="grid-filters">
                     <div class="form-group">
-                        <label for="city-input">Település / Város</label>
-                        <input type="text" id="city-input" class="form-control" value="Debrecen" placeholder="Pl. Debrecen">
+                        <label for="city-search-input">Települések (több is kiválasztható)</label>
+                        <div class="city-multiselect-container" id="city-multiselect">
+                            <div class="city-chips-box" id="city-chips-box" onclick="focusCitySearch()">
+                                <div id="selected-chips-container" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                                <input type="text" id="city-search-input" class="city-search-input" placeholder="Város keresése vagy beírása..." autocomplete="off">
+                            </div>
+                            <div class="city-dropdown" id="city-dropdown">
+                                <div class="city-presets-bar" id="city-presets-bar"></div>
+                                <div id="city-dropdown-list"></div>
+                                <div id="city-custom-add" class="city-add-custom" style="display:none;" onclick="addCustomCityFromInput()"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="city-input" value="Debrecen">
                     </div>
                     <div class="form-group">
                         <label for="type-select">Ingatlan jellege</label>
@@ -844,6 +1046,16 @@ public class WebDashboardHtml {
                 </button>
             </div>
 
+            <div class="sort-box">
+                <span class="icon">↕️</span>
+                <select id="sort-select" class="sort-select" onchange="changeSort(this.value)" title="Találati lista rendezése ár szerint">
+                    <option value="default">Rendezés: Alapértelmezett</option>
+                    <option value="price-asc">Ár: Növekvő (olcsóbbtól)</option>
+                    <option value="price-desc">Ár: Csökkenő (drágábbtól)</option>
+                </select>
+                <span class="arrow">▾</span>
+            </div>
+
             <div class="search-box">
                 <span class="icon">🔎</span>
                 <input type="text" id="filter-input" placeholder="Gyorskeresés a találatok között...">
@@ -857,6 +1069,9 @@ public class WebDashboardHtml {
                     🗑️ Előzmények törlése
                 </button>
             </div>
+
+            <!-- Dynamic City Filters Bar -->
+            <div class="result-city-filters" id="result-city-filters" style="display: none;"></div>
         </section>
 
         <!-- Listings Grid -->
@@ -879,8 +1094,16 @@ public class WebDashboardHtml {
         let historyItems = [];
         let activeTab = 'current'; // 'current', 'history', 'starred'
         let selectedResultPortal = 'all'; // 'all', 'dh', 'oc', 'jf', 'ic'
+        let selectedResultCity = 'all'; // 'all' or specific cityName
         let onlyNewFilter = false;
+        let currentSort = 'default';
         let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
+
+        // City state
+        let selectedCities = ['Debrecen'];
+        let predefinedCities = [];
+        let cityPresets = {};
+        let trackedCities = [];
 
         function updateStarredCount() {
             const starredCountEl = document.getElementById('starred-count');
@@ -910,6 +1133,29 @@ public class WebDashboardHtml {
             renderListings();
         }
 
+        function changeSort(val) {
+            currentSort = val;
+            renderListings();
+        }
+
+        function parsePrice(priceStr) {
+            if (!priceStr) return null;
+            const clean = priceStr.replace(/\\s+/g, '').replace(',', '.');
+            const match = clean.match(/([\\d.]+)\\s*(M|millió|ezer)?\\s*Ft/i);
+            if (!match) {
+                const numMatch = clean.match(/([\\d.]+)/);
+                return numMatch ? parseFloat(numMatch[1]) : null;
+            }
+            let val = parseFloat(match[1]);
+            const unit = (match[2] || '').toLowerCase();
+            if (unit.startsWith('m')) {
+                val = val * 1000000;
+            } else if (unit.startsWith('e')) {
+                val = val * 1000;
+            }
+            return isNaN(val) ? null : val;
+        }
+
         function stepNumber(inputId, step) {
             const el = document.getElementById(inputId);
             if (!el) return;
@@ -917,6 +1163,215 @@ public class WebDashboardHtml {
             if (isNaN(val)) val = 0;
             val = Math.max(0, val + step);
             el.value = val;
+        }
+
+        // City Multi-Select Logic
+        function focusCitySearch() {
+            const input = document.getElementById('city-search-input');
+            if (input) input.focus();
+            openCityDropdown();
+        }
+
+        function openCityDropdown() {
+            const dropdown = document.getElementById('city-dropdown');
+            if (dropdown) {
+                dropdown.classList.add('show');
+                renderCityDropdownList();
+            }
+        }
+
+        function closeCityDropdown() {
+            const dropdown = document.getElementById('city-dropdown');
+            if (dropdown) dropdown.classList.remove('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('city-multiselect');
+            if (container && !container.contains(e.target)) {
+                closeCityDropdown();
+            }
+        });
+
+        const citySearchInput = document.getElementById('city-search-input');
+        if (citySearchInput) {
+            citySearchInput.addEventListener('focus', openCityDropdown);
+            citySearchInput.addEventListener('input', () => {
+                openCityDropdown();
+                renderCityDropdownList();
+            });
+            citySearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomCityFromInput();
+                } else if (e.key === 'Backspace' && citySearchInput.value === '' && selectedCities.length > 0) {
+                    removeCityTag(selectedCities[selectedCities.length - 1]);
+                }
+            });
+        }
+
+        function renderSelectedCityChips() {
+            const container = document.getElementById('selected-chips-container');
+            const hiddenCityInput = document.getElementById('city-input');
+            if (!container) return;
+
+            if (selectedCities.length === 0) {
+                selectedCities = ['Debrecen'];
+            }
+
+            if (hiddenCityInput) {
+                hiddenCityInput.value = selectedCities[0] || 'Debrecen';
+            }
+
+            container.innerHTML = selectedCities.map(city => `
+                <span class="city-chip">
+                    📍 ${escapeHtml(city)}
+                    <span class="chip-remove" onclick="removeCityTag('${escapeHtml(city)}')">&times;</span>
+                </span>
+            `).join('');
+        }
+
+        function addCityTag(cityName) {
+            const trimmed = cityName.trim();
+            if (!trimmed) return;
+            if (!selectedCities.includes(trimmed)) {
+                selectedCities.push(trimmed);
+                renderSelectedCityChips();
+                renderCityDropdownList();
+            }
+            if (citySearchInput) {
+                citySearchInput.value = '';
+            }
+        }
+
+        function removeCityTag(cityName) {
+            if (selectedCities.length <= 1) {
+                showToast("Legalább egy várost ki kell választani!");
+                return;
+            }
+            selectedCities = selectedCities.filter(c => c !== cityName);
+            renderSelectedCityChips();
+            renderCityDropdownList();
+        }
+
+        function addCustomCityFromInput() {
+            if (!citySearchInput) return;
+            const val = citySearchInput.value.trim();
+            if (val) {
+                addCityTag(val);
+                citySearchInput.value = '';
+                closeCityDropdown();
+            }
+        }
+
+        function applyCityPreset(presetName) {
+            const list = cityPresets[presetName];
+            if (list && list.length > 0) {
+                selectedCities = [...list];
+                renderSelectedCityChips();
+                closeCityDropdown();
+                showToast(`🎯 Sablon betöltve: ${presetName} (${list.length} város)`);
+            }
+        }
+
+        function renderCityPresetsBar() {
+            const bar = document.getElementById('city-presets-bar');
+            if (!bar) return;
+            bar.innerHTML = Object.keys(cityPresets).map(presetKey => `
+                <button type="button" class="preset-badge" onclick="applyCityPreset('${escapeHtml(presetKey)}')">
+                    ${escapeHtml(presetKey)}
+                </button>
+            `).join('');
+        }
+
+        function renderCityDropdownList() {
+            const listEl = document.getElementById('city-dropdown-list');
+            const customAddEl = document.getElementById('city-custom-add');
+            if (!listEl) return;
+
+            const term = (citySearchInput ? citySearchInput.value : '').toLowerCase().trim();
+            const trackedKeys = new Set(trackedCities.map(tc => (tc.key || '').toLowerCase()));
+            const trackedCounts = {};
+            trackedCities.forEach(tc => {
+                trackedCounts[(tc.key || '').toLowerCase()] = tc.itemCount || 0;
+            });
+
+            // Filter predefined
+            const filtered = predefinedCities.filter(c => {
+                if (!term) return true;
+                return (c.name && c.name.toLowerCase().includes(term)) ||
+                       (c.county && c.county.toLowerCase().includes(term)) ||
+                       (c.group && c.group.toLowerCase().includes(term));
+            });
+
+            listEl.innerHTML = filtered.map(c => {
+                const isSelected = selectedCities.includes(c.name);
+                const isTracked = trackedKeys.has((c.key || '').toLowerCase());
+                const count = trackedCounts[(c.key || '').toLowerCase()] || 0;
+
+                let metaText = '✨ Új város';
+                if (isTracked) {
+                    metaText = `💾 Mentve (${count} db)`;
+                }
+
+                return `
+                    <div class="city-dropdown-item ${isSelected ? 'selected' : ''}" onclick="addCityTag('${escapeHtml(c.name)}')">
+                        <div class="city-name-group">
+                            <span>${isSelected ? '✓ ' : '+ '}<strong>${escapeHtml(c.name)}</strong></span>
+                            <span style="font-size:11px; color:var(--text-secondary);">${escapeHtml(c.county || '')}</span>
+                        </div>
+                        <span class="city-meta-badge">${metaText}</span>
+                    </div>
+                `;
+            }).join('');
+
+            if (term && !predefinedCities.some(c => c.name.toLowerCase() === term) && !selectedCities.some(c => c.toLowerCase() === term)) {
+                if (customAddEl) {
+                    customAddEl.style.display = 'flex';
+                    customAddEl.innerHTML = `➕ "<strong>${escapeHtml(citySearchInput.value.trim())}</strong>" hozzáadása új városként`;
+                }
+            } else if (customAddEl) {
+                customAddEl.style.display = 'none';
+            }
+        }
+
+        function updateResultCityFilters(items) {
+            const container = document.getElementById('result-city-filters');
+            if (!container) return;
+
+            const counts = {};
+            items.forEach(it => {
+                const city = it.city || it.location || 'Debrecen';
+                counts[city] = (counts[city] || 0) + 1;
+            });
+
+            const cityNames = Object.keys(counts);
+            if (cityNames.length <= 1) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'flex';
+            let html = `
+                <button type="button" class="city-filter-btn ${selectedResultCity === 'all' ? 'active' : ''}" onclick="filterByCity('all')">
+                    📍 Összes város (${items.length})
+                </button>
+            `;
+
+            cityNames.forEach(c => {
+                html += `
+                    <button type="button" class="city-filter-btn ${selectedResultCity === c ? 'active' : ''}" onclick="filterByCity('${escapeHtml(c)}')">
+                        ${escapeHtml(c)} (${counts[c]})
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function filterByCity(cityName) {
+            selectedResultCity = cityName;
+            updateResultCityFilters(activeTab === 'current' ? currentItems : historyItems);
+            renderListings();
         }
 
         function updatePortalFilterCounts() {
@@ -1007,14 +1462,35 @@ public class WebDashboardHtml {
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
         });
 
-        // Initialize status and saved history
+        // Initialize status, cities and saved history
         async function init() {
             try {
+                // Fetch cities metadata
+                try {
+                    const citiesRes = await fetch('/api/cities');
+                    if (citiesRes.ok) {
+                        const citiesData = await citiesRes.json();
+                        predefinedCities = citiesData.predefined || [];
+                        cityPresets = citiesData.presets || {};
+                        trackedCities = citiesData.trackedCities || [];
+                        renderCityPresetsBar();
+                        renderCityDropdownList();
+                    }
+                } catch (ce) {
+                    console.warn("Nem sikerült betölteni a városlistát:", ce);
+                }
+
                 // Fetch config
                 const confRes = await fetch('/api/config');
                 if (confRes.ok) {
                     const conf = await confRes.json();
-                    if (conf.city) document.getElementById('city-input').value = conf.city;
+                    if (conf.cities && Array.isArray(conf.cities) && conf.cities.length > 0) {
+                        selectedCities = conf.cities;
+                    } else if (conf.city) {
+                        selectedCities = [conf.city];
+                    }
+                    renderSelectedCityChips();
+
                     if (conf.propertyType) document.getElementById('type-select').value = conf.propertyType;
                     if (conf.autoOpenBrowser !== undefined) document.getElementById('auto-open-toggle').checked = conf.autoOpenBrowser;
                     if (conf.minPriceMillion !== undefined && conf.minPriceMillion !== null) document.getElementById('min-price-input').value = conf.minPriceMillion;
@@ -1025,6 +1501,8 @@ public class WebDashboardHtml {
                         document.getElementById('portal-jf').checked = conf.portals.includes('jofogas');
                         document.getElementById('portal-ic').checked = conf.portals.includes('ingatlancom');
                     }
+                } else {
+                    renderSelectedCityChips();
                 }
 
                 // Fetch history
@@ -1032,6 +1510,7 @@ public class WebDashboardHtml {
                 updateStarredCount();
             } catch (e) {
                 console.error("Hiba az inicializáláskor:", e);
+                renderSelectedCityChips();
             }
         }
 
@@ -1058,11 +1537,17 @@ public class WebDashboardHtml {
                 return;
             }
 
+            if (selectedCities.length === 0) {
+                showToast("Válassz ki legalább egy települést a kereséshez!");
+                return;
+            }
+
             const minPriceVal = document.getElementById('min-price-input').value.trim();
             const maxPriceVal = document.getElementById('max-price-input').value.trim();
 
             const payload = {
-                city: document.getElementById('city-input').value.trim() || 'Debrecen',
+                city: selectedCities[0] || 'Debrecen',
+                cities: selectedCities,
                 propertyType: document.getElementById('type-select').value,
                 minPriceMillion: minPriceVal ? parseInt(minPriceVal, 10) : null,
                 maxPriceMillion: maxPriceVal ? parseInt(maxPriceVal, 10) : null,
@@ -1074,7 +1559,7 @@ public class WebDashboardHtml {
             submitBtn.disabled = true;
             btnText.textContent = "Keresés folyamatban...";
             btnSpinner.style.display = "inline-block";
-            showToast("🔍 Portálok lekérdezése folyamatban...");
+            showToast(`🔍 Keresés indítása: ${selectedCities.join(', ')}...`);
 
             try {
                 const response = await fetch('/api/search', {
@@ -1091,6 +1576,11 @@ public class WebDashboardHtml {
 
                 lastRunInfo.innerHTML = `Utolsó futás: <strong>${data.executedAt}</strong> • Találat: <strong>${data.totalFound}</strong> (Új: <span style="color:#10b981; font-weight:700;">${data.newCount}</span>)`;
 
+                // Ha új város adatbázis jött létre baseline snapshotként
+                if (data.newCitiesInitialized && data.newCitiesInitialized.length > 0) {
+                    showToast(`✨ Új város adatbázis létrehozva: ${data.newCitiesInitialized.join(', ')} (alapállapot rögzítve)`);
+                }
+
                 // Update "Open all new" button
                 const newItems = currentItems.filter(i => i.isNew);
                 if (newItems.length > 0) {
@@ -1101,10 +1591,14 @@ public class WebDashboardHtml {
                 }
 
                 await refreshHistory();
-                // Szűrők automatikus nullázása új kereséskor alapértelmezettre
+                // Szűrők nullázása
                 filterInput.value = '';
                 selectedResultPortal = 'all';
+                selectedResultCity = 'all';
                 onlyNewFilter = false;
+                currentSort = 'default';
+                const sortSelect = document.getElementById('sort-select');
+                if (sortSelect) sortSelect.value = 'default';
                 const onlyNewBtn = document.getElementById('filter-only-new-btn');
                 if (onlyNewBtn) onlyNewBtn.classList.remove('active');
                 document.querySelectorAll('.portal-filter-btn').forEach(btn => {
@@ -1124,6 +1618,7 @@ public class WebDashboardHtml {
         // Tab Switching
         function switchTab(tab) {
             activeTab = tab;
+            selectedResultCity = 'all';
             document.getElementById('tab-current').classList.toggle('active', tab === 'current');
             document.getElementById('tab-history').classList.toggle('active', tab === 'history');
             document.getElementById('tab-starred').classList.toggle('active', tab === 'starred');
@@ -1150,6 +1645,8 @@ public class WebDashboardHtml {
                 listToRender = historyItems;
             }
 
+            updateResultCityFilters(listToRender);
+
             const filterTerm = filterInput.value.toLowerCase().trim();
 
             const filtered = listToRender.filter(item => {
@@ -1158,7 +1655,7 @@ public class WebDashboardHtml {
                     return false;
                 }
 
-                // Portál szerinti szűrés a találatok között
+                // Portál szerinti szűrés
                 if (selectedResultPortal !== 'all') {
                     const p = (item.portal || '').toLowerCase();
                     if (selectedResultPortal === 'dh' && !p.includes('duna')) return false;
@@ -1167,22 +1664,44 @@ public class WebDashboardHtml {
                     if (selectedResultPortal === 'ic' && !p.includes('ingatlan.com')) return false;
                 }
 
+                // Város szerinti szűrés
+                if (selectedResultCity !== 'all') {
+                    const c = (item.city || item.location || '').toLowerCase();
+                    if (!c.includes(selectedResultCity.toLowerCase())) return false;
+                }
+
                 // Szöveges szűrés
                 if (!filterTerm) return true;
                 return (item.title && item.title.toLowerCase().includes(filterTerm)) ||
                        (item.price && item.price.toLowerCase().includes(filterTerm)) ||
                        (item.details && item.details.toLowerCase().includes(filterTerm)) ||
+                       (item.location && item.location.toLowerCase().includes(filterTerm)) ||
+                       (item.city && item.city.toLowerCase().includes(filterTerm)) ||
                        (item.portal && item.portal.toLowerCase().includes(filterTerm)) ||
                        (item.url && item.url.toLowerCase().includes(filterTerm));
             });
+
+            // Rendezés ár szerint
+            if (currentSort === 'price-asc' || currentSort === 'price-desc') {
+                filtered.sort((a, b) => {
+                    const pA = parsePrice(a.price);
+                    const pB = parsePrice(b.price);
+                    if (pA === null && pB === null) return 0;
+                    if (pA === null) return 1;
+                    if (pB === null) return -1;
+                    return currentSort === 'price-asc' ? pA - pB : pB - pA;
+                });
+            }
 
             if (filtered.length === 0) {
                 listingsContainer.innerHTML = '';
                 emptyState.style.display = 'block';
                 if (filterTerm) {
-                    emptyState.innerHTML = `<div class="empty-state-icon">❌</div><h3>Nincs egyezés a keresésre: "${filterTerm}"</h3><p>Próbáld meg módosítani a kifejezést vagy a szűrőket.</p>`;
+                    emptyState.innerHTML = `<div class="empty-state-icon">❌</div><h3>Nincs egyezés a keresésre: "${escapeHtml(filterTerm)}"</h3><p>Próbáld meg módosítani a kifejezést vagy a szűrőket.</p>`;
                 } else if (onlyNewFilter) {
                     emptyState.innerHTML = `<div class="empty-state-icon">✨</div><h3>Nincs új találat ebben a nézetben</h3><p>Kapcsold ki a "Csak újak" szűrőt a korábbi hirdetések megjelenítéséhez!</p>`;
+                } else if (selectedResultCity !== 'all') {
+                    emptyState.innerHTML = `<div class="empty-state-icon">📍</div><h3>Nincs találat "${escapeHtml(selectedResultCity)}" városban</h3><p>Kattints az "Összes város" gombra a többi település megjelenítéséhez!</p>`;
                 } else if (selectedResultPortal !== 'all') {
                     emptyState.innerHTML = `<div class="empty-state-icon">🔎</div><h3>Nincs találat a kiválasztott weboldalhoz</h3><p>Válassz másik portált vagy kattints az "Összes forrás" gombra!</p>`;
                 } else if (activeTab === 'starred') {
@@ -1203,13 +1722,15 @@ public class WebDashboardHtml {
                 if (item.portal && item.portal.toLowerCase().includes('ingatlan.com')) portalClass = 'ic';
 
                 const isStarred = starredUrls.has(item.url);
+                const itemCity = item.city || item.location || 'Debrecen';
 
                 return `
                     <div class="listing-card ${item.isNew ? 'is-new' : ''}">
                         <div>
                             <div class="card-top">
-                                <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <span class="portal-badge ${portalClass}">${item.portal || 'Hirdetés'}</span>
+                                    <span class="city-badge-tag">📍 ${escapeHtml(itemCity)}</span>
                                     ${item.isNew ? '<span class="badge-new">✨ ÚJ TALÁLAT</span>' : ''}
                                 </div>
                                 <button class="btn-star ${isStarred ? 'active' : ''}" 
@@ -1268,6 +1789,9 @@ public class WebDashboardHtml {
                 historyCountEl.textContent = '0';
                 dbCountEl.textContent = '0';
                 btnOpenAllNew.style.display = 'none';
+                currentSort = 'default';
+                const sortSelect = document.getElementById('sort-select');
+                if (sortSelect) sortSelect.value = 'default';
                 renderListings();
                 showToast("🗑️ Előzmények sikeresen törölve.");
             } catch (e) {
