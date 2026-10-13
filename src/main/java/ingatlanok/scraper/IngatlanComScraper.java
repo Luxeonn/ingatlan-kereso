@@ -1,9 +1,10 @@
-package ingatlanok.service.impl;
+package ingatlanok.scraper;
 
+import ingatlanok.common.PropertyParser;
+import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.IngatlanRepository;
-import ingatlanok.service.Ingatlan;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -11,7 +12,6 @@ import org.jsoup.select.Elements;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -19,12 +19,10 @@ import java.util.stream.Collectors;
  * Scraper implementáció az Ingatlan.com portálhoz.
  * Támogatja a közvetlen keresési URL generálást és intelligens Cloudflare fallbacket.
  */
-public class IngatlanCom extends IngatlanStart implements Ingatlan {
+public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://ingatlan.com";
     private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/(\\d+)");
-    private static final Pattern PRICE_PATTERN = Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)");
-    private static final Pattern ROOM_SIZE_PATTERN = Pattern.compile("(\\d+[,.]?\\d*\\s*m²[^\\n]*\\d+\\s*szoba|\\d+[,.]?\\d*\\s*m²)");
 
     @Override
     public String getName() {
@@ -56,11 +54,10 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
             criteria = new SearchCriteria();
         }
 
-        String citySlug = criteria.getCity().toLowerCase().trim()
-                .replace("é", "e").replace("á", "a").replace("ó", "o")
-                .replace("ő", "o").replace("ö", "o").replace("ú", "u")
-                .replace("ű", "u").replace("ü", "u").replace("í", "i")
-                .replaceAll("[^a-z0-9]", "-");
+        String citySlug = SlugUtils.toSlug(criteria.getCity());
+        if (citySlug.isEmpty()) {
+            citySlug = "debrecen";
+        }
 
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         String typeSlug = switch (rawType) {
@@ -102,9 +99,9 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
                 processedUrls.add(fullLink);
 
                 String cardText = a.text().replaceAll("\\s+", " ").trim();
-                String id = extractId(fullLink);
-                String price = extractPrice(cardText);
-                String details = extractDetails(cardText);
+                String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
+                String price = PropertyParser.extractPrice(cardText);
+                String details = PropertyParser.extractDetails(cardText);
                 String title = criteria.getCity() + " - " + extractTitle(cardText, criteria.getCity(), id);
                 boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
 
@@ -129,21 +126,6 @@ public class IngatlanCom extends IngatlanStart implements Ingatlan {
 
         System.out.println("ingatlan.com Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
         return items;
-    }
-
-    private String extractId(String url) {
-        Matcher m = ID_PATTERN.matcher(url);
-        return m.find() ? m.group(1) : UUID.randomUUID().toString().substring(0, 8);
-    }
-
-    private String extractPrice(String text) {
-        Matcher m = PRICE_PATTERN.matcher(text);
-        return m.find() ? m.group(1).trim() : "Ár a hirdetésben";
-    }
-
-    private String extractDetails(String text) {
-        Matcher m = ROOM_SIZE_PATTERN.matcher(text);
-        return m.find() ? m.group(1).trim() : "";
     }
 
     private String extractTitle(String text, String defaultCity, String id) {

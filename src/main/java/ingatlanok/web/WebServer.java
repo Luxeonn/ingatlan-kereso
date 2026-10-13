@@ -6,8 +6,8 @@ import com.google.gson.reflect.TypeToken;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import ingatlanok.helper.CityUtils;
-import ingatlanok.helper.IngatlanHelper;
+import ingatlanok.common.BrowserUtils;
+import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
@@ -213,7 +213,7 @@ public class WebServer {
             Type listType = new TypeToken<List<String>>() {}.getType();
             List<String> urls = GSON.fromJson(body, listType);
             if (urls != null && !urls.isEmpty()) {
-                IngatlanHelper.openUrl(new LinkedHashSet<>(urls));
+                BrowserUtils.openUrls(new LinkedHashSet<>(urls));
             }
             sendJsonResponse(exchange, 200, Map.of("success", true, "count", urls != null ? urls.size() : 0));
         }

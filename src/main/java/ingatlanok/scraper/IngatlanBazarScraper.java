@@ -1,7 +1,6 @@
-package ingatlanok.service.impl;
+package ingatlanok.scraper;
 
-import ingatlanok.persistence.IngatlanDataBaseMock;
-import ingatlanok.service.Ingatlan;
+import ingatlanok.persistence.IngatlanRepository;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -13,7 +12,7 @@ import java.util.Set;
  * Scraper implementáció az Ingatlanbazár (ingatlanbazar.hu) portálhoz.
  * Megjegyzés: A portál jelenleg Angular SPA-t használ, a hirdetések kliensoldalon töltődnek be.
  */
-public class IngatlanBazar extends IngatlanStart implements Ingatlan {
+public class IngatlanBazarScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://www.ingatlanbazar.hu";
     private static final String SEARCH_ROUTE = "/ingatlan-Debrecen-Elado-Lakas";
@@ -51,7 +50,7 @@ public class IngatlanBazar extends IngatlanStart implements Ingatlan {
             String href = a.attr("href");
             if (href != null && !href.isEmpty()) {
                 String link = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-                if (!IngatlanDataBaseMock.getUrls().contains(link)) {
+                if (!IngatlanRepository.getInstance().containsUrl(link)) {
                     result.add(link);
                 }
             }

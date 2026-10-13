@@ -1,4 +1,4 @@
-package ingatlanok.service;
+package ingatlanok.scraper;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Ingatlan scraper szolgáltatás interfész.
+ * Ingatlan portál scraper interfész.
  */
-public interface Ingatlan {
+public interface IngatlanScraper {
 
     Set<String> getUrls();
 

@@ -1,9 +1,9 @@
-package ingatlanok.service.impl;
+package ingatlanok.scraper;
 
+import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.IngatlanRepository;
-import ingatlanok.service.Ingatlan;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -11,19 +11,16 @@ import org.jsoup.select.Elements;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Scraper implementáció az Otthon Centrum (oc.hu) portálhoz.
  */
-public class OtthonCentrum extends IngatlanStart implements Ingatlan {
+public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://www.oc.hu";
     private static final Pattern ID_PATTERN = Pattern.compile("/ingatlanok/([A-Za-z0-9]+)");
-    private static final Pattern PRICE_PATTERN = Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)");
-    private static final Pattern ROOM_SIZE_PATTERN = Pattern.compile("(\\d+[,.]?\\d*\\s*m²[^\\n]*\\d+\\s*szoba|\\d+[,.]?\\d*\\s*m²)");
 
     @Override
     public String getName() {
@@ -51,6 +48,10 @@ public class OtthonCentrum extends IngatlanStart implements Ingatlan {
     @Override
     public List<IngatlanItem> search(SearchCriteria criteria) {
         List<IngatlanItem> items = new ArrayList<>();
+        if (criteria == null) {
+            criteria = new SearchCriteria();
+        }
+
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         String jellegParam = switch (rawType) {
             case "haz" -> "2";
@@ -101,9 +102,9 @@ public class OtthonCentrum extends IngatlanStart implements Ingatlan {
                 processed.add(fullLink);
 
                 String cardText = a.text().replaceAll("\\s+", " ").trim();
-                String id = extractId(fullLink);
-                String price = extractPrice(cardText);
-                String details = extractDetails(cardText);
+                String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
+                String price = PropertyParser.extractPrice(cardText);
+                String details = PropertyParser.extractDetails(cardText);
                 String title = cleanTitle(cardText, criteria.getCity(), id);
                 boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
 
@@ -126,28 +127,11 @@ public class OtthonCentrum extends IngatlanStart implements Ingatlan {
         return items;
     }
 
-    private String extractId(String url) {
-        Matcher m = ID_PATTERN.matcher(url);
-        return m.find() ? m.group(1) : UUID.randomUUID().toString().substring(0, 8);
-    }
-
-    private String extractPrice(String text) {
-        Matcher m = PRICE_PATTERN.matcher(text);
-        return m.find() ? m.group(1).trim() : "Ár a hirdetésben";
-    }
-
-    private String extractDetails(String text) {
-        Matcher m = ROOM_SIZE_PATTERN.matcher(text);
-        return m.find() ? m.group(1).trim() : "";
-    }
-
     private String cleanTitle(String text, String defaultCity, String id) {
         if (text != null && text.contains("szoba")) {
-            // Vegyük a szoba utáni részt ha van
             int idx = text.indexOf("szoba");
             String after = text.substring(idx + 5).trim();
             if (after.length() > 5) {
-                // levágjuk a túl hosszú leírást 60 karakterre
                 int end = Math.min(after.length(), 65);
                 return after.substring(0, end).trim() + "...";
             }

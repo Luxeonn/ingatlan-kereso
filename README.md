@@ -37,11 +37,11 @@ Segítségével egyetlen kattintással vagy parancs kiadásával elindul a helyi
 
 | Portál | Domain | Állapot | Implementáció |
 | :--- | :--- | :---: | :--- |
-| **Duna House** | `dh.hu` |  **Működik** (élő adatok) | `ingatlanok.service.impl.DunaHause` |
-| **Otthon Centrum** | `oc.hu` |  **Működik** (élő adatok) | `ingatlanok.service.impl.OtthonCentrum` |
-| **Jófogás Ingatlan** | `jofogas.hu` |  **Működik** (élő adatok) | `ingatlanok.service.impl.JofogasIngatlan` |
-| **Ingatlan.com** | `ingatlan.com` | ⚠️ *Cloudflare bot-védelem (kezelt)* | `ingatlanok.service.impl.IngatlanCom` |
-| **Ingatlanbazár** | `ingatlanbazar.hu` | ⚠️ *Kliensoldali Angular SPA (kezelt)* | `ingatlanok.service.impl.IngatlanBazar` |
+| **Duna House** | `dh.hu` |  **Működik** (élő adatok) | `ingatlanok.scraper.DunaHouseScraper` |
+| **Otthon Centrum** | `oc.hu` |  **Működik** (élő adatok) | `ingatlanok.scraper.OtthonCentrumScraper` |
+| **Jófogás Ingatlan** | `jofogas.hu` |  **Működik** (élő adatok) | `ingatlanok.scraper.JofogasScraper` |
+| **Ingatlan.com** | `ingatlan.com` | ⚠️ *Cloudflare bot-védelem (kezelt)* | `ingatlanok.scraper.IngatlanComScraper` |
+| **Ingatlanbazár** | `ingatlanbazar.hu` | ⚠️ *Kliensoldali Angular SPA (kezelt)* | `ingatlanok.scraper.IngatlanBazarScraper` |
 
 ---
 
@@ -90,29 +90,33 @@ ingatlan-kereso/
 ├── start-ui.ps1                                 # PowerShell indító script
 ├── data/                                        # Helyi adatbázis mappa (.gitignore alatt)
 │   ├── ingatlanok_db.json                       # Hirdetési előzmények és kinyert metaadatok
-│   └── last_config.json                         # Utolsó mentett keresési szűrők
+│   ├── last_config.json                         # Utolsó mentett keresési szűrők
+│   └── cities/                                  # Városonként szegmentált hirdetés cache
 └── src/main/java/
-    ├── Main.java                                # Belépési pont (Web Dashboard & CLI fallback)
     └── ingatlanok/
-        ├── helper/
-        │   └── IngatlanHelper.java              # Böngészőkezelés, kompatibilitási fájlműveletek
+        ├── Main.java                            # Belépési pont (Web Dashboard & CLI fallback)
+        ├── common/                              # Közös megosztott modul
+        │   ├── BrowserUtils.java                # Böngészőfül megnyitása Desktop és fallback támogatással
+        │   ├── CityUtils.java                   # Településnevek normalizálása, listája és sablonok
+        │   ├── HttpFetcher.java                 # Jsoup HTTP kliens (User-Agent, timeoutok, hibatűrés)
+        │   ├── PropertyParser.java              # Ár, méret, szobaszám regex kinyerés és normalizálás
+        │   └── SlugUtils.java                   # Ékezetmentesítés és URL slug generálás
         ├── model/
         │   ├── IngatlanItem.java                # Hirdetés adatmodell (cím, ár, méret, url, stádium)
-        │   ├── SearchCriteria.java              # Keresési paraméterek (város, típus, portálok)
+        │   ├── SearchCriteria.java              # Keresési paraméterek (városok, típus, portálok)
         │   └── SearchResult.java                # Összesített találati eredmény modell
         ├── persistence/
-        │   ├── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
-        │   └── IngatlanDataBaseMock.java        # Visszafelé kompatibilitási réteg
+        │   └── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
+        ├── scraper/                             # Dedikált web scraping réteg
+        │   ├── IngatlanScraper.java             # Scraper interfész (`search` és `getUrls`)
+        │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & letöltés)
+        │   ├── DunaHouseScraper.java            # dh.hu scraper
+        │   ├── OtthonCentrumScraper.java        # oc.hu scraper
+        │   ├── JofogasScraper.java              # jofogas.hu scraper
+        │   ├── IngatlanComScraper.java          # ingatlan.com scraper (Cloudflare fallback)
+        │   └── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (Angular SPA fallback)
         ├── service/
-        │   ├── Ingatlan.java                    # Scraper interfész (`search` és `getUrls`)
-        │   ├── IngatlanSearchService.java       # Keresést vezérlő orchestrator szolgáltatás
-        │   └── impl/
-        │       ├── IngatlanStart.java           # Jsoup bázisosztály, biztonságos letöltés
-        │       ├── DunaHause.java               # dh.hu scraper (részletes adatokkal)
-        │       ├── OtthonCentrum.java           # oc.hu scraper (részletes adatokkal)
-        │       ├── JofogasIngatlan.java         # jofogas.hu scraper (részletes adatokkal)
-        │       ├── IngatlanCom.java             # ingatlan.com scraper (Cloudflare fallback)
-        │       └── IngatlanBazar.java           # ingatlanbazar.hu scraper (Angular SPA fallback)
+        │   └── IngatlanSearchService.java       # Keresést vezérlő orchestrator szolgáltatás
         └── web/
             ├── WebServer.java                   # Beágyazott REST API szerver (Virtual Threads)
             └── WebDashboardHtml.java            # Modern reszponzív SPA HTML/CSS/JS felület

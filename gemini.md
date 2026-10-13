@@ -37,31 +37,35 @@ ingatlan-kereso/
 ├── start-ui.ps1                                 # PowerShell indító script
 ├── data/                                        # Helyi perzisztens JSON adatbázis mappa (.gitignore)
 │   ├── ingatlanok_db.json                       # Hirdetés adatok, ár, alapterület, időpont
-│   └── last_config.json                         # Mentett keresési szűrők
+│   ├── last_config.json                         # Mentett keresési szűrők
+│   └── cities/                                  # Városonként szegmentált hirdetés cache
 ├── .gitignore
 ├── LICENSE                                      # GPL licenc
 └── src/main/java/
-    ├── Main.java                                # Belépési pont (Web Dashboard & CLI fallback)
     └── ingatlanok/
-        ├── helper/
-        │   └── IngatlanHelper.java              # Böngészőkezelés, fájlkezelés
+        ├── Main.java                            # Belépési pont (Web Dashboard & CLI fallback)
+        ├── common/                              # Közös megosztott modul
+        │   ├── BrowserUtils.java                # Böngészőfül megnyitása Desktop és fallback támogatással
+        │   ├── CityUtils.java                   # Településnevek normalizálása, listája és sablonok
+        │   ├── HttpFetcher.java                 # Jsoup HTTP kliens (User-Agent, timeoutok, hibatűrés)
+        │   ├── PropertyParser.java              # Ár, méret, szobaszám regex kinyerés és normalizálás
+        │   └── SlugUtils.java                   # Ékezetmentesítés és URL slug generálás
         ├── model/
         │   ├── IngatlanItem.java                # Hirdetés adatmodell (ár, méret, szobák, link)
-        │   ├── SearchCriteria.java              # Keresési paraméterek (város, típus, portálok)
+        │   ├── SearchCriteria.java              # Keresési paraméterek (városok, típus, portálok)
         │   └── SearchResult.java                # Találati aggregáció modell
         ├── persistence/
-        │   ├── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
-        │   └── IngatlanDataBaseMock.java        # Visszafelé kompatibilitási réteg
+        │   └── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
+        ├── scraper/                             # Dedikált web scraping réteg
+        │   ├── IngatlanScraper.java             # Scraper interfész (`search` és `getUrls`)
+        │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & letöltés)
+        │   ├── DunaHouseScraper.java            # dh.hu scraper (élő találatok + metaadatok)
+        │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok + metaadatok)
+        │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok + metaadatok)
+        │   ├── IngatlanComScraper.java          # ingatlan.com scraper (Cloudflare fallback)
+        │   └── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (Angular SPA fallback)
         ├── service/
-        │   ├── Ingatlan.java                    # Scraper interfész (`search` és `getUrls`)
-        │   ├── IngatlanSearchService.java       # Központi keresési orchestrator
-        │   └── impl/
-        │       ├── IngatlanStart.java           # Jsoup bázisosztály, biztonságos letöltés
-        │       ├── DunaHause.java               # dh.hu scraper (élő találatok + metaadatok)
-        │       ├── OtthonCentrum.java           # oc.hu scraper (élő találatok + metaadatok)
-        │       ├── JofogasIngatlan.java         # jofogas.hu scraper (élő találatok + metaadatok)
-        │       ├── IngatlanCom.java             # ingatlan.com scraper (Cloudflare fallback)
-        │       └── IngatlanBazar.java           # ingatlanbazar.hu scraper (Angular SPA fallback)
+        │   └── IngatlanSearchService.java       # Központi keresési orchestrator
         └── web/
             ├── WebServer.java                   # Beágyazott Java 21 REST API szerver
             └── WebDashboardHtml.java            # Modern reszponzív SPA HTML/CSS/JS sablon
@@ -73,26 +77,26 @@ ingatlan-kereso/
 
 ```mermaid
 flowchart TD
-    A[Start: Main.java] --> B[IngatlanHelper.startContent]
-    B --> C[(Fájl olvasása: elmentett linkek memóriába)]
-    C --> D[Portálok lekérdezése robusztus hibatűréssel]
-    D --> D1[DunaHause.getUrls: dh.hu]
-    D --> D2[OtthonCentrum.getUrls: oc.hu]
-    D --> D3[JofogasIngatlan.getUrls: jofogas.hu]
-    D --> D4[IngatlanCom.getUrls: ingatlan.com]
-    D --> D5[IngatlanBazar.getUrls: ingatlanbazar.hu]
+    A[Start: Main.java] --> B[IngatlanRepository.getInstance]
+    B --> C[(JSON Adatbázis: korábbi találatok memóriába)]
+    C --> D[Portálok lekérdezése IngatlanSearchService-en keresztül]
+    D --> D1[DunaHouseScraper: dh.hu]
+    D --> D2[OtthonCentrumScraper: oc.hu]
+    D --> D3[JofogasScraper: jofogas.hu]
+    D --> D4[IngatlanComScraper: ingatlan.com]
+    D --> D5[IngatlanBazarScraper: ingatlanbazar.hu]
     D1 & D2 & D3 & D4 & D5 --> E{Új URL-ek szűrése}
-    E --> F[IngatlanHelper.openUrl: Megnyitás böngészőben - limitáltan]
-    E --> G[IngatlanHelper.saveIngatlanToFile: Új URL-ek mentése fájlba]
-    F & G --> H[Kész]
+    E --> F[BrowserUtils.openUrls: Megnyitás böngészőben - limitáltan]
+    E --> G[IngatlanRepository.saveCityItems: Új hirdetések mentése JSON fájlba]
+    F & G --> H[Kész / Web UI kiszolgálás]
 ```
 
-1. **Adatbázis inicializálás:** `IngatlanHelper.startContent()` beolvassa a lokális fájlban tárolt korábbi URL-eket a `IngatlanDataBaseMock` in-memory halmazába (`Set<String>`).
-2. **Keresési eredmények letöltése:** A scraper osztályok (`IngatlanStart` leszármazottak) Jsoup segítségével letöltik a keresési URL-ek első oldalát a találatszám megállapításához, majd végiglapozzák a találatokat.
-3. **Duplikátum-szűrés:** A megtalált hirdetés-linkeket összeveti a memóriában lévő linkekkel.
+1. **Adatbázis inicializálás:** `IngatlanRepository.getInstance()` betölti a JSON adatbázis korábbi hirdetéseit a memóriába (`ConcurrentHashMap`).
+2. **Keresési eredmények letöltése:** A scraper osztályok (`BaseScraper` leszármazottak) a közös `HttpFetcher` és `PropertyParser` segítségével letöltik és feldolgozzák a hirdetéseket.
+3. **Duplikátum-szűrés:** A megtalált hirdetés-linkeket a repository ellenőrzi, és újként jelöli a korábban még nem látott elemeket.
 4. **Értesítés és Mentés:**
-   * Ha új link érkezett, a rendszer a Windows beépített `rundll32` parancsával közvetlenül megnyitja azt a böngészőben.
-   * Az új linkek listája hozzáfűzésre kerül a helyi fájlhoz.
+   * Ha a felhasználó kéri, a rendszer a `BrowserUtils.openUrls` segítségével automatikusan megnyitja a böngészőben az új linkeket.
+   * Az új hirdetések azonnal mentésre kerülnek a városonként szegmentált és az aggregált JSON adatbázisba.
 
 ---
 

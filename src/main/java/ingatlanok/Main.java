@@ -1,14 +1,13 @@
-import ingatlanok.helper.IngatlanHelper;
+package ingatlanok;
+
+import ingatlanok.common.BrowserUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.service.IngatlanSearchService;
 import ingatlanok.web.WebServer;
 
-import java.awt.Desktop;
-import java.net.URI;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
 
 /**
  * Ingatlan kereső belépési pont.
@@ -32,7 +31,7 @@ public class Main {
         System.out.println("  Ingatlan Kereső - Web Dashboard Indítása");
         System.out.println("==================================================");
 
-        // Inicializáljuk a JSON / txt adatbázist
+        // Inicializáljuk a JSON adatbázist
         IngatlanRepository.getInstance();
 
         int defaultPort = Integer.getInteger("server.port", 8080);
@@ -47,13 +46,7 @@ public class Main {
             System.out.println("Böngésző megnyitása folyamatban...");
 
             // Automatikus böngésző megnyitás
-            try {
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                    Desktop.getDesktop().browse(new URI(url));
-                } else {
-                    new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", url).start();
-                }
-            } catch (Exception e) {
+            if (!BrowserUtils.openUrl(url)) {
                 System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
             }
 

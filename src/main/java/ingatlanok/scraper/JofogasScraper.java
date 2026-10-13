@@ -1,9 +1,9 @@
-package ingatlanok.service.impl;
+package ingatlanok.scraper;
 
+import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.IngatlanRepository;
-import ingatlanok.service.Ingatlan;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -13,19 +13,16 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Scraper implementáció a Jófogás Ingatlan (jofogas.hu) portálhoz.
  */
-public class JofogasIngatlan extends IngatlanStart implements Ingatlan {
+public class JofogasScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://ingatlan.jofogas.hu";
     private static final Pattern ID_PATTERN = Pattern.compile("_(\\d+)\\.htm");
-    private static final Pattern PRICE_PATTERN = Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)");
-    private static final Pattern DETAILS_PATTERN = Pattern.compile("(\\d+\\s*szoba\\s*[•|]\\s*\\d+\\s*m²|\\d+\\s*m²)");
 
     @Override
     public String getName() {
@@ -53,6 +50,10 @@ public class JofogasIngatlan extends IngatlanStart implements Ingatlan {
     @Override
     public List<IngatlanItem> search(SearchCriteria criteria) {
         List<IngatlanItem> items = new ArrayList<>();
+        if (criteria == null) {
+            criteria = new SearchCriteria();
+        }
+
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         String typeWord = switch (rawType) {
             case "haz" -> "haz";
@@ -99,11 +100,11 @@ public class JofogasIngatlan extends IngatlanStart implements Ingatlan {
             processed.add(fullLink);
 
             String cardText = a.text().replaceAll("\\s+", " ").trim();
-            if (cardText.length() < 10) continue; // Skip navigational buttons
+            if (cardText.length() < 10) continue; // Navigációs gombok kihagyása
 
-            String id = extractId(fullLink);
-            String price = extractPrice(cardText);
-            String details = extractDetails(cardText);
+            String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
+            String price = PropertyParser.extractPrice(cardText);
+            String details = PropertyParser.extractDetails(cardText);
             String title = cleanTitle(cardText, criteria.getCity(), id);
             boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
 
@@ -125,24 +126,8 @@ public class JofogasIngatlan extends IngatlanStart implements Ingatlan {
         return items;
     }
 
-    private String extractId(String url) {
-        Matcher m = ID_PATTERN.matcher(url);
-        return m.find() ? m.group(1) : UUID.randomUUID().toString().substring(0, 8);
-    }
-
-    private String extractPrice(String text) {
-        Matcher m = PRICE_PATTERN.matcher(text);
-        return m.find() ? m.group(1).trim() : "Ár a hirdetésben";
-    }
-
-    private String extractDetails(String text) {
-        Matcher m = DETAILS_PATTERN.matcher(text);
-        return m.find() ? m.group(1).trim() : "";
-    }
-
     private String cleanTitle(String text, String defaultCity, String id) {
         if (text != null) {
-            // Jófogás gyakran az ingatlan címével indít
             int mFtIndex = text.indexOf("M Ft");
             if (mFtIndex > 0) {
                 String prefix = text.substring(0, mFtIndex).replaceAll("\\d+[,.]?\\d*\\s*$", "").trim();

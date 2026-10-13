@@ -1,26 +1,26 @@
-package ingatlanok.helper;
+package ingatlanok.common;
 
-import java.text.Normalizer;
 import java.util.*;
 
 /**
  * Településnevek normalizálását, előre definiált településlistát és
  * gyorsválasztó sablonokat biztosító segédosztály.
  */
-public class CityUtils {
+public final class CityUtils {
+
+    private CityUtils() {
+        // Segédosztály, nem példányosítható
+    }
 
     /**
-     * Normalizálja a megadott településnevet fájlnév- és URL-biztos azonosítóvá.
+     * Normalizálja a megadott településnevet fájlnév- és URL-biztos azonosítóvá a SlugUtils segítségével.
      * Pl.: "Hajdúszoboszló" -> "hajduszoboszlo", "Debrecen - Józsa" -> "debrecen-jozsa".
      */
     public static String normalizeCityKey(String cityName) {
         if (cityName == null || cityName.isBlank()) {
             return "debrecen";
         }
-        String normalized = Normalizer.normalize(cityName.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD);
-        normalized = normalized.replaceAll("\\p{M}", "");
-        normalized = normalized.replaceAll("[^a-z0-9]+", "-");
-        normalized = normalized.replaceAll("^-+|-+$", "");
+        String normalized = SlugUtils.toSlug(cityName);
         return normalized.isEmpty() ? "debrecen" : normalized;
     }
 
