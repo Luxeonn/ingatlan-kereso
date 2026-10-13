@@ -185,6 +185,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 | **Jófogás Ingatlan** (`jofogas.hu`) | Élő Jsoup DOM parsing | Keresési paraméterezés: `?q=<varos>+elado+<tipus>&min_price=...`. A hirdetési listaelemekből regex segítségével tisztítjuk az árat és a címet. |
 | **Ingatlan.com** (`ingatlan.com`) | Graceful Bot Fallback | Erős Cloudflare WAF bot-védelem (403 Forbidden / JS challenge). Közvetlen hirdetési keresőlinket generálunk fallbackként, elkerülve a szerver blokkolását. |
 | **Ingatlanbazár** (`ingatlanbazar.hu`) | Élő belső REST JSON API | Nyílt és gyors belső REST API (`/api/property-search` és `/api/geo/get-matches`). Pontos árak, alapterület, szobaszám, közvetlen hirdetés linkek és településkód feloldás gyorsítótárazással (`IngatlanBazarLocationResolver`). |
+| **Költözzbe** (`koltozzbe.hu`) | Élő DOM & JSON-LD parsing | Kifejezetten eladó családi ház és debreceni agglomeráció fókusz. Pontos árak, alapterület, szobaszám, telekméret és közvetlen hirdetés linkek kinyerése kettős (HTML kártya + Schema.org JSON-LD) mechanizmussal. |
 
 ---
 
@@ -201,6 +202,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 - [x] Elavult legacy mock és helper osztályok kivezetése és törlése.
 - [x] Strukturált és szintezett naplózási keretrendszer (`AppLogger`, `logs/scraper.log`, `/api/logs` REST végpont, metrikák).
 - [x] Portál diagnosztika, hiba felugró ablak és technikai státuszkódok (`PortalStatusDto`, diagnosztikai modal, egykattintásos vágólap export).
+- [x] Költözzbe.hu élő ház és debreceni agglomeráció scraper adapter (`KoltozzbeScraper`, kártya és JSON-LD parsing, település és árszűrés).
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.
