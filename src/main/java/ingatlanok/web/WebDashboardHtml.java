@@ -771,7 +771,43 @@ public class WebDashboardHtml {
 
         .listing-card.is-new {
             border: 2px solid #10b981;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.28);
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, var(--bg-card) 100%);
+        }
+
+        .listing-card.is-new .card-title,
+        .card-title.pulse-title {
+            animation: titlePulse 2.5s infinite ease-in-out;
+            color: #34d399;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% {
+                color: var(--text-main);
+                text-shadow: none;
+            }
+            50% {
+                color: #10b981;
+                text-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+            }
+        }
+
+        .listing-card.is-viewed {
+            opacity: 0.70;
+            background: rgba(30, 41, 59, 0.4);
+            border-color: rgba(148, 163, 184, 0.2);
+            filter: grayscale(35%);
+        }
+
+        .listing-card.is-viewed:hover {
+            opacity: 0.95;
+            filter: grayscale(0%);
+        }
+
+        .listing-card.is-archive {
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            opacity: 1;
         }
 
         .card-top {
@@ -816,11 +852,6 @@ public class WebDashboardHtml {
             border-radius: 6px;
             letter-spacing: 0.5px;
             border: 1px solid rgba(148, 163, 184, 0.3);
-        }
-
-        .listing-card.is-viewed {
-            opacity: 0.72;
-            filter: grayscale(25%);
         }
 
         @keyframes pulse {
@@ -1821,9 +1852,13 @@ public class WebDashboardHtml {
 
                 const isStarred = starredUrls.has(item.url);
                 const itemCity = item.city || item.location || 'Debrecen';
+                const isNew = Boolean(item.isNew);
+                const isViewed = Boolean(item.viewed);
+                const stateClass = isViewed ? 'is-viewed' : (isNew ? 'is-new' : 'is-archive');
+                const titlePulseClass = (isNew && !isViewed) ? 'pulse-title' : '';
 
                 return `
-                    <div class="listing-card ${item.isNew ? 'is-new' : ''} ${item.viewed ? 'is-viewed' : ''}">
+                    <div class="listing-card ${stateClass} ${isNew ? 'is-new' : ''} ${isViewed ? 'is-viewed' : ''}">
                         <div>
                             <div class="card-top">
                                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -1838,7 +1873,7 @@ public class WebDashboardHtml {
                                     ${isStarred ? '★' : '☆'}
                                 </button>
                             </div>
-                            <h3 class="card-title">${escapeHtml(item.title || 'Ingatlan')}</h3>
+                            <h3 class="card-title ${titlePulseClass}">${escapeHtml(item.title || 'Ingatlan')}</h3>
                             <p class="card-details">${escapeHtml(item.details || item.location || '')}</p>
                         </div>
                         <div class="card-footer">
