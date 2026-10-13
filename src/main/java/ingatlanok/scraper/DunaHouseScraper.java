@@ -18,9 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 
-/**
- * Scraper implementáció a Duna House (dh.hu) portálhoz.
- */
 public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://dh.hu";
@@ -39,7 +36,7 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
 
     @Override
     public void init() {
-        // Init logic
+
     }
 
     @Override
@@ -47,9 +44,6 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
         return 20;
     }
 
-    /**
-     * Előállítja a Duna House keresési URL-t a megadott kritériumok alapján.
-     */
     public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
@@ -139,7 +133,6 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                     PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
                     PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
 
-                    // Valós lokáció és város kinyerése
                     String extractedCity = PropertyParser.extractCityFromPostalAddress(cardText);
                     if (extractedCity == null || extractedCity.isBlank()) {
                         String urlCity = PropertyParser.extractCityFromDhUrl(fullLink);
@@ -165,7 +158,6 @@ public class DunaHouseScraper extends BaseScraper implements IngatlanScraper {
                     );
                     item.setLocation(actualCity);
 
-                    // Szigorú utólagos szűrés: kizárjuk az ársávon vagy kívánt városon kívül eső hirdetéseket
                     if (!criteria.matches(item)) {
                         continue;
                     }

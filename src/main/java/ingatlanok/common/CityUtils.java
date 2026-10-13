@@ -2,20 +2,12 @@ package ingatlanok.common;
 
 import java.util.*;
 
-/**
- * Településnevek normalizálását, előre definiált településlistát és
- * gyorsválasztó sablonokat biztosító segédosztály.
- */
 public final class CityUtils {
 
     private CityUtils() {
-        // Segédosztály, nem példányosítható
+
     }
 
-    /**
-     * Normalizálja a megadott településnevet fájlnév- és URL-biztos azonosítóvá a SlugUtils segítségével.
-     * Pl.: "Hajdúszoboszló" -> "hajduszoboszlo", "Debrecen - Józsa" -> "debrecen-jozsa".
-     */
     public static String normalizeCityKey(String cityName) {
         if (cityName == null || cityName.isBlank()) {
             return "debrecen";
@@ -24,13 +16,9 @@ public final class CityUtils {
         return normalized.isEmpty() ? "debrecen" : normalized;
     }
 
-    /**
-     * Előre definiált magyarországi települések listája a frontend autocomplete / dropdown menühöz.
-     */
     public static List<Map<String, String>> getPredefinedCities() {
         List<Map<String, String>> list = new ArrayList<>();
 
-        // Debrecen és agglomerációja
         addCity(list, "Debrecen", "Hajdú-Bihar", "Agglomeráció / Székhely");
         addCity(list, "Hajdúszoboszló", "Hajdú-Bihar", "Debrecen környéke");
         addCity(list, "Hajdúböszörmény", "Hajdú-Bihar", "Debrecen környéke");
@@ -49,7 +37,6 @@ public final class CityUtils {
         addCity(list, "Püspökladány", "Hajdú-Bihar", "Hajdú-Bihar");
         addCity(list, "Kaba", "Hajdú-Bihar", "Hajdú-Bihar");
 
-        // Nagyvárosok és egyéb megyeszékhelyek
         addCity(list, "Budapest", "Pest", "Főváros");
         addCity(list, "Nyíregyháza", "Szabolcs-Szatmár-Bereg", "Megyeszékhely");
         addCity(list, "Miskolc", "Borsod-Abaúj-Zemplén", "Megyeszékhely");
@@ -76,7 +63,7 @@ public final class CityUtils {
     private static final Map<String, String> CITY_COUNTY_NAME_MAP = new LinkedHashMap<>();
 
     static {
-        // Inicializáljuk a városonkénti megye-térképet a predefined listából
+
         for (Map<String, String> cityInfo : getPredefinedCities()) {
             String citySlug = cityInfo.get("key");
             String countyName = cityInfo.get("county");
@@ -85,7 +72,6 @@ public final class CityUtils {
             CITY_COUNTY_NAME_MAP.put(citySlug, countyName);
         }
 
-        // További gyakori magyarországi települések (agglomerációk, kisvárosok)
         registerCityCounty("cegled", "pest", "Pest");
         registerCityCounty("erd", "pest", "Pest");
         registerCityCounty("dunakeszi", "pest", "Pest");
@@ -152,9 +138,6 @@ public final class CityUtils {
         CITY_COUNTY_NAME_MAP.put(citySlug, countyName);
     }
 
-    /**
-     * Visszaadja a megadott település megyéjének URL-barát slugját (pl. "Hajdúszoboszló" -> "hajdu-bihar").
-     */
     public static Optional<String> getCountySlug(String cityName) {
         if (cityName == null || cityName.isBlank()) {
             return Optional.empty();
@@ -164,7 +147,7 @@ public final class CityUtils {
         if (countySlug != null) {
             return Optional.of(countySlug);
         }
-        // Részleges illeszkedés (pl. "Debrecen - Józsa" -> "debrecen")
+
         for (Map.Entry<String, String> entry : CITY_COUNTY_SLUG_MAP.entrySet()) {
             if (key.contains(entry.getKey()) || entry.getKey().contains(key)) {
                 return Optional.of(entry.getValue());
@@ -173,9 +156,6 @@ public final class CityUtils {
         return Optional.empty();
     }
 
-    /**
-     * Visszaadja a megadott település hivatalos megyenevét.
-     */
     public static Optional<String> getCountyName(String cityName) {
         if (cityName == null || cityName.isBlank()) {
             return Optional.empty();
@@ -193,9 +173,6 @@ public final class CityUtils {
         return Optional.empty();
     }
 
-    /**
-     * Eldönti, hogy a megadott név ismert település-e a rendszerben.
-     */
     public static boolean isKnownCity(String cityName) {
         if (cityName == null || cityName.isBlank()) {
             return false;
@@ -204,10 +181,6 @@ public final class CityUtils {
         return CITY_COUNTY_SLUG_MAP.containsKey(key);
     }
 
-    /**
-     * Ellenőrzi, hogy két lokáció/városnév azonos vagy egymás részterülete-e
-     * (pl. "Hajdúszoboszló" == "hajduszoboszlo", "Debrecen" és "Debrecen - Józsa").
-     */
     public static boolean isSameOrSubLocation(String locA, String locB) {
         if (locA == null || locB == null || locA.isBlank() || locB.isBlank()) {
             return false;
@@ -223,10 +196,6 @@ public final class CityUtils {
         return false;
     }
 
-    /**
-     * Ellenőrzi, hogy egy adott szöveg slug tartalmaz-e a célvárostól eltérő ismert várost,
-     * miközben a célvárost NEM tartalmazza (pl. "kisnana", "cegled", "pecs" amikor a cél "hajduszoboszlo").
-     */
     public static boolean containsDifferentKnownCity(String textSlug, String targetCitySlug) {
         if (textSlug == null || targetCitySlug == null || textSlug.isBlank()) {
             return false;
@@ -253,9 +222,6 @@ public final class CityUtils {
         list.add(item);
     }
 
-    /**
-     * Gyorsválasztó sablonok (Presets).
-     */
     public static Map<String, List<String>> getPresets() {
         Map<String, List<String>> presets = new LinkedHashMap<>();
         presets.put("Debrecen és környéke", List.of(

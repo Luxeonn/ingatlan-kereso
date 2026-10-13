@@ -2,9 +2,6 @@ package ingatlanok.presentation;
 
 import java.io.Serializable;
 
-/**
- * Portál egészségügyi és futási állapot DTO a felület információs kártyáihoz.
- */
 public class PortalStatusDto implements Serializable {
 
     private String portalId;

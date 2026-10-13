@@ -9,11 +9,6 @@ import ingatlanok.web.WebServer;
 
 import java.util.Arrays;
 
-/**
- * Ingatlan kereső belépési pont.
- * Alapértelmezetten a modern Web Dashboardot indítja el és megnyitja a böngészőt.
- * A '--cli' kapcsolóval a korábbi parancssori kötegelt mód is futtatható.
- */
 public class Main {
 
     public static void main(String[] args) {
@@ -31,7 +26,6 @@ public class Main {
         System.out.println("  Ingatlan Kereső - Web Dashboard Indítása");
         System.out.println("==================================================");
 
-        // Inicializáljuk a JSON adatbázist
         IngatlanRepository.getInstance();
 
         int defaultPort = Integer.getInteger("server.port", 8080);
@@ -45,14 +39,12 @@ public class Main {
             System.out.println("\n[Siker] A felület elérhető a következő címen: " + url);
             System.out.println("Böngésző megnyitása folyamatban...");
 
-            // Automatikus böngésző megnyitás
             if (!BrowserUtils.openUrl(url)) {
                 System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
             }
 
             System.out.println("\nA szerver a háttérben fut. Nyomj Ctrl+C billentyűkombinációt a leállításhoz.");
 
-            // Életben tartjuk a folyamatot amíg fut a szerver
             Thread.currentThread().join();
         } catch (Exception e) {
             System.err.println("Nem sikerült elindítani a webszervert: " + e.getMessage());

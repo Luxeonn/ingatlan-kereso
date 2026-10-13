@@ -2,9 +2,6 @@ package ingatlanok.model;
 
 import java.io.Serializable;
 
-/**
- * Alapterület, szobaszám és számított négyzetméterár értékobjektum (Value Object).
- */
 public class PropertyDetails implements Serializable {
 
     private String rawText;

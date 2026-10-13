@@ -6,11 +6,6 @@ import ingatlanok.model.SearchResult;
 import java.io.Serializable;
 import java.util.*;
 
-/**
- * Prezentációs aggregált válaszmodell a Web Dashboard és API kliensek számára.
- * Megőrzi a teljes kompatibilitást a korábbi SearchResult mezőivel, miközben
- * kiegészül piaci statisztikákkal és portál státuszkártyákkal.
- */
 public class DashboardResponseDto implements Serializable {
 
     private List<IngatlanItem> items = new ArrayList<>();
@@ -21,7 +16,6 @@ public class DashboardResponseDto implements Serializable {
     private Map<String, Integer> cityCounts = new LinkedHashMap<>();
     private List<String> newCitiesInitialized = new ArrayList<>();
 
-    // Új prezentációs és statisztikai mezők
     private MarketStatsDto marketStats;
     private List<PortalStatusDto> portalStatuses = new ArrayList<>();
 

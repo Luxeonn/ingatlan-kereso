@@ -8,11 +8,6 @@ import ingatlanok.service.IngatlanSearchService;
 
 import java.util.*;
 
-/**
- * Prezentációs Facade Szolgáltatás.
- * Leválasztja az üzleti és scraping réteget a Web UI és az API végpontok felől.
- * Kiszámolja a piaci KPI statisztikákat és előállítja az információs portál státuszkártyákat.
- */
 public class DashboardPresentationService {
 
     private static final DashboardPresentationService INSTANCE = new DashboardPresentationService();
@@ -24,9 +19,6 @@ public class DashboardPresentationService {
         return INSTANCE;
     }
 
-    /**
-     * Lefuttatja a keresést és gazdagított prezentációs DTO-vá alakítja az eredményt.
-     */
     public DashboardResponseDto executeSearch(SearchCriteria criteria) {
         SearchResult searchResult = IngatlanSearchService.getInstance().executeSearch(criteria);
         MarketStatsDto marketStats = calculateMarketStats(searchResult.getItems());
@@ -35,9 +27,6 @@ public class DashboardPresentationService {
         return new DashboardResponseDto(searchResult, marketStats, portalStatuses);
     }
 
-    /**
-     * Kiszámolja a piaci KPI statisztikákat a találati listából.
-     */
     public MarketStatsDto calculateMarketStats(List<IngatlanItem> items) {
         MarketStatsDto stats = new MarketStatsDto();
         if (items == null || items.isEmpty()) {
@@ -88,9 +77,6 @@ public class DashboardPresentationService {
         return stats;
     }
 
-    /**
-     * Előállítja a portálok állapotát és információs kártyáit a scraping futások alapján.
-     */
     private List<PortalStatusDto> buildPortalStatuses(SearchResult searchResult) {
         List<PortalStatusDto> list = new ArrayList<>();
         if (searchResult == null || searchResult.getPortalResults() == null) {

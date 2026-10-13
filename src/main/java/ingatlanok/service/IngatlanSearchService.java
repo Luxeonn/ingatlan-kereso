@@ -14,10 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Központi keresési szolgáltatás, amely vezérli az egyes portálok lekérdezését
- * több kiválasztott városra dinamikus ScraperRegistry segítségével.
- */
 public class IngatlanSearchService {
 
     private static final IngatlanSearchService INSTANCE = new IngatlanSearchService();
@@ -61,7 +57,7 @@ public class IngatlanSearchService {
         for (String currentCity : citiesToSearch) {
             cityIndex++;
             if (cityIndex > 1) {
-                // Rövid szünet a városok közötti kérésekben a kíméletes portálhívásért
+
                 try {
                     Thread.sleep(400);
                 } catch (InterruptedException ignored) {
@@ -81,7 +77,6 @@ public class IngatlanSearchService {
             SearchCriteria cityCriteria = criteria.cloneForCity(currentCity);
             List<IngatlanItem> cityFoundItems = new ArrayList<>();
 
-            // Dinamikus portál scraperek lekérdezése ScraperRegistry segítségével (OCP elv)
             List<IngatlanScraper> activeScrapers = ScraperRegistry.getInstance().getActiveScrapers(cityCriteria);
             for (IngatlanScraper scraper : activeScrapers) {
                 try {
@@ -96,10 +91,9 @@ public class IngatlanSearchService {
                 }
             }
 
-            // Duplikációk szűrése a városon belüli találati listán URL alapján és isNew kalkuláció
             Map<String, IngatlanItem> uniqueCityMap = new LinkedHashMap<>();
             for (IngatlanItem item : cityFoundItems) {
-                // Szigorú utólagos validációs szűrés az aggregált találatokra (Issue #19)
+
                 if (!cityCriteria.matches(item)) {
                     System.out.println("[Kiszűrve] " + item.getPortal() + " találat: " + item.getTitle()
                             + " (Ár: " + item.getPrice() + ", Lokáció: " + item.getLocation()
@@ -118,10 +112,10 @@ public class IngatlanSearchService {
                 }
 
                 if (isFirstSearch) {
-                    // Első futás új városra: alapállapot, minden elem nem új (isNew = false)
+
                     item.setNew(false);
                 } else {
-                    // Ismert város: valóban új-e az adatbázishoz képest
+
                     boolean isNew = repository.isNewUrl(currentCity, item.getUrl());
                     item.setNew(isNew);
                 }
@@ -131,36 +125,29 @@ public class IngatlanSearchService {
 
             List<IngatlanItem> finalCityItems = new ArrayList<>(uniqueCityMap.values());
 
-            // Város adatbázisának azonnali mentése / frissítése
             repository.saveCityItems(currentCity, finalCityItems);
 
             cityCounts.put(currentCity, finalCityItems.size());
             allAggregatedItems.addAll(finalCityItems);
         }
 
-        // Duplikátumok szűrése a teljes aggregált listán
         Map<String, IngatlanItem> uniqueAggregatedMap = new LinkedHashMap<>();
         for (IngatlanItem item : allAggregatedItems) {
             uniqueAggregatedMap.putIfAbsent(item.getUrl(), item);
         }
         List<IngatlanItem> uniqueAggregatedList = new ArrayList<>(uniqueAggregatedMap.values());
 
-        // Új elemek összesítése
         List<IngatlanItem> newItems = uniqueAggregatedList.stream()
                 .filter(IngatlanItem::isNew)
                 .collect(Collectors.toList());
 
-        // Mentjük az utolsó keresési konfigurációt
         repository.saveLastCriteria(criteria);
 
-        // Opcionális automatikus böngészőfül nyitás ha kérte a felhasználó
-        // Kizárólag a ténylegesen új hirdetéseket nyitja meg (így új város első futásakor semmit)
         if (criteria.isAutoOpenBrowser() && !newItems.isEmpty()) {
             Set<String> urlsToOpen = newItems.stream().map(IngatlanItem::getUrl).collect(Collectors.toCollection(LinkedHashSet::new));
             BrowserUtils.openUrls(urlsToOpen);
         }
 
-        // Rendezés: új elemek legelöl, majd dátum szerint
         uniqueAggregatedList.sort((a, b) -> {
             if (a.isNew() != b.isNew()) {
                 return Boolean.compare(!a.isNew(), !b.isNew());

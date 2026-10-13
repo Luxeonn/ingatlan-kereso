@@ -12,9 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * A Python CLI sidecar stdout JSON kimenetének deszerializációs adatmodellje.
- */
 public class SidecarResponse implements Serializable {
 
     @SerializedName("portalId")
@@ -79,9 +76,6 @@ public class SidecarResponse implements Serializable {
         this.elapsedMs = elapsedMs;
     }
 
-    /**
-     * Egyetlen sidecar találati elem belső modellje.
-     */
     public static class SidecarItem implements Serializable {
 
         @SerializedName("id")
@@ -146,9 +140,6 @@ public class SidecarResponse implements Serializable {
             return roomCount;
         }
 
-        /**
-         * Átalakítja a sidecar elemet a rendszer belső IngatlanItem tartománymodelljévé.
-         */
         public IngatlanItem toIngatlanItem(PortalSource source, String city, String discoveredAt, boolean isNew) {
             PriceInfo priceInfo;
             if (priceMillion != null && priceMillion > 0) {

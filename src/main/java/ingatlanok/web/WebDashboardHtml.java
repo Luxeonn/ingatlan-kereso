@@ -1,10 +1,5 @@
 package ingatlanok.web;
 
-/**
- * Modern, reszponzív egyoldalas Web Dashboard (HTML / CSS / Vanilla JS).
- * Támogatja a kereshető multi-select településválasztót, városonkénti adatbázis szegmentálást,
- * a kedvencek csillagozását, az ár szerinti rendezést és a csak új hirdetések gyorsszűrését.
- */
 public class WebDashboardHtml {
 
     public static String getHtml(int port) {
@@ -19,7 +14,7 @@ public class WebDashboardHtml {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ingatlan Kereső Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https:
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -143,7 +138,6 @@ public class WebDashboardHtml {
             width: 100%;
         }
 
-        /* Filter Panel */
         .filter-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -206,7 +200,6 @@ public class WebDashboardHtml {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
-        /* City Multi-Select Chips */
         .city-chips-box {
             display: flex;
             flex-wrap: wrap;
@@ -668,7 +661,6 @@ public class WebDashboardHtml {
             cursor: not-allowed;
         }
 
-        /* Stats & Tab bar */
         .controls-bar {
             display: flex;
             align-items: center;
@@ -751,7 +743,6 @@ public class WebDashboardHtml {
             color: var(--accent);
         }
 
-        /* Result Cards Grid */
         .listings-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -871,7 +862,6 @@ public class WebDashboardHtml {
             color: white;
         }
 
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -887,7 +877,6 @@ public class WebDashboardHtml {
             margin-bottom: 6px;
         }
 
-        /* Toast notification */
         #toast {
             position: fixed;
             bottom: 24px;
@@ -1104,17 +1093,16 @@ public class WebDashboardHtml {
     private static String getScriptJs() {
         return """
     <script>
-        // State
+
         let currentItems = [];
         let historyItems = [];
-        let activeTab = 'current'; // 'current', 'history', 'starred'
-        let selectedResultPortal = 'all'; // 'all', 'dh', 'oc', 'jf', 'ic'
-        let selectedResultCity = 'all'; // 'all' or specific cityName
+        let activeTab = 'current';
+        let selectedResultPortal = 'all';
+        let selectedResultCity = 'all';
         let onlyNewFilter = false;
         let currentSort = 'default';
         let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
 
-        // City state
         let selectedCities = ['Debrecen'];
         let predefinedCities = [];
         let cityPresets = {};
@@ -1160,7 +1148,6 @@ public class WebDashboardHtml {
                 return null;
             }
 
-            // Ha van ártartomány (pl. "70 - 120 M Ft"), az alsó határt vesszük
             if (str.includes('-')) {
                 const parts = str.split('-');
                 if (parts.length > 0 && parts[0].trim()) {
@@ -1169,7 +1156,6 @@ public class WebDashboardHtml {
                 }
             }
 
-            // Millió Ft mintázat felismerése (pl. "51,90 M Ft", "124,5M Ft", "800M Ft", "54,9 millió Ft")
             const millionMatch = str.match(/([0-9]+(?:[.,][0-9]+)?)\\s*(?:m\\s*ft|mft|millió|m)/i);
             if (millionMatch) {
                 const numStr = millionMatch[1].replace(',', '.');
@@ -1179,9 +1165,8 @@ public class WebDashboardHtml {
                 }
             }
 
-            // Normál Ft mintázat (pl. "74 900 000 Ft", "49.900.000 Ft")
             const digitsOnly = str.replace(/[^0-9]/g, '');
-            if (digitsOnly.length >= 6) { // legalább százezer vagy millió Ft
+            if (digitsOnly.length >= 6) {
                 const val = parseInt(digitsOnly, 10);
                 if (!isNaN(val) && val > 0) {
                     return val;
@@ -1200,7 +1185,6 @@ public class WebDashboardHtml {
             el.value = val;
         }
 
-        // City Multi-Select Logic
         function focusCitySearch() {
             const input = document.getElementById('city-search-input');
             if (input) input.focus();
@@ -1330,7 +1314,6 @@ public class WebDashboardHtml {
                 trackedCounts[(tc.key || '').toLowerCase()] = tc.itemCount || 0;
             });
 
-            // Filter predefined
             const filtered = predefinedCities.filter(c => {
                 if (!term) return true;
                 return (c.name && c.name.toLowerCase().includes(term)) ||
@@ -1468,7 +1451,6 @@ public class WebDashboardHtml {
             renderListings();
         }
 
-        // Elements
         const form = document.getElementById('search-form');
         const submitBtn = document.getElementById('submit-btn');
         const btnText = document.getElementById('btn-text');
@@ -1484,7 +1466,6 @@ public class WebDashboardHtml {
         const newBadgeCount = document.getElementById('new-badge-count');
         const themeBtn = document.getElementById('theme-btn');
 
-        // Theme management
         if (localStorage.getItem('theme') === 'light') {
             document.body.classList.add('light-theme');
             themeBtn.textContent = '☀️';
@@ -1497,10 +1478,9 @@ public class WebDashboardHtml {
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
         });
 
-        // Initialize status, cities and saved history
         async function init() {
             try {
-                // Fetch cities metadata
+
                 try {
                     const citiesRes = await fetch('/api/cities');
                     if (citiesRes.ok) {
@@ -1515,7 +1495,6 @@ public class WebDashboardHtml {
                     console.warn("Nem sikerült betölteni a városlistát:", ce);
                 }
 
-                // Fetch config
                 const confRes = await fetch('/api/config');
                 if (confRes.ok) {
                     const conf = await confRes.json();
@@ -1541,7 +1520,6 @@ public class WebDashboardHtml {
                     renderSelectedCityChips();
                 }
 
-                // Fetch history
                 await refreshHistory();
                 updateStarredCount();
             } catch (e) {
@@ -1559,7 +1537,6 @@ public class WebDashboardHtml {
             }
         }
 
-        // Search execution
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const portals = [];
@@ -1592,7 +1569,6 @@ public class WebDashboardHtml {
                 portals: portals
             };
 
-            // UI loading state
             submitBtn.disabled = true;
             btnText.textContent = "Keresés folyamatban...";
             btnSpinner.style.display = "inline-block";
@@ -1613,12 +1589,10 @@ public class WebDashboardHtml {
 
                 lastRunInfo.innerHTML = `Utolsó futás: <strong>${data.executedAt}</strong> • Találat: <strong>${data.totalFound}</strong> (Új: <span style="color:#10b981; font-weight:700;">${data.newCount}</span>)`;
 
-                // Ha új város adatbázis jött létre baseline snapshotként
                 if (data.newCitiesInitialized && data.newCitiesInitialized.length > 0) {
                     showToast(`✨ Új város adatbázis létrehozva: ${data.newCitiesInitialized.join(', ')} (alapállapot rögzítve)`);
                 }
 
-                // Update "Open all new" button
                 const newItems = currentItems.filter(i => i.isNew);
                 if (newItems.length > 0) {
                     btnOpenAllNew.style.display = 'inline-flex';
@@ -1628,7 +1602,7 @@ public class WebDashboardHtml {
                 }
 
                 await refreshHistory();
-                // Szűrők nullázása
+
                 filterInput.value = '';
                 selectedResultPortal = 'all';
                 selectedResultCity = 'all';
@@ -1652,7 +1626,6 @@ public class WebDashboardHtml {
             }
         });
 
-        // Tab Switching
         function switchTab(tab) {
             activeTab = tab;
             selectedResultCity = 'all';
@@ -1662,7 +1635,6 @@ public class WebDashboardHtml {
             renderListings();
         }
 
-        // Render Cards
         function renderListings() {
             updatePortalFilterCounts();
             let listToRender;
@@ -1687,12 +1659,11 @@ public class WebDashboardHtml {
             const filterTerm = filterInput.value.toLowerCase().trim();
 
             const filtered = listToRender.filter(item => {
-                // Csak új találatok szűrése
+
                 if (onlyNewFilter && !item.isNew) {
                     return false;
                 }
 
-                // Portál szerinti szűrés
                 if (selectedResultPortal !== 'all') {
                     const p = (item.portal || '').toLowerCase();
                     if (selectedResultPortal === 'dh' && !p.includes('duna')) return false;
@@ -1701,13 +1672,11 @@ public class WebDashboardHtml {
                     if (selectedResultPortal === 'ic' && !p.includes('ingatlan.com')) return false;
                 }
 
-                // Város szerinti szűrés
                 if (selectedResultCity !== 'all') {
                     const c = (item.city || item.location || '').toLowerCase();
                     if (!c.includes(selectedResultCity.toLowerCase())) return false;
                 }
 
-                // Szöveges szűrés
                 if (!filterTerm) return true;
                 return (item.title && item.title.toLowerCase().includes(filterTerm)) ||
                        (item.price && item.price.toLowerCase().includes(filterTerm)) ||
@@ -1718,7 +1687,6 @@ public class WebDashboardHtml {
                        (item.url && item.url.toLowerCase().includes(filterTerm));
             });
 
-            // Rendezés ár szerint
             if (currentSort === 'price-asc' || currentSort === 'price-desc') {
                 filtered.sort((a, b) => {
                     const pA = parsePrice(a.price);
@@ -1770,8 +1738,8 @@ public class WebDashboardHtml {
                                     <span class="city-badge-tag">📍 ${escapeHtml(itemCity)}</span>
                                     ${item.isNew ? '<span class="badge-new">✨ ÚJ TALÁLAT</span>' : ''}
                                 </div>
-                                <button class="btn-star ${isStarred ? 'active' : ''}" 
-                                        onclick="toggleStar('${encodeURIComponent(item.url)}')" 
+                                <button class="btn-star ${isStarred ? 'active' : ''}"
+                                        onclick="toggleStar('${encodeURIComponent(item.url)}')"
                                         title="${isStarred ? 'Eltávolítás a kedvencek közül' : 'Mentés a kedvencek közé'}">
                                     ${isStarred ? '★' : '☆'}
                                 </button>
@@ -1790,10 +1758,8 @@ public class WebDashboardHtml {
             }).join('');
         }
 
-        // Live filter on typing
         filterInput.addEventListener('input', renderListings);
 
-        // Open All New URLs
         async function openAllNew() {
             const newUrls = currentItems.filter(i => i.isNew).map(i => i.url);
             if (newUrls.length === 0) {
@@ -1813,7 +1779,6 @@ public class WebDashboardHtml {
             }
         }
 
-        // Clear history
         async function clearHistoryConfirm() {
             if (!confirm("Biztosan törölni szeretnéd a korábban elmentett hirdetések előzményeit?")) {
                 return;
@@ -1836,7 +1801,6 @@ public class WebDashboardHtml {
             }
         }
 
-        // Toast utility
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
@@ -1851,7 +1815,6 @@ public class WebDashboardHtml {
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        // Start
         init();
     </script>
 </body>

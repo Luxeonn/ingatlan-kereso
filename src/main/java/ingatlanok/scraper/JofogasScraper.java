@@ -18,9 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 
-/**
- * Scraper implementáció a Jófogás Ingatlan (jofogas.hu) portálhoz.
- */
 public class JofogasScraper extends BaseScraper implements IngatlanScraper {
 
     private static final String BASE_URL = "https://ingatlan.jofogas.hu";
@@ -39,7 +36,7 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
 
     @Override
     public void init() {
-        // Init logic
+
     }
 
     @Override
@@ -47,9 +44,6 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
         return 25;
     }
 
-    /**
-     * Előállítja a Jófogás keresési URL-t a megadott feltételek alapján.
-     */
     public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
@@ -113,7 +107,7 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
                 processed.add(fullLink);
 
                 String cardText = a.text().replaceAll("\\s+", " ").trim();
-                if (cardText.length() < 10) continue; // Navigációs gombok kihagyása
+                if (cardText.length() < 10) continue;
 
                 String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
                 PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
@@ -134,7 +128,6 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
                 );
                 item.setLocation(criteria.getCity());
 
-                // Szigorú utólagos szűrés ár és lokáció alapján
                 if (!criteria.matches(item)) {
                     continue;
                 }

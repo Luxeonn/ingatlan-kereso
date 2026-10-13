@@ -25,19 +25,16 @@ class HajduszoboszloIssue19Test {
         criteria.setMinPriceMillion(100);
         criteria.setMaxPriceMillion(120);
 
-        // 1. Duna House URL ellenőrzése
         DunaHouseScraper dh = new DunaHouseScraper();
         String dhUrl = dh.buildSearchUrl(criteria);
         assertEquals("https://dh.hu/elado-ingatlan/haz/hajdu-bihar/hajduszoboszlo/100-120-mFt", dhUrl,
                 "Duna House-nak kötelező a 'hajdu-bihar/hajduszoboszlo' megyei útvonalat használnia az országos fallback elkerüléséhez");
 
-        // 2. Otthon Centrum URL ellenőrzése
         OtthonCentrumScraper oc = new OtthonCentrumScraper();
         String ocUrl = oc.buildSearchUrl(criteria);
         assertEquals("https://www.oc.hu/elado/haz/hajduszoboszlo", ocUrl,
                 "Otthon Centrumnak a működő /elado/haz/hajduszoboszlo SEO útvonalat kell használnia a hibás q= paraméter helyett");
 
-        // 3. Jófogás Ingatlan URL ellenőrzése
         JofogasScraper jf = new JofogasScraper();
         String jfUrl = jf.buildSearchUrl(criteria);
         assertTrue(jfUrl.contains("min_price=100000000"));
@@ -55,55 +52,45 @@ class HajduszoboszloIssue19Test {
 
         List<IngatlanItem> mixedCandidates = new ArrayList<>();
 
-        // Hiba 1: Teljesen más település és alacsony ár (Kisnána, 8.9 M Ft)
         mixedCandidates.add(createItem("HZ070659", "Duna House",
                 "https://dh.hu/ingatlan/HZ070659/elado-haz-heves-megye-kisnana-falu",
                 "3264 Kisnána", 8.9, "Kisnána"));
 
-        // Hiba 2: Más település (Cegléd, 85 M Ft)
         mixedCandidates.add(createItem("HZ069153", "Duna House",
                 "https://dh.hu/ingatlan/HZ069153/elado-haz-pest-megye-cegled-oroszlan-utca",
                 "2700 Cegléd", 85.0, "Cegléd"));
 
-        // Hiba 3: Más település és túl magas ár (Pécs, 134 M Ft)
         mixedCandidates.add(createItem("HZ071728", "Duna House",
                 "https://dh.hu/ingatlan/HZ071728/elado-haz-baranya-megye-pecs-patacs",
                 "7634 Pécs", 134.0, "Pécs"));
 
-        // Hiba 4: Jó város (Hajdúszoboszló), de túl olcsó (37 M Ft)
         mixedCandidates.add(createItem("M339414", "Duna House",
                 "https://dh.hu/ingatlan/M339414/elado-haz-hajdu-bihar-megye-hajduszoboszlo-4200-hajduszoboszlo,-kertvaros",
                 "4200 Hajdúszoboszló", 37.0, "Hajdúszoboszló"));
 
-        // Hiba 5: Jó város (Hajdúszoboszló), de túl drága (195 M Ft)
         mixedCandidates.add(createItem("HZ068015", "Duna House",
                 "https://dh.hu/ingatlan/HZ068015/elado-haz-hajdu-bihar-megye-hajduszoboszlo-kertvaros",
                 "4200 Hajdúszoboszló", 195.0, "Hajdúszoboszló"));
 
-        // Hiba 6: Otthon Centrum országos ajánlata (Budapest XII. kerület, 99 M Ft)
         mixedCandidates.add(createItem("H525239", "Otthon Centrum",
                 "https://www.oc.hu/ingatlanok/H525239",
                 "Budapest XII. kerület", 99.0, "Budapest XII. kerület"));
 
-        // Érvényes találat 1: Duna House valódi találat (105 M Ft)
         IngatlanItem validDh = createItem("PR020655", "Duna House",
                 "https://dh.hu/ingatlan/PR020655-HZ-11437/elado-haz-hajdu-bihar-megye-hajduszoboszlo-stilusos,-modern-sorhazak-hajduszoboszlon",
                 "4200 Hajdúszoboszló", 105.0, "Hajdúszoboszló");
         mixedCandidates.add(validDh);
 
-        // Érvényes találat 2: Otthon Centrum valódi találat (104.9 M Ft)
         IngatlanItem validOc = createItem("U0050375", "Otthon Centrum",
                 "https://www.oc.hu/ingatlanok/U0050375",
                 "Hajdúszoboszló, Kertváros", 104.9, "Hajdúszoboszló");
         mixedCandidates.add(validOc);
 
-        // Érvényes találat 3: Jófogás valódi találat (105.0 M Ft)
         IngatlanItem validJf = createItem("5193013", "Jófogás Ingatlan",
                 "https://ingatlan.jofogas.hu/hajdu_bihar/Elado_Haz__Hajduszoboszlo__5193013_161704151.htm",
                 "Hajdúszoboszló", 105.0, "Hajdúszoboszló");
         mixedCandidates.add(validJf);
 
-        // Szűrés a SearchCriteria alapján
         List<IngatlanItem> filtered = mixedCandidates.stream()
                 .filter(criteria::matches)
                 .toList();

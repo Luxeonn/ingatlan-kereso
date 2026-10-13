@@ -18,11 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Fájlalapú JSON/szöveges "adatbázis" kezelő a hirdetésekhez és beállításokhoz.
- * Városonként szegmentált tárolást biztosít a data/cities/<cityKey>.json mappában,
- * valamint aggregált adatbázist a data/ingatlanok_db.json fájlban.
- */
 public class IngatlanRepository {
 
     private static final String DATA_DIR = "data";
@@ -35,11 +30,9 @@ public class IngatlanRepository {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final IngatlanRepository INSTANCE = new IngatlanRepository();
 
-    // Globális aggregált térképek (visszafelé kompatibilitás és gyors keresés)
     private final Map<String, IngatlanItem> itemMap = new ConcurrentHashMap<>();
     private final Set<String> knownUrls = ConcurrentHashMap.newKeySet();
 
-    // Városonkénti tárolók: cityKey -> URL -> Item
     private final Map<String, Map<String, IngatlanItem>> cityItemMaps = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> cityKnownUrls = new ConcurrentHashMap<>();
 
@@ -67,30 +60,23 @@ public class IngatlanRepository {
         File[] existingCityFiles = citiesDir.listFiles((dir, name) -> name.endsWith(".json"));
         boolean hasCityFiles = existingCityFiles != null && existingCityFiles.length > 0;
 
-        // 1. Ha nincsenek még városonkénti fájlok, de van meglévő adatbázis fájl -> automatikus migráció
         File dbFile = new File(DB_FILE);
         if (!hasCityFiles && dbFile.exists()) {
             migrateOldDatabaseToPerCityStructure(dbFile);
         }
 
-        // 2. Városonkénti fájlok beolvasása a data/cities/ mappából
         loadFromCitiesDirectory(citiesDir);
 
-        // 3. Ha még így sincs adat, de az aggregált DB létezik
         if (itemMap.isEmpty() && dbFile.exists()) {
             loadFromAggregateJson(dbFile);
         }
 
-        // 4. Legacy txt fájlok importálása (Debrecen alá sorolva)
         importLegacyFile(new File(OLD_HISTORY_FILE));
         importLegacyFile(new File(LEGACY_HISTORY_FILE));
 
         System.out.println("[Adatbázis] Betöltve: " + itemMap.size() + " korábbi hirdetés " + cityItemMaps.size() + " városból.");
     }
 
-    /**
-     * Meglévő data/ingatlanok_db.json automatikus migrációja data/cities/<cityKey>.json fájlokra.
-     */
     private void migrateOldDatabaseToPerCityStructure(File file) {
         System.out.println("[Adatbázis] Meglévő adatbázis migrálása városonkénti struktúrára...");
         try (Reader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
@@ -123,9 +109,6 @@ public class IngatlanRepository {
         }
     }
 
-    /**
-     * data/cities/ mappában lévő összes JSON fájl betöltése.
-     */
     private void loadFromCitiesDirectory(File citiesDir) {
         File[] files = citiesDir.listFiles((dir, name) -> name.endsWith(".json"));
         if (files == null) return;
@@ -221,10 +204,6 @@ public class IngatlanRepository {
         return "Egyéb";
     }
 
-    /**
-     * Megvizsgálja, hogy létezik-e már mentett adatbázis a megadott városra.
-     * Ha nem létezik, az azt jelenti, hogy még nem futott keresés erre a településre.
-     */
     public boolean hasCityDatabase(String city) {
         if (city == null || city.isBlank()) return false;
         String cityKey = CityUtils.normalizeCityKey(city);
@@ -236,16 +215,11 @@ public class IngatlanRepository {
         return urls != null && !urls.isEmpty();
     }
 
-    /**
-     * Ellenőrzi, hogy egy adott URL új hirdetésnek számít-e az adott város kontextusában.
-     * Ha a város még nem rendelkezik adatbázissal (első keresés), akkor mindig FALSE (alapállapot baseline).
-     * Ha a város már ismert, akkor TRUE, amennyiben az URL még nem szerepel a város adatbázisában.
-     */
     public boolean isNewUrl(String city, String url) {
         if (url == null || url.isBlank()) return false;
         String cityKey = CityUtils.normalizeCityKey(city);
         if (!hasCityDatabase(city)) {
-            // Még nem volt keresés erre a városra: a találatok baseline snapshotként mentődnek, nem újak!
+
             return false;
         }
         Set<String> urls = cityKnownUrls.get(cityKey);
@@ -255,10 +229,6 @@ public class IngatlanRepository {
         return !urls.contains(url);
     }
 
-    /**
-     * Elmenti az adott város találatait a data/cities/<cityKey>.json fájlba,
-     * és frissíti a memóriabeli várostárat, valamint az aggregált adatbázist.
-     */
     public synchronized void saveCityItems(String city, Collection<IngatlanItem> items) {
         if (items == null || items.isEmpty()) return;
         String cityKey = CityUtils.normalizeCityKey(city);
@@ -279,7 +249,6 @@ public class IngatlanRepository {
         }
         this.lastRunTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
 
-        // 1. Mentés az adott város JSON fájljába
         try {
             File cityFile = new File(CITIES_DIR, cityKey + ".json");
             String json = GSON.toJson(new ArrayList<>(map.values()));
@@ -288,7 +257,6 @@ public class IngatlanRepository {
             System.err.println("Hiba a város JSON mentésekor [" + cityKey + "]: " + e.getMessage());
         }
 
-        // 2. Mentés az aggregált JSON adatbázisba (visszafelé kompatibilitás)
         try {
             File dbFile = new File(DB_FILE);
             String json = GSON.toJson(new ArrayList<>(itemMap.values()));
@@ -297,7 +265,6 @@ public class IngatlanRepository {
             System.err.println("Hiba a teljes JSON adatbázis mentésekor: " + e.getMessage());
         }
 
-        // 3. Mentés a legacy szöveges naplóba
         try {
             File legacyFile = new File(LEGACY_HISTORY_FILE);
             FileUtils.writeLines(legacyFile, StandardCharsets.UTF_8.name(), newUrlsForLegacy, true);
@@ -308,7 +275,7 @@ public class IngatlanRepository {
 
     public synchronized void saveAll(Collection<IngatlanItem> items) {
         if (items == null || items.isEmpty()) return;
-        // Csoportosítás városok szerint és városonkénti mentés
+
         Map<String, List<IngatlanItem>> byCity = new HashMap<>();
         for (IngatlanItem item : items) {
             String city = item.getCity();
@@ -344,9 +311,6 @@ public class IngatlanRepository {
         return list;
     }
 
-    /**
-     * Visszaadja a hirdetéseket egy megadott városra szűrve.
-     */
     public List<IngatlanItem> getItemsByCity(String city) {
         if (city == null || city.isBlank()) {
             return getAll();
@@ -365,9 +329,6 @@ public class IngatlanRepository {
         return list;
     }
 
-    /**
-     * Nyilvántartott és mentett városok statisztikai listája.
-     */
     public List<Map<String, Object>> getTrackedCitiesInfo() {
         List<Map<String, Object>> result = new ArrayList<>();
         File citiesDir = new File(CITIES_DIR);
@@ -380,7 +341,6 @@ public class IngatlanRepository {
                 int count = map != null ? map.size() : 0;
                 String displayName = key.substring(0, 1).toUpperCase(Locale.ROOT) + key.substring(1);
 
-                // Ha van az elemekben eredeti név
                 if (map != null && !map.isEmpty()) {
                     for (IngatlanItem item : map.values()) {
                         if (item.getCity() != null && !item.getCity().isBlank()) {
@@ -404,9 +364,6 @@ public class IngatlanRepository {
         return result;
     }
 
-    /**
-     * Egy adott város adatbázisának törlése.
-     */
     public synchronized void clearCityHistory(String city) {
         if (city == null || city.isBlank()) return;
         String key = CityUtils.normalizeCityKey(city);
@@ -426,7 +383,7 @@ public class IngatlanRepository {
             if (cityFile.exists()) {
                 cityFile.delete();
             }
-            // Aggregált DB újraírása
+
             File dbFile = new File(DB_FILE);
             String json = GSON.toJson(new ArrayList<>(itemMap.values()));
             FileUtils.writeStringToFile(dbFile, json, StandardCharsets.UTF_8);
@@ -465,7 +422,7 @@ public class IngatlanRepository {
                 SearchCriteria sc = GSON.fromJson(reader, SearchCriteria.class);
                 if (sc != null) return sc;
             } catch (Exception e) {
-                // Ignore, return default
+
             }
         }
         return new SearchCriteria();

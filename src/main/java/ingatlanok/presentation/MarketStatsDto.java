@@ -4,9 +4,6 @@ import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Piaci statisztikák és KPI mutatók DTO a webes felület és külső értesítők számára.
- */
 public class MarketStatsDto implements Serializable {
 
     private Double averagePriceMillion;
