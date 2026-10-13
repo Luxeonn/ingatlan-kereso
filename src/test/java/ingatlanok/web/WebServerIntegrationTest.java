@@ -16,6 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -187,5 +188,29 @@ class WebServerIntegrationTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject();
         assertTrue(result.has("items"));
         assertTrue(result.has("portalCounts"));
+    }
+
+    @Test
+    @DisplayName("POST /api/items/viewed marks an item as viewed")
+    void testMarkItemViewedEndpoint() throws Exception {
+        String payload = GSON.toJson(Map.of("url", "https://dh.hu/ingatlan/test-viewed-1"));
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/items/viewed"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject();
+        assertTrue(result.get("success").getAsBoolean());
+        assertEquals("https://dh.hu/ingatlan/test-viewed-1", result.get("url").getAsString());
+
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/items/viewed"))
+                .GET()
+                .build();
+        HttpResponse<String> methodNotAllowedResponse = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(405, methodNotAllowedResponse.statusCode());
     }
 }

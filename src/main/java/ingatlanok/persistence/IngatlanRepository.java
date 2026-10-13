@@ -239,6 +239,15 @@ public class IngatlanRepository {
 
         for (IngatlanItem item : items) {
             if (item.getUrl() != null) {
+                IngatlanItem existing = map.get(item.getUrl());
+                if (existing == null) {
+                    existing = itemMap.get(item.getUrl());
+                }
+                if (existing != null && existing.isViewed() && !item.isViewed()) {
+                    item.setViewed(true);
+                    item.setViewedAt(existing.getViewedAt());
+                }
+
                 map.put(item.getUrl(), item);
                 urls.add(item.getUrl());
 
@@ -295,6 +304,73 @@ public class IngatlanRepository {
 
     public boolean containsUrl(String url) {
         return knownUrls.contains(url);
+    }
+
+    public synchronized boolean markAsViewed(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+        boolean found = false;
+
+        IngatlanItem globalItem = itemMap.get(url);
+        if (globalItem != null) {
+            globalItem.setViewed(true);
+            globalItem.setViewedAt(timestamp);
+            found = true;
+        }
+
+        String affectedCityKey = null;
+        for (Map.Entry<String, Map<String, IngatlanItem>> entry : cityItemMaps.entrySet()) {
+            IngatlanItem cityItem = entry.getValue().get(url);
+            if (cityItem != null) {
+                cityItem.setViewed(true);
+                cityItem.setViewedAt(timestamp);
+                affectedCityKey = entry.getKey();
+                found = true;
+                break;
+            }
+        }
+
+        if (affectedCityKey != null) {
+            try {
+                File cityFile = new File(CITIES_DIR, affectedCityKey + ".json");
+                Map<String, IngatlanItem> map = cityItemMaps.get(affectedCityKey);
+                if (map != null) {
+                    String json = GSON.toJson(new ArrayList<>(map.values()));
+                    FileUtils.writeStringToFile(cityFile, json, StandardCharsets.UTF_8);
+                }
+            } catch (IOException e) {
+                System.err.println("Hiba a megtekintett allapot mentesekor [" + affectedCityKey + "]: " + e.getMessage());
+            }
+        }
+
+        try {
+            File dbFile = new File(DB_FILE);
+            String json = GSON.toJson(new ArrayList<>(itemMap.values()));
+            FileUtils.writeStringToFile(dbFile, json, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("Hiba a teljes adatbazis megtekintesi allapot mentesekor: " + e.getMessage());
+        }
+
+        return found;
+    }
+
+    public boolean isViewed(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        IngatlanItem item = itemMap.get(url);
+        if (item != null) {
+            return item.isViewed();
+        }
+        for (Map<String, IngatlanItem> map : cityItemMaps.values()) {
+            IngatlanItem cityItem = map.get(url);
+            if (cityItem != null) {
+                return cityItem.isViewed();
+            }
+        }
+        return false;
     }
 
     public Set<String> getAllUrls() {

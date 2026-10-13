@@ -807,6 +807,22 @@ public class WebDashboardHtml {
             animation: pulse 2s infinite;
         }
 
+        .badge-viewed {
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .listing-card.is-viewed {
+            opacity: 0.72;
+            filter: grayscale(25%);
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -1028,10 +1044,16 @@ public class WebDashboardHtml {
                 </div>
 
                 <div class="action-row">
-                    <label class="toggle-switch-group">
-                        <input type="checkbox" id="auto-open-toggle">
-                        <span>Új találatok azonnali megnyitása a böngésző fülein</span>
-                    </label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label class="toggle-switch-group">
+                            <input type="checkbox" id="auto-open-toggle">
+                            <span>Új találatok azonnali megnyitása a böngésző fülein</span>
+                        </label>
+                        <label class="toggle-switch-group">
+                            <input type="checkbox" id="exclude-viewed-toggle">
+                            <span>Már megtekintettek kihagyása a keresésből</span>
+                        </label>
+                    </div>
 
                     <button type="submit" class="btn-search" id="submit-btn">
                         <span id="btn-text">🔍 Keresés indítása most</span>
@@ -1063,6 +1085,9 @@ public class WebDashboardHtml {
                 <button class="portal-filter-btn" data-portal="ic" onclick="filterByPortal('ic')">Ingatlan.com (<span id="count-portal-ic">0</span>)</button>
                 <button class="filter-only-new-btn" id="filter-only-new-btn" onclick="toggleOnlyNewFilter()" title="Kizárólag az új hirdetések megjelenítése">
                     ✨ Csak újak (<span id="only-new-count">0</span>)
+                </button>
+                <button class="filter-only-new-btn" id="filter-not-viewed-btn" onclick="toggleNotViewedFilter()" title="Csak nem megtekintett hirdetések megjelenítése">
+                    👁️ Csak nem látottak (<span id="not-viewed-count">0</span>)
                 </button>
             </div>
 
@@ -1120,6 +1145,7 @@ public class WebDashboardHtml {
         let selectedResultPortal = 'all';
         let selectedResultCity = 'all';
         let onlyNewFilter = false;
+        let notViewedFilter = false;
         let currentSort = 'price-asc';
         let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
 
@@ -1154,6 +1180,35 @@ public class WebDashboardHtml {
                 btn.classList.toggle('active', onlyNewFilter);
             }
             renderListings();
+        }
+
+        function toggleNotViewedFilter() {
+            notViewedFilter = !notViewedFilter;
+            const btn = document.getElementById('filter-not-viewed-btn');
+            if (btn) {
+                btn.classList.toggle('active', notViewedFilter);
+            }
+            renderListings();
+        }
+
+        async function markItemViewed(encodedUrl) {
+            const url = decodeURIComponent(encodedUrl);
+            const allLists = [currentItems, historyItems];
+            for (const list of allLists) {
+                const it = list.find(i => i.url === url);
+                if (it) {
+                    it.viewed = true;
+                }
+            }
+            renderListings();
+            try {
+                await fetch('/api/items/viewed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+            } catch (ignored) {
+            }
         }
 
         function changeSort(val) {
@@ -1432,8 +1487,10 @@ public class WebDashboardHtml {
 
             const counts = { all: list.length, dh: 0, oc: 0, jf: 0, ic: 0 };
             let newItemsCount = 0;
+            let notViewedCount = 0;
             list.forEach(item => {
                 if (item.isNew) newItemsCount++;
+                if (!item.viewed) notViewedCount++;
                 const p = (item.portal || '').toLowerCase();
                 if (p.includes('duna')) counts.dh++;
                 else if (p.includes('otthon')) counts.oc++;
@@ -1448,6 +1505,7 @@ public class WebDashboardHtml {
             const countIc = document.getElementById('count-portal-ic');
             const onlyNewCountEl = document.getElementById('only-new-count');
             const onlyNewBtn = document.getElementById('filter-only-new-btn');
+            const notViewedCountEl = document.getElementById('not-viewed-count');
 
             if (countAll) countAll.textContent = counts.all;
             if (countDh) countDh.textContent = counts.dh;
@@ -1456,6 +1514,7 @@ public class WebDashboardHtml {
             if (countIc) countIc.textContent = counts.ic;
             if (onlyNewCountEl) onlyNewCountEl.textContent = newItemsCount;
             if (onlyNewBtn) onlyNewBtn.classList.toggle('disabled-btn', newItemsCount === 0);
+            if (notViewedCountEl) notViewedCountEl.textContent = notViewedCount;
 
             ['dh', 'oc', 'jf', 'ic'].forEach(k => {
                 const btn = document.querySelector(`.portal-filter-btn[data-portal="${k}"]`);
@@ -1527,6 +1586,7 @@ public class WebDashboardHtml {
 
                     if (conf.propertyType) document.getElementById('type-select').value = conf.propertyType;
                     if (conf.autoOpenBrowser !== undefined) document.getElementById('auto-open-toggle').checked = conf.autoOpenBrowser;
+                    if (conf.excludeViewed !== undefined) document.getElementById('exclude-viewed-toggle').checked = conf.excludeViewed;
                     if (conf.minPriceMillion !== undefined && conf.minPriceMillion !== null) document.getElementById('min-price-input').value = conf.minPriceMillion;
                     if (conf.maxPriceMillion !== undefined && conf.maxPriceMillion !== null) document.getElementById('max-price-input').value = conf.maxPriceMillion;
                     if (conf.minArea !== undefined && conf.minArea !== null) document.getElementById('min-area-input').value = conf.minArea;
@@ -1592,6 +1652,7 @@ public class WebDashboardHtml {
                 minArea: minAreaVal ? parseInt(minAreaVal, 10) : null,
                 maxArea: maxAreaVal ? parseInt(maxAreaVal, 10) : null,
                 autoOpenBrowser: document.getElementById('auto-open-toggle').checked,
+                excludeViewed: document.getElementById('exclude-viewed-toggle').checked,
                 portals: portals
             };
 
@@ -1690,6 +1751,10 @@ public class WebDashboardHtml {
                     return false;
                 }
 
+                if (notViewedFilter && item.viewed) {
+                    return false;
+                }
+
                 if (selectedResultPortal !== 'all') {
                     const p = (item.portal || '').toLowerCase();
                     if (selectedResultPortal === 'dh' && !p.includes('duna')) return false;
@@ -1731,6 +1796,8 @@ public class WebDashboardHtml {
                     emptyState.innerHTML = `<div class="empty-state-icon">❌</div><h3>Nincs egyezés a keresésre: "${escapeHtml(filterTerm)}"</h3><p>Próbáld meg módosítani a kifejezést vagy a szűrőket.</p>`;
                 } else if (onlyNewFilter) {
                     emptyState.innerHTML = `<div class="empty-state-icon">✨</div><h3>Nincs új találat ebben a nézetben</h3><p>Kapcsold ki a "Csak újak" szűrőt a korábbi hirdetések megjelenítéséhez!</p>`;
+                } else if (notViewedFilter) {
+                    emptyState.innerHTML = `<div class="empty-state-icon">👁️</div><h3>Nincs nem megtekintett hirdetés</h3><p>Kapcsold ki a "Csak nem látottak" szűrőt az összes hirdetés megjelenítéséhez!</p>`;
                 } else if (selectedResultCity !== 'all') {
                     emptyState.innerHTML = `<div class="empty-state-icon">📍</div><h3>Nincs találat "${escapeHtml(selectedResultCity)}" városban</h3><p>Kattints az "Összes város" gombra a többi település megjelenítéséhez!</p>`;
                 } else if (selectedResultPortal !== 'all') {
@@ -1756,13 +1823,14 @@ public class WebDashboardHtml {
                 const itemCity = item.city || item.location || 'Debrecen';
 
                 return `
-                    <div class="listing-card ${item.isNew ? 'is-new' : ''}">
+                    <div class="listing-card ${item.isNew ? 'is-new' : ''} ${item.viewed ? 'is-viewed' : ''}">
                         <div>
                             <div class="card-top">
                                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <span class="portal-badge ${portalClass}">${item.portal || 'Hirdetés'}</span>
                                     <span class="city-badge-tag">📍 ${escapeHtml(itemCity)}</span>
                                     ${item.isNew ? '<span class="badge-new">✨ ÚJ TALÁLAT</span>' : ''}
+                                    ${item.viewed ? '<span class="badge-viewed">👁️ MEGTEKINTVE</span>' : ''}
                                 </div>
                                 <button class="btn-star ${isStarred ? 'active' : ''}"
                                         onclick="toggleStar('${encodeURIComponent(item.url)}')"
@@ -1775,7 +1843,7 @@ public class WebDashboardHtml {
                         </div>
                         <div class="card-footer">
                             <span class="card-price">${escapeHtml(item.price || 'Ár a hirdetésben')}</span>
-                            <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="btn-view">
+                            <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="btn-view" onclick="markItemViewed('${encodeURIComponent(item.url)}')">
                                 Megtekintés ↗
                             </a>
                         </div>

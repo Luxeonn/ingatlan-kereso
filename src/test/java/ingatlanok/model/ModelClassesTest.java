@@ -95,9 +95,13 @@ class ModelClassesTest {
         PropertyDetails details = new PropertyDetails("55 m²", 55.0, 2.0, 909_090L);
         item1.setPriceInfo(priceInfo);
         item1.setDetailsInfo(details);
+        item1.setViewed(true);
+        item1.setViewedAt("2026-10-13 22:00:00");
 
         assertEquals(priceInfo, item1.getPriceInfo());
         assertEquals(details, item1.getDetailsInfo());
+        assertTrue(item1.isViewed());
+        assertEquals("2026-10-13 22:00:00", item1.getViewedAt());
     }
 
     @Test
@@ -137,8 +141,10 @@ class ModelClassesTest {
 
         criteria.setMinArea(60);
         criteria.setMaxArea(180);
+        criteria.setExcludeViewed(true);
         assertEquals(60, criteria.getMinArea());
         assertEquals(180, criteria.getMaxArea());
+        assertTrue(criteria.isExcludeViewed());
 
         SearchCriteria clone = criteria.cloneForCity("Miskolc");
         assertEquals("Miskolc", clone.getCity());
@@ -146,5 +152,6 @@ class ModelClassesTest {
         assertEquals(180, clone.getMaxArea());
         assertEquals(70, clone.getMinPriceMillion());
         assertEquals(120, clone.getMaxPriceMillion());
+        assertTrue(clone.isExcludeViewed());
     }
 }
