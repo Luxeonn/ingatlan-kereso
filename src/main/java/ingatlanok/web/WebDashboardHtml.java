@@ -1049,9 +1049,9 @@ public class WebDashboardHtml {
             <div class="sort-box">
                 <span class="icon">↕️</span>
                 <select id="sort-select" class="sort-select" onchange="changeSort(this.value)" title="Találati lista rendezése ár szerint">
-                    <option value="default">Rendezés: Alapértelmezett</option>
-                    <option value="price-asc">Ár: Növekvő (olcsóbbtól)</option>
+                    <option value="price-asc" selected>Ár: Növekvő (olcsóbbtól)</option>
                     <option value="price-desc">Ár: Csökkenő (drágábbtól)</option>
+                    <option value="default">Legújabb elöl</option>
                 </select>
                 <span class="arrow">▾</span>
             </div>
@@ -1100,7 +1100,7 @@ public class WebDashboardHtml {
         let selectedResultPortal = 'all';
         let selectedResultCity = 'all';
         let onlyNewFilter = false;
-        let currentSort = 'default';
+        let currentSort = 'price-asc';
         let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
 
         let selectedCities = ['Debrecen'];
@@ -1607,9 +1607,9 @@ public class WebDashboardHtml {
                 selectedResultPortal = 'all';
                 selectedResultCity = 'all';
                 onlyNewFilter = false;
-                currentSort = 'default';
+                currentSort = 'price-asc';
                 const sortSelect = document.getElementById('sort-select');
-                if (sortSelect) sortSelect.value = 'default';
+                if (sortSelect) sortSelect.value = 'price-asc';
                 const onlyNewBtn = document.getElementById('filter-only-new-btn');
                 if (onlyNewBtn) onlyNewBtn.classList.remove('active');
                 document.querySelectorAll('.portal-filter-btn').forEach(btn => {
@@ -1791,9 +1791,9 @@ public class WebDashboardHtml {
                 historyCountEl.textContent = '0';
                 dbCountEl.textContent = '0';
                 btnOpenAllNew.style.display = 'none';
-                currentSort = 'default';
+                currentSort = 'price-asc';
                 const sortSelect = document.getElementById('sort-select');
-                if (sortSelect) sortSelect.value = 'default';
+                if (sortSelect) sortSelect.value = 'price-asc';
                 renderListings();
                 showToast("🗑️ Előzmények sikeresen törölve.");
             } catch (e) {
