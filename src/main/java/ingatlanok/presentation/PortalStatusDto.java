@@ -11,11 +11,17 @@ public class PortalStatusDto implements Serializable {
     private long latencyMs;
     private String fallbackUrl;
     private String message;
+    private Integer httpStatusCode;
+    private String technicalDetails;
 
     public PortalStatusDto() {
     }
 
     public PortalStatusDto(String portalId, String portalName, String status, int foundCount, long latencyMs, String fallbackUrl, String message) {
+        this(portalId, portalName, status, foundCount, latencyMs, fallbackUrl, message, null, null);
+    }
+
+    public PortalStatusDto(String portalId, String portalName, String status, int foundCount, long latencyMs, String fallbackUrl, String message, Integer httpStatusCode, String technicalDetails) {
         this.portalId = portalId;
         this.portalName = portalName;
         this.status = status;
@@ -23,6 +29,8 @@ public class PortalStatusDto implements Serializable {
         this.latencyMs = latencyMs;
         this.fallbackUrl = fallbackUrl;
         this.message = message;
+        this.httpStatusCode = httpStatusCode;
+        this.technicalDetails = technicalDetails;
     }
 
     public String getPortalId() {
@@ -79,5 +87,21 @@ public class PortalStatusDto implements Serializable {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public Integer getHttpStatusCode() {
+        return httpStatusCode;
+    }
+
+    public void setHttpStatusCode(Integer httpStatusCode) {
+        this.httpStatusCode = httpStatusCode;
+    }
+
+    public String getTechnicalDetails() {
+        return technicalDetails;
+    }
+
+    public void setTechnicalDetails(String technicalDetails) {
+        this.technicalDetails = technicalDetails;
     }
 }

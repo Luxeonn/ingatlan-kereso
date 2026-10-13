@@ -119,4 +119,22 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("padding: 24px;"));
         assertTrue(html.contains("item.imageUrl"));
     }
+
+    @Test
+    void testHtmlContainsDiagnosticsModalAndErrorStatusIndicators() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("id=\"btn-diagnostics\""), "HTML-nek tartalmaznia kell a diagnosztika gombot");
+        assertTrue(html.contains("id=\"modal-diagnostics\""), "HTML-nek tartalmaznia kell a diagnosztika modális ablakot");
+        assertTrue(html.contains("id=\"diagnostics-modal-body\""), "HTML-nek tartalmaznia kell a modális törzsét");
+        assertTrue(html.contains("id=\"btn-copy-diagnostics\""), "HTML-nek tartalmaznia kell a hibajelentés másoló gombot");
+        assertTrue(html.contains("onclick=\"openDiagnosticsModal()\""), "Meg kell hívnia az openDiagnosticsModal függvényt");
+        assertTrue(html.contains("function updateDiagnosticsUi("), "JavaScriptben szerepelnie kell az updateDiagnosticsUi függvénynek");
+        assertTrue(html.contains("function openDiagnosticsModal()"), "JavaScriptben szerepelnie kell az openDiagnosticsModal függvénynek");
+        assertTrue(html.contains("function closeDiagnosticsModal()"), "JavaScriptben szerepelnie kell a closeDiagnosticsModal függvénynek");
+        assertTrue(html.contains("function copyDiagnosticsReport()"), "JavaScriptben szerepelnie kell a copyDiagnosticsReport függvénynek");
+        assertTrue(html.contains(".modal-overlay"), "CSS-nek tartalmaznia kell a .modal-overlay stílust");
+        assertTrue(html.contains(".diag-card"), "CSS-nek tartalmaznia kell a .diag-card stílust");
+    }
 }

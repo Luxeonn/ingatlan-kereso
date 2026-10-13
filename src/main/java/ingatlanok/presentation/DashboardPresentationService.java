@@ -23,6 +23,7 @@ public class DashboardPresentationService {
         SearchResult searchResult = IngatlanSearchService.getInstance().executeSearch(criteria);
         MarketStatsDto marketStats = calculateMarketStats(searchResult.getItems());
         List<PortalStatusDto> portalStatuses = buildPortalStatuses(searchResult);
+        searchResult.setPortalStatuses(portalStatuses);
 
         return new DashboardResponseDto(searchResult, marketStats, portalStatuses);
     }
@@ -91,7 +92,9 @@ public class DashboardPresentationService {
                     pr.getItems() != null ? pr.getItems().size() : 0,
                     pr.getExecutionTimeMs(),
                     pr.getFallbackUrl(),
-                    pr.getMessage()
+                    pr.getMessage(),
+                    pr.getHttpStatusCode(),
+                    pr.getTechnicalDetails()
             );
             list.add(dto);
         }

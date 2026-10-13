@@ -1,5 +1,6 @@
 package ingatlanok.model;
 
+import ingatlanok.presentation.PortalStatusDto;
 import ingatlanok.scraper.PortalScrapeResult;
 
 import java.io.Serializable;
@@ -19,6 +20,7 @@ public class SearchResult implements Serializable {
     private Map<String, Integer> cityCounts = new LinkedHashMap<>();
     private List<String> newCitiesInitialized = new ArrayList<>();
     private List<PortalScrapeResult> portalResults = new ArrayList<>();
+    private List<PortalStatusDto> portalStatuses = new ArrayList<>();
 
     public SearchResult() {
     }
@@ -85,5 +87,13 @@ public class SearchResult implements Serializable {
 
     public void setPortalResults(List<PortalScrapeResult> portalResults) {
         this.portalResults = portalResults;
+    }
+
+    public List<PortalStatusDto> getPortalStatuses() {
+        return portalStatuses;
+    }
+
+    public void setPortalStatuses(List<PortalStatusDto> portalStatuses) {
+        this.portalStatuses = portalStatuses != null ? portalStatuses : new ArrayList<>();
     }
 }
