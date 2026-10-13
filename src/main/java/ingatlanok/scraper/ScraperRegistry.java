@@ -17,6 +17,7 @@ public class ScraperRegistry {
         register(new JofogasScraper());
         register(new IngatlanComScraper());
         register(new IngatlanBazarScraper());
+        register(new KoltozzbeScraper());
     }
 
     public static ScraperRegistry getInstance() {

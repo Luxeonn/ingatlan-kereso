@@ -938,6 +938,8 @@ public class WebDashboardHtml {
         .portal-badge.oc { background: rgba(239, 68, 68, 0.15); color: var(--badge-oc); border: 1px solid rgba(239, 68, 68, 0.3); }
         .portal-badge.jf { background: rgba(16, 185, 129, 0.15); color: var(--badge-jf); border: 1px solid rgba(16, 185, 129, 0.3); }
         .portal-badge.ic { background: rgba(139, 92, 246, 0.15); color: var(--badge-ic); border: 1px solid rgba(139, 92, 246, 0.3); }
+        .portal-badge.ib { background: rgba(216, 15, 49, 0.15); color: #d80f31; border: 1px solid rgba(216, 15, 49, 0.3); }
+        .portal-badge.kb { background: rgba(224, 83, 56, 0.15); color: #e05338; border: 1px solid rgba(224, 83, 56, 0.3); }
 
         .badge-new {
             background: #10b981;
@@ -1335,6 +1337,9 @@ public class WebDashboardHtml {
                         <label class="portal-chip">
                             <input type="checkbox" id="portal-ib" value="ingatlanbazar" checked> Ingatlanbazár
                         </label>
+                        <label class="portal-chip">
+                            <input type="checkbox" id="portal-kb" value="koltozzbe" checked> Költözzbe
+                        </label>
                     </div>
                 </div>
 
@@ -1379,6 +1384,8 @@ public class WebDashboardHtml {
                 <button class="portal-filter-btn" data-portal="oc" onclick="filterByPortal('oc')">Otthon Centrum (<span id="count-portal-oc">0</span>)</button>
                 <button class="portal-filter-btn" data-portal="jf" onclick="filterByPortal('jf')">Jófogás (<span id="count-portal-jf">0</span>)</button>
                 <button class="portal-filter-btn" data-portal="ic" onclick="filterByPortal('ic')">Ingatlan.com (<span id="count-portal-ic">0</span>)</button>
+                <button class="portal-filter-btn" data-portal="ib" onclick="filterByPortal('ib')">Ingatlanbazár (<span id="count-portal-ib">0</span>)</button>
+                <button class="portal-filter-btn" data-portal="kb" onclick="filterByPortal('kb')">Költözzbe (<span id="count-portal-kb">0</span>)</button>
                 <button class="filter-only-new-btn" id="filter-only-new-btn" onclick="toggleOnlyNewFilter()" title="Kizárólag az új hirdetések megjelenítése">
                     ✨ Csak újak (<span id="only-new-count">0</span>)
                 </button>
@@ -1809,7 +1816,7 @@ public class WebDashboardHtml {
                 }
             }
 
-            const counts = { all: list.length, dh: 0, oc: 0, jf: 0, ic: 0 };
+            const counts = { all: list.length, dh: 0, oc: 0, jf: 0, ic: 0, ib: 0, kb: 0 };
             let newItemsCount = 0;
             let notViewedCount = 0;
             list.forEach(item => {
@@ -1820,6 +1827,8 @@ public class WebDashboardHtml {
                 else if (p.includes('otthon')) counts.oc++;
                 else if (p.includes('jófogás') || p.includes('jofogas')) counts.jf++;
                 else if (p.includes('ingatlan.com')) counts.ic++;
+                else if (p.includes('bazar') || p.includes('bazár')) counts.ib++;
+                else if (p.includes('koltozzbe') || p.includes('költözzbe')) counts.kb++;
             });
 
             const countAll = document.getElementById('count-portal-all');
@@ -1827,6 +1836,8 @@ public class WebDashboardHtml {
             const countOc = document.getElementById('count-portal-oc');
             const countJf = document.getElementById('count-portal-jf');
             const countIc = document.getElementById('count-portal-ic');
+            const countIb = document.getElementById('count-portal-ib');
+            const countKb = document.getElementById('count-portal-kb');
             const onlyNewCountEl = document.getElementById('only-new-count');
             const onlyNewBtn = document.getElementById('filter-only-new-btn');
             const notViewedCountEl = document.getElementById('not-viewed-count');
@@ -1836,11 +1847,13 @@ public class WebDashboardHtml {
             if (countOc) countOc.textContent = counts.oc;
             if (countJf) countJf.textContent = counts.jf;
             if (countIc) countIc.textContent = counts.ic;
+            if (countIb) countIb.textContent = counts.ib;
+            if (countKb) countKb.textContent = counts.kb;
             if (onlyNewCountEl) onlyNewCountEl.textContent = newItemsCount;
             if (onlyNewBtn) onlyNewBtn.classList.toggle('disabled-btn', newItemsCount === 0);
             if (notViewedCountEl) notViewedCountEl.textContent = notViewedCount;
 
-            ['dh', 'oc', 'jf', 'ic'].forEach(k => {
+            ['dh', 'oc', 'jf', 'ic', 'ib', 'kb'].forEach(k => {
                 const btn = document.querySelector(`.portal-filter-btn[data-portal="${k}"]`);
                 if (btn) btn.style.opacity = counts[k] === 0 ? '0.45' : '1';
             });
@@ -1967,7 +1980,8 @@ public class WebDashboardHtml {
                         document.getElementById('portal-oc').checked = conf.portals.includes('oc');
                         document.getElementById('portal-jf').checked = conf.portals.includes('jofogas');
                         document.getElementById('portal-ic').checked = conf.portals.includes('ingatlancom');
-                        document.getElementById('portal-ib').checked = conf.portals.includes('ingatlanbazar');
+                        if (document.getElementById('portal-ib')) document.getElementById('portal-ib').checked = conf.portals.includes('ingatlanbazar');
+                        if (document.getElementById('portal-kb')) document.getElementById('portal-kb').checked = conf.portals.includes('koltozzbe');
                     }
                 } else {
                     renderSelectedCityChips();
@@ -1997,7 +2011,8 @@ public class WebDashboardHtml {
             if (document.getElementById('portal-oc').checked) portals.push('oc');
             if (document.getElementById('portal-jf').checked) portals.push('jofogas');
             if (document.getElementById('portal-ic').checked) portals.push('ingatlancom');
-            if (document.getElementById('portal-ib').checked) portals.push('ingatlanbazar');
+            if (document.getElementById('portal-ib') && document.getElementById('portal-ib').checked) portals.push('ingatlanbazar');
+            if (document.getElementById('portal-kb') && document.getElementById('portal-kb').checked) portals.push('koltozzbe');
 
             if (portals.length === 0) {
                 showToast("Válassz ki legalább egy weboldalt a kereséshez!");
@@ -2205,6 +2220,8 @@ public class WebDashboardHtml {
                     if (selectedResultPortal === 'oc' && !p.includes('otthon')) return false;
                     if (selectedResultPortal === 'jf' && !p.includes('jófogás') && !p.includes('jofogas')) return false;
                     if (selectedResultPortal === 'ic' && !p.includes('ingatlan.com')) return false;
+                    if (selectedResultPortal === 'ib' && !p.includes('bazar') && !p.includes('bazár')) return false;
+                    if (selectedResultPortal === 'kb' && !p.includes('koltozzbe') && !p.includes('költözzbe')) return false;
                 }
 
                 if (selectedResultCity !== 'all') {
@@ -2263,6 +2280,7 @@ public class WebDashboardHtml {
                 if (item.portal && item.portal.includes('Jófogás')) portalClass = 'jf';
                 if (item.portal && item.portal.toLowerCase().includes('ingatlan.com')) portalClass = 'ic';
                 if (item.portal && item.portal.toLowerCase().includes('bazar')) portalClass = 'ib';
+                if (item.portal && (item.portal.toLowerCase().includes('koltozzbe') || item.portal.toLowerCase().includes('költözzbe'))) portalClass = 'kb';
 
                 const isStarred = starredUrls.has(item.url);
                 const itemCity = item.city || item.location || 'Debrecen';

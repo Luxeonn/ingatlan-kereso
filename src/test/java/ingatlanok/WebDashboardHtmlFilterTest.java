@@ -137,4 +137,17 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains(".modal-overlay"), "CSS-nek tartalmaznia kell a .modal-overlay stílust");
         assertTrue(html.contains(".diag-card"), "CSS-nek tartalmaznia kell a .diag-card stílust");
     }
+
+    @Test
+    void testHtmlContainsKoltozzbePortalAndFilters() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("id=\"portal-kb\""), "Tartalmaznia kell a Költözzbe checkboxot");
+        assertTrue(html.contains("value=\"koltozzbe\""), "Tartalmaznia kell a koltozzbe értéket");
+        assertTrue(html.contains("data-portal=\"kb\""), "Tartalmaznia kell a Költözzbe szűrőgombot");
+        assertTrue(html.contains("data-portal=\"ib\""), "Tartalmaznia kell az Ingatlanbazár szűrőgombot");
+        assertTrue(html.contains(".portal-badge.kb"), "Tartalmaznia kell a Költözzbe badge CSS osztályt");
+    }
 }
+

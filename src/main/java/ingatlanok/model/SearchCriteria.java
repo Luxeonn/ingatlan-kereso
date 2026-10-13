@@ -32,6 +32,7 @@ public class SearchCriteria implements Serializable {
         portals.add("jofogas");
         portals.add("ingatlancom");
         portals.add("ingatlanbazar");
+        portals.add("koltozzbe");
     }
 
     public String getCity() {

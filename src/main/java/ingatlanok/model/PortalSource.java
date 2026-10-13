@@ -34,6 +34,8 @@ public class PortalSource implements Serializable {
             return new PortalSource("ingatlancom", "Ingatlan.com", "#1d4ed8", false);
         } else if (lower.contains("bazár") || lower.contains("bazar")) {
             return new PortalSource("ingatlanbazar", "Ingatlanbazár", "#d80f31", true);
+        } else if (lower.contains("költözzbe") || lower.contains("koltozzbe")) {
+            return new PortalSource("koltozzbe", "Költözzbe", "#e05338", true);
         }
         return new PortalSource(lower.replaceAll("[^a-z0-9]", ""), portalName, "#6b7280", true);
     }
