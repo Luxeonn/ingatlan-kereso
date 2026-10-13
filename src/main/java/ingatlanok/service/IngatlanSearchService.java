@@ -98,8 +98,23 @@ public class IngatlanSearchService {
             // Duplikációk szűrése a városon belüli találati listán URL alapján és isNew kalkuláció
             Map<String, IngatlanItem> uniqueCityMap = new LinkedHashMap<>();
             for (IngatlanItem item : cityFoundItems) {
-                item.setCity(currentCity);
-                item.setLocation(currentCity);
+                // Szigorú utólagos validációs szűrés az aggregált találatokra (Issue #19)
+                if (!cityCriteria.matches(item)) {
+                    System.out.println("[Kiszűrve] " + item.getPortal() + " találat: " + item.getTitle()
+                            + " (Ár: " + item.getPrice() + ", Lokáció: " + item.getLocation()
+                            + ", Link: " + item.getUrl() + ") nem felel meg a keresési feltételeknek ("
+                            + currentCity + ", "
+                            + (cityCriteria.getMinPriceMillion() != null ? cityCriteria.getMinPriceMillion() : "-") + " - "
+                            + (cityCriteria.getMaxPriceMillion() != null ? cityCriteria.getMaxPriceMillion() : "-") + " M Ft)");
+                    continue;
+                }
+
+                if (item.getCity() == null || item.getCity().isBlank()) {
+                    item.setCity(currentCity);
+                }
+                if (item.getLocation() == null || item.getLocation().isBlank()) {
+                    item.setLocation(currentCity);
+                }
 
                 if (isFirstSearch) {
                     // Első futás új városra: alapállapot, minden elem nem új (isNew = false)

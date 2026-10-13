@@ -47,10 +47,10 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
         return 25;
     }
 
-    @Override
-    public PortalScrapeResult scrape(SearchCriteria criteria) {
-        long startTime = System.currentTimeMillis();
-        List<IngatlanItem> items = new ArrayList<>();
+    /**
+     * Előállítja a Jófogás keresési URL-t a megadott feltételek alapján.
+     */
+    public String buildSearchUrl(SearchCriteria criteria) {
         if (criteria == null) {
             criteria = new SearchCriteria();
         }
@@ -78,8 +78,18 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
             urlBuilder.append("&max_price=").append(criteria.getMaxPriceMillion() * 1_000_000L);
         }
 
-        String searchUrl = urlBuilder.toString();
+        return urlBuilder.toString();
+    }
 
+    @Override
+    public PortalScrapeResult scrape(SearchCriteria criteria) {
+        long startTime = System.currentTimeMillis();
+        List<IngatlanItem> items = new ArrayList<>();
+        if (criteria == null) {
+            criteria = new SearchCriteria();
+        }
+
+        String searchUrl = buildSearchUrl(criteria);
         System.out.println("Jófogás Ingatlan keresés: " + searchUrl);
 
         try {
@@ -93,7 +103,7 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
             String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
             Set<String> processed = new HashSet<>();
 
-            Elements links = document.select("a[href*=/ingatlan/], a[href*=/hajdu_bihar/], a[href*=_]");
+            Elements links = document.select("a[href*=/ingatlan/], a[href*=_]");
             for (Element a : links) {
                 String href = a.attr("href");
                 if (href == null || href.isBlank() || !href.endsWith(".htm")) continue;
@@ -122,6 +132,13 @@ public class JofogasScraper extends BaseScraper implements IngatlanScraper {
                         now,
                         isNew
                 );
+                item.setLocation(criteria.getCity());
+
+                // Szigorú utólagos szűrés ár és lokáció alapján
+                if (!criteria.matches(item)) {
+                    continue;
+                }
+
                 items.add(item);
             }
 
