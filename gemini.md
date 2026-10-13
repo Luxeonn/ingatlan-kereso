@@ -199,6 +199,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 - [x] Egykattintásos Windows asztali indítók (`start-ui.bat`, `start-ui.ps1`).
 - [x] Moduláris projektarchitektúra: közös `common` modul és dedikált `scraper` réteg kialakítása.
 - [x] Elavult legacy mock és helper osztályok kivezetése és törlése.
+- [x] Strukturált és szintezett naplózási keretrendszer (`AppLogger`, `logs/scraper.log`, `/api/logs` REST végpont, metrikák).
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.

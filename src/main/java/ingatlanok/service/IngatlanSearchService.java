@@ -1,9 +1,9 @@
 package ingatlanok.service;
 
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
-import ingatlanok.model.PriceInfo;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 public class IngatlanSearchService {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanSearchService.class);
     private static final IngatlanSearchService INSTANCE = new IngatlanSearchService();
 
     private IngatlanSearchService() {
@@ -37,10 +38,12 @@ public class IngatlanSearchService {
             citiesToSearch = List.of("Debrecen");
         }
 
-        System.out.println("==================================================");
-        System.out.println("Keresés indítása: Városok=" + citiesToSearch + ", Jelleg=" + criteria.getPropertyType());
-        System.out.println("Aktív portálok: " + criteria.getPortals());
-        System.out.println("==================================================");
+        LOGGER.info("==================================================");
+        LOGGER.info("Keresés indítása: Városok={}, Jelleg={}, Ársáv={}-{} M Ft, Alapterület={}-{} m²",
+                citiesToSearch, criteria.getPropertyType(), criteria.getMinPriceMillion(), criteria.getMaxPriceMillion(),
+                criteria.getMinArea(), criteria.getMaxArea());
+        LOGGER.info("Aktív portálok: {}", criteria.getPortals());
+        LOGGER.info("==================================================");
 
         IngatlanRepository repository = IngatlanRepository.getInstance();
         SearchResult result = new SearchResult();
@@ -59,7 +62,6 @@ public class IngatlanSearchService {
         for (String currentCity : citiesToSearch) {
             cityIndex++;
             if (cityIndex > 1) {
-
                 try {
                     Thread.sleep(400);
                 } catch (InterruptedException ignored) {
@@ -70,10 +72,9 @@ public class IngatlanSearchService {
             boolean isFirstSearch = !repository.hasCityDatabase(currentCity);
             if (isFirstSearch) {
                 result.getNewCitiesInitialized().add(currentCity);
-                System.out.println("\n>>> [Új Város]: \"" + currentCity + "\" még nem szerepel az adatbázisban.");
-                System.out.println(">>> Első keresés: az aktuális találatok ALAPÁLLAPOTKÉNT (baseline snapshot) kerülnek rögzítésre.");
+                LOGGER.info("[Új Város] '{}' még nem szerepel az adatbázisban. Alapállapot (baseline snapshot) rögzítése...", currentCity);
             } else {
-                System.out.println("\n>>> [Ismert Város]: \"" + currentCity + "\" adatbázisa létezik. Differenciál-keresés...");
+                LOGGER.info("[Ismert Város] '{}' adatbázisa létezik. Differenciál-keresés...", currentCity);
             }
 
             SearchCriteria cityCriteria = criteria.cloneForCity(currentCity);
@@ -82,27 +83,22 @@ public class IngatlanSearchService {
             List<IngatlanScraper> activeScrapers = ScraperRegistry.getInstance().getActiveScrapers(cityCriteria);
             for (IngatlanScraper scraper : activeScrapers) {
                 try {
-                    System.out.println("[" + cityIndex + "/" + citiesToSearch.size() + "] " + scraper.getName() + " lekérdezése (" + currentCity + ")...");
+                    LOGGER.info("[{}/{}] {} lekérdezése ({})...", cityIndex, citiesToSearch.size(), scraper.getName(), currentCity);
                     PortalScrapeResult scrapeResult = scraper.scrape(cityCriteria);
                     result.getPortalResults().add(scrapeResult);
                     List<IngatlanItem> items = scrapeResult.getItems();
                     cityFoundItems.addAll(items);
                     portalCounts.put(scraper.getName(), portalCounts.getOrDefault(scraper.getName(), 0) + items.size());
                 } catch (Exception e) {
-                    System.err.println("Hiba a(z) " + scraper.getName() + " keresésekor (" + currentCity + "): " + e.getMessage());
+                    LOGGER.error("Hiba a(z) {} keresésekor ({}): {}", scraper.getName(), currentCity, e.getMessage(), e);
                 }
             }
 
             Map<String, IngatlanItem> uniqueCityMap = new LinkedHashMap<>();
             for (IngatlanItem item : cityFoundItems) {
-
                 if (!cityCriteria.matches(item)) {
-                    System.out.println("[Kiszűrve] " + item.getPortal() + " találat: " + item.getTitle()
-                            + " (Ár: " + item.getPrice() + ", Lokáció: " + item.getLocation()
-                            + ", Link: " + item.getUrl() + ") nem felel meg a keresési feltételeknek ("
-                            + currentCity + ", "
-                            + (cityCriteria.getMinPriceMillion() != null ? cityCriteria.getMinPriceMillion() : "-") + " - "
-                            + (cityCriteria.getMaxPriceMillion() != null ? cityCriteria.getMaxPriceMillion() : "-") + " M Ft)");
+                    LOGGER.debug("[Kiszűrve] {} találat: {} (Ár: {}, Lokáció: {}, Link: {})",
+                            item.getPortal(), item.getTitle(), item.getPrice(), item.getLocation(), item.getUrl());
                     continue;
                 }
 
@@ -114,10 +110,8 @@ public class IngatlanSearchService {
                 }
 
                 if (isFirstSearch) {
-
                     item.setNew(false);
                 } else {
-
                     boolean isNew = repository.isNewUrl(currentCity, item.getUrl());
                     item.setNew(isNew);
                 }
@@ -126,7 +120,6 @@ public class IngatlanSearchService {
             }
 
             List<IngatlanItem> finalCityItems = new ArrayList<>(uniqueCityMap.values());
-
             repository.saveCityItems(currentCity, finalCityItems);
 
             cityCounts.put(currentCity, finalCityItems.size());
@@ -184,14 +177,14 @@ public class IngatlanSearchService {
         result.setPortalCounts(portalCounts);
         result.setCityCounts(cityCounts);
 
-        System.out.println("\n==================================================");
-        System.out.println("Keresés befejeződött: " + result.getExecutedAt());
-        System.out.println("Összes találat: " + result.getTotalFound() + " | Új: " + result.getNewCount());
-        System.out.println("Városok szerint: " + result.getCityCounts());
+        LOGGER.info("==================================================");
+        LOGGER.info("Keresés befejeződött: {}", result.getExecutedAt());
+        LOGGER.info("Összes találat: {} | Új: {}", result.getTotalFound(), result.getNewCount());
+        LOGGER.info("Városok szerint: {}", result.getCityCounts());
         if (!result.getNewCitiesInitialized().isEmpty()) {
-            System.out.println("Új város(ok) baseline mentve: " + result.getNewCitiesInitialized());
+            LOGGER.info("Új város(ok) baseline mentve: {}", result.getNewCitiesInitialized());
         }
-        System.out.println("==================================================");
+        LOGGER.info("==================================================");
 
         return result;
     }

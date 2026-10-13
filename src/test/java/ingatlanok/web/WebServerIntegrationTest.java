@@ -213,4 +213,27 @@ class WebServerIntegrationTest {
         HttpResponse<String> methodNotAllowedResponse = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
         assertEquals(405, methodNotAllowedResponse.statusCode());
     }
+
+    @Test
+    @DisplayName("GET /api/logs returns recent structured logs")
+    void testLogsEndpoint() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/logs?limit=50"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+        assertTrue(json.has("logs"));
+        assertTrue(json.get("logs").isJsonArray());
+        assertTrue(json.has("level"));
+
+        HttpRequest postRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/logs"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> postResponse = client.send(postRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(405, postResponse.statusCode());
+    }
 }

@@ -1,5 +1,6 @@
 package ingatlanok.scraper;
 
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
@@ -19,6 +20,7 @@ import java.util.regex.Pattern;
 
 public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComScraper.class);
     private static final String BASE_URL = "https://ingatlan.com";
     private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/(\\d+)");
     private static final PortalSource SOURCE = PortalSource.of("Ingatlan.com");
@@ -85,13 +87,13 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
         }
 
         String searchUrl = buildSearchUrl(criteria);
-        System.out.println("Ingatlan.com keresés: " + searchUrl);
+        LOGGER.info("Ingatlan.com keresés indítása: {}", searchUrl);
 
         String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
         Set<String> processedUrls = new HashSet<>();
 
         if (SidecarCliExecutor.isAvailable()) {
-            System.out.println("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása...");
+            LOGGER.info("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása...");
             try {
                 Optional<SidecarResponse> sidecarResp = SidecarCliExecutor.execute(getPortalId(), criteria);
                 if (sidecarResp.isPresent() && sidecarResp.get().isSuccess()) {
@@ -110,12 +112,13 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
                     long elapsed = System.currentTimeMillis() - startTime;
                     if (!items.isEmpty()) {
-                        System.out.println("ingatlan.com (Sidecar) Találatok száma: " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+                        long newCount = items.stream().filter(IngatlanItem::isNew).count();
+                        LOGGER.info("ingatlan.com (Sidecar) Találatok száma: {} (Új: {}) [{} ms]", items.size(), newCount, elapsed);
                         return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
                     }
                 }
             } catch (Exception e) {
-                System.err.println("Ingatlan.com: Hiba a sidecar végrehajtás során: " + e.getMessage());
+                LOGGER.error("Ingatlan.com: Hiba a sidecar végrehajtás során: {}", e.getMessage(), e);
             }
         }
 
@@ -123,6 +126,7 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
             Document document = getDocument(searchUrl);
             if (document != null) {
                 Elements cards = document.select("a[href*=/ingatlan/]");
+                LOGGER.debug("Ingatlan.com kártya elemek: {} db", cards.size());
                 for (Element a : cards) {
                     String href = a.attr("href");
                     if (href == null || href.isBlank()) continue;
@@ -153,6 +157,7 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
                     item.setLocation(criteria.getCity());
 
                     if (!criteria.matches(item)) {
+                        LOGGER.debug("Ingatlan.com tétel kiszűrve: {} (Ár: {})", item.getUrl(), item.getPrice());
                         continue;
                     }
 
@@ -162,15 +167,16 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
             long elapsed = System.currentTimeMillis() - startTime;
             if (items.isEmpty()) {
-                System.out.println("Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni (a portál bot-védelme aktív).");
+                LOGGER.warn("Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni (bot-védelem aktív) [{} ms] -> fallback: {}", elapsed, searchUrl);
                 return PortalScrapeResult.botProtected(getPortalId(), getName(), searchUrl, elapsed);
             }
 
-            System.out.println("ingatlan.com Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+            long newCount = items.stream().filter(IngatlanItem::isNew).count();
+            LOGGER.info("ingatlan.com Találatok száma: {} (Új: {}) [{} ms]", items.size(), newCount, elapsed);
             return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
-            System.err.println("Hiba az Ingatlan.com keresésekor: " + e.getMessage());
+            LOGGER.error("Hiba az Ingatlan.com keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
             return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
     }

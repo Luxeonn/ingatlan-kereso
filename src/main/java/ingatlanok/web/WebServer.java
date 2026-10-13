@@ -6,15 +6,14 @@ import com.google.gson.reflect.TypeToken;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
-import ingatlanok.service.IngatlanSearchService;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -26,6 +25,7 @@ import java.util.concurrent.Executors;
 
 public class WebServer {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(WebServer.class);
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private HttpServer server;
     private int port = 8080;
@@ -39,7 +39,6 @@ public class WebServer {
     }
 
     public void start() throws IOException {
-
         int attempts = 0;
         while (attempts < 5) {
             try {
@@ -52,6 +51,7 @@ public class WebServer {
         }
 
         if (server == null) {
+            LOGGER.error("Nem sikerült elindítani a webszervert a portokon: 8080-{}", port);
             throw new IOException("Nem sikerült elindítani a webszervert a portokon: 8080-" + port);
         }
 
@@ -66,15 +66,17 @@ public class WebServer {
         server.createContext("/api/open-urls", new OpenUrlsHandler());
         server.createContext("/api/items/viewed", new MarkViewedHandler());
         server.createContext("/api/history/clear", new ClearHistoryHandler());
+        server.createContext("/api/logs", new LogsHandler());
 
         server.start();
-        System.out.println("==================================================");
-        System.out.println("  Web Dashboard elindult: http://localhost:" + port);
-        System.out.println("==================================================");
+        LOGGER.info("==================================================");
+        LOGGER.info("  Web Dashboard elindult: http://localhost:{}", port);
+        LOGGER.info("==================================================");
     }
 
     public void stop() {
         if (server != null) {
+            LOGGER.info("Web Dashboard leállítása...");
             server.stop(0);
         }
     }
@@ -267,7 +269,6 @@ public class WebServer {
             }
 
             if (cityParam == null || cityParam.isBlank()) {
-
                 String body = readBody(exchange);
                 if (body != null && !body.isBlank()) {
                     try {
@@ -287,6 +288,34 @@ public class WebServer {
                 IngatlanRepository.getInstance().clearHistory();
                 sendJsonResponse(exchange, 200, Map.of("success", true, "clearedAll", true));
             }
+        }
+    }
+
+    private static class LogsHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+            int limit = 100;
+            String query = exchange.getRequestURI().getQuery();
+            if (query != null && query.contains("limit=")) {
+                for (String part : query.split("&")) {
+                    if (part.startsWith("limit=")) {
+                        try {
+                            limit = Integer.parseInt(part.substring(6));
+                        } catch (NumberFormatException ignored) {
+                        }
+                        break;
+                    }
+                }
+            }
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("logs", AppLogger.getRecentLogs(limit));
+            data.put("logFilePath", AppLogger.getLogFilePath() != null ? AppLogger.getLogFilePath().toString() : "");
+            data.put("level", AppLogger.getGlobalLevel().name());
+            sendJsonResponse(exchange, 200, data);
         }
     }
 

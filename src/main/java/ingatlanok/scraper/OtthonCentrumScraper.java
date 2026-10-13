@@ -1,9 +1,9 @@
 package ingatlanok.scraper;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import ingatlanok.common.AppLogger;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
@@ -19,11 +19,11 @@ import org.jsoup.select.Elements;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper {
 
+    private static final AppLogger LOGGER = AppLogger.getLogger(OtthonCentrumScraper.class);
     private static final String BASE_URL = "https://www.oc.hu";
     private static final Pattern ID_PATTERN = Pattern.compile("/ingatlanok/([A-Za-z0-9]+)");
     private static final PortalSource SOURCE = PortalSource.of("Otthon Centrum");
@@ -81,13 +81,13 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
         }
 
         String searchUrl = buildSearchUrl(criteria);
-        System.out.println("Otthon Centrum keresés: " + searchUrl);
+        LOGGER.info("Otthon Centrum keresés indítása: {}", searchUrl);
 
         try {
             Document document = getDocument(searchUrl);
             if (document == null) {
                 long elapsed = System.currentTimeMillis() - startTime;
-                System.err.println("Nem sikerült letölteni az Otthon Centrum keresési oldalt: " + searchUrl);
+                LOGGER.warn("Nem sikerült letölteni az Otthon Centrum keresési oldalt [{} ms]: {}", elapsed, searchUrl);
                 return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült letölteni az oldalt", elapsed);
             }
 
@@ -95,7 +95,7 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                     || !document.select(".location-option-no-result:not(.d-none)").isEmpty();
             if (noResults) {
                 long elapsed = System.currentTimeMillis() - startTime;
-                System.out.println("oc.hu: Nincs közvetlen találat a(z) " + criteria.getCity() + " keresésre.");
+                LOGGER.info("oc.hu: Nincs közvetlen találat a(z) {} keresésre [{} ms]", criteria.getCity(), elapsed);
                 return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
             }
 
@@ -106,6 +106,7 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
             if (cards.isEmpty()) {
                 cards = document.select("a[href*=/ingatlanok/]");
             }
+            LOGGER.debug("Otthon Centrum talált kártyaelemek: {} db", cards.size());
 
             for (Element card : cards) {
                 String href = card.is("a") ? card.attr("href") : "";
@@ -188,6 +189,7 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                     item.setImageUrl(imageUrl);
 
                     if (!criteria.matches(item)) {
+                        LOGGER.debug("Otthon Centrum tétel kiszűrve feltételek miatt: {} (Ár: {})", item.getUrl(), item.getPrice());
                         continue;
                     }
 
@@ -196,11 +198,12 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
             }
 
             long elapsed = System.currentTimeMillis() - startTime;
-            System.out.println("oc.hu Találatok száma : " + items.size() + " (Új: " + items.stream().filter(IngatlanItem::isNew).count() + ")");
+            long newCount = items.stream().filter(IngatlanItem::isNew).count();
+            LOGGER.info("oc.hu Találatok száma: {} (Új: {}) [{} ms]", items.size(), newCount, elapsed);
             return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
-            System.err.println("Hiba az Otthon Centrum keresésekor: " + e.getMessage());
+            LOGGER.error("Hiba az Otthon Centrum keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
             return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
     }
