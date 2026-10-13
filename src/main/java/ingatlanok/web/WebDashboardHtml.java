@@ -1498,22 +1498,24 @@ public class WebDashboardHtml {
             renderListings();
         }
 
-        function updatePortalFilterCounts() {
-            let list;
-            if (activeTab === 'current') {
-                list = currentItems;
-            } else if (activeTab === 'starred') {
-                const allKnown = [...currentItems, ...historyItems];
-                const seen = new Set();
-                list = allKnown.filter(item => {
-                    if (starredUrls.has(item.url) && !seen.has(item.url)) {
-                        seen.add(item.url);
-                        return true;
-                    }
-                    return false;
-                });
-            } else {
-                list = historyItems;
+        function updatePortalFilterCounts(customList) {
+            let list = customList;
+            if (!list) {
+                if (activeTab === 'current') {
+                    list = currentItems;
+                } else if (activeTab === 'starred') {
+                    const allKnown = [...currentItems, ...historyItems];
+                    const seen = new Set();
+                    list = allKnown.filter(item => {
+                        if (starredUrls.has(item.url) && !seen.has(item.url)) {
+                            seen.add(item.url);
+                            return true;
+                        }
+                        return false;
+                    });
+                } else {
+                    list = historyItems;
+                }
             }
 
             const counts = { all: list.length, dh: 0, oc: 0, jf: 0, ic: 0 };
@@ -1753,8 +1755,77 @@ public class WebDashboardHtml {
             renderListings();
         }
 
+        function buildSearchableString(item) {
+            if (!item) return '';
+            const parts = [
+                item.title || '',
+                item.city || '',
+                item.location || '',
+                item.portal || '',
+                item.details || '',
+                item.price || '',
+                item.url || '',
+                item.id || ''
+            ];
+
+            if (item.priceInfo) {
+                if (item.priceInfo.rawText) parts.push(item.priceInfo.rawText);
+                if (item.priceInfo.amountMillion != null) {
+                    const m = item.priceInfo.amountMillion;
+                    parts.push(String(m));
+                    parts.push(String(m).replace('.', ','));
+                    parts.push(m + 'm');
+                    parts.push(m + ' m');
+                    parts.push(m + 'm ft');
+                }
+                if (item.priceInfo.amountHuf != null) {
+                    const huf = item.priceInfo.amountHuf;
+                    parts.push(String(huf));
+                    parts.push(String(huf).replace(/\\B(?=(\\d{3})+(?!\\d))/g, " "));
+                    parts.push(String(huf).replace(/\\B(?=(\\d{3})+(?!\\d))/g, "."));
+                }
+            }
+
+            if (item.detailsInfo) {
+                if (item.detailsInfo.rawText) parts.push(item.detailsInfo.rawText);
+                if (item.detailsInfo.areaSquareMeters != null) {
+                    const a = Math.round(item.detailsInfo.areaSquareMeters);
+                    parts.push(String(a));
+                    parts.push(a + 'm2');
+                    parts.push(a + ' m2');
+                    parts.push(a + 'm²');
+                    parts.push(a + ' m²');
+                }
+                if (item.detailsInfo.roomCount != null) {
+                    const r = item.detailsInfo.roomCount;
+                    parts.push(String(r));
+                    parts.push(r + ' szoba');
+                    parts.push(r + 'szoba');
+                    if (r % 1 === 0) {
+                        parts.push(r.toFixed(0) + ' szoba');
+                    }
+                }
+            }
+
+            return parts.join(' ').toLowerCase();
+        }
+
+        function itemMatchesQuickSearch(item, filterTerm) {
+            if (!filterTerm) return true;
+            const tokens = filterTerm.toLowerCase().trim().split(/\\s+/).filter(t => t.length > 0);
+            if (tokens.length === 0) return true;
+            const searchable = buildSearchableString(item);
+            return tokens.every(token => {
+                if (searchable.includes(token)) return true;
+                const cleanArea = token.replace(/m2|m²/g, '').trim();
+                if (cleanArea && searchable.includes(cleanArea)) return true;
+                const cleanPrice = token.replace(/mft|m ft|ft/g, '').trim();
+                if (cleanPrice && searchable.includes(cleanPrice)) return true;
+                return false;
+            });
+        }
+
         function renderListings() {
-            updatePortalFilterCounts();
             let listToRender;
             if (activeTab === 'current') {
                 listToRender = currentItems;
@@ -1799,15 +1870,15 @@ public class WebDashboardHtml {
                     if (!c.includes(selectedResultCity.toLowerCase())) return false;
                 }
 
-                if (!filterTerm) return true;
-                return (item.title && item.title.toLowerCase().includes(filterTerm)) ||
-                       (item.price && item.price.toLowerCase().includes(filterTerm)) ||
-                       (item.details && item.details.toLowerCase().includes(filterTerm)) ||
-                       (item.location && item.location.toLowerCase().includes(filterTerm)) ||
-                       (item.city && item.city.toLowerCase().includes(filterTerm)) ||
-                       (item.portal && item.portal.toLowerCase().includes(filterTerm)) ||
-                       (item.url && item.url.toLowerCase().includes(filterTerm));
+                return itemMatchesQuickSearch(item, filterTerm);
             });
+
+            updatePortalFilterCounts(filterTerm ? filtered : listToRender);
+            if (activeTab === 'current' && currentCountEl) {
+                currentCountEl.textContent = filterTerm ? filtered.length : currentItems.length;
+            } else if (activeTab === 'history' && historyCountEl) {
+                historyCountEl.textContent = filterTerm ? filtered.length : historyItems.length;
+            }
 
             if (currentSort === 'price-asc' || currentSort === 'price-desc') {
                 filtered.sort((a, b) => {
