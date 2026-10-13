@@ -1058,8 +1058,160 @@ public class WebDashboardHtml {
             animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        /* Diagnostics Modal & Warning Badges */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.show {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 780px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+            animation: modalFadeIn 0.25s ease;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96) translateY(-10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            border-radius: 6px;
+        }
+        .modal-close-btn:hover {
+            color: var(--text-primary);
+        }
+        .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            background: rgba(0,0,0,0.1);
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 18px;
+        }
+        .diag-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .diag-card.status-error { border-left: 4px solid #ef4444; }
+        .diag-card.status-blocked { border-left: 4px solid #f59e0b; }
+        .diag-card.status-empty { border-left: 4px solid #64748b; }
+        .diag-card.status-success { border-left: 4px solid #10b981; }
+        .diag-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .diag-portal-name {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .diag-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+        .diag-badge.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .diag-badge.blocked { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .diag-badge.empty { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); }
+        .diag-badge.success { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .diag-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .diag-url-box {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--accent);
+            word-break: break-all;
+        }
+        .diag-message {
+            font-size: 13px;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+        .btn-diagnostics {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            color: #f59e0b;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn-diagnostics:hover {
+            background: rgba(245, 158, 11, 0.25);
+            border-color: #f59e0b;
         }
     </style>
 </head>
@@ -1251,6 +1403,9 @@ public class WebDashboardHtml {
             </div>
 
             <div class="quick-actions">
+                <button class="btn-diagnostics" id="btn-diagnostics" onclick="openDiagnosticsModal()" style="display: none;" title="Portál diagnosztika és hibaállapotok">
+                    ⚠️ Diagnosztika (<span id="diagnostics-issue-count">0</span>)
+                </button>
                 <button class="btn-secondary" id="btn-open-all-new" onclick="openAllNew()" style="display: none;">
                     🚀 Összes új megnyitása (<span id="new-badge-count">0</span>)
                 </button>
@@ -1273,6 +1428,29 @@ public class WebDashboardHtml {
             <p>Állítsd be a kívánt várost és kattints a <strong>Keresés indítása most</strong> gombra!</p>
         </div>
     </main>
+
+    <!-- Diagnostics Modal -->
+    <div class="modal-overlay" id="modal-diagnostics" onclick="handleModalOverlayClick(event)">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-diag-title">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-diag-title">
+                    <span>🩺 Portál Diagnosztika és Hibaállapotok</span>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeDiagnosticsModal()" aria-label="Bezárás">✕</button>
+            </div>
+            <div class="modal-body" id="diagnostics-modal-body">
+                <!-- Dinamikusan feltöltve -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btn-copy-diagnostics" onclick="copyDiagnosticsReport()">
+                    📋 Hibajelentés Másolása
+                </button>
+                <button type="button" class="btn-secondary" onclick="closeDiagnosticsModal()">
+                    Bezárás
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toast"></div>
@@ -1868,6 +2046,9 @@ public class WebDashboardHtml {
                 currentItems = data.items || [];
                 currentCountEl.textContent = currentItems.length;
 
+                latestPortalStatuses = data.portalStatuses || (data.searchResult && data.searchResult.portalStatuses) || [];
+                updateDiagnosticsUi(latestPortalStatuses);
+
                 lastRunInfo.innerHTML = `Utolsó futás: <strong>${data.executedAt}</strong> • Találat: <strong>${data.totalFound}</strong> (Új: <span style="color:#10b981; font-weight:700;">${data.newCount}</span>)`;
 
                 if (data.newCitiesInitialized && data.newCitiesInitialized.length > 0) {
@@ -2194,9 +2375,161 @@ public class WebDashboardHtml {
             }, 3500);
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        let latestPortalStatuses = [];
+
+        function updateDiagnosticsUi(statuses) {
+            const btn = document.getElementById('btn-diagnostics');
+            const countEl = document.getElementById('diagnostics-issue-count');
+            if (!btn || !countEl) return;
+
+            if (!statuses || statuses.length === 0) {
+                btn.style.display = 'none';
+                return;
+            }
+
+            const issues = statuses.filter(s => s.status === 'FAILED' || s.status === 'BOT_PROTECTED' || s.status === 'EMPTY' || (s.foundCount === 0 && s.status !== 'SUCCESS'));
+            if (issues.length > 0) {
+                countEl.textContent = issues.length;
+                btn.style.display = 'inline-flex';
+                const severe = issues.filter(s => s.status === 'FAILED' || s.status === 'BOT_PROTECTED');
+                if (severe.length > 0) {
+                    const names = severe.map(s => s.portalName || s.portalId).join(', ');
+                    showToast(`⚠️ Figyelem: ${names} válaszában hiba vagy bot-védelem lépett fel!`);
+                }
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        function openDiagnosticsModal() {
+            const modal = document.getElementById('modal-diagnostics');
+            const body = document.getElementById('diagnostics-modal-body');
+            if (!modal || !body) return;
+
+            if (!latestPortalStatuses || latestPortalStatuses.length === 0) {
+                body.innerHTML = `
+                    <div style="text-align:center; padding:30px; color:var(--text-secondary);">
+                        <p>Még nem állnak rendelkezésre diagnosztikai adatok. Indíts egy keresést!</p>
+                    </div>
+                `;
+            } else {
+                body.innerHTML = latestPortalStatuses.map(s => {
+                    let badgeClass = 'success';
+                    let statusLabel = '✓ Sikeres';
+                    let cardClass = 'status-success';
+
+                    if (s.status === 'FAILED') {
+                        badgeClass = 'error';
+                        statusLabel = '❌ Hiba';
+                        cardClass = 'status-error';
+                    } else if (s.status === 'BOT_PROTECTED') {
+                        badgeClass = 'blocked';
+                        statusLabel = '🛡️ Bot-védelem';
+                        cardClass = 'status-blocked';
+                    } else if (s.status === 'EMPTY' || s.foundCount === 0) {
+                        badgeClass = 'empty';
+                        statusLabel = 'ℹ️ 0 találat';
+                        cardClass = 'status-empty';
+                    }
+
+                    const urlHtml = s.fallbackUrl ? `
+                        <div>
+                            <span style="font-size:11px; color:var(--text-secondary); font-weight:600;">Hívott URL / Keresőlink:</span>
+                            <div class="diag-url-box">
+                                <a href="${escapeHtml(s.fallbackUrl)}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">
+                                    ${escapeHtml(s.fallbackUrl)} ↗
+                                </a>
+                            </div>
+                        </div>
+                    ` : '';
+
+                    const techDetailsHtml = s.technicalDetails ? `
+                        <div style="font-size:12px; color:var(--text-secondary); background:rgba(0,0,0,0.15); padding:8px 12px; border-radius:8px;">
+                            <strong>Technikai részlet:</strong> ${escapeHtml(s.technicalDetails)}
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="diag-card ${cardClass}">
+                            <div class="diag-card-top">
+                                <span class="diag-portal-name">${escapeHtml(s.portalName || s.portalId)}</span>
+                                <span class="diag-badge ${badgeClass}">${statusLabel}</span>
+                            </div>
+                            <div class="diag-meta">
+                                <span>Találatok: <strong>${s.foundCount || 0} db</strong></span>
+                                <span>Válaszidő: <strong>${s.latencyMs || 0} ms</strong></span>
+                                ${s.httpStatusCode ? `<span>HTTP kód: <strong>${s.httpStatusCode}</strong></span>` : ''}
+                            </div>
+                            <p class="diag-message">${escapeHtml(s.message || 'Nincs részletes üzenet')}</p>
+                            ${techDetailsHtml}
+                            ${urlHtml}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeDiagnosticsModal() {
+            const modal = document.getElementById('modal-diagnostics');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        function handleModalOverlayClick(e) {
+            if (e.target && e.target.id === 'modal-diagnostics') {
+                closeDiagnosticsModal();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDiagnosticsModal();
+            }
+        });
+
+        async function copyDiagnosticsReport() {
+            const btn = document.getElementById('btn-copy-diagnostics');
+            const lines = [];
+            lines.push('# Ingatlan Kereső - Portál Diagnosztikai Hibajelentés');
+            lines.push(`Időbélyeg: ${new Date().toLocaleString('hu-HU')}`);
+            lines.push(`Települések: ${selectedCities.join(', ')}`);
+            lines.push('---');
+            for (const s of latestPortalStatuses) {
+                lines.push(`## ${s.portalName || s.portalId}`);
+                lines.push(`- Állapot: ${s.status}`);
+                lines.push(`- Találatok: ${s.foundCount || 0} db`);
+                lines.push(`- Válaszidő: ${s.latencyMs || 0} ms`);
+                if (s.httpStatusCode) lines.push(`- HTTP Státusz: ${s.httpStatusCode}`);
+                if (s.message) lines.push(`- Üzenet: ${s.message}`);
+                if (s.technicalDetails) lines.push(`- Részletek: ${s.technicalDetails}`);
+                if (s.fallbackUrl) lines.push(`- URL: ${s.fallbackUrl}`);
+                lines.push('');
+            }
+
+            const reportText = lines.join('\\n');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(reportText);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = reportText;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = 'Másolva! ✓';
+                    setTimeout(() => { btn.innerHTML = originalText; }, 2500);
+                }
+                showToast('📋 Diagnosztikai jelentés kimásolva a vágólapra!');
+            } catch (err) {
+                showToast('Nem sikerült kimásolni a jelentést: ' + err.message);
+            }
         }
 
         init();

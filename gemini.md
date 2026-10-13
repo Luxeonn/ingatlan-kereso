@@ -200,6 +200,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 - [x] Moduláris projektarchitektúra: közös `common` modul és dedikált `scraper` réteg kialakítása.
 - [x] Elavult legacy mock és helper osztályok kivezetése és törlése.
 - [x] Strukturált és szintezett naplózási keretrendszer (`AppLogger`, `logs/scraper.log`, `/api/logs` REST végpont, metrikák).
+- [x] Portál diagnosztika, hiba felugró ablak és technikai státuszkódok (`PortalStatusDto`, diagnosztikai modal, egykattintásos vágólap export).
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.
