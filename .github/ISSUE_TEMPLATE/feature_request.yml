@@ -1,0 +1,51 @@
+name: '✨ Funkciójavaslat (Feature Request)'
+description: 'Új funkció, új portál scraper vagy felületi fejlesztési ötlet javaslata'
+title: 'feat: [Rövid leírás az új funkcióról]'
+labels: ['enhancement']
+body:
+  - type: 'markdown'
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Köszönjük az új ötletet és javaslatot!
+        > Kérjük, győződj meg róla, hogy a javaslat összhangban van a projekt célkitűzéseivel és a [`gemini.md`](https://github.com/Luxeonn/ingatlan-kereso/blob/main/gemini.md) architektúrájával.
+
+  - type: 'textarea'
+    id: 'problem'
+    attributes:
+      label: 'Milyen problémát vagy igényt old meg ez a funkció?'
+      description: 'Világos leírás a felhasználói igényről vagy felmerült hiányosságról.'
+      placeholder: 'Pl. Jó lenne egy új szűrő alapterület szerint, mert most csak árra lehet szűrni...'
+    validations:
+      required: true
+
+  - type: 'textarea'
+    id: 'solution'
+    attributes:
+      label: 'Javasolt megoldás (Proposed Solution)'
+      description: 'Hogyan képzeled el az új funkció működését és megjelenését?'
+      placeholder: 'Pl. Két numerikus léptető bevitele a szűrősávba, kliensoldali szűrés a `PropertyDetails.floorAreaSqm` alapján...'
+    validations:
+      required: true
+
+  - type: 'dropdown'
+    id: 'component'
+    attributes:
+      label: 'Érintett szakterület / felelős ágens'
+      description: 'Melyik specialista területet érinti a javaslat?'
+      options:
+        - 'Rendszerarchitektúra & Scraper réteg (deep-architect)'
+        - 'Web Dashboard SPA & UI/UX (ui-designer)'
+        - 'Alkalmazásbiztonság & Hálózat (security-specialist)'
+        - 'Perzisztencia & Adattárolás (database-specialist)'
+        - 'CI/CD & GitHub Actions Munkafolyamat (workflow-engineer)'
+        - 'Új Portál Integráció (IngatlanScraper)'
+    validations:
+      required: true
+
+  - type: 'textarea'
+    id: 'alternatives'
+    attributes:
+      label: 'Megfontolt alternatívák'
+      description: 'Milyen más megközelítéseket vagy eszközöket vettél számításba?'
+      placeholder: 'Pl. Csak minimum méret beállítása a maximum helyett...'
