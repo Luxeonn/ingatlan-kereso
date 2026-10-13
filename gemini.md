@@ -102,7 +102,8 @@ ingatlan-kereso/
 │       │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok és paraméteres szűrés)
 │       │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok és kártyainformációk)
 │       │   ├── IngatlanComScraper.java          # ingatlan.com scraper (Cloudflare bot-védelem graceful fallback)
-│       │   └── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (Angular SPA graceful fallback)
+│       │   ├── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (élő belső REST JSON API kliens)
+│       │   └── IngatlanBazarLocationResolver.java # Ingatlanbazár helyszín- és településazonosító feloldó gyorsítótárral
 │       ├── service/
 │       │   └── IngatlanSearchService.java       # Keresést vezérlő és portálokat összesítő orchestrator
 │       └── web/
@@ -163,7 +164,7 @@ ingatlan-kereso/
 | **Otthon Centrum** (`oc.hu`) | Élő Jsoup DOM parsing | URL mintázat query paraméterekkel: `?realestate[ertekesites]=elado&...&<varos>=on`. Modern kártya layout, az árak és paraméterek span elemekből kerülnek feldolgozásra. |
 | **Jófogás Ingatlan** (`jofogas.hu`) | Élő Jsoup DOM parsing | Keresési paraméterezés: `?q=<varos>+elado+<tipus>&min_price=...`. A hirdetési listaelemekből regex segítségével tisztítjuk az árat és a címet. |
 | **Ingatlan.com** (`ingatlan.com`) | Graceful Bot Fallback | Erős Cloudflare WAF bot-védelem (403 Forbidden / JS challenge). Közvetlen hirdetési keresőlinket generálunk fallbackként, elkerülve a szerver blokkolását. |
-| **Ingatlanbazár** (`ingatlanbazar.hu`) | Graceful SPA Fallback | Kliensoldali Angular CSR alkalmazás; a hirdetések HTML-ben nincsenek jelen SSR hiányában. Közvetlen portállinkkel kezelve. |
+| **Ingatlanbazár** (`ingatlanbazar.hu`) | Élő belső REST JSON API | Nyílt és gyors belső REST API (`/api/property-search` és `/api/geo/get-matches`). Pontos árak, alapterület, szobaszám, közvetlen hirdetés linkek és településkód feloldás gyorsítótárazással (`IngatlanBazarLocationResolver`). |
 
 ---
 
