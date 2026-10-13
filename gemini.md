@@ -138,6 +138,23 @@ ingatlan-kereso/
   * Felügyeli a duplikátumszűrést az `IngatlanRepository`-n keresztül.
   * Rendezi a találatokat ár és dátum szerint, valamint előállítja a portálonkénti találati statisztikákat.
 
+### Projekt Szintű AI Szakértői Skillek (`.agents/skills/`)
+
+A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkezik, amelyek az adott szakterület mély ismeretével ruházzák fel a fejlesztést segítő ágenseket:
+
+* **`deep-architect` (`.agents/skills/deep-architect/`):**
+  * Mélytervező rendszerszintű architekt és szoftvertervezési specialista.
+  * Fókusz: Clean Architecture, réteg-izoláció, Java 21 Virtual Threads és strukturált konkurencia, 0-Crash elv, hibrid Java-Sidecar minták, és Architecture Decision Record (ADR) sablon.
+* **`ui-designer` (`.agents/skills/ui-designer/`):**
+  * UI/UX designer és beágyazott frontend specialista.
+  * Fókusz: `WebDashboardHtml.java` zéró külső függőségű SPA, Tailwind-ihletésű design tokenek, numerikus stepperek, shimmer loading skeletonok, piaci KPI kártyák, akadálymentesítés és mikróinterakciók.
+* **`security-specialist` (`.agents/skills/security-specialist/`):**
+  * Alkalmazásbiztonsági (AppSec) és hardening specialista.
+  * Fókusz: Beágyazott `WebServer` localhost kötés és HTTP fejléc védelem, Path Traversal prevenció a városszintű JSON perzisztenciában, XSS védelem a hirdetéskártyáknál, ProcessBuilder parancsinjektálás elleni védelem, valamint böngésző URL megnyitási korlátok és sémavalidáció.
+* **`database-specialist` (`.agents/skills/database-specialist/`):**
+  * Adatbázis és tárolási architektúra specialista.
+  * Fókusz: `IngatlanRepository` kétszintű JSON perzisztencia optimalizáció, `ReentrantReadWriteLock` konkurenciakezelés, atomi lemezre írás (`ATOMIC_MOVE`), O(1) duplikátumszűrés, visszafelé kompatibilis sémaevolúció, és SQLite átállási terv.
+
 ---
 
 ## 3. Főbb Tervezési Minták és Technikai Döntések
