@@ -250,3 +250,21 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >
 > 7. **Közvetlen PR Link a válaszban:**
 >    - A feladat befejezésekor a beszélgetésben **mindig kötelező közvetlen kattintható linket adni az elkészült GitHub Pull Request-re**.
+>
+> 8. **Kötelező Tematikus Agent Jóváhagyási Kapu (Thematic Agent Approval Gate & Review-and-Fix):**
+>    - Egyetlen Pull Request sem fogadható el és nem fésülhető össze a védett ágakba (`develop`, `main`) anélkül, hogy a módosítás által érintett szakterület kijelölt AI ágense azt jóvá nem hagyta:
+>      - **Rendszerarchitektúra & Scraper réteg (`service/`, `scraper/`, szálkezelés):** A `deep-architect` ágens jóváhagyása kötelező (Clean Architecture, 0-crash garancia).
+>      - **Frontend és Felület (`WebDashboardHtml.java`, CSS, JS komponensek):** A `ui-designer` ágens jóváhagyása kötelező (zéró külső függőség, reszponzivitás, UX).
+>      - **Biztonság, Hálózat és Folyamatkezelés (`WebServer.java`, `SidecarCliExecutor`, `BrowserUtils`):** A `security-specialist` ágens jóváhagyása kötelező (localhost kötés, CSP, Path Traversal, XSS és command injection védelem).
+>      - **Perzisztencia és Adatbázis (`persistence/`, `IngatlanRepository`, `data/`):** A `database-specialist` ágens jóváhagyása kötelező (atomi lemezre írás, ReentrantReadWriteLock, duplikátumszűrés).
+>    - A felülvizsgálat lefolytatásához és az észlelt hiányosságok automatikus javításához a `.gemini/commands/review-and-fix.toml` parancs, illetve a `.agents/skills/review-and-fix/` skill használandó.
+>    - A PR leírásában kötelezően szerepelnie kell az alábbi ellenőrzött jóváhagyási blokknak:
+>      ```markdown
+>      ### 🛡️ Thematic Agent Approval Gate
+>      - [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`)
+>      - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`)
+>      - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`)
+>      - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`)
+>      ```
+>      *(A nem érintett témakörök esetén a státusz: `N/A (nem érintett)`)*
+>    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.

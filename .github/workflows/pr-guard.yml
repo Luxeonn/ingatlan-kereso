@@ -17,6 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Validate PR Title (Conventional Commits)
         env:
           TITLE: ${{ github.event.pull_request.title }}
@@ -57,3 +62,59 @@ jobs:
           else
             echo "✅ PR leírás kitöltve (${#BODY} karakter)."
           fi
+
+      - name: Verify Thematic Agent Approval Gate
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          echo "=== 🛡️ Thematic Agent Approval Gate Ellenőrzése ==="
+          
+          # Módosított fájlok lekérése a célág és a PR között
+          CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" || true)
+          echo "Módosított fájlok:"
+          echo "$CHANGED_FILES"
+          echo "----------------------------------------"
+
+          MISSING_APPROVALS=""
+
+          # 1. Rendszerarchitektúra & Scraper réteg (deep-architect)
+          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(service|scraper)/|Main\.java"; then
+            echo "-> Érintett téma: Rendszerarchitektúra (deep-architect szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Architecture|deep-architect)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🏛️ Deep Architect Agent (\`deep-architect\`): Architektúra, 0-crash és réteg-izoláció jóváhagyása szükséges."
+            fi
+          fi
+
+          # 2. UI & Dashboard SPA (ui-designer)
+          if echo "$CHANGED_FILES" | grep -qE "WebDashboardHtml\.java|static/|\.css|\.js"; then
+            echo "-> Érintett téma: UI és Dashboard SPA (ui-designer szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI|ui-designer)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🎨 UI Designer Agent (\`ui-designer\`): Frontend design, reszponzivitás és komponensek jóváhagyása szükséges."
+            fi
+          fi
+
+          # 3. Biztonság, Hálózat és Folyamatkezelés (security-specialist)
+          if echo "$CHANGED_FILES" | grep -qE "WebServer\.java|SidecarCliExecutor\.java|BrowserUtils\.java|HttpFetcher\.java"; then
+            echo "-> Érintett téma: Alkalmazásbiztonság és Hálózat (security-specialist szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Security|security-specialist)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ Security Specialist Agent (\`security-specialist\`): AppSec, localhost kötés, XSS és command injection védelem jóváhagyása szükséges."
+            fi
+          fi
+
+          # 4. Adatbázis és Perzisztencia (database-specialist)
+          if echo "$CHANGED_FILES" | grep -qE "persistence/|IngatlanRepository\.java|data/"; then
+            echo "-> Érintett téma: Adatbázis és Perzisztencia (database-specialist szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Database|database-specialist)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 💾 Database Specialist Agent (\`database-specialist\`): Szálbiztosság, atomi lemezre írás és duplikátumszűrés jóváhagyása szükséges."
+            fi
+          fi
+
+          if [ -n "$MISSING_APPROVALS" ]; then
+            echo "::error::Hiányzó Tematikus Agent Jóváhagyás(ok)! A PR nem engedélyezett a megfelelő szakértői ágens igazolása nélkül:${MISSING_APPROVALS}"
+            echo ""
+            echo "Futtasd a review-and-fix ágenst (.gemini/commands/review-and-fix.toml), és illeszd be a 'Thematic Agent Approval Gate' blokkot a PR leírásába!"
+            exit 1
+          fi
+
+          echo "✅ Minden érintett szakterület rendelkezik a kijelölt Agent jóváhagyásával."
