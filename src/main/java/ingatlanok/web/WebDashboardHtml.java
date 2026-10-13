@@ -529,6 +529,49 @@ public class WebDashboardHtml {
             font-size: 14px;
         }
 
+        .sort-box {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .sort-box .icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .sort-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 34px 10px 34px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+        .sort-select:hover, .sort-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .sort-box .arrow {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 11px;
+            pointer-events: none;
+        }
+
         .quick-actions {
             display: flex;
             gap: 10px;
@@ -849,6 +892,16 @@ public class WebDashboardHtml {
                 <input type="text" id="filter-input" placeholder="Gyorskeresés a találatok között...">
             </div>
 
+            <div class="sort-box">
+                <span class="icon">↕️</span>
+                <select id="sort-select" class="sort-select" onchange="changeSort(this.value)" title="Találati lista rendezése ár szerint">
+                    <option value="default">Rendezés: Alapértelmezett</option>
+                    <option value="price-asc">Ár: Növekvő (olcsóbbtól)</option>
+                    <option value="price-desc">Ár: Csökkenő (drágábbtól)</option>
+                </select>
+                <span class="arrow">▾</span>
+            </div>
+
             <div class="quick-actions">
                 <button class="btn-secondary" id="btn-open-all-new" onclick="openAllNew()" style="display: none;">
                     🚀 Összes új megnyitása (<span id="new-badge-count">0</span>)
@@ -880,7 +933,67 @@ public class WebDashboardHtml {
         let activeTab = 'current'; // 'current', 'history', 'starred'
         let selectedResultPortal = 'all'; // 'all', 'dh', 'oc', 'jf', 'ic'
         let onlyNewFilter = false;
+        let currentSort = 'default'; // 'default', 'price-asc', 'price-desc'
         let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
+
+        function changeSort(val) {
+            currentSort = val;
+            const sortSelect = document.getElementById('sort-select');
+            if (sortSelect && sortSelect.value !== val) {
+                sortSelect.value = val;
+            }
+            renderListings();
+            if (val === 'price-asc') {
+                showToast("📈 Rendezve: Ár szerint növekvő");
+            } else if (val === 'price-desc') {
+                showToast("📉 Rendezve: Ár szerint csökkenő");
+            } else {
+                showToast("↕️ Eredeti / alapértelmezett sorrend");
+            }
+        }
+
+        function parsePrice(raw) {
+            if (!raw || typeof raw !== 'string') return null;
+            let str = raw.trim();
+            if (!str || str === 'N/A' || str.toLowerCase().includes('ár a hirdetésben') || str.toLowerCase().includes('érdeklődjön')) {
+                return null;
+            }
+
+            // Ismert hibás minta kiszűrése (pl. "000 Ft" vagy csak 0)
+            if (/^\\s*0+\\s*(?:ft)?\\s*$/i.test(str)) {
+                return null;
+            }
+
+            // 1. Millió Ft formátum: pl. "51,90 M Ft", "124,5M Ft", "800M Ft", "70 - 120 M Ft", "54,9 millió Ft", "10,5m"
+            const millionMatch = str.match(/([\\d\\s]+(?:[.,]\\d+)?)\\s*(?:-\\s*[\\d\\s]+(?:[.,]\\d+)?\\s*)?(?:m\\s*ft|mft|millió|m\\b)/i);
+            if (millionMatch) {
+                let numStr = millionMatch[1].replace(/\\s+/g, '').replace(',', '.');
+                let num = parseFloat(numStr);
+                if (!isNaN(num) && num > 0) {
+                    return Math.round(num * 1000000);
+                }
+            }
+
+            // 2. Teljes forint összeg: pl. "74 900 000 Ft", "8 900 000 Ft", "49.900.000 Ft", "65 940 600 Ft"
+            const firstPart = str.split('-')[0];
+            const digitsOnly = firstPart.replace(/[^\\d]/g, '');
+            if (digitsOnly.length >= 5) {
+                let num = parseInt(digitsOnly, 10);
+                if (!isNaN(num) && num > 0) {
+                    return num;
+                }
+            }
+
+            const allDigits = str.replace(/[^\\d]/g, '');
+            if (allDigits.length >= 5) {
+                let num = parseInt(allDigits, 10);
+                if (!isNaN(num) && num > 0) {
+                    return num;
+                }
+            }
+
+            return null;
+        }
 
         function updateStarredCount() {
             const starredCountEl = document.getElementById('starred-count');
@@ -1105,6 +1218,9 @@ public class WebDashboardHtml {
                 filterInput.value = '';
                 selectedResultPortal = 'all';
                 onlyNewFilter = false;
+                currentSort = 'default';
+                const sortSelect = document.getElementById('sort-select');
+                if (sortSelect) sortSelect.value = 'default';
                 const onlyNewBtn = document.getElementById('filter-only-new-btn');
                 if (onlyNewBtn) onlyNewBtn.classList.remove('active');
                 document.querySelectorAll('.portal-filter-btn').forEach(btn => {
@@ -1196,7 +1312,29 @@ public class WebDashboardHtml {
             }
 
             emptyState.style.display = 'none';
-            listingsContainer.innerHTML = filtered.map(item => {
+
+            let sorted = [...filtered];
+            if (currentSort === 'price-asc') {
+                sorted.sort((a, b) => {
+                    const pA = parsePrice(a.price);
+                    const pB = parsePrice(b.price);
+                    if (pA === null && pB === null) return 0;
+                    if (pA === null) return 1;
+                    if (pB === null) return -1;
+                    return pA - pB;
+                });
+            } else if (currentSort === 'price-desc') {
+                sorted.sort((a, b) => {
+                    const pA = parsePrice(a.price);
+                    const pB = parsePrice(b.price);
+                    if (pA === null && pB === null) return 0;
+                    if (pA === null) return 1;
+                    if (pB === null) return -1;
+                    return pB - pA;
+                });
+            }
+
+            listingsContainer.innerHTML = sorted.map(item => {
                 let portalClass = 'dh';
                 if (item.portal && item.portal.includes('Otthon')) portalClass = 'oc';
                 if (item.portal && item.portal.includes('Jófogás')) portalClass = 'jf';
@@ -1268,6 +1406,9 @@ public class WebDashboardHtml {
                 historyCountEl.textContent = '0';
                 dbCountEl.textContent = '0';
                 btnOpenAllNew.style.display = 'none';
+                currentSort = 'default';
+                const sortSelect = document.getElementById('sort-select');
+                if (sortSelect) sortSelect.value = 'default';
                 renderListings();
                 showToast("🗑️ Előzmények sikeresen törölve.");
             } catch (e) {
