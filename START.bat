@@ -56,7 +56,7 @@ echo.
 if exist "target\ingatlan-1.0.jar" (
     java -jar target\ingatlan-1.0.jar %*
 ) else (
-    "%MVN_CMD%" compile exec:java %*
+    "%MVN_CMD%" spring-boot:run
 )
 
 if %ERRORLEVEL% NEQ 0 (
