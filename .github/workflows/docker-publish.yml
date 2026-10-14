@@ -46,10 +46,8 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            # develop ágon: latest, develop és develop-<short_sha>
+            # develop ágon: kizárólag latest
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/develop' }}
-            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/develop' }}
-            type=sha,prefix=develop-,enable=${{ github.ref == 'refs/heads/develop' }}
 
             # Git tag esetén (pl. v1.0, v1.0.0):
             type=semver,pattern={{version}}
