@@ -1,5 +1,6 @@
 services:
   ingatlan-kereso:
+    image: ${INGATLAN_IMAGE:-ghcr.io/luxeonn/ingatlan-kereso:latest}
     build:
       context: .
       dockerfile: Dockerfile

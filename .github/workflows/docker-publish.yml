@@ -1,0 +1,125 @@
+name: Docker Build & Publish (GHCR)
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  publish:
+    name: Build & Publish Container Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Extract project version from pom.xml
+        id: pom-version
+        run: |
+          VERSION=$(sed -n 's/.*<version>\([^<]*\)<\/version>.*/\1/p' pom.xml | head -n 1)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Extracted pom.xml project version: ${VERSION}"
+
+      - name: Extract Docker metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            # develop ágon: latest, develop és develop-<short_sha>
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=develop-,enable=${{ github.ref == 'refs/heads/develop' }}
+
+            # Git tag esetén (pl. v1.0, v1.0.0):
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=ref,event=tag
+
+            # main ágra érkező push: fix verziószám a pom.xml-ből és commit SHA (NEM latest)
+            type=raw,value=v${{ steps.pom-version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ steps.pom-version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=v${{ steps.pom-version.outputs.version }}-,enable=${{ github.ref == 'refs/heads/main' }}
+
+            # Egyéb ágak workflow_dispatch manuális indításakor
+            type=ref,event=branch,enable=${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate Action Step Summary
+        if: always() && steps.build-and-push.conclusion == 'success'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "### 🐳 Docker Image Build & Publish Eredmények" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tulajdonság | Érték |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| :--- | :--- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Regiszter** | \`ghcr.io\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image Név** | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Esemény / Ág** | \`$EVENT_NAME\` / \`$REF_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Indító felhasználó** | \`$ACTOR\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image Digest** | \`$DIGEST\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### 🏷️ Generált és Publikált Címkék (Tags)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          echo "$TAGS" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### 🚀 Gyorsindítás a konténerrel" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$REF_NAME" = "develop" ]; then
+            echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+            echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
+            echo "docker run -d -p 8080:8080 -v ./data:/app/data -v ./logs:/app/logs ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            FIRST_TAG=$(echo "$TAGS" | head -n 1)
+            echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+            echo "docker pull $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
+            echo "docker run -d -p 8080:8080 -v ./data:/app/data -v ./logs:/app/logs $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
