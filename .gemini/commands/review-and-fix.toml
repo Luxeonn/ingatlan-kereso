@@ -54,14 +54,17 @@ Follow these steps to conduct a thorough review:
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
-   * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with concise OK / NOK status (only provide 1-sentence rationale if NOK):
+   * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with concise [OK] / [NOK] / [N/A] status accompanied by a mandatory 1-sentence rationale for every thematic domain:
      ```markdown
      ### 🛡️ Thematic Agent Approval Gate
-     - [x] Architecture (`deep-architect`): OK
-     - [x] UI/UX (`ui-designer`): OK
-     - [x] Security (`security-specialist`): OK
-     - [x] Database (`database-specialist`): OK
-     - [x] Workflow/CI (`workflow-engineer`): OK
+     - [x] Architecture (`deep-architect`): [OK] – A Clean Architecture réteghatárok és a 0-crash elv maradéktalanul érvényesül.
+     - [x] UI/UX (`ui-designer`): [N/A] – A változtatás nem érinti a webes dashboard felületét vagy stílusait.
+     - [x] Security (`security-specialist`): [OK] – A bemenet-validáció és a szerverbiztonsági fejlécek sértetlenek.
+     - [x] Database (`database-specialist`): [OK] – A szálbiztos tárolás és az atomi perzisztencia garantált.
+     - [x] Workflow/CI (`workflow-engineer`): [OK] – A GitHub Actions munkafolyamatok és a PR guard szabályok rendben vannak.
+     - [x] DevOps (`devops-specialist`): [N/A] – Konténerizációs vagy futtatási fájlok nem módosultak.
+     - [x] Scraper Reliability (`scraper-reliability-engineer`): [N/A] – Web scraping és portálmotorok nem érintettek.
+     - [x] QA/Testing (`qa-test-engineer`): [OK] – Minden automatizált teszt hibátlanul lefut.
      ```
    * Advance to Phase 2.
 
