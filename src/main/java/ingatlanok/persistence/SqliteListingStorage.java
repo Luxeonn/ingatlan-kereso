@@ -3,6 +3,7 @@ package ingatlanok.persistence;
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
+import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
@@ -15,13 +16,28 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Relációs SQLite adatbázisra épülő ListingStorage implementáció.
- * Normál táblaszerkezet, tranzakciós batch mentés, indexelt O(1) duplikátumszűrés és WAL mód.
+ * 3. Normálformás (3NF) relációs SQLite adatbázisra épülő ListingStorage implementáció.
+ * Entitás-kapcsolatok (portals, locations, properties, property_attributes, property_images),
+ * idegen kulcsok, tranzakciós batch mentés és indexelt JOIN lekérdezések.
  */
 public class SqliteListingStorage implements ListingStorage {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(SqliteListingStorage.class);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private static final String SELECT_3NF_BASE = """
+        SELECT p.id, po.name AS portal, p.url, p.title,
+               loc.name AS city, loc.normalized_slug AS city_key,
+               p.discovered_at, p.viewed, p.viewed_at,
+               pa.price_raw, pa.price_amount, pa.price_millions, pa.price_per_sqm,
+               pa.area_sqm, pa.rooms, pa.raw_description AS details,
+               pi.image_url
+        FROM properties p
+        JOIN portals po ON p.portal_id = po.id
+        JOIN locations loc ON p.location_id = loc.id
+        LEFT JOIN property_attributes pa ON p.id = pa.property_id
+        LEFT JOIN property_images pi ON p.id = pi.property_id AND pi.is_primary = 1
+    """;
 
     private final SqliteDatabaseManager dbManager;
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -68,49 +84,104 @@ public class SqliteListingStorage implements ListingStorage {
     }
 
     private void saveItemsInternal(Collection<IngatlanItem> items) {
-        String sql = """
+        String portalSql = "INSERT OR IGNORE INTO portals (id, name, base_url, color_hex, is_active, rate_limit_ms) VALUES (?, ?, '', '#6c757d', 1, 1000);";
+        String locationSql = "INSERT OR IGNORE INTO locations (id, name, normalized_slug) VALUES (?, ?, ?);";
+        String propertySql = """
             INSERT INTO properties (
-                id, portal, url, title, price_raw, price_amount, price_millions,
-                city, city_key, location, area_sqm, rooms, price_per_sqm,
-                details, image_url, discovered_at, viewed, viewed_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                id, portal_id, location_id, external_id, url, title, status, discovered_at, viewed, viewed_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(url) DO UPDATE SET
+                portal_id = excluded.portal_id,
+                location_id = excluded.location_id,
+                external_id = COALESCE(excluded.external_id, properties.external_id),
                 title = excluded.title,
+                updated_at = CURRENT_TIMESTAMP,
+                viewed = CASE WHEN properties.viewed = 1 THEN 1 ELSE excluded.viewed END,
+                viewed_at = CASE WHEN properties.viewed = 1 THEN properties.viewed_at ELSE excluded.viewed_at END;
+        """;
+        String attrSql = """
+            INSERT INTO property_attributes (
+                property_id, price_raw, price_amount, price_millions, price_per_sqm, area_sqm, rooms, raw_description
+            ) VALUES ((SELECT id FROM properties WHERE url = ?), ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(property_id) DO UPDATE SET
                 price_raw = excluded.price_raw,
                 price_amount = excluded.price_amount,
                 price_millions = excluded.price_millions,
-                city = excluded.city,
-                city_key = excluded.city_key,
-                location = excluded.location,
+                price_per_sqm = excluded.price_per_sqm,
                 area_sqm = excluded.area_sqm,
                 rooms = excluded.rooms,
-                price_per_sqm = excluded.price_per_sqm,
-                details = excluded.details,
-                image_url = CASE WHEN excluded.image_url IS NOT NULL AND excluded.image_url != '' THEN excluded.image_url ELSE properties.image_url END,
-                viewed = CASE WHEN properties.viewed = 1 THEN 1 ELSE excluded.viewed END,
-                viewed_at = CASE WHEN properties.viewed = 1 THEN properties.viewed_at ELSE excluded.viewed_at END;
+                raw_description = excluded.raw_description;
+        """;
+        String imageSql = """
+            INSERT INTO property_images (property_id, image_url, order_index, is_primary)
+            SELECT p.id, ?, 0, 1
+            FROM properties p
+            WHERE p.url = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM property_images pi WHERE pi.property_id = p.id AND pi.image_url = ?
+              );
         """;
 
         try (Connection conn = dbManager.getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            try (PreparedStatement psPortal = conn.prepareStatement(portalSql);
+                 PreparedStatement psLocation = conn.prepareStatement(locationSql);
+                 PreparedStatement psProperty = conn.prepareStatement(propertySql);
+                 PreparedStatement psAttr = conn.prepareStatement(attrSql);
+                 PreparedStatement psImage = conn.prepareStatement(imageSql)) {
+
                 for (IngatlanItem item : items) {
                     if (item == null || item.getUrl() == null || item.getUrl().isBlank()) {
                         continue;
                     }
 
                     String url = item.getUrl().trim();
+                    String rawPortal = item.getPortal();
+                    String portalId = resolvePortalId(rawPortal);
+                    String portalName = resolvePortalName(portalId, rawPortal);
+
+                    // 1. Portál batch
+                    psPortal.setString(1, portalId);
+                    psPortal.setString(2, portalName);
+                    psPortal.addBatch();
+
+                    // 2. Település batch
+                    String city = item.getCity() != null && !item.getCity().isBlank() ? item.getCity() : "Debrecen";
+                    String cityKey = CityUtils.normalizeCityKey(city);
+                    psLocation.setString(1, cityKey);
+                    psLocation.setString(2, city);
+                    psLocation.setString(3, cityKey);
+                    psLocation.addBatch();
+
+                    // 3. Hirdetés alapadatok batch
                     String rawId = item.getId();
-                    String portal = item.getPortal() != null ? item.getPortal() : "Egyéb";
                     String id;
                     if (rawId != null && !rawId.isBlank() && !"N/A".equalsIgnoreCase(rawId)) {
-                        id = portal + "_" + rawId + "_" + Integer.toHexString(url.hashCode());
+                        id = portalId + "_" + rawId + "_" + Integer.toHexString(url.hashCode());
                     } else {
                         id = UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8)).toString();
                     }
-                    String title = item.getTitle() != null ? item.getTitle() : portal + " hirdetés";
+                    String title = item.getTitle() != null ? item.getTitle() : portalName + " hirdetés";
+                    String discoveredAt = item.getDiscoveredAt() != null && !item.getDiscoveredAt().isBlank()
+                            ? item.getDiscoveredAt()
+                            : LocalDateTime.now().format(DATE_TIME_FORMATTER);
+                    int viewed = item.isViewed() ? 1 : 0;
+                    String viewedAt = item.getViewedAt();
 
-                    // Ár kinyerése és strukturálása
+                    psProperty.setString(1, id);
+                    psProperty.setString(2, portalId);
+                    psProperty.setString(3, cityKey);
+                    psProperty.setString(4, rawId);
+                    psProperty.setString(5, url);
+                    psProperty.setString(6, title);
+                    psProperty.setString(7, discoveredAt);
+                    psProperty.setInt(8, viewed);
+                    psProperty.setString(9, viewedAt);
+                    psProperty.setString(10, discoveredAt);
+                    psProperty.addBatch();
+
+                    // 4. Hirdetés attribútumok batch
                     String priceRaw = item.getPrice();
                     Long priceAmount = null;
                     Double priceMillions = null;
@@ -123,11 +194,6 @@ public class SqliteListingStorage implements ListingStorage {
                         priceMillions = pi.getAmountMillion();
                     }
 
-                    String city = item.getCity() != null && !item.getCity().isBlank() ? item.getCity() : "Debrecen";
-                    String cityKey = CityUtils.normalizeCityKey(city);
-                    String location = item.getLocation() != null ? item.getLocation() : city;
-
-                    // Terület és szobaszám
                     Double areaSqm = null;
                     Double rooms = null;
                     Long pricePerSqm = null;
@@ -142,41 +208,64 @@ public class SqliteListingStorage implements ListingStorage {
                     }
 
                     String details = item.getDetails() != null ? item.getDetails() : "";
-                    String imageUrl = item.getImageUrl() != null ? item.getImageUrl() : "";
-                    String discoveredAt = item.getDiscoveredAt() != null && !item.getDiscoveredAt().isBlank()
-                            ? item.getDiscoveredAt()
-                            : LocalDateTime.now().format(DATE_TIME_FORMATTER);
-                    int viewed = item.isViewed() ? 1 : 0;
-                    String viewedAt = item.getViewedAt();
 
-                    ps.setString(1, id);
-                    ps.setString(2, portal);
-                    ps.setString(3, item.getUrl().trim());
-                    ps.setString(4, title);
-                    ps.setString(5, priceRaw);
-                    if (priceAmount != null) ps.setLong(6, priceAmount); else ps.setNull(6, Types.BIGINT);
-                    if (priceMillions != null) ps.setDouble(7, priceMillions); else ps.setNull(7, Types.REAL);
-                    ps.setString(8, city);
-                    ps.setString(9, cityKey);
-                    ps.setString(10, location);
-                    if (areaSqm != null) ps.setDouble(11, areaSqm); else ps.setNull(11, Types.REAL);
-                    if (rooms != null) ps.setDouble(12, rooms); else ps.setNull(12, Types.REAL);
-                    if (pricePerSqm != null) ps.setLong(13, pricePerSqm); else ps.setNull(13, Types.BIGINT);
-                    ps.setString(14, details);
-                    ps.setString(15, imageUrl);
-                    ps.setString(16, discoveredAt);
-                    ps.setInt(17, viewed);
-                    ps.setString(18, viewedAt);
+                    psAttr.setString(1, url);
+                    psAttr.setString(2, priceRaw);
+                    if (priceAmount != null) psAttr.setLong(3, priceAmount); else psAttr.setNull(3, Types.BIGINT);
+                    if (priceMillions != null) psAttr.setDouble(4, priceMillions); else psAttr.setNull(4, Types.REAL);
+                    if (pricePerSqm != null) psAttr.setLong(5, pricePerSqm); else psAttr.setNull(5, Types.BIGINT);
+                    if (areaSqm != null) psAttr.setDouble(6, areaSqm); else psAttr.setNull(6, Types.REAL);
+                    if (rooms != null) psAttr.setDouble(7, rooms); else psAttr.setNull(7, Types.REAL);
+                    psAttr.setString(8, details);
+                    psAttr.addBatch();
 
-                    ps.addBatch();
+                    // 5. Kép batch
+                    String imageUrl = item.getImageUrl();
+                    if (imageUrl != null && !imageUrl.isBlank()) {
+                        psImage.setString(1, imageUrl);
+                        psImage.setString(2, url);
+                        psImage.setString(3, imageUrl);
+                        psImage.addBatch();
+                    }
                 }
-                ps.executeBatch();
+
+                psPortal.executeBatch();
+                psLocation.executeBatch();
+                psProperty.executeBatch();
+                psAttr.executeBatch();
+                psImage.executeBatch();
             }
             conn.commit();
         } catch (SQLException e) {
-            LOGGER.error("Hiba a hirdetések SQLite mentésekor: {}", e.getMessage(), e);
+            LOGGER.error("Hiba a hirdetések 3NF SQLite mentésekor: {}", e.getMessage(), e);
             throw new RuntimeException("Adatbázis mentési hiba: " + e.getMessage(), e);
         }
+    }
+
+    private static String resolvePortalId(String rawPortal) {
+        if (rawPortal == null || rawPortal.isBlank()) {
+            return "egyeb";
+        }
+        String p = rawPortal.trim().toLowerCase(Locale.ROOT);
+        if (p.contains("duna") || p.equals("dh")) return "dh";
+        if (p.contains("otthon") || p.equals("oc")) return "oc";
+        if (p.contains("jofogas") || p.contains("jófogás")) return "jofogas";
+        if (p.contains("bazar") || p.contains("bazár")) return "ingatlanbazar";
+        if (p.contains("koltozz") || p.contains("költözz")) return "koltozzbe";
+        if (p.contains("ingatlan.com") || p.contains("ingatlancom")) return "ingatlancom";
+        return SlugUtils.toSlug(p);
+    }
+
+    private static String resolvePortalName(String portalId, String rawPortal) {
+        return switch (portalId) {
+            case "dh" -> "Duna House";
+            case "oc" -> "Otthon Centrum";
+            case "jofogas" -> "Jófogás";
+            case "ingatlanbazar" -> "Ingatlanbazár";
+            case "koltozzbe" -> "Költözzbe";
+            case "ingatlancom" -> "Ingatlan.com";
+            default -> (rawPortal != null && !rawPortal.isBlank()) ? rawPortal : "Egyéb";
+        };
     }
 
     @Override
@@ -187,7 +276,7 @@ public class SqliteListingStorage implements ListingStorage {
         rwLock.readLock().lock();
         try {
             String cityKey = CityUtils.normalizeCityKey(city);
-            String sql = "SELECT * FROM properties WHERE city_key = ? ORDER BY discovered_at DESC;";
+            String sql = SELECT_3NF_BASE + " WHERE loc.normalized_slug = ? ORDER BY p.discovered_at DESC;";
             try (Connection conn = dbManager.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, cityKey);
@@ -211,7 +300,7 @@ public class SqliteListingStorage implements ListingStorage {
     public List<IngatlanItem> getAll() {
         rwLock.readLock().lock();
         try {
-            String sql = "SELECT * FROM properties ORDER BY discovered_at DESC;";
+            String sql = SELECT_3NF_BASE + " ORDER BY p.discovered_at DESC;";
             try (Connection conn = dbManager.getConnection();
                  Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
@@ -237,7 +326,7 @@ public class SqliteListingStorage implements ListingStorage {
         rwLock.readLock().lock();
         try {
             String cityKey = CityUtils.normalizeCityKey(city);
-            String sql = "SELECT 1 FROM properties WHERE city_key = ? LIMIT 1;";
+            String sql = "SELECT 1 FROM properties p JOIN locations loc ON p.location_id = loc.id WHERE loc.normalized_slug = ? LIMIT 1;";
             try (Connection conn = dbManager.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, cityKey);
@@ -265,7 +354,7 @@ public class SqliteListingStorage implements ListingStorage {
                     return false;
                 }
                 String cityKey = CityUtils.normalizeCityKey(city);
-                String sql = "SELECT 1 FROM properties WHERE url = ? AND city_key = ? LIMIT 1;";
+                String sql = "SELECT 1 FROM properties p JOIN locations loc ON p.location_id = loc.id WHERE p.url = ? AND loc.normalized_slug = ? LIMIT 1;";
                 try (Connection conn = dbManager.getConnection();
                      PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, url.trim());
@@ -384,7 +473,13 @@ public class SqliteListingStorage implements ListingStorage {
     public List<Map<String, Object>> getTrackedCitiesInfo() {
         rwLock.readLock().lock();
         try {
-            String sql = "SELECT city, city_key, COUNT(*) AS cnt, MAX(discovered_at) AS last_seen FROM properties GROUP BY city_key, city ORDER BY cnt DESC;";
+            String sql = """
+                SELECT loc.name AS city, loc.normalized_slug AS city_key, COUNT(*) AS cnt, MAX(p.discovered_at) AS last_seen
+                FROM properties p
+                JOIN locations loc ON p.location_id = loc.id
+                GROUP BY loc.normalized_slug, loc.name
+                ORDER BY cnt DESC;
+            """;
             try (Connection conn = dbManager.getConnection();
                  Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
@@ -424,12 +519,12 @@ public class SqliteListingStorage implements ListingStorage {
         rwLock.writeLock().lock();
         try {
             String cityKey = CityUtils.normalizeCityKey(city);
-            String sql = "DELETE FROM properties WHERE city_key = ?;";
+            String sql = "DELETE FROM properties WHERE location_id = (SELECT id FROM locations WHERE normalized_slug = ? LIMIT 1);";
             try (Connection conn = dbManager.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, cityKey);
                 int deleted = ps.executeUpdate();
-                LOGGER.info("[SQLite] Város előzményei törölve: {} ({} db rekord)", city, deleted);
+                LOGGER.info("[SQLite 3NF] Város előzményei törölve: {} ({} db rekord)", city, deleted);
             } catch (SQLException e) {
                 LOGGER.error("Hiba a város előzményeinek törlésekor [{}]: {}", city, e.getMessage(), e);
             }
@@ -442,11 +537,12 @@ public class SqliteListingStorage implements ListingStorage {
     public void clearHistory() {
         rwLock.writeLock().lock();
         try {
-            String sql = "DELETE FROM properties;";
             try (Connection conn = dbManager.getConnection();
                  Statement stmt = conn.createStatement()) {
-                int deleted = stmt.executeUpdate(sql);
-                LOGGER.info("[SQLite] Teljes hirdetésadatbázis törölve ({} db rekord)", deleted);
+                stmt.execute("DELETE FROM property_images;");
+                stmt.execute("DELETE FROM property_attributes;");
+                int deleted = stmt.executeUpdate("DELETE FROM properties;");
+                LOGGER.info("[SQLite 3NF] Teljes hirdetésadatbázis törölve ({} db rekord)", deleted);
             } catch (SQLException e) {
                 LOGGER.error("Hiba az adatbázis törlésekor: {}", e.getMessage(), e);
             }
@@ -480,7 +576,13 @@ public class SqliteListingStorage implements ListingStorage {
     public Map<String, Long> countByPortal() {
         rwLock.readLock().lock();
         Map<String, Long> result = new LinkedHashMap<>();
-        String sql = "SELECT portal, COUNT(*) as cnt FROM properties GROUP BY portal ORDER BY cnt DESC;";
+        String sql = """
+            SELECT po.name as portal, COUNT(*) as cnt
+            FROM properties p
+            JOIN portals po ON p.portal_id = po.id
+            GROUP BY po.name
+            ORDER BY cnt DESC;
+        """;
         try (Connection conn = dbManager.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -488,7 +590,7 @@ public class SqliteListingStorage implements ListingStorage {
                 String portal = rs.getString("portal");
                 long count = rs.getLong("cnt");
                 if (portal != null && !portal.isBlank()) {
-                    result.put(portal.trim().toLowerCase(), count);
+                    result.put(portal.trim().toLowerCase(Locale.ROOT), count);
                 }
             }
         } catch (SQLException e) {
@@ -559,7 +661,7 @@ public class SqliteListingStorage implements ListingStorage {
         }
 
         item.setCity(rs.getString("city"));
-        item.setLocation(rs.getString("location"));
+        item.setLocation(rs.getString("city"));
 
         String details = rs.getString("details");
         double areaSqm = rs.getDouble("area_sqm");

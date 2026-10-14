@@ -42,6 +42,10 @@ class SqliteDatabaseManagerTest {
                     tables.add(rs.getString(1));
                 }
                 assertTrue(tables.contains("properties"), "properties táblának léteznie kell");
+                assertTrue(tables.contains("portals"), "portals táblának léteznie kell");
+                assertTrue(tables.contains("locations"), "locations táblának léteznie kell");
+                assertTrue(tables.contains("property_attributes"), "property_attributes táblának léteznie kell");
+                assertTrue(tables.contains("property_images"), "property_images táblának léteznie kell");
                 assertTrue(tables.contains("search_config"), "search_config táblának léteznie kell");
                 assertTrue(tables.contains("search_runs"), "search_runs táblának léteznie kell");
             }
@@ -53,9 +57,14 @@ class SqliteDatabaseManagerTest {
                     indexes.add(rs.getString(1));
                 }
                 assertTrue(indexes.contains("idx_properties_url"));
-                assertTrue(indexes.contains("idx_properties_city_key"));
+                assertTrue(indexes.contains("idx_properties_location_id"));
+                assertTrue(indexes.contains("idx_properties_portal_id"));
                 assertTrue(indexes.contains("idx_properties_viewed"));
-                assertTrue(indexes.contains("idx_properties_discovered"));
+                assertTrue(indexes.contains("idx_properties_discovered_at"));
+                assertTrue(indexes.contains("idx_locations_slug"));
+                assertTrue(indexes.contains("idx_prop_attr_price_amount"));
+                assertTrue(indexes.contains("idx_prop_attr_area_sqm"));
+                assertTrue(indexes.contains("idx_prop_images_property_id"));
             }
         }
     }
@@ -90,6 +99,12 @@ class SqliteDatabaseManagerTest {
                 assertTrue(changeSetIds.contains("001-create-properties-indexes"));
                 assertTrue(changeSetIds.contains("001-create-search-config-table"));
                 assertTrue(changeSetIds.contains("001-create-search-runs-table"));
+                assertTrue(changeSetIds.contains("002-create-portals-table"));
+                assertTrue(changeSetIds.contains("002-create-locations-table"));
+                assertTrue(changeSetIds.contains("002-create-3nf-properties-table"));
+                assertTrue(changeSetIds.contains("002-create-property-attributes-table"));
+                assertTrue(changeSetIds.contains("002-create-property-images-table"));
+                assertTrue(changeSetIds.contains("002-create-3nf-indexes"));
             }
         }
     }

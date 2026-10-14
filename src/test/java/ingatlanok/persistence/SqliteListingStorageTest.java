@@ -178,4 +178,82 @@ class SqliteListingStorageTest {
 
         assertEquals(threads, storage.getTotalCount());
     }
+
+    @Test
+    @DisplayName("3NF relációs integritás, idegen kulcsok és ON DELETE CASCADE működése")
+    void testRelationalIntegrityAndCascadeDelete() throws java.sql.SQLException {
+        IngatlanItem item = new IngatlanItem("100", "Duna House", "https://dh.hu/rel-test", "3NF Lakás", "65 M Ft", "Debrecen", "Debrecen", "75 m² 3 szoba", "2026-10-14 12:00:00", true);
+        item.setPriceInfo(new PriceInfo("65 M Ft", 65_000_000L, 65.0));
+        item.setDetailsInfo(new PropertyDetails("75 m² 3 szoba", 75.0, 3.0, 866_666L));
+        item.setImageUrl("https://dh.hu/photo.jpg");
+
+        storage.saveCityItems("Debrecen", List.of(item));
+
+        try (java.sql.Connection conn = dbManager.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+
+            // 1. Portál ellenőrzése
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT id, name FROM portals WHERE id = 'dh';")) {
+                assertTrue(rs.next());
+                assertEquals("Duna House", rs.getString("name"));
+            }
+
+            // 2. Település ellenőrzése
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT id, name, normalized_slug FROM locations WHERE normalized_slug = 'debrecen';")) {
+                assertTrue(rs.next());
+                assertEquals("Debrecen", rs.getString("name"));
+            }
+
+            // 3. Properties rekord és idegen kulcsok
+            String propertyId;
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT id, portal_id, location_id FROM properties WHERE url = 'https://dh.hu/rel-test';")) {
+                assertTrue(rs.next());
+                propertyId = rs.getString("id");
+                assertEquals("dh", rs.getString("portal_id"));
+                assertEquals("debrecen", rs.getString("location_id"));
+            }
+
+            // 4. Attribútumok és képek relációi
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT price_amount, area_sqm, rooms FROM property_attributes WHERE property_id = '" + propertyId + "';")) {
+                assertTrue(rs.next());
+                assertEquals(65_000_000L, rs.getLong("price_amount"));
+                assertEquals(75.0, rs.getDouble("area_sqm"));
+                assertEquals(3.0, rs.getDouble("rooms"));
+            }
+
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT image_url, is_primary FROM property_images WHERE property_id = '" + propertyId + "';")) {
+                assertTrue(rs.next());
+                assertEquals("https://dh.hu/photo.jpg", rs.getString("image_url"));
+                assertTrue(rs.getBoolean("is_primary"));
+            }
+
+            // 5. ON DELETE CASCADE ellenőrzése: property törlésekor az attribútumok és képek is törlődnek
+            stmt.executeUpdate("DELETE FROM properties WHERE id = '" + propertyId + "';");
+
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM property_attributes WHERE property_id = '" + propertyId + "';")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), "property_attributes rekordnak kaszkádolva törlődnie kellett!");
+            }
+
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM property_images WHERE property_id = '" + propertyId + "';")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), "property_images rekordnak kaszkádolva törlődnie kellett!");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Portálonkénti aggregált statisztika 3NF relációkból")
+    void testCountByPortal3NF() {
+        IngatlanItem item1 = new IngatlanItem("p1", "Duna House", "https://dh.hu/p1", "DH 1", "50 M Ft", "Debrecen", "Debrecen", "50 m²", "2026-10-14 10:00:00", true);
+        IngatlanItem item2 = new IngatlanItem("p2", "Duna House", "https://dh.hu/p2", "DH 2", "55 M Ft", "Debrecen", "Debrecen", "55 m²", "2026-10-14 10:05:00", true);
+        IngatlanItem item3 = new IngatlanItem("p3", "Otthon Centrum", "https://oc.hu/p3", "OC 1", "40 M Ft", "Budapest", "Budapest", "45 m²", "2026-10-14 10:10:00", true);
+
+        storage.saveAll(List.of(item1, item2, item3));
+
+        Map<String, Long> counts = storage.countByPortal();
+        assertNotNull(counts);
+        assertEquals(2L, counts.get("duna house"));
+        assertEquals(1L, counts.get("otthon centrum"));
+    }
 }
