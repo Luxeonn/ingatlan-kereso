@@ -236,4 +236,24 @@ class WebServerIntegrationTest {
         HttpResponse<String> postResponse = client.send(postRequest, HttpResponse.BodyHandlers.ofString());
         assertEquals(405, postResponse.statusCode());
     }
+
+    @Test
+    @DisplayName("POST /api/logs/clear clears recent structured logs and GET returns 405")
+    void testLogsClearEndpoint() throws Exception {
+        HttpRequest postRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/logs/clear"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> postResponse = client.send(postRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, postResponse.statusCode());
+        JsonObject result = JsonParser.parseString(postResponse.body()).getAsJsonObject();
+        assertTrue(result.get("success").getAsBoolean());
+
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/logs/clear"))
+                .GET()
+                .build();
+        HttpResponse<String> getResponse = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(405, getResponse.statusCode());
+    }
 }

@@ -211,9 +211,9 @@ public class WebDashboardHtml {
         }
 
         .search-form-container {
-            max-height: 1400px;
+            max-height: 2000px;
             opacity: 1;
-            overflow: hidden;
+            overflow: visible;
             transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.35s ease;
         }
         .search-form-container.collapsed {
@@ -222,6 +222,7 @@ public class WebDashboardHtml {
             pointer-events: none;
             margin: 0;
             padding: 0;
+            overflow: hidden;
         }
 
         .grid-filters {
@@ -258,6 +259,16 @@ public class WebDashboardHtml {
         .form-control:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .city-group {
+            position: relative;
+            z-index: 60;
+        }
+
+        .city-multiselect-container {
+            position: relative;
+            width: 100%;
         }
 
         .city-chips-box {
@@ -310,6 +321,24 @@ public class WebDashboardHtml {
             min-width: 120px;
             padding: 4px 2px;
         }
+        .city-dropdown-toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .city-dropdown-toggle-btn:hover {
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.12);
+        }
         .city-dropdown {
             position: absolute;
             top: calc(100% + 6px);
@@ -320,13 +349,21 @@ public class WebDashboardHtml {
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
             z-index: 100;
-            max-height: 320px;
+            max-height: 340px;
             overflow-y: auto;
             display: none;
             padding: 8px;
         }
         .city-dropdown.show {
             display: block;
+        }
+        .city-section-header {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            padding: 6px 8px 4px 8px;
         }
         .city-presets-bar {
             display: flex;
@@ -1215,6 +1252,83 @@ public class WebDashboardHtml {
             background: rgba(245, 158, 11, 0.25);
             border-color: #f59e0b;
         }
+
+        /* Live Logs Modal CSS */
+        .log-terminal {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #e2e8f0;
+            max-height: 480px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log-entry {
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .log-entry.level-INFO .log-level-badge {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+        }
+        .log-entry.level-WARN .log-level-badge {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.15);
+        }
+        .log-entry.level-ERROR .log-level-badge {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.15);
+        }
+        .log-entry.level-DEBUG .log-level-badge {
+            color: #94a3b8;
+            background: rgba(148, 163, 184, 0.15);
+        }
+        .log-level-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+        .log-text {
+            flex: 1;
+        }
+        .log-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .log-filter-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .log-filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -1224,11 +1338,17 @@ public class WebDashboardHtml {
                 <span class="logo-icon">🏠</span>
                 <div class="logo-text">
                     <h1>Ingatlan Kereső</h1>
-                    <p id="last-run-info">Adatbázis: <strong id="db-count">0</strong> hirdetés tárolva</p>
+                    <p id="header-subtitle">
+                        Adatbázis: <strong id="db-count">0</strong> hirdetés tárolva
+                        <span id="last-run-info" style="display: none; margin-left: 8px;"></span>
+                    </p>
                 </div>
             </div>
             <div class="header-actions">
-                <button class="theme-toggle-btn" id="theme-btn" title="Téma váltása">🌙</button>
+                <button type="button" class="btn-secondary" id="btn-logs" onclick="openLogsModal()" title="Keresési napló és konzol megtekintése">
+                    📜 Napló (<span id="logs-badge-count">0</span>)
+                </button>
+                <button type="button" class="theme-toggle-btn" id="theme-btn" title="Téma váltása">🌙</button>
             </div>
         </div>
     </header>
@@ -1253,15 +1373,18 @@ public class WebDashboardHtml {
             <div id="search-form-container" class="search-form-container">
                 <form id="search-form">
                 <div class="grid-filters">
-                    <div class="form-group">
+                    <div class="form-group city-group">
                         <label for="city-search-input">Települések (több is kiválasztható)</label>
                         <div class="city-multiselect-container" id="city-multiselect">
-                            <div class="city-chips-box" id="city-chips-box" onclick="focusCitySearch()">
+                            <div class="city-chips-box" id="city-chips-box" onclick="focusCitySearch(event)">
                                 <div id="selected-chips-container" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
                                 <input type="text" id="city-search-input" class="city-search-input" placeholder="Város keresése vagy beírása..." autocomplete="off">
+                                <button type="button" class="city-dropdown-toggle-btn" id="city-dropdown-toggle-btn" onclick="toggleCityDropdown(event)" title="Választási lehetőségek megjelenítése">▾</button>
                             </div>
                             <div class="city-dropdown" id="city-dropdown">
+                                <div class="city-section-header">🎯 Gyors régiós sablonok</div>
                                 <div class="city-presets-bar" id="city-presets-bar"></div>
+                                <div class="city-section-header">📍 Települések listája (kattints a hozzáadáshoz / törléshez)</div>
                                 <div id="city-dropdown-list"></div>
                                 <div id="city-custom-add" class="city-add-custom" style="display:none;" onclick="addCustomCityFromInput()"></div>
                             </div>
@@ -1410,13 +1533,16 @@ public class WebDashboardHtml {
             </div>
 
             <div class="quick-actions">
-                <button class="btn-diagnostics" id="btn-diagnostics" onclick="openDiagnosticsModal()" style="display: none;" title="Portál diagnosztika és hibaállapotok">
+                <button type="button" class="btn-secondary" id="btn-quick-logs" onclick="openLogsModal()" title="Keresési naplók és folyamatok megtekintése">
+                    📜 Napló
+                </button>
+                <button type="button" class="btn-diagnostics" id="btn-diagnostics" onclick="openDiagnosticsModal()" style="display: none;" title="Portál diagnosztika és hibaállapotok">
                     ⚠️ Diagnosztika (<span id="diagnostics-issue-count">0</span>)
                 </button>
-                <button class="btn-secondary" id="btn-open-all-new" onclick="openAllNew()" style="display: none;">
+                <button type="button" class="btn-secondary" id="btn-open-all-new" onclick="openAllNew()" style="display: none;">
                     🚀 Összes új megnyitása (<span id="new-badge-count">0</span>)
                 </button>
-                <button class="btn-secondary" onclick="clearHistoryConfirm()">
+                <button type="button" class="btn-secondary" onclick="clearHistoryConfirm()">
                     🗑️ Előzmények törlése
                 </button>
             </div>
@@ -1459,6 +1585,49 @@ public class WebDashboardHtml {
         </div>
     </div>
 
+    <!-- Live Logs Modal -->
+    <div class="modal-overlay" id="modal-logs" onclick="handleLogsModalOverlayClick(event)">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-logs-title">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-logs-title">
+                    <span>📜 Rendszernapló és Keresési Folyamat</span>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeLogsModal()" aria-label="Bezárás">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="log-toolbar">
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="log-filter-btn active" data-level="ALL" onclick="filterLogs('ALL')">Összes (<span id="log-count-all">0</span>)</button>
+                        <button type="button" class="log-filter-btn" data-level="INFO" onclick="filterLogs('INFO')">INFO</button>
+                        <button type="button" class="log-filter-btn" data-level="WARN" onclick="filterLogs('WARN')">WARN</button>
+                        <button type="button" class="log-filter-btn" data-level="ERROR" onclick="filterLogs('ERROR')">ERROR</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-size: 12px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-secondary);">
+                            <input type="checkbox" id="log-auto-refresh-check" checked onchange="toggleLogAutoRefresh(this.checked)">
+                            <span>Auto frissítés</span>
+                        </label>
+                        <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="refreshLogs()">🔄 Frissítés</button>
+                    </div>
+                </div>
+                <div class="log-terminal" id="logs-terminal">
+                    <!-- Dinamikusan feltöltött naplósorok -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btn-copy-logs" onclick="copyLogsToClipboard()">
+                    📋 Napló Másolása
+                </button>
+                <button type="button" class="btn-secondary" onclick="clearLogsServer()">
+                    🗑️ Törlés
+                </button>
+                <button type="button" class="btn-secondary" onclick="closeLogsModal()">
+                    Bezárás
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast"></div>
 """;
@@ -1488,8 +1657,45 @@ public class WebDashboardHtml {
         let starredUrls = new Set(JSON.parse(localStorage.getItem('starred_urls') || '[]'));
 
         let selectedCities = ['Debrecen'];
-        let predefinedCities = [];
-        let cityPresets = {};
+        let predefinedCities = [
+            { name: "Debrecen", county: "Hajdú-Bihar", group: "Kelet-Magyarország" },
+            { name: "Budapest", county: "Pest", group: "Közép-Magyarország" },
+            { name: "Szeged", county: "Csongrád-Csanád", group: "Dél-Alföld" },
+            { name: "Miskolc", county: "Borsod-Abaúj-Zemplén", group: "Észak-Magyarország" },
+            { name: "Pécs", county: "Baranya", group: "Dél-Dunántúl" },
+            { name: "Győr", county: "Győr-Moson-Sopron", group: "Nyugat-Dunántúl" },
+            { name: "Nyíregyháza", county: "Szabolcs-Szatmár-Bereg", group: "Kelet-Magyarország" },
+            { name: "Kecskemét", county: "Bács-Kiskun", group: "Dél-Alföld" },
+            { name: "Székesfehérvár", county: "Fejér", group: "Közép-Dunántúl" },
+            { name: "Szombathely", county: "Vas", group: "Nyugat-Dunántúl" },
+            { name: "Szolnok", county: "Jász-Nagykun-Szolnok", group: "Észak-Alföld" },
+            { name: "Tatabánya", county: "Komárom-Esztergom", group: "Közép-Dunántúl" },
+            { name: "Veszprém", county: "Veszprém", group: "Közép-Dunántúl" },
+            { name: "Békéscsaba", county: "Békés", group: "Dél-Alföld" },
+            { name: "Zalaegerszeg", county: "Zala", group: "Nyugat-Dunántúl" },
+            { name: "Eger", county: "Heves", group: "Észak-Magyarország" },
+            { name: "Nagykanizsa", county: "Zala", group: "Nyugat-Dunántúl" },
+            { name: "Dunakeszi", county: "Pest", group: "Budapesti agglomeráció" },
+            { name: "Érd", county: "Pest", group: "Budapesti agglomeráció" },
+            { name: "Szentendre", county: "Pest", group: "Budapesti agglomeráció" },
+            { name: "Gödöllő", county: "Pest", group: "Budapesti agglomeráció" },
+            { name: "Vác", county: "Pest", group: "Budapesti agglomeráció" },
+            { name: "Hajdúszoboszló", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Balmazújváros", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Hajdúböszörmény", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Hajdúsámson", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Derecske", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Mikepércs", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Ebes", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Bocskaikert", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Vámospércs", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" },
+            { name: "Józsa", county: "Hajdú-Bihar", group: "Debreceni agglomeráció" }
+        ];
+        let cityPresets = {
+            "Debreceni agglomeráció": ["Debrecen", "Hajdúsámson", "Hajdúszoboszló", "Mikepércs", "Ebes", "Bocskaikert"],
+            "Budapesti agglomeráció": ["Budapest", "Dunakeszi", "Érd", "Szentendre", "Gödöllő", "Budaörs"],
+            "Egyetemvárosok": ["Debrecen", "Szeged", "Pécs", "Győr", "Miskolc"]
+        };
         let trackedCities = [];
 
         function updateStarredCount() {
@@ -1598,7 +1804,25 @@ public class WebDashboardHtml {
             el.value = val;
         }
 
-        function focusCitySearch() {
+        function toggleCityDropdown(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const dropdown = document.getElementById('city-dropdown');
+            if (dropdown && dropdown.classList.contains('show')) {
+                closeCityDropdown();
+            } else {
+                openCityDropdown();
+                const input = document.getElementById('city-search-input');
+                if (input) input.focus();
+            }
+        }
+
+        function focusCitySearch(e) {
+            if (e && e.target && (e.target.id === 'city-dropdown-toggle-btn' || e.target.classList.contains('chip-remove'))) {
+                return;
+            }
             const input = document.getElementById('city-search-input');
             if (input) input.focus();
             openCityDropdown();
@@ -1619,6 +1843,10 @@ public class WebDashboardHtml {
 
         document.addEventListener('click', (e) => {
             const container = document.getElementById('city-multiselect');
+            const label = document.querySelector('label[for="city-search-input"]');
+            if (label && label.contains(e.target)) {
+                return;
+            }
             if (container && !container.contains(e.target)) {
                 closeCityDropdown();
             }
@@ -1657,9 +1885,19 @@ public class WebDashboardHtml {
             container.innerHTML = selectedCities.map(city => `
                 <span class="city-chip">
                     📍 ${escapeHtml(city)}
-                    <span class="chip-remove" onclick="removeCityTag('${escapeHtml(city)}')">&times;</span>
+                    <span class="chip-remove" onclick="event.stopPropagation(); removeCityTag('${escapeHtml(city)}')">&times;</span>
                 </span>
             `).join('');
+        }
+
+        function toggleCityTag(cityName) {
+            const trimmed = cityName.trim();
+            if (!trimmed) return;
+            if (selectedCities.includes(trimmed)) {
+                removeCityTag(trimmed);
+            } else {
+                addCityTag(trimmed);
+            }
         }
 
         function addCityTag(cityName) {
@@ -1745,7 +1983,7 @@ public class WebDashboardHtml {
                 }
 
                 return `
-                    <div class="city-dropdown-item ${isSelected ? 'selected' : ''}" onclick="addCityTag('${escapeHtml(c.name)}')">
+                    <div class="city-dropdown-item ${isSelected ? 'selected' : ''}" onclick="toggleCityTag('${escapeHtml(c.name)}')">
                         <div class="city-name-group">
                             <span>${isSelected ? '✓ ' : '+ '}<strong>${escapeHtml(c.name)}</strong></span>
                             <span style="font-size:11px; color:var(--text-secondary);">${escapeHtml(c.county || '')}</span>
@@ -1998,6 +2236,7 @@ public class WebDashboardHtml {
 
                 await refreshHistory();
                 updateStarredCount();
+                refreshLogs();
             } catch (e) {
                 console.error("Hiba az inicializáláskor:", e);
                 renderSelectedCityChips();
@@ -2092,16 +2331,23 @@ public class WebDashboardHtml {
                 selectedResultPortal = 'all';
                 selectedResultCity = 'all';
                 onlyNewFilter = false;
+                notViewedFilter = false;
                 currentSort = 'price-asc';
                 const sortSelect = document.getElementById('sort-select');
                 if (sortSelect) sortSelect.value = 'price-asc';
                 const onlyNewBtn = document.getElementById('filter-only-new-btn');
                 if (onlyNewBtn) onlyNewBtn.classList.remove('active');
+                const notViewedBtn = document.getElementById('filter-not-viewed-btn');
+                if (notViewedBtn) notViewedBtn.classList.remove('active');
                 document.querySelectorAll('.portal-filter-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.getAttribute('data-portal') === 'all');
                 });
                 switchTab('current');
                 showToast(`✅ Kész! ${data.totalFound} hirdetés feldolgozva (${data.newCount} új)`);
+                const controlsBar = document.querySelector('.controls-bar');
+                if (controlsBar) {
+                    controlsBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             } catch (err) {
                 showToast("❌ Hiba történt: " + err.message);
             } finally {
@@ -2274,7 +2520,20 @@ public class WebDashboardHtml {
                 } else if (activeTab === 'starred') {
                     emptyState.innerHTML = `<div class="empty-state-icon">⭐</div><h3>Még nincsenek kedvenc hirdetéseid</h3><p>Kattints a csillag (☆) ikonra bármelyik kártyán a mentéshez!</p>`;
                 } else if (activeTab === 'current') {
-                    emptyState.innerHTML = `<div class="empty-state-icon">🔎</div><h3>Nincs találat az aktuális keresésben</h3><p>Indíts új keresést a fenti gombbal!</p>`;
+                    const minP = document.getElementById('min-price-input').value.trim();
+                    const maxP = document.getElementById('max-price-input').value.trim();
+                    const minA = document.getElementById('min-area-input').value.trim();
+                    const maxA = document.getElementById('max-area-input').value.trim();
+                    emptyState.innerHTML = `
+                        <div class="empty-state-icon">🔎</div>
+                        <h3>Nem találtunk hirdetést a megadott feltételekkel</h3>
+                        <p>A megadott feltételek (${minP || '0'} - ${maxP || '∞'} M Ft, ${minA || '0'} - ${maxA || '∞'} m²) túl szigorúak lehetnek a kiválasztott településekhez (${escapeHtml(selectedCities.join(', '))}).</p>
+                        <div style="margin-top: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                            <button type="button" class="btn-search" style="padding: 8px 18px; font-size: 13px;" onclick="resetSearchBoundsAndRerun()">
+                                🔄 Korlátok tágítása és újrakeresés
+                            </button>
+                        </div>
+                    `;
                 } else {
                     emptyState.innerHTML = `<div class="empty-state-icon">📂</div><h3>Az archívum üres</h3><p>A lefutott keresések itt fognak megjelenni.</p>`;
                 }
@@ -2513,6 +2772,8 @@ public class WebDashboardHtml {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeDiagnosticsModal();
+                closeLogsModal();
+                closeCityDropdown();
             }
         });
 
@@ -2555,6 +2816,155 @@ public class WebDashboardHtml {
                 showToast('📋 Diagnosztikai jelentés kimásolva a vágólapra!');
             } catch (err) {
                 showToast('Nem sikerült kimásolni a jelentést: ' + err.message);
+            }
+        }
+
+        function resetSearchBoundsAndRerun() {
+            document.getElementById('min-price-input').value = '0';
+            document.getElementById('max-price-input').value = '300';
+            document.getElementById('min-area-input').value = '20';
+            document.getElementById('max-area-input').value = '400';
+            const form = document.getElementById('search-form');
+            if (form) form.requestSubmit();
+        }
+
+        let allLogs = [];
+        let currentLogLevel = 'ALL';
+        let logAutoRefreshInterval = null;
+
+        async function openLogsModal() {
+            const modal = document.getElementById('modal-logs');
+            if (modal) {
+                modal.classList.add('show');
+                await refreshLogs();
+                const autoCheck = document.getElementById('log-auto-refresh-check');
+                if (autoCheck && autoCheck.checked) {
+                    toggleLogAutoRefresh(true);
+                }
+            }
+        }
+
+        function closeLogsModal() {
+            const modal = document.getElementById('modal-logs');
+            if (modal) {
+                modal.classList.remove('show');
+                toggleLogAutoRefresh(false);
+            }
+        }
+
+        function handleLogsModalOverlayClick(e) {
+            if (e.target && e.target.id === 'modal-logs') {
+                closeLogsModal();
+            }
+        }
+
+        function toggleLogAutoRefresh(enabled) {
+            if (logAutoRefreshInterval) {
+                clearInterval(logAutoRefreshInterval);
+                logAutoRefreshInterval = null;
+            }
+            if (enabled) {
+                logAutoRefreshInterval = setInterval(refreshLogs, 3000);
+            }
+        }
+
+        async function refreshLogs() {
+            try {
+                const res = await fetch('/api/logs?limit=200');
+                if (res.ok) {
+                    const data = await res.json();
+                    allLogs = Array.isArray(data) ? data : (data.logs || []);
+                    const badge = document.getElementById('logs-badge-count');
+                    const allCount = document.getElementById('log-count-all');
+                    if (badge) badge.textContent = allLogs.length;
+                    if (allCount) allCount.textContent = allLogs.length;
+                    renderLogs();
+                }
+            } catch (err) {
+                console.warn("Nem sikerült lekérni a naplót:", err);
+            }
+        }
+
+        function filterLogs(level) {
+            currentLogLevel = level;
+            document.querySelectorAll('.log-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-level') === level);
+            });
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const terminal = document.getElementById('logs-terminal');
+            if (!terminal) return;
+
+            let filtered = allLogs;
+            if (currentLogLevel !== 'ALL') {
+                filtered = allLogs.filter(l => (l.level || '').toUpperCase() === currentLogLevel);
+            }
+
+            if (filtered.length === 0) {
+                terminal.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">Nincsenek naplóbejegyzések a megadott szűréssel.</div>`;
+                return;
+            }
+
+            terminal.innerHTML = filtered.map(l => {
+                const lvl = (l.level || 'INFO').toUpperCase();
+                return `
+                    <div class="log-entry level-${lvl.toLowerCase()}">
+                        <span class="log-time">${escapeHtml(l.timestamp || '')}</span>
+                        <span class="log-level-badge level-${lvl.toLowerCase()}">${escapeHtml(lvl)}</span>
+                        <span class="log-text">${escapeHtml(l.message || '')}</span>
+                    </div>
+                `;
+            }).join('');
+
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function copyLogsToClipboard() {
+            const btn = document.getElementById('btn-copy-logs');
+            let filtered = allLogs;
+            if (currentLogLevel !== 'ALL') {
+                filtered = allLogs.filter(l => (l.level || '').toUpperCase() === currentLogLevel);
+            }
+            const text = filtered.map(l => `[${l.timestamp || ''}] [${(l.level || 'INFO').toUpperCase()}] ${l.message || ''}`).join('\\n');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                if (btn) {
+                    const orig = btn.innerHTML;
+                    btn.innerHTML = 'Másolva! ✓';
+                    setTimeout(() => { btn.innerHTML = orig; }, 2500);
+                }
+                showToast("📋 Napló a vágólapra másolva!");
+            } catch (err) {
+                showToast("Hiba a másoláskor: " + err.message);
+            }
+        }
+
+        async function clearLogsServer() {
+            if (!confirm("Biztosan törölni szeretnéd a legutóbbi naplóbejegyzéseket?")) return;
+            try {
+                const res = await fetch('/api/logs/clear', { method: 'POST' });
+                if (res.ok) {
+                    allLogs = [];
+                    const badge = document.getElementById('logs-badge-count');
+                    const allCount = document.getElementById('log-count-all');
+                    if (badge) badge.textContent = '0';
+                    if (allCount) allCount.textContent = '0';
+                    renderLogs();
+                    showToast("🗑️ Rendszernapló törölve.");
+                }
+            } catch (err) {
+                showToast("Nem sikerült törölni a naplót: " + err.message);
             }
         }
 

@@ -67,6 +67,7 @@ public class WebServer {
         server.createContext("/api/items/viewed", new MarkViewedHandler());
         server.createContext("/api/history/clear", new ClearHistoryHandler());
         server.createContext("/api/logs", new LogsHandler());
+        server.createContext("/api/logs/clear", new LogsClearHandler());
 
         server.start();
         LOGGER.info("==================================================");
@@ -316,6 +317,18 @@ public class WebServer {
             data.put("logFilePath", AppLogger.getLogFilePath() != null ? AppLogger.getLogFilePath().toString() : "");
             data.put("level", AppLogger.getGlobalLevel().name());
             sendJsonResponse(exchange, 200, data);
+        }
+    }
+
+    private static class LogsClearHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+            AppLogger.clearRecentLogs();
+            sendJsonResponse(exchange, 200, Map.of("success", true, "message", "Naplók sikeresen kiürítve"));
         }
     }
 

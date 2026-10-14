@@ -149,5 +149,48 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("data-portal=\"ib\""), "Tartalmaznia kell az Ingatlanbazár szűrőgombot");
         assertTrue(html.contains(".portal-badge.kb"), "Tartalmaznia kell a Költözzbe badge CSS osztályt");
     }
+
+    @Test
+    void testHtmlContainsLiveLogsModalAndControls() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("id=\"btn-logs\""), "HTML-nek tartalmaznia kell a fejléc napló gombot");
+        assertTrue(html.contains("id=\"btn-quick-logs\""), "HTML-nek tartalmaznia kell a gyorsművelet napló gombot");
+        assertTrue(html.contains("id=\"modal-logs\""), "HTML-nek tartalmaznia kell a napló modális ablakot");
+        assertTrue(html.contains("id=\"logs-terminal\""), "HTML-nek tartalmaznia kell a napló terminált");
+        assertTrue(html.contains("id=\"btn-copy-logs\""), "HTML-nek tartalmaznia kell a napló másoló gombot");
+        assertTrue(html.contains("onclick=\"openLogsModal()\""), "openLogsModal hívásnak szerepelnie kell");
+        assertTrue(html.contains("onclick=\"closeLogsModal()\""), "closeLogsModal hívásnak szerepelnie kell");
+        assertTrue(html.contains("onclick=\"refreshLogs()\""), "refreshLogs hívásnak szerepelnie kell");
+        assertTrue(html.contains("onclick=\"clearLogsServer()\""), "clearLogsServer hívásnak szerepelnie kell");
+        assertTrue(html.contains("function openLogsModal()"), "JS-ben léteznie kell az openLogsModal függvénynek");
+        assertTrue(html.contains("function refreshLogs()"), "JS-ben léteznie kell a refreshLogs függvénynek");
+        assertTrue(html.contains("function filterLogs("), "JS-ben léteznie kell a filterLogs függvénynek");
+        assertTrue(html.contains("function renderLogs()"), "JS-ben léteznie kell a renderLogs függvénynek");
+        assertTrue(html.contains("function copyLogsToClipboard()"), "JS-ben léteznie kell a copyLogsToClipboard függvénynek");
+        assertTrue(html.contains("function clearLogsServer()"), "JS-ben léteznie kell a clearLogsServer függvénynek");
+    }
+
+    @Test
+    void testHtmlContainsCityDropdownToggleButtonAndFallback() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("id=\"city-dropdown-toggle-btn\""), "HTML-nek tartalmaznia kell a város legördülő gombot");
+        assertTrue(html.contains("onclick=\"toggleCityDropdown(event)\""), "toggleCityDropdown eseménykezelőnek léteznie kell");
+        assertTrue(html.contains("function toggleCityDropdown("), "JS-ben szerepelnie kell a toggleCityDropdown függvénynek");
+        assertTrue(html.contains("function toggleCityTag("), "JS-ben szerepelnie kell a toggleCityTag függvénynek");
+        assertTrue(html.contains("Debreceni agglomeráció"), "Alapértelmezett sablonnak szerepelnie kell a fallback adatokban");
+    }
+
+    @Test
+    void testHtmlContainsEmptyStateSearchRecoveryButton() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("function resetSearchBoundsAndRerun()"), "JS-ben szerepelnie kell a resetSearchBoundsAndRerun függvénynek");
+        assertTrue(html.contains("resetSearchBoundsAndRerun()"), "Empty state-nek tartalmaznia kell a hívást");
+    }
 }
 
