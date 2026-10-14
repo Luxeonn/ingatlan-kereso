@@ -54,18 +54,23 @@ Minden PR-t kizárólag akkor engedünk át, ha az érintett szakterület dedik�
 
 ## 3. Thematic Agent Approval Gate Blokk Sablon
 
-Amikor a vizsgálat sikeresen lezárult, a PR leírásába kötelező beilleszteni az alábbi blokkot.
-**Követelmény:** A jóváhagyott témáknál a statikus szöveg helyett pontosan **1 mondatos tömör szakmai indoklást** kell adni, hogy az adott ágens miért engedélyezte a PR-t.
+Amikor a vizsgálat sikeresen lezárult, a PR leírásának legfelső blokkjaként kötelező beilleszteni az alábbi formátumot.
+**Követelmény:** 
+- Sikeres vizsgálat esetén a státusz egyszerűen **`OK`** (nem érintett téma esetén **`N/A`**).
+- Kizárólag nem megfelelő (**`NOK`**) státusz esetén szükséges a probléma tömör, pontosan **1 mondatos indoklása**.
 
 ```markdown
 ### 🛡️ Thematic Agent Approval Gate
-- [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`) – [1 mondatos indoklás: pl. Clean Architecture réteghatárok sértetlenek, 0-crash elv érvényesül]
-- [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`) – [1 mondatos indoklás: pl. Zéró külső függőség és reszponzivitás ellenőrizve]
-- [x] Security Review: Approved by Security Specialist Agent (`security-specialist`) – [1 mondatos indoklás: pl. Bemenet-validáció és biztonsági fejlécek rendben]
-- [x] Database Review: Approved by Database Specialist Agent (`database-specialist`) – [1 mondatos indoklás: pl. Szálbiztosság és atomi tárolás biztosított]
-- [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`) – [1 mondatos indoklás: pl. CI scriptek és PR guard szabályok érvényesülnek]
+- [x] Architecture (`deep-architect`): OK
+- [x] UI/UX (`ui-designer`): OK
+- [x] Security (`security-specialist`): OK
+- [x] Database (`database-specialist`): OK
+- [x] Workflow/CI (`workflow-engineer`): OK
 ```
 
-Amennyiben egy PR egy adott témakört nem érint, a státusz:
-`- [x] <Téma> Review: N/A – [1 mondatos indoklás, pl. A változtatás nem érinti a perzisztencia réteget]`
+Amennyiben egy PR egy adott témakört nem érint:
+`- [x] <Téma> (<agent-id>): N/A`
+
+Probléma / elutasítás esetén:
+`- [ ] <Téma> (<agent-id>): NOK – [1 mondatos indoklás a hiányosságról]`
 
