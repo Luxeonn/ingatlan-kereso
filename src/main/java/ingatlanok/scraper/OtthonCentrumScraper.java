@@ -1,32 +1,22 @@
 package ingatlanok.scraper;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import ingatlanok.common.AppLogger;
-import ingatlanok.common.PropertyParser;
-import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
-import ingatlanok.model.PortalSource;
-import ingatlanok.model.PriceInfo;
-import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.persistence.IngatlanRepository;
+import ingatlanok.portal.oc.OtthonCentrumParser;
+import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Pattern;
 
 public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(OtthonCentrumScraper.class);
-    private static final String BASE_URL = "https://www.oc.hu";
-    private static final Pattern ID_PATTERN = Pattern.compile("/ingatlanok/([A-Za-z0-9]+)");
-    private static final PortalSource SOURCE = PortalSource.of("Otthon Centrum");
+    private final OtthonCentrumUrlBuilder urlBuilder = new OtthonCentrumUrlBuilder();
+    private final OtthonCentrumParser parser = new OtthonCentrumParser();
 
     @Override
     public String getPortalId() {
@@ -40,7 +30,6 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
 
     @Override
     public void init() {
-
     }
 
     @Override
@@ -49,33 +38,12 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
     }
 
     public String buildSearchUrl(SearchCriteria criteria) {
-        if (criteria == null) {
-            criteria = new SearchCriteria();
-        }
-
-        String citySlug = SlugUtils.toSlug(criteria.getCity());
-        if (citySlug.isEmpty()) {
-            citySlug = "debrecen";
-        }
-
-        String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
-        String typeSlug = switch (rawType) {
-            case "haz" -> "haz";
-            case "nyaralo" -> "nyaralo";
-            case "telek" -> "telek";
-            case "garazs" -> "garazs";
-            case "iroda" -> "uzleticelu";
-            case "osszes" -> "lakas";
-            default -> "lakas";
-        };
-
-        return BASE_URL + "/elado/" + typeSlug + "/" + citySlug;
+        return urlBuilder.buildSearchUrl(criteria);
     }
 
     @Override
     public PortalScrapeResult scrape(SearchCriteria criteria) {
         long startTime = System.currentTimeMillis();
-        List<IngatlanItem> items = new ArrayList<>();
         if (criteria == null) {
             criteria = new SearchCriteria();
         }
@@ -91,145 +59,22 @@ public class OtthonCentrumScraper extends BaseScraper implements IngatlanScraper
                 return PortalScrapeResult.failure(getPortalId(), getName(), "Nem sikerült letölteni az oldalt", elapsed);
             }
 
-            Elements cards = document.select("div.js-list-item[data-controller='seo'], div.real-estate-card, div[data-controller='seo'], div.js-list-item");
-            if (cards.isEmpty()) {
-                cards = document.select("a[href*=/ingatlanok/]");
-            }
-            LOGGER.debug("Otthon Centrum talált kártyaelemek: {} db", cards.size());
+            String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+            Set<String> processed = new HashSet<>();
+            List<IngatlanItem> items = parser.parseItems(document, criteria, now, processed);
 
-            if (cards.isEmpty()) {
-                long elapsed = System.currentTimeMillis() - startTime;
+            long elapsed = System.currentTimeMillis() - startTime;
+            if (items.isEmpty()) {
                 LOGGER.info("oc.hu: Nincs közvetlen találat a(z) {} keresésre [{} ms]", criteria.getCity(), elapsed);
                 return PortalScrapeResult.empty(getPortalId(), getName(), searchUrl, elapsed);
             }
 
-            String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
-            Set<String> processed = new HashSet<>();
-
-            for (Element card : cards) {
-                String href = card.is("a") ? card.attr("href") : "";
-                if (href.isBlank()) {
-                    Element a = card.selectFirst("a[href*=/ingatlanok/]");
-                    if (a != null) {
-                        href = a.attr("href");
-                    }
-                }
-                if (href == null || href.isBlank()) continue;
-
-                if (href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
-                    String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-                    if (processed.contains(fullLink)) continue;
-                    processed.add(fullLink);
-
-                    String cardText = card.text().replaceAll("\\s+", " ").trim();
-                    String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
-
-                    String locationCity = null;
-                    Long jsonPriceHuf = null;
-                    String seoAttr = card.attr("data-seo-select-item-value");
-                    if (seoAttr.isBlank()) {
-                        Element seoHolder = card.selectFirst("[data-seo-select-item-value]");
-                        if (seoHolder != null) {
-                            seoAttr = seoHolder.attr("data-seo-select-item-value");
-                        }
-                    }
-
-                    if (!seoAttr.isBlank()) {
-                        try {
-                            JsonObject seoObj = JsonParser.parseString(seoAttr).getAsJsonObject();
-                            if (seoObj.has("ecommerce")) {
-                                JsonObject ecom = seoObj.getAsJsonObject("ecommerce");
-                                if (ecom.has("items")) {
-                                    JsonArray itemsArray = ecom.getAsJsonArray("items");
-                                    if (!itemsArray.isEmpty()) {
-                                        JsonObject firstItem = itemsArray.get(0).getAsJsonObject();
-                                        if (firstItem.has("location_city")) {
-                                            locationCity = firstItem.get("location_city").getAsString();
-                                        }
-                                        if (firstItem.has("price") && !firstItem.get("price").isJsonNull()) {
-                                            jsonPriceHuf = firstItem.get("price").getAsLong();
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (Exception ignored) {
-                        }
-                    }
-
-                    PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
-                    if (jsonPriceHuf != null && (priceInfo == null || priceInfo.getAmountHuf() == null)) {
-                        double million = Math.round((jsonPriceHuf / 1_000_000.0) * 100.0) / 100.0;
-                        priceInfo = new PriceInfo(jsonPriceHuf + " Ft", jsonPriceHuf, million);
-                    }
-
-                    PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
-                    String actualCity = (locationCity != null && !locationCity.isBlank()) ? locationCity : criteria.getCity();
-
-                    String title;
-                    Element headingEl = card.selectFirst("div.collapse.description h6, .description h6, h6, h3");
-                    if (headingEl != null && !headingEl.text().isBlank()) {
-                        title = headingEl.text().trim();
-                    } else {
-                        title = cleanTitle(cardText, actualCity, id);
-                    }
-
-                    boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
-
-                    IngatlanItem item = new IngatlanItem(
-                            id,
-                            SOURCE,
-                            fullLink,
-                            title,
-                            priceInfo,
-                            actualCity,
-                            detailsInfo,
-                            now,
-                            isNew
-                    );
-                    item.setLocation(actualCity);
-
-                    String imageUrl = null;
-                    Element imgEl = card.selectFirst("img.lazyload[data-src], img[data-src]");
-                    if (imgEl != null && !imgEl.attr("data-src").isBlank()) {
-                        imageUrl = imgEl.attr("data-src");
-                    }
-                    if (imageUrl == null || imageUrl.isBlank()) {
-                        imageUrl = PropertyParser.extractImageUrl(card);
-                    }
-                    if ((imageUrl == null || imageUrl.isBlank()) && card.parent() != null) {
-                        imageUrl = PropertyParser.extractImageUrl(card.parent());
-                    }
-                    item.setImageUrl(imageUrl);
-
-                    if (!criteria.matches(item)) {
-                        LOGGER.debug("Otthon Centrum tétel kiszűrve feltételek miatt: {} (Ár: {})", item.getUrl(), item.getPrice());
-                        continue;
-                    }
-
-                    items.add(item);
-                }
-            }
-
-            long elapsed = System.currentTimeMillis() - startTime;
-            long newCount = items.stream().filter(IngatlanItem::isNew).count();
-            LOGGER.info("oc.hu Találatok száma: {} (Új: {}) [{} ms]", items.size(), newCount, elapsed);
+            LOGGER.info("oc.hu Találatok száma: {} db [{} ms]", items.size(), elapsed);
             return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
             LOGGER.error("Hiba az Otthon Centrum keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
             return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
-    }
-
-    private String cleanTitle(String text, String defaultCity, String id) {
-        if (text != null && text.contains("szoba")) {
-            int idx = text.indexOf("szoba");
-            String after = text.substring(idx + 5).trim();
-            if (after.length() > 5) {
-                int end = Math.min(after.length(), 65);
-                return after.substring(0, end).trim() + "...";
-            }
-        }
-        return defaultCity + " - Eladó ingatlan (" + id + ")";
     }
 }

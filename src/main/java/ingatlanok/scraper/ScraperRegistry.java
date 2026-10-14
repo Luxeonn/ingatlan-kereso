@@ -1,6 +1,9 @@
 package ingatlanok.scraper;
 
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalDescriptor;
+import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.PortalEngineRegistry;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,7 +14,6 @@ public class ScraperRegistry {
     private final Map<String, IngatlanScraper> scrapers = new ConcurrentHashMap<>();
 
     private ScraperRegistry() {
-
         register(new DunaHouseScraper());
         register(new OtthonCentrumScraper());
         register(new JofogasScraper());
@@ -26,7 +28,31 @@ public class ScraperRegistry {
 
     public void register(IngatlanScraper scraper) {
         if (scraper != null && scraper.getPortalId() != null) {
-            scrapers.put(scraper.getPortalId().toLowerCase(Locale.ROOT), scraper);
+            String key = scraper.getPortalId().toLowerCase(Locale.ROOT);
+            scrapers.put(key, scraper);
+
+            // Ha a PortalEngineRegistry-ben még nem létezik, regisztráljuk adapteren keresztül
+            if (PortalEngineRegistry.getInstance().getEngine(key).isEmpty()) {
+                PortalEngineRegistry.getInstance().register(new PortalEngine() {
+                    @Override
+                    public PortalDescriptor getDescriptor() {
+                        return new PortalDescriptor(
+                                scraper.getPortalId(),
+                                scraper.getName(),
+                                "#3b82f6",
+                                "",
+                                true,
+                                List.of("lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"),
+                                true
+                        );
+                    }
+
+                    @Override
+                    public PortalScrapeResult scrape(SearchCriteria criteria) {
+                        return scraper.scrape(criteria);
+                    }
+                });
+            }
         }
     }
 

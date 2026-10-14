@@ -7,6 +7,10 @@ public class WebDashboardHtml {
     }
 
     private static String getHeaderAndCss() {
+        return getHeaderAndCssPart1() + getHeaderAndCssPart2();
+    }
+
+    private static String getHeaderAndCssPart1() {
         return """
 <!DOCTYPE html>
 <html lang="hu">
@@ -544,6 +548,27 @@ public class WebDashboardHtml {
             cursor: pointer;
         }
 
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton-card {
+            pointer-events: none;
+            opacity: 0.85;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            border-radius: 18px;
+            padding: 24px;
+        }
+
+        .skeleton-shimmer {
+            background: linear-gradient(90deg, var(--bg-input) 25%, var(--border-color) 50%, var(--bg-input) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+            border-radius: 8px;
+        }
+
         .btn-star {
             background: transparent;
             border: 1px solid transparent;
@@ -696,6 +721,11 @@ public class WebDashboardHtml {
             -webkit-appearance: none;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         }
+""";
+    }
+
+    private static String getHeaderAndCssPart2() {
+        return """
         .sort-select:hover, .sort-select:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
@@ -1634,6 +1664,10 @@ public class WebDashboardHtml {
     }
 
     private static String getScriptJs() {
+        return getScriptJsPart1() + getScriptJsPart2();
+    }
+
+    private static String getScriptJsPart1() {
         return """
     <script>
         function escapeHtml(text) {
@@ -2188,9 +2222,52 @@ public class WebDashboardHtml {
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
         });
 
+        function showLoadingSkeletons() {
+            if (!container) return;
+            container.innerHTML = `
+                <div class="card skeleton-card">
+                    <div class="skeleton-shimmer" style="height: 180px; margin-bottom: 16px;"></div>
+                    <div class="skeleton-shimmer" style="height: 22px; width: 60%; margin-bottom: 12px;"></div>
+                    <div class="skeleton-shimmer" style="height: 16px; width: 85%; margin-bottom: 8px;"></div>
+                    <div class="skeleton-shimmer" style="height: 16px; width: 40%;"></div>
+                </div>
+            `.repeat(6);
+        }
+
+        async function loadPortals() {
+            try {
+                const res = await fetch('/api/portals');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        const portalContainer = document.querySelector('.portal-checkboxes');
+                        if (portalContainer) {
+                            data.forEach(p => {
+                                const inputId = 'portal-' + p.id;
+                                if (!document.getElementById(inputId) && !document.querySelector(`input[value="${p.id}"]`)) {
+                                    const label = document.createElement('label');
+                                    label.className = 'portal-chip';
+                                    const inp = document.createElement('input');
+                                    inp.type = 'checkbox';
+                                    inp.id = inputId;
+                                    inp.value = p.id;
+                                    inp.checked = p.enabledByDefault !== undefined ? p.enabledByDefault : true;
+                                    label.appendChild(inp);
+                                    label.appendChild(document.createTextNode(' ' + p.name));
+                                    portalContainer.appendChild(label);
+                                }
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Nem sikerült betölteni a portállistát:", e);
+            }
+        }
+
         async function init() {
             try {
-
+                await loadPortals();
                 try {
                     const citiesRes = await fetch('/api/cities');
                     if (citiesRes.ok) {
@@ -2251,7 +2328,11 @@ public class WebDashboardHtml {
                 dbCountEl.textContent = historyItems.length;
             }
         }
+""";
+    }
 
+    private static String getScriptJsPart2() {
+        return """
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const portals = [];
@@ -2294,6 +2375,7 @@ public class WebDashboardHtml {
             btnText.textContent = "Keresés folyamatban...";
             btnSpinner.style.display = "inline-block";
             showToast(`🔍 Keresés indítása: ${selectedCities.join(', ')}...`);
+            showLoadingSkeletons();
 
             try {
                 const response = await fetch('/api/search', {

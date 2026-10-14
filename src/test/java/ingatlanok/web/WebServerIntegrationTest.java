@@ -256,4 +256,40 @@ class WebServerIntegrationTest {
         HttpResponse<String> getResponse = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
         assertEquals(405, getResponse.statusCode());
     }
+
+    @Test
+    @DisplayName("GET /api/portals returns registered portal descriptors and POST returns 405")
+    void testPortalsEndpoint() throws Exception {
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/portals"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Duna House"));
+        assertTrue(response.body().contains("Otthon Centrum"));
+        assertTrue(response.body().contains("dh"));
+        assertTrue(response.body().contains("oc"));
+
+        HttpRequest postRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/portals"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> postResponse = client.send(postRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(405, postResponse.statusCode());
+    }
+
+    @Test
+    @DisplayName("WebServer responses include hardened security headers")
+    void testSecurityHeaders() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/status"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals("nosniff", response.headers().firstValue("X-Content-Type-Options").orElse(""));
+        assertEquals("DENY", response.headers().firstValue("X-Frame-Options").orElse(""));
+        assertEquals("strict-origin-when-cross-origin", response.headers().firstValue("Referrer-Policy").orElse(""));
+        assertTrue(response.headers().firstValue("Content-Security-Policy").orElse("").contains("default-src 'self'"));
+    }
 }

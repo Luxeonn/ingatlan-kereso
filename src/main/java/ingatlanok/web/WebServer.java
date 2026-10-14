@@ -12,6 +12,8 @@ import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.IngatlanRepository;
+import ingatlanok.portal.PortalDescriptor;
+import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
 
@@ -23,6 +25,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.Executors;
 
+/**
+ * Beágyazott REST API szerver Java 21 Virtual Threads alapon.
+ * Hardened localhost kötés, szigorú HTTP metódus ellenőrzés és biztonsági fejlécek.
+ */
 public class WebServer {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(WebServer.class);
@@ -61,6 +67,7 @@ public class WebServer {
         server.createContext("/api/status", new StatusHandler(port));
         server.createContext("/api/config", new ConfigHandler());
         server.createContext("/api/cities", new CitiesHandler());
+        server.createContext("/api/portals", new PortalsHandler());
         server.createContext("/api/history", new HistoryHandler());
         server.createContext("/api/search", new SearchHandler());
         server.createContext("/api/open-urls", new OpenUrlsHandler());
@@ -82,6 +89,13 @@ public class WebServer {
         }
     }
 
+    private static void setSecurityHeaders(HttpExchange exchange) {
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+        exchange.getResponseHeaders().set("X-Frame-Options", "DENY");
+        exchange.getResponseHeaders().set("Referrer-Policy", "strict-origin-when-cross-origin");
+        exchange.getResponseHeaders().set("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data: https:;");
+    }
+
     private static class RootHandler implements HttpHandler {
         private final int port;
 
@@ -91,6 +105,7 @@ public class WebServer {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            setSecurityHeaders(exchange);
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -114,6 +129,10 @@ public class WebServer {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
             Map<String, Object> status = new LinkedHashMap<>();
             status.put("status", "UP");
             status.put("port", port);
@@ -121,6 +140,18 @@ public class WebServer {
             status.put("lastRunTime", IngatlanRepository.getInstance().getLastRunTime());
             status.put("trackedCities", IngatlanRepository.getInstance().getTrackedCitiesInfo());
             sendJsonResponse(exchange, 200, status);
+        }
+    }
+
+    private static class PortalsHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+            List<PortalDescriptor> descriptors = PortalEngineRegistry.getInstance().getAllDescriptors();
+            sendJsonResponse(exchange, 200, descriptors);
         }
     }
 
@@ -161,6 +192,11 @@ public class WebServer {
     private static class HistoryHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+
             String query = exchange.getRequestURI().getQuery();
             String cityParam = null;
             if (query != null && query.contains("city=")) {
@@ -341,6 +377,7 @@ public class WebServer {
     }
 
     private static void sendJsonResponse(HttpExchange exchange, int statusCode, Object data) throws IOException {
+        setSecurityHeaders(exchange);
         String json = GSON.toJson(data);
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
@@ -353,6 +390,7 @@ public class WebServer {
     }
 
     private static void sendResponse(HttpExchange exchange, int statusCode, String message) throws IOException {
+        setSecurityHeaders(exchange);
         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {

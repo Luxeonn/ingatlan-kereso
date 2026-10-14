@@ -1,29 +1,26 @@
 package ingatlanok.scraper;
 
 import ingatlanok.common.AppLogger;
-import ingatlanok.common.PropertyParser;
-import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
-import ingatlanok.model.PriceInfo;
-import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.persistence.IngatlanRepository;
+import ingatlanok.portal.ingatlancom.IngatlanComParser;
+import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Pattern;
 
 public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComScraper.class);
-    private static final String BASE_URL = "https://ingatlan.com";
-    private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/(\\d+)");
+    private static final String BASE_URL = IngatlanComUrlBuilder.BASE_URL;
     private static final PortalSource SOURCE = PortalSource.of("Ingatlan.com");
+
+    private final IngatlanComUrlBuilder urlBuilder = new IngatlanComUrlBuilder();
+    private final IngatlanComParser parser = new IngatlanComParser();
 
     @Override
     public String getPortalId() {
@@ -37,7 +34,6 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
     @Override
     public void init() {
-
     }
 
     @Override
@@ -46,36 +42,7 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
     }
 
     public String buildSearchUrl(SearchCriteria criteria) {
-        if (criteria == null) {
-            criteria = new SearchCriteria();
-        }
-
-        String citySlug = SlugUtils.toSlug(criteria.getCity());
-        if (citySlug.isEmpty()) {
-            citySlug = "debrecen";
-        }
-
-        String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
-        String typeSlug = switch (rawType) {
-            case "haz" -> "haz";
-            case "garazs" -> "garazs";
-            case "telek" -> "telek";
-            case "nyaralo" -> "nyaralo";
-            case "iroda" -> "iroda";
-            case "osszes" -> "ingatlan";
-            default -> "lakas";
-        };
-
-        String priceSlug = "";
-        if (criteria.getMinPriceMillion() != null && criteria.getMaxPriceMillion() != null) {
-            priceSlug = "+" + criteria.getMinPriceMillion() + "-" + criteria.getMaxPriceMillion() + "-mFt";
-        } else if (criteria.getMinPriceMillion() != null) {
-            priceSlug = "+" + criteria.getMinPriceMillion() + "-mFt-tol";
-        } else if (criteria.getMaxPriceMillion() != null) {
-            priceSlug = "+" + criteria.getMaxPriceMillion() + "-mFt-ig";
-        }
-
-        return BASE_URL + "/lista/elado+" + typeSlug + "+" + citySlug + priceSlug;
+        return urlBuilder.buildSearchUrl(criteria);
     }
 
     @Override
@@ -102,9 +69,7 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
                         if (sidecarItem.getUrl() == null || sidecarItem.getUrl().isBlank()) continue;
                         if (!processedUrls.add(sidecarItem.getUrl())) continue;
 
-                        boolean isNew = !IngatlanRepository.getInstance().containsUrl(sidecarItem.getUrl());
-                        IngatlanItem item = sidecarItem.toIngatlanItem(SOURCE, criteria.getCity(), now, isNew);
-
+                        IngatlanItem item = sidecarItem.toIngatlanItem(SOURCE, criteria.getCity(), now, false);
                         if (criteria.matches(item)) {
                             items.add(item);
                         }
@@ -112,8 +77,7 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
 
                     long elapsed = System.currentTimeMillis() - startTime;
                     if (!items.isEmpty()) {
-                        long newCount = items.stream().filter(IngatlanItem::isNew).count();
-                        LOGGER.info("ingatlan.com (Sidecar) Találatok száma: {} (Új: {}) [{} ms]", items.size(), newCount, elapsed);
+                        LOGGER.info("ingatlan.com (Sidecar) Találatok száma: {} db [{} ms]", items.size(), elapsed);
                         return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
                     }
                 }
@@ -130,108 +94,26 @@ public class IngatlanComScraper extends BaseScraper implements IngatlanScraper {
                 return PortalScrapeResult.botProtected(getPortalId(), getName(), searchUrl, elapsed);
             }
 
-            boolean isBotChallenge = (document.title() != null && (
-                    document.title().contains("ellenőrzés")
-                            || document.title().contains("Cloudflare")
-                            || document.title().contains("Just a moment")
-                            || document.title().contains("Attention Required")))
-                    || !document.select("#challenge-error-text, #robot-protection-illustration, script[src*='challenge-platform']").isEmpty();
-
-            if (isBotChallenge) {
+            if (parser.isBotChallenge(document)) {
                 long elapsed = System.currentTimeMillis() - startTime;
                 LOGGER.warn("Ingatlan.com: Cloudflare WAF bot-védelem detektálva [{} ms] -> fallback: {}", elapsed, searchUrl);
                 return PortalScrapeResult.botProtected(getPortalId(), getName(), searchUrl, elapsed);
             }
 
-            Elements cards = document.select("div.listing-card, article.listing-card, div.card[data-id], a.listing-card, a[href*=/ingatlan/]");
-            LOGGER.debug("Ingatlan.com kártya elemek: {} db", cards.size());
-            for (Element card : cards) {
-                String href = card.is("a") ? card.attr("href") : "";
-                if (href == null || href.isBlank()) {
-                    Element a = card.selectFirst("a[href*=/ingatlan/]");
-                    if (a != null) {
-                        href = a.attr("href");
-                    }
-                }
-                if (href == null || href.isBlank()) continue;
-
-                String fullLink = href.startsWith("http") ? href : BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-                if (!fullLink.matches(".*/ingatlan/\\d+.*")) continue;
-                if (processedUrls.contains(fullLink)) continue;
-                processedUrls.add(fullLink);
-
-                String cardText = card.text().replaceAll("\\s+", " ").trim();
-                String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
-
-                PriceInfo priceInfo = null;
-                Element priceEl = card.selectFirst(".price, .listing-card__price, .price-container");
-                if (priceEl != null && !priceEl.text().isBlank()) {
-                    priceInfo = PropertyParser.parsePrice(priceEl.text());
-                }
-                if (priceInfo == null || priceInfo.getAmountHuf() == null) {
-                    priceInfo = PropertyParser.parsePrice(cardText);
-                }
-
-                PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
-
-                String title = null;
-                Element titleEl = card.selectFirst(".listing-card__title, .address, h2, h3");
-                if (titleEl != null && !titleEl.text().isBlank()) {
-                    title = titleEl.text().trim();
-                } else {
-                    title = criteria.getCity() + " - " + extractTitle(cardText, criteria.getCity(), id);
-                }
-
-                boolean isNew = !IngatlanRepository.getInstance().containsUrl(fullLink);
-
-                IngatlanItem item = new IngatlanItem(
-                        id,
-                        SOURCE,
-                        fullLink,
-                        title,
-                        priceInfo,
-                        criteria.getCity(),
-                        detailsInfo,
-                        now,
-                        isNew
-                );
-                item.setLocation(criteria.getCity());
-
-                String imageUrl = PropertyParser.extractImageUrl(card);
-                if ((imageUrl == null || imageUrl.isBlank()) && card.parent() != null) {
-                    imageUrl = PropertyParser.extractImageUrl(card.parent());
-                }
-                item.setImageUrl(imageUrl);
-
-                if (!criteria.matches(item)) {
-                    LOGGER.debug("Ingatlan.com tétel kiszűrve: {} (Ár: {})", item.getUrl(), item.getPrice());
-                    continue;
-                }
-
-                items.add(item);
-            }
-
+            items = parser.parseItems(document, criteria, now, processedUrls);
             long elapsed = System.currentTimeMillis() - startTime;
+
             if (items.isEmpty()) {
                 LOGGER.warn("Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni (bot-védelem aktív) [{} ms] -> fallback: {}", elapsed, searchUrl);
                 return PortalScrapeResult.botProtected(getPortalId(), getName(), searchUrl, elapsed);
             }
 
-            long newCount = items.stream().filter(IngatlanItem::isNew).count();
-            LOGGER.info("ingatlan.com Találatok száma: {} (Új: {}) [{} ms]", items.size(), newCount, elapsed);
+            LOGGER.info("ingatlan.com Találatok száma: {} db [{} ms]", items.size(), elapsed);
             return PortalScrapeResult.success(getPortalId(), getName(), items, elapsed);
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
             LOGGER.error("Hiba az Ingatlan.com keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
             return PortalScrapeResult.failure(getPortalId(), getName(), e.getMessage(), elapsed);
         }
-    }
-
-    private String extractTitle(String text, String defaultCity, String id) {
-        if (text != null && text.length() > 5) {
-            int max = Math.min(text.length(), 65);
-            return text.substring(0, max).trim() + "...";
-        }
-        return defaultCity + " - Ingatlan (" + id + ")";
     }
 }
