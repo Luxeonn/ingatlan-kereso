@@ -1,18 +1,19 @@
-# SQLite / Beágyazott SQL Migrációs Terv
-
-Ez a dokumentum a fájlalapú JSON perzisztencia beágyazott ACID relációs adatbázisra (SQLite) történő jövőbeli migrálási tervét mutatja be.
+# SQLite / Beágyazott SQL Tárolási Architektúra és Séma
+ 
+Ez a dokumentum a megvalósult beágyazott ACID relációs adatbázis (SQLite) sémáját, indexelési stratégiáját és a jövőbeli optimalizációkat mutatja be.
 
 ---
 
-## 1. Motiváció és Célok
+## 1. Működési Konfiguráció és Célok
 * **Skálázhatóság:** Több tízezer hirdetés kezelése másodperctöredék alatti lekérdezési idővel.
 * **ACID Tranzakciók:** Zéró adatvesztés és automatikus rollback hiba esetén.
-* **Másodlagos indexek:** Gyors szűrés ár, város, alapterület és felfedezési dátum szerint közvetlenül az adatbázis motorban.
-* **Zéró szerver üzemeltetés:** Egyetlen beágyazott `.db` fájl a `data/ingatlanok.db` útvonalon (`sqlite-jdbc` függőséggel).
+* **WAL mód:** `PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;` a szimultán gyors írásért és olvasásért.
+* **Másodlagos indexek:** Gyors szűrés ár, város, portál és felfedezési dátum szerint közvetlenül az adatbázis motorban.
+* **Zéró szerver üzemeltetés:** Egyetlen beágyazott `.db` fájl a `data/ingatlanok.db` útvonalon (`org.xerial:sqlite-jdbc` függőséggel).
 
 ---
 
-## 2. Javasolt Relációs Adatbázis Séma
+## 2. Megvalósult Relációs Adatbázis Séma
 
 ```sql
 CREATE TABLE IF NOT EXISTS properties (
@@ -42,13 +43,19 @@ CREATE INDEX IF NOT EXISTS idx_properties_discovered ON properties(discovered_at
 
 ---
 
-## 3. Lépésről Lépésre Történő Migrációs Stratégia
+## 3. Adatfolyam és Visszafelé Kompatibilitás
 
-1. **Interfész Kivonása (`Repository Interface`):**
-   - Hozz létre egy `IngatlanRepositoryInterface` interfészt, amelyet mind a `JsonIngatlanRepository`, mind az új `SqliteIngatlanRepository` megvalósít.
-2. **Kettős Írási Fázis (Dual-Write Phase - Opcionális):**
-   - Rövid ideig mindkét tárolóba menthetünk az adatintegritás verifikálásához.
-3. **Automatikus Adatmigrátor:**
-   - Induláskor, ha a `data/ingatlanok.db` üres vagy nem létezik, automatikusan importálja az összes meglévő `data/cities/*.json` és `data/ingatlanok_db.json` rekordot.
-4. **Zökkenőmentes Átállás:**
-   - A `WebServer` és az `IngatlanSearchService` kizárólag az interfészen keresztül kommunikál, így a migrálás nulla hatással van a kliensre és az üzleti logikára.
+1. **Interfész-alapú elválasztás (`ListingStorage`):**
+   - Az `SqliteListingStorage` és `JsonFileListingStorage` azonos szerződést teljesít.
+2. **Automatikus Adatmigrátor:**
+   - Induláskor, ha a `data/ingatlanok.db` üres vagy nem létezik, a `LegacyMigrationService` automatikusan importálja az összes meglévő `data/cities/*.json` és `data/ingatlanok_db.json` rekordot.
+3. **Zökkenőmentes Működés:**
+   - A `WebServer` és a `SearchExecutionEngine` kizárólag a Facade-en / interfészen keresztül kommunikál, így a tároló réteg módosítása nulla hatással van a kliensre és az üzleti logikára.
+
+---
+
+## 4. Jövőbeli Optimalizációs Útiterv
+
+* **Adatarchiválás:** Inaktív, 90 napnál régebbi hirdetések áthelyezése egy archivált táblába (`properties_archive`).
+* **Connection Pooling:** Nagy konkurens REST kérések esetén HikariCP pool illesztése.
+* **Full-Text Search (FTS5):** SQLite FTS5 virtuális tábla a hirdetés leírások gyors szöveges kereséséhez.

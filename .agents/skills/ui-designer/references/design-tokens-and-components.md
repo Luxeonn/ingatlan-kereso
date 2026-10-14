@@ -74,3 +74,52 @@ Ez a dokumentum a `WebDashboardHtml.java` beágyazott Single Page Application fe
   </div>
 </div>
 ```
+
+### 2.4 Rendszernapló Betekintő Modal (Log Viewer)
+```html
+<div id="logModal" class="modal-backdrop fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+  <div class="modal-box bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="modal-header flex items-center justify-between px-6 py-4 border-b border-slate-800">
+      <h3 class="text-lg font-bold text-white flex items-center gap-2">
+        <span class="text-blue-500">📄</span> Rendszernapló (Application Logs)
+      </h3>
+      <div class="flex items-center gap-3">
+        <select id="logLevelFilter" class="bg-slate-800 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 border border-slate-700">
+          <option value="ALL">Minden szint</option>
+          <option value="INFO">Csak INFO</option>
+          <option value="WARN">Csak WARN</option>
+          <option value="ERROR">Csak ERROR</option>
+        </select>
+        <button id="btnCopyLogs" class="btn-sm bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+          📋 Másolás
+        </button>
+        <button class="modal-close text-slate-400 hover:text-white text-xl">✕</button>
+      </div>
+    </div>
+    <div class="modal-body p-4 flex-1 overflow-y-auto font-mono text-xs bg-slate-950/80 text-slate-300 space-y-1">
+      <!-- Napló sorok színes badgekkel -->
+    </div>
+  </div>
+</div>
+```
+
+### 2.5 Dinamikus M² Rendezés és Kliensoldali Tabnyitás
+```javascript
+// Fajlagos négyzetméterár és ár szerinti rendezés
+function sortItems(items, sortBy) {
+  return [...items].sort((a, b) => {
+    if (sortBy === 'price_asc') return (a.priceNumeric || 0) - (b.priceNumeric || 0);
+    if (sortBy === 'price_desc') return (b.priceNumeric || 0) - (a.priceNumeric || 0);
+    if (sortBy === 'sqm_asc') return (a.pricePerSqm || 0) - (b.pricePerSqm || 0);
+    if (sortBy === 'sqm_desc') return (b.pricePerSqm || 0) - (a.pricePerSqm || 0);
+    if (sortBy === 'area_desc') return (b.floorArea || 0) - (a.floorArea || 0);
+    return new Date(b.discoveredAt || 0) - new Date(a.discoveredAt || 0);
+  });
+}
+
+// Zero-Server-Desktop-Call böngésző tabnyitás
+function openUrlsInBrowser(urls, maxTabs = 10) {
+  const safeUrls = urls.filter(u => u.startsWith('http://') || u.startsWith('https://')).slice(0, maxTabs);
+  safeUrls.forEach(url => window.open(url, '_blank', 'noopener,noreferrer'));
+}
+```

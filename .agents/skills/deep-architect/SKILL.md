@@ -17,47 +17,97 @@ Ez a skill a projekt mélyreható szoftver- és rendszertervezési döntéseit, 
 
 ## 1. Architektúra Alapelvek és Filozófia
 
-### 1.1 Clean Architecture és Réteg-izoláció
+### 1.1 Clean Architecture és Réteg-izoláció (4 Rétegű Rendszer)
 Az alkalmazás szigorúan rétegzett és laza csatolású (`Loose Coupling`, `High Cohesion`):
+
+```mermaid
+flowchart TD
+    subgraph Layer1 ["Réteg 1: Prezentáció és Web"]
+        WebDashboardHtml["WebDashboardHtml (SPA UI)"]
+        WebServer["WebServer (Virtual Threads HTTP REST)"]
+        DashboardPresentationService["DashboardPresentationService (Facade / DTOs)"]
+    end
+
+    subgraph Layer2 ["Réteg 2: Core Feldolgozó Motorok"]
+        SearchExecutionEngine["SearchExecutionEngine (Koordináció)"]
+        PropertyFilterEngine["PropertyFilterEngine (Szűrés)"]
+        DeduplicationEngine["DeduplicationEngine (Duplikátumszűrés)"]
+        MarketAnalyticsEngine["MarketAnalyticsEngine (Piaci KPI statisztikák)"]
+    end
+
+    subgraph Layer3 ["Réteg 3: Portálmotorok (Pluggable Engines)"]
+        PortalEngineRegistry["PortalEngineRegistry (OCP Registry)"]
+        Engines["Portál Motorok (DH, OC, Jófogás, Bazár, Költözzbe, IngatlanCom)"]
+        PortalEngineRegistry --> Engines
+    end
+
+    subgraph Layer4 ["Réteg 4: Leválasztott Perzisztencia"]
+        ListingStorage["ListingStorage (Interfész)"]
+        ConfigStorage["ConfigStorage (Interfész)"]
+        SqliteListingStorage["SqliteListingStorage (SQLite WAL & Indexek)"]
+        JsonFileListingStorage["JsonFileListingStorage (Atomi JSON Fallback)"]
+        IngatlanRepository["IngatlanRepository (Singleton Facade)"]
+    end
+
+    subgraph CrossCutting ["Keresztfunkcionális Alapok"]
+        Domain["ingatlanok.model (Értékobjektumok)"]
+        Common["ingatlanok.common (HttpFetcher, PropertyParser, SlugUtils, stb.)"]
+    end
+
+    WebServer --> DashboardPresentationService
+    DashboardPresentationService --> SearchExecutionEngine
+    SearchExecutionEngine --> PortalEngineRegistry
+    SearchExecutionEngine --> DeduplicationEngine
+    SearchExecutionEngine --> MarketAnalyticsEngine
+    DeduplicationEngine --> IngatlanRepository
+    IngatlanRepository --> ListingStorage & ConfigStorage
+    ListingStorage --> SqliteListingStorage & JsonFileListingStorage
+```
+
 1. **Model / Domain réteg (`ingatlanok.model`):**
-   - Gazdag értékobjektumok (`PriceInfo`, `PropertyDetails`, `IngatlanItem`, `SearchCriteria`, `SearchResult`).
-   - Nem tartalmazhat semmilyen I/O műveletet, Jsoup vagy HTTP függőséget.
-2. **Common / Utility réteg (`ingatlanok.common`):**
-   - Általános, újrafelhasználható, állapotmentes segédosztályok (`HttpFetcher`, `PropertyParser`, `SlugUtils`, `CityUtils`, `BrowserUtils`).
-3. **Scraper réteg (`ingatlanok.scraper`):**
-   - Strategy / Template Method minta: `IngatlanScraper` interfész, `BaseScraper` közös alap, `ScraperRegistry` dinamikus felderítés.
-   - Hibrid architektúra: Szükség esetén külső folyamat sidecar delegálás (`SidecarCliExecutor`).
-   - Minden scraper izolált: egyetlen portál hibája vagy struktúraváltozása sem ránthatja le a rendszert (`0-Crash` elv).
-4. **Service / Orchestration réteg (`ingatlanok.service`):**
-   - `IngatlanSearchService`: Összefogja a párhuzamos scraper hívásokat, koordinálja a duplikátumszűrést a perzisztencia rétegen keresztül, és aggregálja a piaci KPI statisztikákat.
-5. **Persistence réteg (`ingatlanok.persistence`):**
-   - `IngatlanRepository`: Thread-safe singleton, elszigeteli a JSON/fájl I/O vagy későbbi SQL adatbázis műveleteket az üzleti logikától.
-6. **Presentation / Web réteg (`ingatlanok.presentation`, `ingatlanok.web`):**
-   - `DashboardPresentationService`: Facade DTO átalakító (KPI statisztikák, portál állapotok).
-   - `WebServer`: Beágyazott, függőségmentes HTTP API `Virtual Threads` háttérrel.
-   - `WebDashboardHtml`: Beágyazott Single Page Application (SPA).
+   - Gazdag értékobjektumok (`PriceInfo`, `PropertyDetails`, `IngatlanItem`, `SearchCriteria`, `SearchResult`, `PortalSource`).
+   - Nem tartalmazhat semmilyen I/O műveletet, Jsoup vagy külső HTTP függőséget.
+2. **Common / Segédeszköz réteg (`ingatlanok.common`):**
+   - Állapotmentes, szálbiztos segédosztályok (`HttpFetcher`, `PropertyParser`, `SlugUtils`, `CityUtils`, `BrowserUtils`, `AppLogger`).
+3. **Core feldolgozó motorok (`ingatlanok.core`):**
+   - Tiszta üzleti és párhuzamosítási logika: `PropertyFilterEngine`, `DeduplicationEngine`, `MarketAnalyticsEngine`, `SearchExecutionEngine`.
+   - Független a konkrét hálózati scraping technológiától és a konkrét tárolási formátumtól.
+4. **Portálmotorok és külső csatolók (`ingatlanok.portal`, `ingatlanok.scraper`):**
+   - Pluggable Portal Engine architektúra (`PortalEngine`, `PortalEngineRegistry`, `PortalDescriptor`).
+   - Minden portál független motorba szervezve (`dh`, `oc`, `jofogas`, `ingatlanbazar`, `koltozzbe`, `ingatlancom`).
+   - Zero-Crash elv: egyetlen portál hálózati vagy DOM hibája sem ránthatja le az orchestratort.
+5. **Leválasztott perzisztencia (`ingatlanok.persistence`):**
+   - `ListingStorage` és `ConfigStorage` interfészekre épülő modularitás.
+   - Relációs beágyazott SQLite (`SqliteListingStorage`, `SqliteConfigStorage`, WAL mód, B-Tree indexek).
+   - Atomi JSON tároló fallback (`JsonFileListingStorage`, `JsonConfigStorage`, `.tmp` + `ATOMIC_MOVE`).
+   - `IngatlanRepository` egységes, thread-safe Singleton Facade a felsőbb rétegek felé.
+6. **Prezentáció és beágyazott Web réteg (`ingatlanok.presentation`, `ingatlanok.web`):**
+   - `DashboardPresentationService`: Facade DTO aggregáció (KPI statisztikák, portál állapotok).
+   - `WebServer`: Beágyazott Sun HTTP kiszolgáló Java 21 Virtual Threads alapon, CORS/CSP védelemmel, REST végpontokkal.
+   - `WebDashboardHtml`: Zéró külső függőségű, offline is működő Single Page Application (SPA).
 
 ---
 
 ## 2. Döntési és Tervezési Minták
 
-### 2.1 Java 21 Virtual Threads és Konkurencia
+### 2.1 Java 21 Virtual Threads és Strukturált Konkurencia
 * Használj `Executors.newVirtualThreadPerTaskExecutor()`-t minden I/O-intenzív feladatra (web scraping, HTTP API kérések, hálózati műveletek).
-* Kerüld a `synchronized` blokkokon belüli blokkoló I/O-t (Carrier Thread pinning megelőzése); helyette használj `ReentrantLock`-ot vagy nem blokkoló adatstruktúrákat (`ConcurrentHashMap`, `CompletableFuture`).
+* Kerüld a `synchronized` blokkokon belüli blokkoló hálózati és I/O műveleteket (Carrier Thread pinning megelőzése); helyette használj `ReentrantLock`-ot, `ReentrantReadWriteLock`-ot vagy nem blokkoló adatstruktúrákat (`ConcurrentHashMap`, `CompletableFuture`).
 
-### 2.2 Scraper Extensibility (Open/Closed Principle)
+### 2.2 Pluggable Portal Engine Minta (Open/Closed Principle)
 Új portál integrálásakor:
-1. Hozz létre egy új osztályt a `ingatlanok.scraper` csomagban, amely kiterjeszti a `BaseScraper`-t.
-2. Regisztráld a `PortalSource` enum-ban a portál metaadatait (név, URL, badge szín).
-3. Regisztráld a `ScraperRegistry` szolgáltatásban.
-4. Biztosíts graceful fallback mechanizmust és 0-crash viselkedést.
+1. Hozz létre egy dedikált csomagot az `ingatlanok.portal.<portalnev>` alatt.
+2. Implementáld a `PortalEngine` interfészt egyedi `PortalDescriptor`-ral (név, szín, keresőlink, támogatott típusok).
+3. Regisztráld az új motort a `PortalEngineRegistry`-ben.
+4. Tervezz be robusztus hibakezelést és 0-crash viselkedést (`PortalScrapeStatus.SUCCESS`, `BOT_PROTECTED`, `ERROR`).
 
-### 2.3 Hibrid Java-Sidecar Minta (Anti-Bot / TLS Fingerprinting)
-Amikor a Jsoup / Java natív HTTP kliens elakad WAF vagy Cloudflare védelem miatt (pl. JA3/JA4 ujjlenyomat-ellenőrzés):
-* Alkalmazz könnyűsúlyú on-demand CLI sidecart (`tools/sidecar.py` vagy előre fordított bináris).
-* A kommunikáció szigorúan stdout-on keresztül történjen JSON formátumban.
-* Szigorú timeout (max. 20 mp) és process lifecycle felügyelet.
-* Ha a sidecar nem futtatható vagy hiányzik, zökkenőmentesen álljon vissza közvetlen böngésző keresési link generálására (`BOT_PROTECTED` státusz).
+### 2.3 Konténerizációs és Mikroszolgáltatás Tervezési Elvek
+* **Kétfázisú multi-stage build:** Maven fordítás a build stage-ben, minimalizált és karcsúsított Eclipse Temurin 21 Alpine JRE a futtatási stage-ben.
+* **Non-root felhasználó:** Az alkalmazás soha ne fusson `root` jogosultságokkal a konténerben (dedikált `appuser` UID 10001).
+* **Stateless futtatókörnyezet & Kötet izoláció:**
+  - Lemez perzisztencia elkülönítve a `/app/data` (SQLite DB / JSON) és `/app/logs` köteteken.
+  - Kliensoldali böngészőlap-nyitás (Zero-Server-Desktop-Call), így fej nélküli szerver/konténer környezetben is hiba nélkül működik a keresés és a lapmegnyitás.
+* **Környezeti konfiguráció:** `SERVER_HOST` és `SERVER_PORT` környezeti változókkal való rugalmas paraméterezhetőség.
 
 ---
 
@@ -74,8 +124,9 @@ Amikor jelentős rendszermódosítást tervezel:
 
 ## 4. Architektúra Ellenőrző Lista (Architect's Checklist)
 
-- [ ] **Függőségi irány:** A belső rétegek (Domain/Model) nem függenek külső rétegektől (Web/UI/Scraper)?
+- [ ] **Függőségi irány:** A belső rétegek (Domain/Core) nem függenek külső rétegektől (Web/UI/Scraper)?
 - [ ] **0-Crash garancia:** Hálózati hiba vagy DOM változás esetén az alkalmazás stabil marad?
-- [ ] **Szálbiztosság:** A megosztott állapotok thread-safe tárolókban (`ConcurrentHashMap`, `AtomicBoolean`) vannak?
-- [ ] **Erőforrás-gazdálkodás:** Minden `InputStream`, `OutputStream`, HTTP kapcsolat és Process le van zárva (`try-with-resources`)?
-- [ ] **Tesztelhetőség:** Az üzleti logika függetlenül egységtesztelhető mock adatokkal?
+- [ ] **Szálbiztosság:** A megosztott állapotok thread-safe tárolókban (`ConcurrentHashMap`, `AtomicBoolean`, `ReentrantReadWriteLock`) vannak?
+- [ ] **Erőforrás-gazdálkodás:** Minden `InputStream`, `OutputStream`, HTTP kapcsolat, DB `Connection`/`Statement`/`ResultSet` és Process le van zárva (`try-with-resources`)?
+- [ ] **Konténer-kompatibilitás:** Nincs feltételezve natív asztali GUI vagy xdg-open a szerver oldalon?
+- [ ] **Tesztelhetőség:** Az üzleti logika és a portálmotorok függetlenül egységtesztelhetőek mock adatokkal?

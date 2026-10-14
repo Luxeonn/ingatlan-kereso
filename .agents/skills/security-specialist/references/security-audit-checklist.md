@@ -38,3 +38,12 @@ Ez az ellenőrző lista a kódbázis biztonsági felülvizsgálatának lépései
 - [ ] A `BrowserUtils.openUrls()` csak `http://` és `https://` sémájú linkeket fogad el.
 - [ ] A tiltott sémák (`file:`, `javascript:`, `cmd:`, `powershell:`) azonnal elutasításra kerülnek.
 - [ ] Az egyszerre megnyitható lapok száma korlátozott (alapértelmezett maximum: 10 lap).
+
+---
+
+## 6. Konténer és DevOps Biztonság
+- [ ] A `Dockerfile` dedikált non-root felhasználót (`appuser:appgroup`, UID 10001) hoz létre és aktivál.
+- [ ] A konténer image nem tartalmaz hardkódolt titkokat, jelszavakat vagy privát kulcsokat.
+- [ ] A perzisztens könyvtárak (`/app/data`, `/app/logs`) külön köteten vannak csatolva.
+- [ ] `docker-compose.yml` környezetben a port-mapping alapértelmezetten `127.0.0.1:8080:8080`, megelőzve a publikus hálózati kitettséget.
+- [ ] Minimális Alpine Linux JRE alapimage a sebezhetőségi támadási felület csökkentésére.
