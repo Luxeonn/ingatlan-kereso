@@ -21,7 +21,7 @@ Follow these steps to conduct a thorough review:
 2. **Understand Intent & Verify Commit Style**:
    * Check PR title and commit messages against Conventional Commits:
      `^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .+`
-   * Verify adherence to GEMINI.md workflow rules (branch naming, Hungarian description, clean commits).
+   * Verify adherence to GEMINI.md workflow rules (branch naming, Hungarian description, clean commits, and closing keywords like `Closes #<id>` / `Fixes #<id>` when an issue exists).
 
 3. **Determine Thematic Scope & Required Agent Approvals**:
    Analyze the modified files to determine which specialized agent must review and approve:
