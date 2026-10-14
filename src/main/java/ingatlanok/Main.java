@@ -28,22 +28,39 @@ public class Main {
 
         IngatlanRepository.getInstance();
 
-        int defaultPort = Integer.getInteger("server.port", 8080);
-        WebServer server = new WebServer(defaultPort);
+        String host = WebServer.resolveDefaultHost();
+        int defaultPort = WebServer.resolveDefaultPort();
+        WebServer server = new WebServer(host, defaultPort);
 
         try {
             server.start();
             int actualPort = server.getPort();
-            String url = "http://localhost:" + actualPort;
+            String displayHost = ("0.0.0.0".equals(host) || "::".equals(host)) ? "localhost" : host;
+            String url = "http://" + displayHost + ":" + actualPort;
 
             System.out.println("\n[Siker] A felület elérhető a következő címen: " + url);
-            System.out.println("Böngésző megnyitása folyamatban...");
 
-            if (!BrowserUtils.openUrl(url)) {
-                System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
+            boolean noBrowser = Boolean.getBoolean("no.browser")
+                    || "true".equalsIgnoreCase(System.getenv("NO_BROWSER"))
+                    || java.awt.GraphicsEnvironment.isHeadless()
+                    || "0.0.0.0".equals(host);
+
+            if (!noBrowser) {
+                System.out.println("Böngésző megnyitása a háttérben...");
+                Thread.ofVirtual().start(() -> {
+                    if (!BrowserUtils.openUrl(url)) {
+                        System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
+                    }
+                });
+            } else {
+                System.out.println("[Info] Headless / Konténer környezet. Nyisd meg a böngésződben: " + url);
             }
 
-            System.out.println("\nA szerver a háttérben fut. Nyomj Ctrl+C billentyűkombinációt a leállításhoz.");
+            System.out.println("\n==================================================");
+            System.out.println("  Web Dashboard Kiszolgáló Aktív!");
+            System.out.println("  Nyisd meg: " + url);
+            System.out.println("  Leállítás: [Ctrl + C]");
+            System.out.println("==================================================");
 
             Thread.currentThread().join();
         } catch (Exception e) {

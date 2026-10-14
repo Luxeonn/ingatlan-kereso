@@ -17,12 +17,38 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     private final ConfigStorage configStorage;
 
     private IngatlanRepository() {
-        this(new JsonFileListingStorage(), new JsonConfigStorage());
+        this(createDefaultListingStorage(), createDefaultConfigStorage());
     }
 
     public IngatlanRepository(ListingStorage listingStorage, ConfigStorage configStorage) {
-        this.listingStorage = listingStorage != null ? listingStorage : new JsonFileListingStorage();
-        this.configStorage = configStorage != null ? configStorage : new JsonConfigStorage();
+        this.listingStorage = listingStorage != null ? listingStorage : createDefaultListingStorage();
+        this.configStorage = configStorage != null ? configStorage : createDefaultConfigStorage();
+    }
+
+    private static boolean isJsonStoragePreferred() {
+        String env = System.getenv("STORAGE_TYPE");
+        if (env != null && env.equalsIgnoreCase("json")) {
+            return true;
+        }
+        String prop = System.getProperty("storage.type");
+        return prop != null && prop.equalsIgnoreCase("json");
+    }
+
+    private static ListingStorage createDefaultListingStorage() {
+        if (isJsonStoragePreferred()) {
+            return new JsonFileListingStorage();
+        }
+        SqliteDatabaseManager dbManager = new SqliteDatabaseManager();
+        new SqliteMigrationService(dbManager).migrateIfEmpty();
+        return new SqliteListingStorage(dbManager);
+    }
+
+    private static ConfigStorage createDefaultConfigStorage() {
+        if (isJsonStoragePreferred()) {
+            return new JsonConfigStorage();
+        }
+        SqliteDatabaseManager dbManager = new SqliteDatabaseManager();
+        return new SqliteConfigStorage(dbManager);
     }
 
     public static IngatlanRepository getInstance() {

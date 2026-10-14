@@ -1,0 +1,22 @@
+services:
+  ingatlan-kereso:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ingatlan-kereso
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - NO_BROWSER=true
+    volumes:
+      - ingatlan-data:/app/data
+      - ingatlan-logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  ingatlan-data:
+    name: ingatlan_db_data
+  ingatlan-logs:
+    name: ingatlan_logs_data

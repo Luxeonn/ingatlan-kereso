@@ -34,10 +34,54 @@ public class WebServer {
     private static final AppLogger LOGGER = AppLogger.getLogger(WebServer.class);
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private HttpServer server;
+    private final String host;
     private int port = 8080;
 
+    public WebServer() {
+        this(resolveDefaultHost(), resolveDefaultPort());
+    }
+
     public WebServer(int port) {
-        this.port = port;
+        this(resolveDefaultHost(), port);
+    }
+
+    public WebServer(String host, int port) {
+        this.host = (host != null && !host.isBlank()) ? host.trim() : resolveDefaultHost();
+        this.port = port > 0 ? port : resolveDefaultPort();
+    }
+
+    public static String resolveDefaultHost() {
+        String envHost = System.getenv("SERVER_HOST");
+        if (envHost != null && !envHost.isBlank()) {
+            return envHost.trim();
+        }
+        String propHost = System.getProperty("server.host");
+        if (propHost != null && !propHost.isBlank()) {
+            return propHost.trim();
+        }
+        return "127.0.0.1";
+    }
+
+    public static int resolveDefaultPort() {
+        String envPort = System.getenv("SERVER_PORT");
+        if (envPort != null && !envPort.isBlank()) {
+            try {
+                return Integer.parseInt(envPort.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        String propPort = System.getProperty("server.port");
+        if (propPort != null && !propPort.isBlank()) {
+            try {
+                return Integer.parseInt(propPort.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return 8080;
+    }
+
+    public String getHost() {
+        return host;
     }
 
     public int getPort() {
@@ -46,9 +90,10 @@ public class WebServer {
 
     public void start() throws IOException {
         int attempts = 0;
+        int initialPort = port;
         while (attempts < 5) {
             try {
-                server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
+                server = HttpServer.create(new InetSocketAddress(host, port), 0);
                 break;
             } catch (IOException e) {
                 port++;
@@ -57,8 +102,8 @@ public class WebServer {
         }
 
         if (server == null) {
-            LOGGER.error("Nem sikerült elindítani a webszervert a portokon: 8080-{}", port);
-            throw new IOException("Nem sikerült elindítani a webszervert a portokon: 8080-" + port);
+            LOGGER.error("Nem sikerült elindítani a webszervert a portokon: {}-{}", initialPort, port);
+            throw new IOException("Nem sikerült elindítani a webszervert a portokon: " + initialPort + "-" + port);
         }
 
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
@@ -252,7 +297,12 @@ public class WebServer {
                 for (String url : urls) {
                     IngatlanRepository.getInstance().markAsViewed(url);
                 }
-                BrowserUtils.openUrls(new LinkedHashSet<>(urls));
+                // Zero-Server-Desktop-Call: a kliensoldali böngészőfül-nyitás a felhasználó gépén fut.
+                // A szerveroldali nyitás kizárólag akkor engedélyezett, ha nem headless és explicit kérték.
+                boolean forceServerOpen = "true".equalsIgnoreCase(System.getProperty("server.open.desktop", "false"));
+                if (forceServerOpen && !java.awt.GraphicsEnvironment.isHeadless()) {
+                    BrowserUtils.openUrls(new LinkedHashSet<>(urls));
+                }
             }
             sendJsonResponse(exchange, 200, Map.of("success", true, "count", urls != null ? urls.size() : 0));
         }
