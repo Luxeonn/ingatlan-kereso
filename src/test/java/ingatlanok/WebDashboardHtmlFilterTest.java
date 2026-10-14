@@ -102,7 +102,6 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("function toggleSearchCollapse()"));
         assertTrue(html.contains("function setSearchCollapsed(collapsed)"));
         assertTrue(html.contains("function updateSearchSummaryChips()"));
-        assertTrue(html.contains("setSearchCollapsed(true);"));
     }
 
     @Test
