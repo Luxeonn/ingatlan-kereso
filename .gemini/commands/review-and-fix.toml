@@ -51,14 +51,14 @@ Follow these steps to conduct a thorough review:
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
-   * If all criteria pass, generate the formal Thematic Agent Approval Gate block with a concise 1-sentence rationale for each domain explaining why it was approved:
+   * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with concise OK / NOK status (only provide 1-sentence rationale if NOK):
      ```markdown
      ### 🛡️ Thematic Agent Approval Gate
-     - [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`) – <1-sentence rationale why approved or N/A>
-     - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`) – <1-sentence rationale why approved or N/A>
-     - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`) – <1-sentence rationale why approved or N/A>
-     - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`) – <1-sentence rationale why approved or N/A>
-     - [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`) – <1-sentence rationale why approved or N/A>
+     - [x] Architecture (`deep-architect`): OK
+     - [x] UI/UX (`ui-designer`): OK
+     - [x] Security (`security-specialist`): OK
+     - [x] Database (`database-specialist`): OK
+     - [x] Workflow/CI (`workflow-engineer`): OK
      ```
    * Advance to Phase 2.
 

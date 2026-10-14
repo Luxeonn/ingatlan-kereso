@@ -1,3 +1,16 @@
+### 🛡️ Thematic Agent Approval Gate
+
+> [!IMPORTANT]
+> A [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) 6. fejezete és a `.github/workflows/pr-guard.yml` előírja a kijelölt szakértői jóváhagyást. A státusz `OK` (ha megfelelt) vagy `N/A` (ha nem érintett). Kizárólag nem megfelelő (`NOK`) értékelés esetén kötelező a rövid, 1 mondatos indoklás!
+
+- [ ] Architecture (`deep-architect`): OK
+- [ ] UI/UX (`ui-designer`): OK
+- [ ] Security (`security-specialist`): OK
+- [ ] Database (`database-specialist`): OK
+- [ ] Workflow/CI (`workflow-engineer`): OK
+
+---
+
 ## Cél és kontextus (Context & Goal)
 
 <!-- Foglald össze tömören és érthetően, hogy miért készült ez a módosítás, és milyen problémát vagy fejlesztési igényt old meg. -->
@@ -33,19 +46,6 @@ Változik-e az adatbázis formátum, a keresési viselkedés vagy a CLI paramét
 - [ ] Maven tesztek lefutása: `mvn test` (sikeres lefutás, 0 hiba)
 - [ ] Manuális ellenőrzés / füstteszt lépései
 - [ ] JaCoCo tesztlefedettségi eredmények -->
-
----
-
-### 🛡️ Thematic Agent Approval Gate
-
-> [!IMPORTANT]
-> A [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) 6. fejezete és a `.github/workflows/pr-guard.yml` előírja, hogy a PR-ban érintett szakterületek kijelölt AI szakértőjének jóvá kell hagynia a módosítást a merge-eléshez. Jelöld be az érintett jóváhagyásokat pontosan **1 mondatos indoklással** alátámasztva, vagy jelöld `N/A`-val a nem érintett témákat!
-
-- [ ] Architecture Review: Approved by Deep Architect Agent (`deep-architect`) – [1 mondatos indoklás]
-- [ ] UI/UX Review: Approved by UI Designer Agent (`ui-designer`) – [1 mondatos indoklás]
-- [ ] Security Review: Approved by Security Specialist Agent (`security-specialist`) – [1 mondatos indoklás]
-- [ ] Database Review: Approved by Database Specialist Agent (`database-specialist`) – [1 mondatos indoklás]
-- [ ] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`) – [1 mondatos indoklás]
 
 ---
 
