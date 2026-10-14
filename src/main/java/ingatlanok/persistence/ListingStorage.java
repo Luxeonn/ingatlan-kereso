@@ -1,6 +1,8 @@
 package ingatlanok.persistence;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PriceHistoryEntry;
+import ingatlanok.model.StatusLogEntry;
 
 import java.util.Collection;
 import java.util.List;
@@ -93,4 +95,25 @@ public interface ListingStorage {
      * Visszaadja a legutóbbi keresési futás időbélyegét.
      */
     String getLastRunTime();
+
+    /**
+     * Lekérdezi egy adott hirdetés teljes ármozgási történetét.
+     */
+    default List<PriceHistoryEntry> getPriceHistory(String idOrUrl) {
+        return List.of();
+    }
+
+    /**
+     * Lekérdezi egy adott hirdetés státusz- és életciklus-változásait.
+     */
+    default List<StatusLogEntry> getStatusLog(String idOrUrl) {
+        return List.of();
+    }
+
+    /**
+     * Lekérdezi az árcsökkentett (leárazott) ingatlanokat.
+     */
+    default List<IngatlanItem> getDiscountedProperties(String city) {
+        return List.of();
+    }
 }

@@ -21,6 +21,7 @@ public class SearchCriteria implements Serializable {
     private List<String> portals = new ArrayList<>();
     private boolean autoOpenBrowser = false;
     private boolean excludeViewed = false;
+    private boolean onlyDiscounted = false;
 
     public SearchCriteria() {
 
@@ -94,7 +95,16 @@ public class SearchCriteria implements Serializable {
         clone.setPortals(this.portals != null ? new ArrayList<>(this.portals) : new ArrayList<>());
         clone.setAutoOpenBrowser(this.autoOpenBrowser);
         clone.setExcludeViewed(this.excludeViewed);
+        clone.setOnlyDiscounted(this.onlyDiscounted);
         return clone;
+    }
+
+    public boolean isOnlyDiscounted() {
+        return onlyDiscounted;
+    }
+
+    public void setOnlyDiscounted(boolean onlyDiscounted) {
+        this.onlyDiscounted = onlyDiscounted;
     }
 
     public String getPropertyType() {
@@ -190,6 +200,10 @@ public class SearchCriteria implements Serializable {
         }
 
         if (excludeViewed && item.isViewed()) {
+            return false;
+        }
+
+        if (onlyDiscounted && !item.isDiscounted()) {
             return false;
         }
 

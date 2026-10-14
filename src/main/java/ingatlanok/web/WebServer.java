@@ -114,6 +114,7 @@ public class WebServer {
         server.createContext("/api/cities", new CitiesHandler());
         server.createContext("/api/portals", new PortalsHandler());
         server.createContext("/api/history", new HistoryHandler());
+        server.createContext("/api/properties", new PropertiesHandler());
         server.createContext("/api/search", new SearchHandler());
         server.createContext("/api/open-urls", new OpenUrlsHandler());
         server.createContext("/api/items/viewed", new MarkViewedHandler());
@@ -260,22 +261,103 @@ public class WebServer {
 
             String query = exchange.getRequestURI().getQuery();
             String cityParam = null;
-            if (query != null && query.contains("city=")) {
+            boolean onlyDiscounted = false;
+            if (query != null) {
                 for (String part : query.split("&")) {
                     if (part.startsWith("city=")) {
                         cityParam = URLDecoder.decode(part.substring(5), StandardCharsets.UTF_8);
-                        break;
+                    } else if (part.equals("onlyDiscounted=true")) {
+                        onlyDiscounted = true;
                     }
                 }
             }
 
             List<IngatlanItem> items;
-            if (cityParam != null && !cityParam.isBlank()) {
+            if (onlyDiscounted) {
+                items = IngatlanRepository.getInstance().getDiscountedProperties(cityParam);
+            } else if (cityParam != null && !cityParam.isBlank()) {
                 items = IngatlanRepository.getInstance().getItemsByCity(cityParam);
             } else {
                 items = IngatlanRepository.getInstance().getAll();
             }
             sendJsonResponse(exchange, 200, items);
+        }
+    }
+
+    private static class PropertiesHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+
+            String path = exchange.getRequestURI().getPath();
+            String query = exchange.getRequestURI().getQuery();
+            String idOrUrlParam = null;
+
+            if (query != null) {
+                for (String part : query.split("&")) {
+                    if (part.startsWith("id=")) {
+                        idOrUrlParam = URLDecoder.decode(part.substring(3), StandardCharsets.UTF_8);
+                        break;
+                    } else if (part.startsWith("url=")) {
+                        idOrUrlParam = URLDecoder.decode(part.substring(4), StandardCharsets.UTF_8);
+                        break;
+                    }
+                }
+            }
+
+            if (path.contains("/price-history")) {
+                if (idOrUrlParam == null) {
+                    String[] parts = path.split("/");
+                    if (parts.length >= 5 && !parts[3].isBlank() && !parts[3].equals("price-history")) {
+                        idOrUrlParam = URLDecoder.decode(parts[3], StandardCharsets.UTF_8);
+                    }
+                }
+
+                if (idOrUrlParam != null && !idOrUrlParam.isBlank()) {
+                    List<ingatlanok.model.PriceHistoryEntry> history = IngatlanRepository.getInstance().getPriceHistory(idOrUrlParam);
+                    sendJsonResponse(exchange, 200, history);
+                } else {
+                    sendJsonResponse(exchange, 400, Map.of("error", "Hiányzó 'id' vagy 'url' paraméter!"));
+                }
+                return;
+            }
+
+            if (path.contains("/status-log")) {
+                if (idOrUrlParam == null) {
+                    String[] parts = path.split("/");
+                    if (parts.length >= 5 && !parts[3].isBlank() && !parts[3].equals("status-log")) {
+                        idOrUrlParam = URLDecoder.decode(parts[3], StandardCharsets.UTF_8);
+                    }
+                }
+
+                if (idOrUrlParam != null && !idOrUrlParam.isBlank()) {
+                    List<ingatlanok.model.StatusLogEntry> log = IngatlanRepository.getInstance().getStatusLog(idOrUrlParam);
+                    sendJsonResponse(exchange, 200, log);
+                } else {
+                    sendJsonResponse(exchange, 400, Map.of("error", "Hiányzó 'id' vagy 'url' paraméter!"));
+                }
+                return;
+            }
+
+            if (path.endsWith("/discounted")) {
+                String cityParam = null;
+                if (query != null) {
+                    for (String part : query.split("&")) {
+                        if (part.startsWith("city=")) {
+                            cityParam = URLDecoder.decode(part.substring(5), StandardCharsets.UTF_8);
+                            break;
+                        }
+                    }
+                }
+                List<IngatlanItem> discounted = IngatlanRepository.getInstance().getDiscountedProperties(cityParam);
+                sendJsonResponse(exchange, 200, discounted);
+                return;
+            }
+
+            sendResponse(exchange, 404, "Not Found");
         }
     }
 

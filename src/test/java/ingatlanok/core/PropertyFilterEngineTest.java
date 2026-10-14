@@ -55,4 +55,32 @@ class PropertyFilterEngineTest {
         PropertyFilterEngine.FilterResult r2 = filterEngine.filter(List.of(), null, "Debrecen");
         assertEquals(0, r2.matchingItems().size());
     }
+
+    @Test
+    @DisplayName("Szűrés kizárólag leárazott (onlyDiscounted) ingatlanokra")
+    void testOnlyDiscountedFilter() {
+        PropertyFilterEngine filterEngine = new PropertyFilterEngine();
+
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setMinPriceMillion(40);
+        criteria.setMaxPriceMillion(80);
+        criteria.setMinArea(50);
+        criteria.setMaxArea(120);
+        criteria.setOnlyDiscounted(true);
+
+        IngatlanItem normal = new IngatlanItem("1", "dh", "http://normal", "Normál lakás", "60 M Ft", "Debrecen", "Debrecen", "70 m²", "2026-10-14", false);
+        normal.setPriceDelta(0L);
+
+        IngatlanItem discounted = new IngatlanItem("2", "dh", "http://discounted", "Leárazott lakás", "55 M Ft", "Debrecen", "Debrecen", "70 m²", "2026-10-14", false);
+        discounted.setPriceDelta(-5_000_000L);
+        discounted.setPriceChangePercent(-8.33);
+
+        IngatlanItem increased = new IngatlanItem("3", "dh", "http://increased", "Drágult lakás", "65 M Ft", "Debrecen", "Debrecen", "70 m²", "2026-10-14", false);
+        increased.setPriceDelta(5_000_000L);
+
+        PropertyFilterEngine.FilterResult result = filterEngine.filter(List.of(normal, discounted, increased), criteria, "Debrecen");
+        assertEquals(1, result.matchingItems().size());
+        assertEquals("http://discounted", result.matchingItems().get(0).getUrl());
+        assertEquals(2, result.filteredByDiscountCount());
+    }
 }
