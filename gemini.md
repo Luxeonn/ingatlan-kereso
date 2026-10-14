@@ -284,14 +284,15 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      - **Perzisztencia és Adatbázis (`persistence/`, `IngatlanRepository`, `data/`):** A `database-specialist` ágens jóváhagyása kötelező (atomi lemezre írás, ReentrantReadWriteLock, duplikátumszűrés).
 >      - **CI/CD és GitHub Actions (`.github/workflows/`, `.githooks/`):** A `workflow-engineer` ágens jóváhagyása kötelező (least privilege permissions, shell injection védelem, caching, concurrency).
 >    - A felülvizsgálat lefolytatásához és az észlelt hiányosságok automatikus javításához a `.gemini/commands/review-and-fix.toml` parancs, illetve a `.agents/skills/review-and-fix/` skill használandó.
->    - A PR leírásában kötelezően szerepelnie kell az alábbi ellenőrzött jóváhagyási blokknak:
+>    - A PR leírásában kötelezően szerepelnie kell az alábbi ellenőrzött jóváhagyási blokknak, ahol minden jóváhagyás mellett kötelező **pontosan 1 mondatos szakmai indoklást** megadni, amely alátámasztja a döntést:
 >      ```markdown
 >      ### 🛡️ Thematic Agent Approval Gate
->      - [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`)
->      - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`)
->      - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`)
->      - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`)
->      - [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`)
+>      - [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`) – [1 mondatos indoklás: miért felel meg az architektúrának]
+>      - [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`) – [1 mondatos indoklás: miért felel meg a UI/UX követelményeknek]
+>      - [x] Security Review: Approved by Security Specialist Agent (`security-specialist`) – [1 mondatos indoklás: miért biztonságos]
+>      - [x] Database Review: Approved by Database Specialist Agent (`database-specialist`) – [1 mondatos indoklás: miért felel meg az adatbázis/perzisztencia elveknek]
+>      - [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`) – [1 mondatos indoklás: miért felel meg a CI/CD szabályoknak]
 >      ```
->      *(A nem érintett témakörök esetén a státusz: `N/A (nem érintett)`)*
+>      *(A nem érintett témakörök esetén a státusz: `- [x] <Téma> Review: N/A – [1 mondatos indoklás, miért nem érintett]`)*
 >    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.
+
