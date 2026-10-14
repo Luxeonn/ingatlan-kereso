@@ -2223,8 +2223,9 @@ public class WebDashboardHtml {
         });
 
         function showLoadingSkeletons() {
-            if (!container) return;
-            container.innerHTML = `
+            if (!listingsContainer) return;
+            if (emptyState) emptyState.style.display = 'none';
+            listingsContainer.innerHTML = `
                 <div class="card skeleton-card">
                     <div class="skeleton-shimmer" style="height: 180px; margin-bottom: 16px;"></div>
                     <div class="skeleton-shimmer" style="height: 22px; width: 60%; margin-bottom: 12px;"></div>
@@ -2335,56 +2336,60 @@ public class WebDashboardHtml {
         return """
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const portals = [];
-            if (document.getElementById('portal-dh').checked) portals.push('dh');
-            if (document.getElementById('portal-oc').checked) portals.push('oc');
-            if (document.getElementById('portal-jf').checked) portals.push('jofogas');
-            if (document.getElementById('portal-ic').checked) portals.push('ingatlancom');
-            if (document.getElementById('portal-ib') && document.getElementById('portal-ib').checked) portals.push('ingatlanbazar');
-            if (document.getElementById('portal-kb') && document.getElementById('portal-kb').checked) portals.push('koltozzbe');
-
-            if (portals.length === 0) {
-                showToast("Válassz ki legalább egy weboldalt a kereséshez!");
-                return;
-            }
-
-            if (selectedCities.length === 0) {
-                showToast("Válassz ki legalább egy települést a kereséshez!");
-                return;
-            }
-
-            const minPriceVal = document.getElementById('min-price-input').value.trim();
-            const maxPriceVal = document.getElementById('max-price-input').value.trim();
-            const minAreaVal = document.getElementById('min-area-input').value.trim();
-            const maxAreaVal = document.getElementById('max-area-input').value.trim();
-
-            const payload = {
-                city: selectedCities[0] || 'Debrecen',
-                cities: selectedCities,
-                propertyType: document.getElementById('type-select').value,
-                minPriceMillion: minPriceVal ? parseInt(minPriceVal, 10) : null,
-                maxPriceMillion: maxPriceVal ? parseInt(maxPriceVal, 10) : null,
-                minArea: minAreaVal ? parseInt(minAreaVal, 10) : null,
-                maxArea: maxAreaVal ? parseInt(maxAreaVal, 10) : null,
-                autoOpenBrowser: document.getElementById('auto-open-toggle').checked,
-                excludeViewed: document.getElementById('exclude-viewed-toggle').checked,
-                portals: portals
-            };
-
-            submitBtn.disabled = true;
-            btnText.textContent = "Keresés folyamatban...";
-            btnSpinner.style.display = "inline-block";
-            showToast(`🔍 Keresés indítása: ${selectedCities.join(', ')}...`);
-            showLoadingSkeletons();
-
             try {
+                const portals = [];
+                document.querySelectorAll('.portal-checkboxes input[type="checkbox"]:checked').forEach(cb => {
+                    if (cb.value) portals.push(cb.value);
+                });
+
+                if (portals.length === 0) {
+                    showToast("⚠️ Válassz ki legalább egy weboldalt a kereséshez!");
+                    return;
+                }
+
+                if (!selectedCities || selectedCities.length === 0) {
+                    showToast("⚠️ Válassz ki legalább egy települést a kereséshez!");
+                    return;
+                }
+
+                const minPriceVal = document.getElementById('min-price-input').value.trim();
+                const maxPriceVal = document.getElementById('max-price-input').value.trim();
+                const minAreaVal = document.getElementById('min-area-input').value.trim();
+                const maxAreaVal = document.getElementById('max-area-input').value.trim();
+
+                const payload = {
+                    city: selectedCities[0] || 'Debrecen',
+                    cities: selectedCities,
+                    propertyType: document.getElementById('type-select').value,
+                    minPriceMillion: minPriceVal ? parseInt(minPriceVal, 10) : null,
+                    maxPriceMillion: maxPriceVal ? parseInt(maxPriceVal, 10) : null,
+                    minArea: minAreaVal ? parseInt(minAreaVal, 10) : null,
+                    maxArea: maxAreaVal ? parseInt(maxAreaVal, 10) : null,
+                    autoOpenBrowser: document.getElementById('auto-open-toggle').checked,
+                    excludeViewed: document.getElementById('exclude-viewed-toggle').checked,
+                    portals: portals
+                };
+
+                submitBtn.disabled = true;
+                btnText.textContent = "Keresés folyamatban...";
+                btnSpinner.style.display = "inline-block";
+                showToast(`🔍 Keresés indítása: ${selectedCities.join(', ')}...`);
+                showLoadingSkeletons();
+
                 const response = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error("Hálózati hiba: " + response.status);
+                if (!response.ok) {
+                    let errMsg = "Hálózati hiba: " + response.status;
+                    try {
+                        const errJson = await response.json();
+                        if (errJson && errJson.error) errMsg = errJson.error;
+                    } catch (_) {}
+                    throw new Error(errMsg);
+                }
 
                 const data = await response.json();
                 currentItems = data.items || [];
@@ -2403,6 +2408,9 @@ public class WebDashboardHtml {
                 if (newItems.length > 0) {
                     btnOpenAllNew.style.display = 'inline-flex';
                     newBadgeCount.textContent = newItems.length;
+                    if (payload.autoOpenBrowser) {
+                        openAllNew();
+                    }
                 } else {
                     btnOpenAllNew.style.display = 'none';
                 }
@@ -2431,7 +2439,9 @@ public class WebDashboardHtml {
                     controlsBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             } catch (err) {
+                console.error("Keresési hiba:", err);
                 showToast("❌ Hiba történt: " + err.message);
+                renderListings();
             } finally {
                 submitBtn.disabled = false;
                 btnText.textContent = "🔍 Keresés indítása most";
