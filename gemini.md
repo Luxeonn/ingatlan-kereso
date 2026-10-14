@@ -158,19 +158,31 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 
 * **`deep-architect` (`.agents/skills/deep-architect/`):**
   * Mélytervező rendszerszintű architekt és szoftvertervezési specialista.
-  * Fókusz: Clean Architecture, réteg-izoláció, Java 21 Virtual Threads és strukturált konkurencia, 0-Crash elv, hibrid Java-Sidecar minták, és Architecture Decision Record (ADR) sablon.
+  * Fókusz: 4 rétegű Clean Architecture, réteg-izoláció, Java 21 Virtual Threads és strukturált konkurencia, 0-Crash elv, pluggable PortalEngine architektúra, leválasztott perzisztencia és Architecture Decision Record (ADR) készítés.
 * **`ui-designer` (`.agents/skills/ui-designer/`):**
   * UI/UX designer és beágyazott frontend specialista.
-  * Fókusz: `WebDashboardHtml.java` zéró külső függőségű SPA, Tailwind-ihletésű design tokenek, numerikus stepperek, shimmer loading skeletonok, piaci KPI kártyák, akadálymentesítés és mikróinterakciók.
+  * Fókusz: `WebDashboardHtml.java` zéró külső függőségű SPA, Tailwind-ihletésű design tokenek, tömeges szűrővezérlők, numerikus stepperek, fajlagos m² ár és méret szerinti rendezés, shimmer loading skeletonok, piaci KPI kártyák, beépített rendszernapló (Log Viewer) és diagnosztikai modal, valamint kliensoldali böngészőlap-nyitás.
 * **`security-specialist` (`.agents/skills/security-specialist/`):**
   * Alkalmazásbiztonsági (AppSec) és hardening specialista.
-  * Fókusz: Beágyazott `WebServer` localhost kötés és HTTP fejléc védelem, Path Traversal prevenció a városszintű JSON perzisztenciában, XSS védelem a hirdetéskártyáknál, ProcessBuilder parancsinjektálás elleni védelem, valamint böngésző URL megnyitási korlátok és sémavalidáció.
+  * Fókusz: Beágyazott `WebServer` localhost kötés és HTTP fejléc védelem (CSP, nosniff, frame-options), konténer hardening (non-root UID 10001 futtatás, kötetjogosultságok), Path Traversal prevenció a perzisztenciában, XSS védelem a hirdetéskártyáknál, ProcessBuilder parancsinjektálás elleni védelem, valamint böngésző URL megnyitási korlátok és sémavalidáció.
 * **`database-specialist` (`.agents/skills/database-specialist/`):**
   * Adatbázis és tárolási architektúra specialista.
-  * Fókusz: `IngatlanRepository` kétszintű JSON perzisztencia optimalizáció, `ReentrantReadWriteLock` konkurenciakezelés, atomi lemezre írás (`ATOMIC_MOVE`), O(1) duplikátumszűrés, visszafelé kompatibilis sémaevolúció, és SQLite átállási terv.
+  * Fókusz: Beágyazott relációs SQLite perzisztencia (`SqliteListingStorage`, `data/ingatlanok.db`), WAL mód (`journal_mode=WAL; synchronous=NORMAL;`), B-Tree indexelési stratégiák (`idx_listings_city`, `idx_listings_portal`, `idx_listings_discovered_at`), tranzakciós batch mentés, atomi JSON lemezre írás (`.tmp` + `ATOMIC_MOVE`), és zökkenőmentes automatikus adatmigráció.
 * **`workflow-engineer` (`.agents/skills/workflow-engineer/`):**
   * GitHub Actions és CI/CD automatizálási mérnök és workflow specialista.
-  * Fókusz: Professzionális, biztonságos és optimalizált `.github/workflows/` scriptek, jogosultság-minimalizálás (`permissions`), shell injection prevenció, gyorstárazás (`cache`), concurrency menedzsment és PR guard kapuk.
+  * Fókusz: Professzionális, biztonságos és optimalizált `.github/workflows/` scriptek, jogosultság-minimalizálás (`permissions`), shell injection prevenció, GHCR Docker konténer build és publish szabályok, Docker Buildx GHA gyorstárazás (`cache`), concurrency menedzsment és Thematic Agent PR guard kapuk.
+* **`review-and-fix` (`.agents/skills/review-and-fix/`):**
+  * Multi-agent minőségbiztosítási, kódvizsgálati és automatikus javítási specialista.
+  * Fókusz: Pull Requestek és lokális változtatások átfogó ellenőrzése, a tematikus szakértői kapu (`Thematic Agent Approval Gate`) kiadása, moduláris kapu-validáció és automatikus hibajavítási ciklus (Fix Loop).
+* **`devops-specialist` (`.agents/skills/devops-specialist/`):**
+  * Konténerizációs, felhő és DevOps rendszermérnök.
+  * Fókusz: Dockerfile multi-stage optimalizálás (Maven build + Temurin 21 JRE Alpine runtime), Docker Compose orkesztráció (`docker-compose.yml`), perzisztens kötetek (`./data`, `./logs`), környezeti változók kezelése (`SERVER_HOST`, `SERVER_PORT`), erőforrás-korlátok és fej nélküli (headless/Zero-Server-Desktop-Call) szerveroldali működés.
+* **`scraper-reliability-engineer` (`.agents/skills/scraper-reliability-engineer/`):**
+  * Web scraping robusztussági és anti-bot megbízhatósági mérnök.
+  * Fókusz: Cloudflare WAF és bot-védelem detektálás (HTTP 403/503, Ray ID, captcha minták), modern böngésző ujjlenyomat és Client Hints fejlécek (`Sec-Ch-Ua`), 0-crash elv és portálonkénti graceful fallback, belső REST API és Schema.org JSON-LD parsing, valamint Playwright/Headless sidecar vezérlés.
+* **`qa-test-engineer` (`.agents/skills/qa-test-engineer/`):**
+  * Minőségbiztosítási, tesztelési és kódlefedettségi mérnök (QA).
+  * Fókusz: Rétegzett tesztelési piramis, determinisztikus és 100% offline lefutás, scraper parser tesztek mentett HTML/JSON fixture-ökkel, SQLite `@TempDir` és in-memory integrációs tesztek, WebServer REST integrációs tesztek, és szigorú 80%+ JaCoCo kódlefedettség fenntartása.
 
 ---
 

@@ -26,20 +26,20 @@ Follow these steps to conduct a thorough review:
 3. **Determine Thematic Scope & Required Agent Approvals**:
    Analyze the modified files to determine which specialized agent must review and approve:
    * **Core Architecture & Service (`deep-architect` required):**
-     Touching `ingatlanok.service.*`, `ingatlanok.scraper.*`, `Main.java`, threading/virtual threads, or structural refactoring.
+     Touching `ingatlanok.service.*`, `ingatlanok.core.*`, `ingatlanok.portal.*`, `ingatlanok.scraper.*`, `Main.java`, threading/virtual threads, or structural refactoring.
      *Criteria:* Clean Architecture, loose coupling, 0-crash resilience, structured concurrency.
    * **User Interface & SPA (`ui-designer` required):**
      Touching `ingatlanok.web.WebDashboardHtml.java`, CSS tokens, JavaScript components, filters, steppers, or layouts.
-     *Criteria:* Zero-dependency SPA integrity, responsive layout (360px-2560px), dark/light harmony, no flicker, accessibility.
+     *Criteria:* Zero-dependency SPA integrity, responsive layout (360px-2560px), dark/light harmony, no flicker, accessibility, shimmering skeletons, log viewer.
    * **Security & Hardening (`security-specialist` required):**
-     Touching `ingatlanok.web.WebServer.java`, `SidecarCliExecutor.java`, `BrowserUtils.java`, network headers, process execution, or file path resolving.
-     *Criteria:* 127.0.0.1 localhost binding, 405 Method Not Allowed, CSP/nosniff headers, Path Traversal prevention, XSS escaping, ProcessBuilder command injection safety.
+     Touching `ingatlanok.web.WebServer.java`, `SidecarCliExecutor.java`, `BrowserUtils.java`, network headers, process execution, Dockerfile/compose permissions, or file path resolving.
+     *Criteria:* 127.0.0.1 localhost binding, 405 Method Not Allowed, CSP/nosniff headers, Path Traversal prevention, XSS escaping, ProcessBuilder command injection safety, non-root user.
    * **Persistence & Database (`database-specialist` required):**
-     Touching `ingatlanok.persistence.*`, `IngatlanRepository.java`, `data/`, model serialization, or storage formats.
-     *Criteria:* Thread-safe collections, ReentrantReadWriteLock, atomic write (.tmp + ATOMIC_MOVE), O(1) deduplication, backward compatibility.
+     Touching `ingatlanok.persistence.*`, `IngatlanRepository.java`, `data/`, SQLite schema, WAL mode, indexing, or atomic storage formats.
+     *Criteria:* Thread-safe collections, SQLite WAL and indexes, atomic write (.tmp + ATOMIC_MOVE), O(1) deduplication, backward compatibility.
    * **CI/CD & Workflows (`workflow-engineer` required):**
-     Touching `.github/workflows/*`, `.githooks/*`, CI scripts, or automated pipelines.
-     *Criteria:* Least privilege permissions, safe environment variables, shell injection safety, caching, concurrency cancel-in-progress.
+     Touching `.github/workflows/*`, `.githooks/*`, Docker publish pipelines, CI scripts, or automated pipelines.
+     *Criteria:* Least privilege permissions, safe environment variables, shell injection safety, caching, concurrency cancel-in-progress, GHCR container publication.
 
 4. **Execute Thematic Audits**:
    For each triggered domain, evaluate the diff against the corresponding specialist skill:
@@ -48,6 +48,9 @@ Follow these steps to conduct a thorough review:
    - Security: `.agents/skills/security-specialist/SKILL.md`
    - Database: `.agents/skills/database-specialist/SKILL.md`
    - Workflows/CI: `.agents/skills/workflow-engineer/SKILL.md`
+   - DevOps / Containers: `.agents/skills/devops-specialist/SKILL.md`
+   - Scraper Reliability: `.agents/skills/scraper-reliability-engineer/SKILL.md`
+   - QA & Testing: `.agents/skills/qa-test-engineer/SKILL.md`
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
