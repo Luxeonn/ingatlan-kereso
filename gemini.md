@@ -291,29 +291,42 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >
 > 8. **Kötelező Tematikus Agent Jóváhagyási Kapu (Thematic Agent Approval Gate & Review-and-Fix):**
 >    - Egyetlen Pull Request sem fogadható el és nem fésülhető össze a védett ágakba (`develop`, `main`) anélkül, hogy a módosítás által érintett szakterület kijelölt AI ágense azt jóvá nem hagyta:
->      - **Rendszerarchitektúra & Scraper réteg (`service/`, `scraper/`, szálkezelés):** A `deep-architect` ágens jóváhagyása kötelező (Clean Architecture, 0-crash garancia).
+>      - **Rendszerarchitektúra & Scraper réteg (`service/`, `scraper/`, `core/`, `portal/`, szálkezelés):** A `deep-architect` és `scraper-reliability-engineer` ágens jóváhagyása kötelező (Clean Architecture, 0-crash garancia).
 >      - **Frontend és Felület (`WebDashboardHtml.java`, CSS, JS komponensek):** A `ui-designer` ágens jóváhagyása kötelező (zéró külső függőség, reszponzivitás, UX).
 >      - **Biztonság, Hálózat és Folyamatkezelés (`WebServer.java`, `SidecarCliExecutor`, `BrowserUtils`):** A `security-specialist` ágens jóváhagyása kötelező (localhost kötés, CSP, Path Traversal, XSS és command injection védelem).
->      - **Perzisztencia és Adatbázis (`persistence/`, `IngatlanRepository`, `data/`):** A `database-specialist` ágens jóváhagyása kötelező (atomi lemezre írás, ReentrantReadWriteLock, duplikátumszűrés).
+>      - **Perzisztencia és Adatbázis (`persistence/`, `IngatlanRepository`, `data/`):** A `database-specialist` ágens jóváhagyása kötelező (atomi lemezre írás, ReentrantReadWriteLock, SQLite és duplikátumszűrés).
 >      - **CI/CD és GitHub Actions (`.github/workflows/`, `.githooks/`):** A `workflow-engineer` ágens jóváhagyása kötelező (least privilege permissions, shell injection védelem, caching, concurrency).
+>      - **Konténerizáció és Futtatási Környezet (`Dockerfile`, `docker-compose.yml`):** A `devops-specialist` ágens jóváhagyása kötelező (multi-stage build, non-root user, perzisztens kötetek).
+>      - **Tesztek és Minőségbiztosítás (`src/test/`, JaCoCo):** A `qa-test-engineer` ágens jóváhagyása kötelező (determinisztikus lefutás, 80%+ lefedettség).
 >    - A felülvizsgálat lefolytatásához és az észlelt hiányosságok automatikus javításához a `.gemini/commands/review-and-fix.toml` parancs, illetve a `.agents/skills/review-and-fix/` skill használandó.
->    - A jóváhagyási blokkot **kötelezően a PR leírásának legfelső részeként** kell elhelyezni, lényegretörő `OK` / `NOK` státuszokkal. Kizárólag nem megfelelő (`NOK`) értékelés esetén kötelező a probléma tömör, pontosan 1 mondatos indoklása:
+>    - **Kötelező 1 mondatos indoklás (Rationale Requirement):** A jóváhagyási blokkot **kötelezően a PR leírásának legfelső részeként** kell elhelyezni. Az ágensek nem hagyhatják üresen vagy pusztán jelölőnégyzettel az értékelést: minden szakterületnél kötelező **pontosan 1 tömör mondatban megindokolni**, hogy miért lett `[OK]` (jóváhagyva), `[NOK]` (elutasítva/javítandó), vagy `[N/A]` (nem érintett téma):
 >      ```markdown
 >      ### 🛡️ Thematic Agent Approval Gate
->      - [x] Architecture (`deep-architect`): OK
->      - [x] UI/UX (`ui-designer`): OK
->      - [x] Security (`security-specialist`): OK
->      - [x] Database (`database-specialist`): OK
->      - [x] Workflow/CI (`workflow-engineer`): OK
+>      - [x] Architecture (`deep-architect`): [OK] – A Clean Architecture réteghatárok és a 0-crash elv maradéktalanul érvényesül.
+>      - [x] UI/UX (`ui-designer`): [N/A] – A módosítás nem érinti a webes dashboardot vagy a frontend kódokat.
+>      - [x] Security (`security-specialist`): [OK] – A bemenet-validáció és a localhost szerverbiztonsági fejlécek sértetlenek.
+>      - [x] Database (`database-specialist`): [OK] – A szálbiztos tárolás és az atomi perzisztencia garantált.
+>      - [x] Workflow/CI (`workflow-engineer`): [OK] – A GitHub Actions munkafolyamatok és a PR guard szabályok rendben vannak.
+>      - [x] DevOps (`devops-specialist`): [N/A] – Konténerizációs vagy futtatási fájlok nem módosultak.
+>      - [x] Scraper Reliability (`scraper-reliability-engineer`): [N/A] – Web scraping és portálmotorok nem érintettek.
+>      - [x] QA/Testing (`qa-test-engineer`): [OK] – Minden automatizált egység- és integrációs teszt hibátlanul lefut.
 >      ```
->      *(A nem érintett témakörök esetén a státusz: `- [x] <Téma> (<agent-id>): N/A`; észlelt probléma esetén: `- [ ] <Téma> (<agent-id>): NOK – [1 mondatos indoklás]`)*
 >    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.
 >
-> 9. **PR Beolvasztás / Merge Szigorú Tilalma (Never Merge Pull Requests):**
->    - Az AI asszisztens **soha, semmilyen körülmények között nem mergelheti be a Pull Requesteket** a felhasználó nevében (`gh pr merge` vagy közvetlen git merge futtatása szigorúan tilos).
->    - A feladat hatóköre a kódolásnál, tesztelésnél, commitolásnál, pusholásnál és a PR létrehozásánál véget ér. A PR átvizsgálása, jóváhagyása és beolvasztása kizárólag a humán felhasználó / repó tulajdonos jogköre.
+> 9. **Szigorú PR Javítási Ciklus Zöld CI-ig (Strict Fix Loop Until Green CI):**
+>    - Ha a Pull Requesten futó bármelyik CI pipeline, PR Guard vagy teszt elbukik (piros státusz), a feladatot **tilos késznek nyilvánítani vagy a felhasználóra hagyni a hibajavítást**.
+>    - Az ágens köteles azonnal megkezdeni a **Fix Loop** ciklust:
+>      1. A hiba pontos okának feltárása a CI és workflow futási naplók (`gh run view --log-failed`) vagy helyi vizsgálat alapján.
+>      2. A szükséges korrekciók elvégzése a kódban, tesztekben vagy konfigurációban.
+>      3. Dedikált, leíró üzenetű új commit létrehozása (`git commit -m "fix: ..."`) és azonnali feltöltése (`git push origin <branch>`).
+>      4. A CI futások újraellenőrzése mindaddig, amíg **az összes pipeline ellenőrzés kivétel nélkül 100%-ban zöld nem lesz**.
+>    - Egyetlen PR sem tekinthető befejezettnek sikertelen vagy függőben lévő CI ellenőrzés mellett.
 >
-> 10. **Kapcsolódó Hibajegyek / Ticketek Automatikus Lezárása (Closing Linked Issues):**
+> 10. **PR Beolvasztás / Merge Szigorú Tilalma (Never Merge Pull Requests):**
+>    - Az AI asszisztens **soha, semmilyen körülmények között nem mergelheti be a Pull Requesteket** a felhasználó nevében (`gh pr merge` vagy közvetlen git merge futtatása szigorúan tilos).
+>    - A feladat hatóköre a kódolásnál, tesztelésnél, commitolásnál, pusholásnál, a PR létrehozásánál és a zöld CI státusz eléréséig tart. A PR átvizsgálása, jóváhagyása és beolvasztása kizárólag a humán felhasználó / repó tulajdonos jogköre.
+>
+> 11. **Kapcsolódó Hibajegyek / Ticketek Automatikus Lezárása (Closing Linked Issues):**
 >    - Ha a Pull Request egy meglévő issue-t / ticketet valósít meg vagy javít, **a PR leírásában kötelező használni a GitHub hivatalos összekapcsoló kulcsszavait**:
 >      - `Closes #<issue_number>`
 >      - `Fixes #<issue_number>`
