@@ -295,4 +295,9 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      ```
 >      *(A nem érintett témakörök esetén a státusz: `- [x] <Téma> Review: N/A – [1 mondatos indoklás, miért nem érintett]`)*
 >    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.
+>
+> 9. **PR Beolvasztás / Merge Szigorú Tilalma (Never Merge Pull Requests):**
+>    - Az AI asszisztens **soha, semmilyen körülmények között nem mergelheti be a Pull Requesteket** a felhasználó nevében (`gh pr merge` vagy közvetlen git merge futtatása szigorúan tilos).
+>    - A feladat hatóköre a kódolásnál, tesztelésnél, commitolásnál, pusholásnál és a PR létrehozásánál véget ér. A PR átvizsgálása, jóváhagyása és beolvasztása kizárólag a humán felhasználó / repó tulajdonos jogköre.
+
 
