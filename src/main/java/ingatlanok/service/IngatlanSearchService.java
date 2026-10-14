@@ -4,6 +4,7 @@ import ingatlanok.common.AppLogger;
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
@@ -89,24 +90,50 @@ public class IngatlanSearchService {
                     List<IngatlanItem> items = scrapeResult.getItems();
                     cityFoundItems.addAll(items);
                     portalCounts.put(scraper.getName(), portalCounts.getOrDefault(scraper.getName(), 0) + items.size());
+                    LOGGER.info("  ├─ [{}] {} db hirdetés letöltve (Válaszidő: {} ms, Státusz: {})",
+                            scraper.getName(), items.size(), scrapeResult.getExecutionTimeMs(), scrapeResult.getStatus());
                 } catch (Exception e) {
                     LOGGER.error("Hiba a(z) {} keresésekor ({}): {}", scraper.getName(), currentCity, e.getMessage(), e);
                 }
             }
 
+            int cityFilteredPrice = 0;
+            int cityFilteredArea = 0;
+            int cityFilteredViewed = 0;
+            int cityFilteredCity = 0;
+
             Map<String, IngatlanItem> uniqueCityMap = new LinkedHashMap<>();
             for (IngatlanItem item : cityFoundItems) {
-                if (!cityCriteria.matches(item)) {
-                    LOGGER.debug("[Kiszűrve] {} találat: {} (Ár: {}, Lokáció: {}, Link: {})",
-                            item.getPortal(), item.getTitle(), item.getPrice(), item.getLocation(), item.getUrl());
-                    continue;
-                }
-
                 if (item.getCity() == null || item.getCity().isBlank()) {
                     item.setCity(currentCity);
                 }
                 if (item.getLocation() == null || item.getLocation().isBlank()) {
                     item.setLocation(currentCity);
+                }
+
+                if (cityCriteria.isExcludeViewed() && item.isViewed()) {
+                    cityFilteredViewed++;
+                    continue;
+                }
+
+                if (!PropertyParser.isPriceInRange(item.getPriceInfo(), cityCriteria.getMinPriceMillion(), cityCriteria.getMaxPriceMillion())) {
+                    cityFilteredPrice++;
+                    continue;
+                }
+
+                Double area = (item.getDetailsInfo() != null) ? item.getDetailsInfo().getAreaSquareMeters() : null;
+                if (area == null && item.getDetails() != null) {
+                    PropertyDetails parsed = PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo());
+                    area = parsed.getAreaSquareMeters();
+                }
+                if (!PropertyParser.isAreaInRange(area, cityCriteria.getMinArea(), cityCriteria.getMaxArea())) {
+                    cityFilteredArea++;
+                    continue;
+                }
+
+                if (!SearchCriteria.matchesCity(item, currentCity)) {
+                    cityFilteredCity++;
+                    continue;
                 }
 
                 if (isFirstSearch) {
@@ -121,6 +148,11 @@ public class IngatlanSearchService {
 
             List<IngatlanItem> finalCityItems = new ArrayList<>(uniqueCityMap.values());
             repository.saveCityItems(currentCity, finalCityItems);
+
+            int cityMatchingCount = finalCityItems.size();
+            int cityTotalFiltered = cityFoundItems.size() - cityMatchingCount;
+            LOGGER.info("  └─ [{}] Összesítés: {} letöltve -> {} megfelelő találat (Kiszűrve: {} db | Ár: {}, Méret: {}, Megtekintett: {})",
+                    currentCity, cityFoundItems.size(), cityMatchingCount, cityTotalFiltered, cityFilteredPrice, cityFilteredArea, cityFilteredViewed);
 
             cityCounts.put(currentCity, finalCityItems.size());
             allAggregatedItems.addAll(finalCityItems);
