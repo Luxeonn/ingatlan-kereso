@@ -14,16 +14,28 @@ public final class BrowserUtils {
         if (url == null || url.isBlank()) {
             return false;
         }
+        String trimmed = url.trim();
+        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+            System.err.println("Biztonsági figyelmeztetés: Csak http:// vagy https:// hivatkozás nyitható meg: " + trimmed);
+            return false;
+        }
         try {
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(new URI(url));
+            String os = System.getProperty("os.name", "").toLowerCase();
+            if (os.contains("win")) {
+                new ProcessBuilder("cmd", "/c", "start", "", trimmed).start();
+                return true;
+            } else if (os.contains("mac")) {
+                new ProcessBuilder("open", trimmed).start();
+                return true;
+            } else if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(new URI(trimmed));
                 return true;
             } else {
-                new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", url).start();
+                new ProcessBuilder("xdg-open", trimmed).start();
                 return true;
             }
         } catch (Exception e) {
-            System.err.println("Nem sikerült megnyitni a böngészőben: " + url + " (" + e.getMessage() + ")");
+            System.err.println("Nem sikerült megnyitni a böngészőben: " + trimmed + " (" + e.getMessage() + ")");
             return false;
         }
     }

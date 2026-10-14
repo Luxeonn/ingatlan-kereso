@@ -42,15 +42,21 @@ public class Main {
 
             boolean isHeadless = java.awt.GraphicsEnvironment.isHeadless() || "0.0.0.0".equals(host);
             if (!isHeadless) {
-                System.out.println("Böngésző megnyitása folyamatban...");
-                if (!BrowserUtils.openUrl(url)) {
-                    System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
-                }
+                System.out.println("Böngésző megnyitása a háttérben...");
+                Thread.ofVirtual().start(() -> {
+                    if (!BrowserUtils.openUrl(url)) {
+                        System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
+                    }
+                });
             } else {
                 System.out.println("[Info] Headless / Konténer környezet észlelve. Nyisd meg a böngésződben: " + url);
             }
 
-            System.out.println("\nA szerver a háttérben fut. Nyomj Ctrl+C billentyűkombinációt a leállításhoz.");
+            System.out.println("\n==================================================");
+            System.out.println("  Web Dashboard Kiszolgáló Aktív!");
+            System.out.println("  Nyisd meg: " + url);
+            System.out.println("  Leállítás: [Ctrl + C]");
+            System.out.println("==================================================");
 
             Thread.currentThread().join();
         } catch (Exception e) {

@@ -46,14 +46,18 @@ if errorlevel 1 (
 echo [OK] Maven parancs: %MVN_CMD%
 echo.
 
-rem 3. Fordítás és alkalmazás indítása
+rem 3. Alkalmazás indítása
 echo ==============================================================================
 echo Indítás... Nyomj [Ctrl + C]-t a kiszolgáló leállításához.
 echo Web Dashboard elérhetőség: http://localhost:8080
 echo ==============================================================================
 echo.
 
-"%MVN_CMD%" compile exec:java %*
+if exist "target\ingatlan-1.0.jar" (
+    java -jar target\ingatlan-1.0.jar %*
+) else (
+    "%MVN_CMD%" compile exec:java %*
+)
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
