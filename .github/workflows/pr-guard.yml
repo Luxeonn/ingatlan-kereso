@@ -69,6 +69,15 @@ jobs:
             echo "✅ PR leírás kitöltve (${#BODY} karakter)."
           fi
 
+          # Kapcsolódó issue lezárási kulcsszó ellenőrzése és visszajelzés
+          if echo "$BODY" | grep -qiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+"; then
+            LINKED_MATCH=$(echo "$BODY" | grep -oiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+" | head -n 1)
+            echo "🔗 Kapcsolódó issue automatikus lezárása észlelve: '$LINKED_MATCH' (merge-kor automatikusan zárul)."
+          else
+            echo "ℹ️ Nincs automatikusan lezáró kulcsszó ('Closes #<id>', 'Fixes #<id>') a leírásban. Ha a PR issue-t old meg, add meg a 'Closes #...' kulcsszót!"
+          fi
+
+
       - name: Verify Thematic Agent Approval Gate
         env:
           BODY: ${{ github.event.pull_request.body }}

@@ -300,5 +300,14 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 > 9. **PR Beolvasztás / Merge Szigorú Tilalma (Never Merge Pull Requests):**
 >    - Az AI asszisztens **soha, semmilyen körülmények között nem mergelheti be a Pull Requesteket** a felhasználó nevében (`gh pr merge` vagy közvetlen git merge futtatása szigorúan tilos).
 >    - A feladat hatóköre a kódolásnál, tesztelésnél, commitolásnál, pusholásnál és a PR létrehozásánál véget ér. A PR átvizsgálása, jóváhagyása és beolvasztása kizárólag a humán felhasználó / repó tulajdonos jogköre.
+>
+> 10. **Kapcsolódó Hibajegyek / Ticketek Automatikus Lezárása (Closing Linked Issues):**
+>    - Ha a Pull Request egy meglévő issue-t / ticketet valósít meg vagy javít, **a PR leírásában kötelező használni a GitHub hivatalos összekapcsoló kulcsszavait**:
+>      - `Closes #<issue_number>`
+>      - `Fixes #<issue_number>`
+>      - `Resolves #<issue_number>`
+>    - A GitHub beépített mechanizmusa révén, amikor a PR jóváhagyásra és összefésülésre kerül (`merged`) a védett ágba (`develop` vagy `main`), a hivatkozott issue automatikusan lezárásra (`CLOSED`) kerül.
+>    - A PR létrehozásakor (`gh pr create`) a `--body` mező végén vagy a dedikált *Kapcsolódó Hibajegyek (Related Issues)* blokkban mindig szerepeljen a pontos hivatkozás (pl. `Closes #93`).
+
 
 
