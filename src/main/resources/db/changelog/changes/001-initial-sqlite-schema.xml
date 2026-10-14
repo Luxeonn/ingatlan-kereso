@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-properties-table" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="properties"/>
+            </not>
+        </preConditions>
+        <createTable tableName="properties">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="portal" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="varchar(512)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price_raw" type="varchar(64)"/>
+            <column name="price_amount" type="bigint"/>
+            <column name="price_millions" type="real"/>
+            <column name="city" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="city_key" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="location" type="varchar(128)"/>
+            <column name="area_sqm" type="real"/>
+            <column name="rooms" type="real"/>
+            <column name="price_per_sqm" type="real"/>
+            <column name="details" type="clob"/>
+            <column name="image_url" type="clob"/>
+            <column name="discovered_at" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="viewed" type="int" defaultValueNumeric="0"/>
+            <column name="viewed_at" type="varchar(64)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="001-create-properties-indexes" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_properties_url"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_properties_url" tableName="properties">
+            <column name="url"/>
+        </createIndex>
+        <createIndex indexName="idx_properties_city_key" tableName="properties">
+            <column name="city_key"/>
+        </createIndex>
+        <createIndex indexName="idx_properties_viewed" tableName="properties">
+            <column name="viewed"/>
+        </createIndex>
+        <createIndex indexName="idx_properties_discovered" tableName="properties">
+            <column name="discovered_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="001-create-search-config-table" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="search_config"/>
+            </not>
+        </preConditions>
+        <createTable tableName="search_config">
+            <column name="config_key" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="config_value" type="clob">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="001-create-search-runs-table" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="search_runs"/>
+            </not>
+        </preConditions>
+        <createTable tableName="search_runs">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="executed_at" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_found" type="int" defaultValueNumeric="0"/>
+            <column name="new_found" type="int" defaultValueNumeric="0"/>
+            <column name="criteria_json" type="clob"/>
+            <column name="portal_stats_json" type="clob"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
