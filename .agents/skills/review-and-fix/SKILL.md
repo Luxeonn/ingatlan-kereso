@@ -54,16 +54,18 @@ Minden PR-t kizárólag akkor engedünk át, ha az érintett szakterület dedik�
 
 ## 3. Thematic Agent Approval Gate Blokk Sablon
 
-Amikor a vizsgálat sikeresen lezárult, a PR leírásába kötelező beilleszteni az alábbi blokkot:
+Amikor a vizsgálat sikeresen lezárult, a PR leírásába kötelező beilleszteni az alábbi blokkot.
+**Követelmény:** A jóváhagyott témáknál a statikus szöveg helyett pontosan **1 mondatos tömör szakmai indoklást** kell adni, hogy az adott ágens miért engedélyezte a PR-t.
 
 ```markdown
 ### 🛡️ Thematic Agent Approval Gate
-- [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`)
-- [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`)
-- [x] Security Review: Approved by Security Specialist Agent (`security-specialist`)
-- [x] Database Review: Approved by Database Specialist Agent (`database-specialist`)
-- [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`)
+- [x] Architecture Review: Approved by Deep Architect Agent (`deep-architect`) – [1 mondatos indoklás: pl. Clean Architecture réteghatárok sértetlenek, 0-crash elv érvényesül]
+- [x] UI/UX Review: Approved by UI Designer Agent (`ui-designer`) – [1 mondatos indoklás: pl. Zéró külső függőség és reszponzivitás ellenőrizve]
+- [x] Security Review: Approved by Security Specialist Agent (`security-specialist`) – [1 mondatos indoklás: pl. Bemenet-validáció és biztonsági fejlécek rendben]
+- [x] Database Review: Approved by Database Specialist Agent (`database-specialist`) – [1 mondatos indoklás: pl. Szálbiztosság és atomi tárolás biztosított]
+- [x] Workflow/CI Review: Approved by Workflow Engineer Agent (`workflow-engineer`) – [1 mondatos indoklás: pl. CI scriptek és PR guard szabályok érvényesülnek]
 ```
 
 Amennyiben egy PR egy adott témakört nem érint, a státusz:
-`- [x] <Téma> Review: N/A (nem érintett)`
+`- [x] <Téma> Review: N/A – [1 mondatos indoklás, pl. A változtatás nem érinti a perzisztencia réteget]`
+
