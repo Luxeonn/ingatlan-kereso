@@ -477,6 +477,29 @@ public class SqliteListingStorage implements ListingStorage {
     }
 
     @Override
+    public Map<String, Long> countByPortal() {
+        rwLock.readLock().lock();
+        Map<String, Long> result = new LinkedHashMap<>();
+        String sql = "SELECT portal, COUNT(*) as cnt FROM properties GROUP BY portal ORDER BY cnt DESC;";
+        try (Connection conn = dbManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String portal = rs.getString("portal");
+                long count = rs.getLong("cnt");
+                if (portal != null && !portal.isBlank()) {
+                    result.put(portal.trim().toLowerCase(), count);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Hiba a portálonkénti hirdetésszám lekérdezésekor: {}", e.getMessage(), e);
+        } finally {
+            rwLock.readLock().unlock();
+        }
+        return result;
+    }
+
+    @Override
     public String getLastRunTime() {
         if (lastRunTime != null) {
             return lastRunTime;

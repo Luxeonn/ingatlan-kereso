@@ -548,6 +548,21 @@ public class WebDashboardHtml {
             cursor: pointer;
         }
 
+        .btn-text-link {
+            background: none;
+            border: none;
+            padding: 0;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: opacity 0.15s ease;
+        }
+        .btn-text-link:hover {
+            opacity: 0.8;
+        }
+
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
@@ -1473,7 +1488,14 @@ public class WebDashboardHtml {
                 </div>
 
                 <div class="portals-filter-section">
-                    <label class="form-section-label">🌐 Aktív weboldalak keresése</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label class="form-section-label" style="margin-bottom: 0;">🌐 Aktív weboldalak keresése</label>
+                        <div class="portal-bulk-actions" style="display: flex; gap: 8px; font-size: 12px;">
+                            <button type="button" class="btn-text-link" onclick="selectAllPortals()" title="Minden weboldal kijelölése">✓ Mindet kijelöl</button>
+                            <span style="color: var(--border-color, #e2e8f0);">|</span>
+                            <button type="button" class="btn-text-link" onclick="deselectAllPortals()" title="Minden weboldal kijelölésének törlése">✕ Mindet töröl</button>
+                        </div>
+                    </div>
                     <div class="portal-checkboxes">
                         <label class="portal-chip">
                             <input type="checkbox" id="portal-dh" value="dh" checked> Duna House
@@ -1549,9 +1571,13 @@ public class WebDashboardHtml {
 
             <div class="sort-box">
                 <span class="icon">↕️</span>
-                <select id="sort-select" class="sort-select" onchange="changeSort(this.value)" title="Találati lista rendezése ár szerint">
+                <select id="sort-select" class="sort-select" onchange="changeSort(this.value)" title="Találati lista rendezése ár vagy alapterület szerint">
                     <option value="price-asc" selected>Ár: Növekvő (olcsóbbtól)</option>
                     <option value="price-desc">Ár: Csökkenő (drágábbtól)</option>
+                    <option value="area-asc">Alapterület: Növekvő (m²)</option>
+                    <option value="area-desc">Alapterület: Csökkenő (m²)</option>
+                    <option value="sqm-price-asc">Fajlagos ár: Növekvő (Ft/m²)</option>
+                    <option value="sqm-price-desc">Fajlagos ár: Csökkenő (Ft/m²)</option>
                     <option value="default">Legújabb elöl</option>
                 </select>
                 <span class="arrow">▾</span>
@@ -1827,6 +1853,54 @@ public class WebDashboardHtml {
             }
 
             return null;
+        }
+
+        function getItemArea(item) {
+            if (!item) return null;
+            if (item.detailsInfo && item.detailsInfo.areaSquareMeters != null && item.detailsInfo.areaSquareMeters > 0) {
+                return item.detailsInfo.areaSquareMeters;
+            }
+            if (item.details) {
+                const match = item.details.match(/([0-9]+(?:[.,][0-9]+)?)\\s*m[²2]/i);
+                if (match) {
+                    const val = parseFloat(match[1].replace(',', '.'));
+                    if (!isNaN(val) && val > 0) return val;
+                }
+            }
+            return null;
+        }
+
+        function getItemPriceHuf(item) {
+            if (!item) return null;
+            if (item.priceInfo && item.priceInfo.amountHuf != null && item.priceInfo.amountHuf > 0) {
+                return item.priceInfo.amountHuf;
+            }
+            return parsePrice(item.price);
+        }
+
+        function getItemSqmPrice(item) {
+            if (!item) return null;
+            if (item.detailsInfo && item.detailsInfo.pricePerSqmHuf != null && item.detailsInfo.pricePerSqmHuf > 0) {
+                return item.detailsInfo.pricePerSqmHuf;
+            }
+            const price = getItemPriceHuf(item);
+            const area = getItemArea(item);
+            if (price !== null && area !== null && area > 0) {
+                return Math.round(price / area);
+            }
+            return null;
+        }
+
+        function selectAllPortals() {
+            document.querySelectorAll('.portal-checkboxes input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function deselectAllPortals() {
+            document.querySelectorAll('.portal-checkboxes input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
         }
 
         function stepNumber(inputId, step) {
@@ -2243,20 +2317,20 @@ public class WebDashboardHtml {
                     if (Array.isArray(data) && data.length > 0) {
                         const portalContainer = document.querySelector('.portal-checkboxes');
                         if (portalContainer) {
+                            portalContainer.innerHTML = '';
                             data.forEach(p => {
                                 const inputId = 'portal-' + p.id;
-                                if (!document.getElementById(inputId) && !document.querySelector(`input[value="${p.id}"]`)) {
-                                    const label = document.createElement('label');
-                                    label.className = 'portal-chip';
-                                    const inp = document.createElement('input');
-                                    inp.type = 'checkbox';
-                                    inp.id = inputId;
-                                    inp.value = p.id;
-                                    inp.checked = p.enabledByDefault !== undefined ? p.enabledByDefault : true;
-                                    label.appendChild(inp);
-                                    label.appendChild(document.createTextNode(' ' + p.name));
-                                    portalContainer.appendChild(label);
-                                }
+                                const label = document.createElement('label');
+                                label.className = 'portal-chip';
+                                const inp = document.createElement('input');
+                                inp.type = 'checkbox';
+                                inp.id = inputId;
+                                inp.value = p.id;
+                                inp.checked = p.enabledByDefault !== undefined ? p.enabledByDefault : true;
+                                label.appendChild(inp);
+                                const countInfo = p.savedListingCount > 0 ? ' (' + p.savedListingCount + ')' : '';
+                                label.appendChild(document.createTextNode(' ' + p.name + countInfo));
+                                portalContainer.appendChild(label);
                             });
                         }
                     }
@@ -2588,12 +2662,30 @@ public class WebDashboardHtml {
 
             if (currentSort === 'price-asc' || currentSort === 'price-desc') {
                 filtered.sort((a, b) => {
-                    const pA = parsePrice(a.price);
-                    const pB = parsePrice(b.price);
+                    const pA = getItemPriceHuf(a);
+                    const pB = getItemPriceHuf(b);
                     if (pA === null && pB === null) return 0;
                     if (pA === null) return 1;
                     if (pB === null) return -1;
                     return currentSort === 'price-asc' ? pA - pB : pB - pA;
+                });
+            } else if (currentSort === 'area-asc' || currentSort === 'area-desc') {
+                filtered.sort((a, b) => {
+                    const aArea = getItemArea(a);
+                    const bArea = getItemArea(b);
+                    if (aArea === null && bArea === null) return 0;
+                    if (aArea === null) return 1;
+                    if (bArea === null) return -1;
+                    return currentSort === 'area-asc' ? aArea - bArea : bArea - aArea;
+                });
+            } else if (currentSort === 'sqm-price-asc' || currentSort === 'sqm-price-desc') {
+                filtered.sort((a, b) => {
+                    const aSqm = getItemSqmPrice(a);
+                    const bSqm = getItemSqmPrice(b);
+                    if (aSqm === null && bSqm === null) return 0;
+                    if (aSqm === null) return 1;
+                    if (bSqm === null) return -1;
+                    return currentSort === 'sqm-price-asc' ? aSqm - bSqm : bSqm - aSqm;
                 });
             }
 

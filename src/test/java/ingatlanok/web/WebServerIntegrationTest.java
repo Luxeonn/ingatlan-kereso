@@ -296,6 +296,7 @@ class WebServerIntegrationTest {
         assertTrue(response.body().contains("Otthon Centrum"));
         assertTrue(response.body().contains("dh"));
         assertTrue(response.body().contains("oc"));
+        assertTrue(response.body().contains("savedListingCount"));
 
         HttpRequest postRequest = HttpRequest.newBuilder()
                 .uri(URI.create(getBaseUrl() + "/api/portals"))
