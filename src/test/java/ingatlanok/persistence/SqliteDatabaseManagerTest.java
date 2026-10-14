@@ -46,6 +46,8 @@ class SqliteDatabaseManagerTest {
                 assertTrue(tables.contains("locations"), "locations táblának léteznie kell");
                 assertTrue(tables.contains("property_attributes"), "property_attributes táblának léteznie kell");
                 assertTrue(tables.contains("property_images"), "property_images táblának léteznie kell");
+                assertTrue(tables.contains("property_price_history"), "property_price_history táblának léteznie kell");
+                assertTrue(tables.contains("property_status_log"), "property_status_log táblának léteznie kell");
                 assertTrue(tables.contains("search_config"), "search_config táblának léteznie kell");
                 assertTrue(tables.contains("search_runs"), "search_runs táblának léteznie kell");
             }
@@ -65,6 +67,9 @@ class SqliteDatabaseManagerTest {
                 assertTrue(indexes.contains("idx_prop_attr_price_amount"));
                 assertTrue(indexes.contains("idx_prop_attr_area_sqm"));
                 assertTrue(indexes.contains("idx_prop_images_property_id"));
+                assertTrue(indexes.contains("idx_price_history_prop_date"));
+                assertTrue(indexes.contains("idx_price_history_delta"));
+                assertTrue(indexes.contains("idx_status_log_prop_date"));
             }
         }
     }
@@ -105,6 +110,11 @@ class SqliteDatabaseManagerTest {
                 assertTrue(changeSetIds.contains("002-create-property-attributes-table"));
                 assertTrue(changeSetIds.contains("002-create-property-images-table"));
                 assertTrue(changeSetIds.contains("002-create-3nf-indexes"));
+                assertTrue(changeSetIds.contains("003-create-property-price-history-table"));
+                assertTrue(changeSetIds.contains("003-create-price-history-indexes"));
+                assertTrue(changeSetIds.contains("003-create-property-status-log-table"));
+                assertTrue(changeSetIds.contains("003-create-status-log-indexes"));
+                assertTrue(changeSetIds.contains("003-seed-initial-price-history-and-status"));
             }
         }
     }

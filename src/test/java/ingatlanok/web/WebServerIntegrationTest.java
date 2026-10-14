@@ -5,7 +5,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import ingatlanok.common.AppLogger;
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PriceInfo;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.persistence.IngatlanRepository;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -318,5 +321,72 @@ class WebServerIntegrationTest {
         assertEquals("DENY", response.headers().firstValue("X-Frame-Options").orElse(""));
         assertEquals("strict-origin-when-cross-origin", response.headers().firstValue("Referrer-Policy").orElse(""));
         assertTrue(response.headers().firstValue("Content-Security-Policy").orElse("").contains("default-src 'self'"));
+    }
+
+    @Test
+    @DisplayName("GET /api/properties/price-history and /api/properties/status-log return history entries")
+    void testPropertiesPriceHistoryAndStatusEndpoints() throws Exception {
+        String testUrl = "https://dh.hu/api-history-test-1";
+        IngatlanItem item1 = new IngatlanItem("api-1", "Duna House", testUrl, "API Teszt Lakás", "50 M Ft", "Debrecen", "Debrecen", "50 m²", "2026-10-14 10:00:00", true);
+        item1.setPriceInfo(new PriceInfo("50 M Ft", 50_000_000L, 50.0));
+        IngatlanRepository.getInstance().saveCityItems("Debrecen", List.of(item1));
+
+        // Árcsökkentés 45 M Ft-ra
+        IngatlanItem itemDrop = new IngatlanItem("api-1", "Duna House", testUrl, "API Teszt Lakás", "45 M Ft", "Debrecen", "Debrecen", "50 m²", "2026-10-14 12:00:00", false);
+        itemDrop.setPriceInfo(new PriceInfo("45 M Ft", 45_000_000L, 45.0));
+        IngatlanRepository.getInstance().saveCityItems("Debrecen", List.of(itemDrop));
+
+        // 1. Ártörténet lekérdezése query paraméterrel (url)
+        HttpRequest reqHistoryUrl = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/properties/price-history?url=" + java.net.URLEncoder.encode(testUrl, java.nio.charset.StandardCharsets.UTF_8)))
+                .GET()
+                .build();
+        HttpResponse<String> respHistoryUrl = client.send(reqHistoryUrl, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respHistoryUrl.statusCode());
+        JsonArray historyArray = JsonParser.parseString(respHistoryUrl.body()).getAsJsonArray();
+        assertEquals(2, historyArray.size());
+        assertEquals(50_000_000L, historyArray.get(0).getAsJsonObject().get("priceAmount").getAsLong());
+        assertEquals(45_000_000L, historyArray.get(1).getAsJsonObject().get("priceAmount").getAsLong());
+        assertEquals(-5_000_000L, historyArray.get(1).getAsJsonObject().get("priceDelta").getAsLong());
+
+        // 2. Státusznapló lekérdezése
+        HttpRequest reqStatusUrl = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/properties/status-log?url=" + java.net.URLEncoder.encode(testUrl, java.nio.charset.StandardCharsets.UTF_8)))
+                .GET()
+                .build();
+        HttpResponse<String> respStatusUrl = client.send(reqStatusUrl, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respStatusUrl.statusCode());
+        JsonArray statusArray = JsonParser.parseString(respStatusUrl.body()).getAsJsonArray();
+        assertEquals(2, statusArray.size());
+        assertEquals("ACTIVE", statusArray.get(0).getAsJsonObject().get("status").getAsString());
+        assertEquals("PRICE_DROP", statusArray.get(1).getAsJsonObject().get("status").getAsString());
+
+        // 3. /api/history?onlyDiscounted=true szűrés
+        HttpRequest reqDiscounted = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/history?city=Debrecen&onlyDiscounted=true"))
+                .GET()
+                .build();
+        HttpResponse<String> respDiscounted = client.send(reqDiscounted, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respDiscounted.statusCode());
+        JsonArray discountedArray = JsonParser.parseString(respDiscounted.body()).getAsJsonArray();
+        assertTrue(discountedArray.size() >= 1);
+        boolean foundTestItem = false;
+        for (int i = 0; i < discountedArray.size(); i++) {
+            if (testUrl.equals(discountedArray.get(i).getAsJsonObject().get("url").getAsString())) {
+                foundTestItem = true;
+                assertEquals(-5_000_000L, discountedArray.get(i).getAsJsonObject().get("priceDelta").getAsLong());
+            }
+        }
+        assertTrue(foundTestItem, "A leárazott hirdetésnek meg kell jelennie a listában");
+
+        // 4. /api/properties/discounted végpont
+        HttpRequest reqPropsDiscounted = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/properties/discounted?city=Debrecen"))
+                .GET()
+                .build();
+        HttpResponse<String> respPropsDiscounted = client.send(reqPropsDiscounted, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respPropsDiscounted.statusCode());
+        JsonArray propsDiscountedArray = JsonParser.parseString(respPropsDiscounted.body()).getAsJsonArray();
+        assertTrue(propsDiscountedArray.size() >= 1);
     }
 }

@@ -152,4 +152,19 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     public String getLastRunTime() {
         return listingStorage.getLastRunTime();
     }
+
+    @Override
+    public List<ingatlanok.model.PriceHistoryEntry> getPriceHistory(String idOrUrl) {
+        return listingStorage.getPriceHistory(idOrUrl);
+    }
+
+    @Override
+    public List<ingatlanok.model.StatusLogEntry> getStatusLog(String idOrUrl) {
+        return listingStorage.getStatusLog(idOrUrl);
+    }
+
+    @Override
+    public List<IngatlanItem> getDiscountedProperties(String city) {
+        return listingStorage.getDiscountedProperties(city);
+    }
 }

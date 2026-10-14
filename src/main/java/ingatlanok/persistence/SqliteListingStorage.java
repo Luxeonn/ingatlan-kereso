@@ -4,9 +4,7 @@ import ingatlanok.common.AppLogger;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
-import ingatlanok.model.IngatlanItem;
-import ingatlanok.model.PriceInfo;
-import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.*;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -26,17 +24,23 @@ public class SqliteListingStorage implements ListingStorage {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final String SELECT_3NF_BASE = """
-        SELECT p.id, po.name AS portal, p.url, p.title,
+        SELECT p.id, po.name AS portal, p.url, p.title, p.status,
                loc.name AS city, loc.normalized_slug AS city_key,
                p.discovered_at, p.viewed, p.viewed_at,
                pa.price_raw, pa.price_amount, pa.price_millions, pa.price_per_sqm,
                pa.area_sqm, pa.rooms, pa.raw_description AS details,
-               pi.image_url
+               pi.image_url,
+               ph.price_delta, ph.change_percent, ph.recorded_at AS last_price_change_at
         FROM properties p
         JOIN portals po ON p.portal_id = po.id
         JOIN locations loc ON p.location_id = loc.id
         LEFT JOIN property_attributes pa ON p.id = pa.property_id
         LEFT JOIN property_images pi ON p.id = pi.property_id AND pi.is_primary = 1
+        LEFT JOIN (
+            SELECT property_id, price_delta, change_percent, recorded_at,
+                   ROW_NUMBER() OVER (PARTITION BY property_id ORDER BY id DESC) as rn
+            FROM property_price_history
+        ) ph ON p.id = ph.property_id AND ph.rn = 1
     """;
 
     private final SqliteDatabaseManager dbManager;
@@ -89,12 +93,13 @@ public class SqliteListingStorage implements ListingStorage {
         String propertySql = """
             INSERT INTO properties (
                 id, portal_id, location_id, external_id, url, title, status, discovered_at, viewed, viewed_at, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(url) DO UPDATE SET
                 portal_id = excluded.portal_id,
                 location_id = excluded.location_id,
                 external_id = COALESCE(excluded.external_id, properties.external_id),
                 title = excluded.title,
+                status = excluded.status,
                 updated_at = CURRENT_TIMESTAMP,
                 viewed = CASE WHEN properties.viewed = 1 THEN 1 ELSE excluded.viewed END,
                 viewed_at = CASE WHEN properties.viewed = 1 THEN properties.viewed_at ELSE excluded.viewed_at END;
@@ -121,6 +126,26 @@ public class SqliteListingStorage implements ListingStorage {
                   SELECT 1 FROM property_images pi WHERE pi.property_id = p.id AND pi.image_url = ?
               );
         """;
+        String selectExistingSql = """
+            SELECT p.id, p.status, pa.price_amount,
+                   (SELECT COUNT(*) FROM property_price_history ph WHERE ph.property_id = p.id) AS history_count
+            FROM properties p
+            LEFT JOIN property_attributes pa ON p.id = pa.property_id
+            WHERE p.url = ? LIMIT 1;
+        """;
+        String priceHistSql = """
+            INSERT INTO property_price_history (
+                property_id, recorded_at, price_raw, price_amount, price_millions, price_per_sqm,
+                previous_price_amount, price_delta, change_percent
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """;
+        String statusLogSql = """
+            INSERT INTO property_status_log (
+                property_id, status, changed_at, note
+            ) VALUES (?, ?, ?, ?);
+        """;
+
+        String now = LocalDateTime.now().format(DATE_TIME_FORMATTER);
 
         try (Connection conn = dbManager.getConnection()) {
             conn.setAutoCommit(false);
@@ -129,7 +154,10 @@ public class SqliteListingStorage implements ListingStorage {
                  PreparedStatement psLocation = conn.prepareStatement(locationSql);
                  PreparedStatement psProperty = conn.prepareStatement(propertySql);
                  PreparedStatement psAttr = conn.prepareStatement(attrSql);
-                 PreparedStatement psImage = conn.prepareStatement(imageSql)) {
+                 PreparedStatement psImage = conn.prepareStatement(imageSql);
+                 PreparedStatement psSelect = conn.prepareStatement(selectExistingSql);
+                 PreparedStatement psPriceHist = conn.prepareStatement(priceHistSql);
+                 PreparedStatement psStatusLog = conn.prepareStatement(statusLogSql)) {
 
                 for (IngatlanItem item : items) {
                     if (item == null || item.getUrl() == null || item.getUrl().isBlank()) {
@@ -154,34 +182,42 @@ public class SqliteListingStorage implements ListingStorage {
                     psLocation.setString(3, cityKey);
                     psLocation.addBatch();
 
-                    // 3. Hirdetés alapadatok batch
+                    // 3. Meglévő rekord vizsgálata és árváltozás detektálás
                     String rawId = item.getId();
-                    String id;
-                    if (rawId != null && !rawId.isBlank() && !"N/A".equalsIgnoreCase(rawId)) {
-                        id = portalId + "_" + rawId + "_" + Integer.toHexString(url.hashCode());
-                    } else {
-                        id = UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8)).toString();
+                    String propertyId;
+                    String targetStatus = "ACTIVE";
+                    boolean isNew = false;
+                    Long oldPrice = null;
+                    int historyCount = 0;
+
+                    psSelect.setString(1, url);
+                    try (ResultSet rs = psSelect.executeQuery()) {
+                        if (rs.next()) {
+                            propertyId = rs.getString("id");
+                            targetStatus = rs.getString("status");
+                            if (targetStatus == null || targetStatus.isBlank()) {
+                                targetStatus = "ACTIVE";
+                            }
+                            oldPrice = rs.getObject("price_amount") != null ? rs.getLong("price_amount") : null;
+                            historyCount = rs.getInt("history_count");
+                        } else {
+                            isNew = true;
+                            if (rawId != null && !rawId.isBlank() && !"N/A".equalsIgnoreCase(rawId)) {
+                                propertyId = portalId + "_" + rawId + "_" + Integer.toHexString(url.hashCode());
+                            } else {
+                                propertyId = UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8)).toString();
+                            }
+                        }
                     }
+
                     String title = item.getTitle() != null ? item.getTitle() : portalName + " hirdetés";
                     String discoveredAt = item.getDiscoveredAt() != null && !item.getDiscoveredAt().isBlank()
                             ? item.getDiscoveredAt()
-                            : LocalDateTime.now().format(DATE_TIME_FORMATTER);
+                            : now;
                     int viewed = item.isViewed() ? 1 : 0;
                     String viewedAt = item.getViewedAt();
 
-                    psProperty.setString(1, id);
-                    psProperty.setString(2, portalId);
-                    psProperty.setString(3, cityKey);
-                    psProperty.setString(4, rawId);
-                    psProperty.setString(5, url);
-                    psProperty.setString(6, title);
-                    psProperty.setString(7, discoveredAt);
-                    psProperty.setInt(8, viewed);
-                    psProperty.setString(9, viewedAt);
-                    psProperty.setString(10, discoveredAt);
-                    psProperty.addBatch();
-
-                    // 4. Hirdetés attribútumok batch
+                    // 4. Ár és attribútum adatok
                     String priceRaw = item.getPrice();
                     Long priceAmount = null;
                     Double priceMillions = null;
@@ -207,8 +243,79 @@ public class SqliteListingStorage implements ListingStorage {
                         pricePerSqm = pd.getPricePerSquareMeter();
                     }
 
-                    String details = item.getDetails() != null ? item.getDetails() : "";
+                    // 5. Árváltozás és státusz történet kezelése
+                    if (isNew) {
+                        targetStatus = "ACTIVE";
+                        if (priceAmount != null) {
+                            psPriceHist.setString(1, propertyId);
+                            psPriceHist.setString(2, discoveredAt);
+                            psPriceHist.setString(3, priceRaw);
+                            psPriceHist.setLong(4, priceAmount);
+                            psPriceHist.setDouble(5, priceMillions != null ? priceMillions : 0.0);
+                            if (pricePerSqm != null) psPriceHist.setLong(6, pricePerSqm); else psPriceHist.setNull(6, Types.BIGINT);
+                            psPriceHist.setNull(7, Types.BIGINT);
+                            psPriceHist.setLong(8, 0L);
+                            psPriceHist.setDouble(9, 0.0);
+                            psPriceHist.addBatch();
 
+                            psStatusLog.setString(1, propertyId);
+                            psStatusLog.setString(2, "ACTIVE");
+                            psStatusLog.setString(3, discoveredAt);
+                            psStatusLog.setString(4, "Kezdeti állapot rögzítése");
+                            psStatusLog.addBatch();
+                        }
+                    } else {
+                        if (priceAmount != null && oldPrice != null && !oldPrice.equals(priceAmount)) {
+                            long delta = priceAmount - oldPrice;
+                            double pct = Math.round(((double) delta / oldPrice) * 10000.0) / 100.0;
+                            targetStatus = (delta < 0) ? "PRICE_DROP" : "PRICE_INCREASE";
+
+                            psPriceHist.setString(1, propertyId);
+                            psPriceHist.setString(2, now);
+                            psPriceHist.setString(3, priceRaw);
+                            psPriceHist.setLong(4, priceAmount);
+                            psPriceHist.setDouble(5, priceMillions != null ? priceMillions : 0.0);
+                            if (pricePerSqm != null) psPriceHist.setLong(6, pricePerSqm); else psPriceHist.setNull(6, Types.BIGINT);
+                            psPriceHist.setLong(7, oldPrice);
+                            psPriceHist.setLong(8, delta);
+                            psPriceHist.setDouble(9, pct);
+                            psPriceHist.addBatch();
+
+                            psStatusLog.setString(1, propertyId);
+                            psStatusLog.setString(2, targetStatus);
+                            psStatusLog.setString(3, now);
+                            psStatusLog.setString(4, "Árváltozás: " + oldPrice + " Ft -> " + priceAmount + " Ft (" + (delta > 0 ? "+" : "") + delta + " Ft, " + pct + "%)");
+                            psStatusLog.addBatch();
+                        } else if (historyCount == 0 && priceAmount != null) {
+                            psPriceHist.setString(1, propertyId);
+                            psPriceHist.setString(2, discoveredAt);
+                            psPriceHist.setString(3, priceRaw);
+                            psPriceHist.setLong(4, priceAmount);
+                            psPriceHist.setDouble(5, priceMillions != null ? priceMillions : 0.0);
+                            if (pricePerSqm != null) psPriceHist.setLong(6, pricePerSqm); else psPriceHist.setNull(6, Types.BIGINT);
+                            psPriceHist.setNull(7, Types.BIGINT);
+                            psPriceHist.setLong(8, 0L);
+                            psPriceHist.setDouble(9, 0.0);
+                            psPriceHist.addBatch();
+                        }
+                    }
+
+                    // 6. Hirdetés alapadatok batch
+                    psProperty.setString(1, propertyId);
+                    psProperty.setString(2, portalId);
+                    psProperty.setString(3, cityKey);
+                    psProperty.setString(4, rawId);
+                    psProperty.setString(5, url);
+                    psProperty.setString(6, title);
+                    psProperty.setString(7, targetStatus);
+                    psProperty.setString(8, discoveredAt);
+                    psProperty.setInt(9, viewed);
+                    psProperty.setString(10, viewedAt);
+                    psProperty.setString(11, discoveredAt);
+                    psProperty.addBatch();
+
+                    // 7. Hirdetés attribútumok batch
+                    String details = item.getDetails() != null ? item.getDetails() : "";
                     psAttr.setString(1, url);
                     psAttr.setString(2, priceRaw);
                     if (priceAmount != null) psAttr.setLong(3, priceAmount); else psAttr.setNull(3, Types.BIGINT);
@@ -219,7 +326,7 @@ public class SqliteListingStorage implements ListingStorage {
                     psAttr.setString(8, details);
                     psAttr.addBatch();
 
-                    // 5. Kép batch
+                    // 8. Kép batch
                     String imageUrl = item.getImageUrl();
                     if (imageUrl != null && !imageUrl.isBlank()) {
                         psImage.setString(1, imageUrl);
@@ -234,6 +341,8 @@ public class SqliteListingStorage implements ListingStorage {
                 psProperty.executeBatch();
                 psAttr.executeBatch();
                 psImage.executeBatch();
+                psPriceHist.executeBatch();
+                psStatusLog.executeBatch();
             }
             conn.commit();
         } catch (SQLException e) {
@@ -539,6 +648,8 @@ public class SqliteListingStorage implements ListingStorage {
         try {
             try (Connection conn = dbManager.getConnection();
                  Statement stmt = conn.createStatement()) {
+                stmt.execute("DELETE FROM property_price_history;");
+                stmt.execute("DELETE FROM property_status_log;");
                 stmt.execute("DELETE FROM property_images;");
                 stmt.execute("DELETE FROM property_attributes;");
                 int deleted = stmt.executeUpdate("DELETE FROM properties;");
@@ -687,6 +798,146 @@ public class SqliteListingStorage implements ListingStorage {
         item.setViewedAt(rs.getString("viewed_at"));
         item.setNew(false);
 
+        item.setStatus(rs.getString("status"));
+        long delta = rs.getLong("price_delta");
+        if (!rs.wasNull()) {
+            item.setPriceDelta(delta);
+        }
+        double changePct = rs.getDouble("change_percent");
+        if (!rs.wasNull()) {
+            item.setPriceChangePercent(changePct);
+        }
+        item.setLastPriceChangeAt(rs.getString("last_price_change_at"));
+
         return item;
+    }
+
+    @Override
+    public List<PriceHistoryEntry> getPriceHistory(String idOrUrl) {
+        if (idOrUrl == null || idOrUrl.isBlank()) {
+            return Collections.emptyList();
+        }
+        rwLock.readLock().lock();
+        try {
+            String sql = """
+                SELECT ph.id, ph.property_id, ph.recorded_at, ph.price_raw, ph.price_amount,
+                       ph.price_millions, ph.price_per_sqm, ph.previous_price_amount,
+                       ph.price_delta, ph.change_percent
+                FROM property_price_history ph
+                JOIN properties p ON ph.property_id = p.id
+                WHERE p.id = ? OR p.url = ?
+                ORDER BY ph.id ASC;
+            """;
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, idOrUrl.trim());
+                ps.setString(2, idOrUrl.trim());
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<PriceHistoryEntry> history = new ArrayList<>();
+                    while (rs.next()) {
+                        long prevAmount = rs.getLong("previous_price_amount");
+                        Long prevPrice = rs.wasNull() ? null : prevAmount;
+                        long delta = rs.getLong("price_delta");
+                        Long deltaVal = rs.wasNull() ? null : delta;
+                        double change = rs.getDouble("change_percent");
+                        Double changeVal = rs.wasNull() ? null : change;
+                        long sqm = rs.getLong("price_per_sqm");
+                        Long sqmVal = rs.wasNull() ? null : sqm;
+
+                        history.add(new PriceHistoryEntry(
+                                rs.getInt("id"),
+                                rs.getString("property_id"),
+                                rs.getString("recorded_at"),
+                                rs.getString("price_raw"),
+                                rs.getLong("price_amount"),
+                                rs.getDouble("price_millions"),
+                                sqmVal,
+                                prevPrice,
+                                deltaVal,
+                                changeVal
+                        ));
+                    }
+                    return history;
+                }
+            } catch (SQLException e) {
+                LOGGER.error("Hiba az ártörténet lekérésekor [{}]: {}", idOrUrl, e.getMessage(), e);
+                return Collections.emptyList();
+            }
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public List<StatusLogEntry> getStatusLog(String idOrUrl) {
+        if (idOrUrl == null || idOrUrl.isBlank()) {
+            return Collections.emptyList();
+        }
+        rwLock.readLock().lock();
+        try {
+            String sql = """
+                SELECT sl.id, sl.property_id, sl.status, sl.changed_at, sl.note
+                FROM property_status_log sl
+                JOIN properties p ON sl.property_id = p.id
+                WHERE p.id = ? OR p.url = ?
+                ORDER BY sl.id ASC;
+            """;
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, idOrUrl.trim());
+                ps.setString(2, idOrUrl.trim());
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<StatusLogEntry> log = new ArrayList<>();
+                    while (rs.next()) {
+                        log.add(new StatusLogEntry(
+                                rs.getInt("id"),
+                                rs.getString("property_id"),
+                                rs.getString("status"),
+                                rs.getString("changed_at"),
+                                rs.getString("note")
+                        ));
+                    }
+                    return log;
+                }
+            } catch (SQLException e) {
+                LOGGER.error("Hiba a státusznapló lekérésekor [{}]: {}", idOrUrl, e.getMessage(), e);
+                return Collections.emptyList();
+            }
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public List<IngatlanItem> getDiscountedProperties(String city) {
+        rwLock.readLock().lock();
+        try {
+            String sql;
+            boolean hasCity = (city != null && !city.isBlank());
+            if (hasCity) {
+                sql = SELECT_3NF_BASE + " WHERE loc.normalized_slug = ? AND ph.price_delta < 0 ORDER BY ph.price_delta ASC, p.discovered_at DESC;";
+            } else {
+                sql = SELECT_3NF_BASE + " WHERE ph.price_delta < 0 ORDER BY ph.price_delta ASC, p.discovered_at DESC;";
+            }
+
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                if (hasCity) {
+                    ps.setString(1, CityUtils.normalizeCityKey(city));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<IngatlanItem> list = new ArrayList<>();
+                    while (rs.next()) {
+                        list.add(mapResultSetToItem(rs));
+                    }
+                    return list;
+                }
+            } catch (SQLException e) {
+                LOGGER.error("Hiba a leárazott hirdetések lekérésekor: {}", e.getMessage(), e);
+                return Collections.emptyList();
+            }
+        } finally {
+            rwLock.readLock().unlock();
+        }
     }
 }

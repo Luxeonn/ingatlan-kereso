@@ -7,5 +7,6 @@
 
     <include file="db/changelog/changes/001-initial-sqlite-schema.xml"/>
     <include file="db/changelog/changes/002-create-3nf-relational-tables.xml"/>
+    <include file="db/changelog/changes/003-create-price-history-and-status.xml"/>
 
 </databaseChangeLog>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. Árváltozások története tábla (1:N reláció a properties táblával) -->
+    <changeSet id="003-create-property-price-history-table" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="property_price_history"/>
+            </not>
+        </preConditions>
+        <createTable tableName="property_price_history">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="property_id" type="varchar(64)">
+                <constraints nullable="false" foreignKeyName="fk_price_hist_property" references="properties(id)" deleteCascade="true"/>
+            </column>
+            <column name="recorded_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price_raw" type="varchar(64)"/>
+            <column name="price_amount" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price_millions" type="real">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price_per_sqm" type="real"/>
+            <column name="previous_price_amount" type="bigint"/>
+            <column name="price_delta" type="bigint"/>
+            <column name="change_percent" type="real"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 2. Ártörténet indexek -->
+    <changeSet id="003-create-price-history-indexes" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_price_history_prop_date"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_price_history_prop_date" tableName="property_price_history">
+            <column name="property_id"/>
+            <column name="recorded_at"/>
+        </createIndex>
+        <createIndex indexName="idx_price_history_delta" tableName="property_price_history">
+            <column name="price_delta"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 3. Hirdetés életciklus és státusznapló tábla -->
+    <changeSet id="003-create-property-status-log-table" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="property_status_log"/>
+            </not>
+        </preConditions>
+        <createTable tableName="property_status_log">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="property_id" type="varchar(64)">
+                <constraints nullable="false" foreignKeyName="fk_status_log_property" references="properties(id)" deleteCascade="true"/>
+            </column>
+            <column name="status" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="note" type="clob"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 4. Státusznapló indexek -->
+    <changeSet id="003-create-status-log-indexes" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_status_log_prop_date"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_status_log_prop_date" tableName="property_status_log">
+            <column name="property_id"/>
+            <column name="changed_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 5. Meglévő hirdetések kezdeti ártörténet és státusz feltöltése -->
+    <changeSet id="003-seed-initial-price-history-and-status" author="ingatlan-team">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="property_price_history"/>
+            <tableExists tableName="property_attributes"/>
+        </preConditions>
+        <sql>
+            INSERT OR IGNORE INTO property_price_history (
+                property_id, price_raw, price_amount, price_millions, price_per_sqm, previous_price_amount, price_delta, change_percent
+            )
+            SELECT
+                p.id,
+                pa.price_raw,
+                pa.price_amount,
+                pa.price_millions,
+                pa.price_per_sqm,
+                NULL,
+                0,
+                0.0
+            FROM properties p
+            JOIN property_attributes pa ON p.id = pa.property_id
+            WHERE pa.price_amount IS NOT NULL
+              AND NOT EXISTS (SELECT 1 FROM property_price_history ph WHERE ph.property_id = p.id);
+
+            INSERT OR IGNORE INTO property_status_log (
+                property_id, status, note
+            )
+            SELECT
+                p.id,
+                COALESCE(p.status, 'ACTIVE'),
+                'Kezdeti állapot rögzítése'
+            FROM properties p
+            WHERE NOT EXISTS (SELECT 1 FROM property_status_log sl WHERE sl.property_id = p.id);
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

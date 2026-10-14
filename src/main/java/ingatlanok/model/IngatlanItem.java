@@ -18,6 +18,10 @@ public class IngatlanItem implements Serializable {
     private boolean viewed;
     private String viewedAt;
     private String imageUrl;
+    private String status = "ACTIVE";
+    private Long priceDelta;
+    private Double priceChangePercent;
+    private String lastPriceChangeAt;
 
     private PriceInfo priceInfo;
     private PropertyDetails detailsInfo;
@@ -205,6 +209,42 @@ public class IngatlanItem implements Serializable {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getStatus() {
+        return status != null ? status : "ACTIVE";
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Long getPriceDelta() {
+        return priceDelta;
+    }
+
+    public void setPriceDelta(Long priceDelta) {
+        this.priceDelta = priceDelta;
+    }
+
+    public Double getPriceChangePercent() {
+        return priceChangePercent;
+    }
+
+    public void setPriceChangePercent(Double priceChangePercent) {
+        this.priceChangePercent = priceChangePercent;
+    }
+
+    public String getLastPriceChangeAt() {
+        return lastPriceChangeAt;
+    }
+
+    public void setLastPriceChangeAt(String lastPriceChangeAt) {
+        this.lastPriceChangeAt = lastPriceChangeAt;
+    }
+
+    public boolean isDiscounted() {
+        return priceDelta != null && priceDelta < 0;
     }
 
     @Override

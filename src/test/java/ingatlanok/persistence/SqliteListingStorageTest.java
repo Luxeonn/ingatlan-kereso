@@ -1,8 +1,10 @@
 package ingatlanok.persistence;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.StatusLogEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -255,5 +257,117 @@ class SqliteListingStorageTest {
         assertNotNull(counts);
         assertEquals(2L, counts.get("duna house"));
         assertEquals(1L, counts.get("otthon centrum"));
+    }
+
+    @Test
+    @DisplayName("Árváltozás és státusz automatikus követése és idősoros ártörténet vizsgálata")
+    void testPriceHistoryAndStatusTracking() {
+        String testUrl = "https://dh.hu/price-tracking-1";
+
+        // 1. Első mentés: 60 M Ft (alap baseline rekord)
+        IngatlanItem initialItem = new IngatlanItem("pt-1", "Duna House", testUrl, "Kertes ház", "60 M Ft", "Debrecen", "Debrecen", "100 m²", "2026-10-14 10:00:00", true);
+        initialItem.setPriceInfo(new PriceInfo("60 M Ft", 60_000_000L, 60.0));
+        storage.saveCityItems("Debrecen", List.of(initialItem));
+
+        List<IngatlanItem> items = storage.getItemsByCity("Debrecen");
+        assertEquals(1, items.size());
+        IngatlanItem saved1 = items.get(0);
+        assertEquals("ACTIVE", saved1.getStatus());
+        assertEquals(0L, saved1.getPriceDelta());
+        assertFalse(saved1.isDiscounted());
+
+        List<PriceHistoryEntry> history1 = storage.getPriceHistory(testUrl);
+        assertEquals(1, history1.size());
+        PriceHistoryEntry h1 = history1.get(0);
+        assertEquals(60_000_000L, h1.priceAmount());
+        assertNull(h1.previousPriceAmount());
+        assertEquals(0L, h1.priceDelta());
+        assertEquals(0.0, h1.changePercent());
+
+        List<StatusLogEntry> status1 = storage.getStatusLog(testUrl);
+        assertEquals(1, status1.size());
+        assertEquals("ACTIVE", status1.get(0).status());
+
+        // 2. Második mentés: árcsökkenés 55 M Ft-ra (-5 M Ft, -8.33%)
+        IngatlanItem discountedItem = new IngatlanItem("pt-1", "Duna House", testUrl, "Kertes ház", "55 M Ft", "Debrecen", "Debrecen", "100 m²", "2026-10-14 12:00:00", false);
+        discountedItem.setPriceInfo(new PriceInfo("55 M Ft", 55_000_000L, 55.0));
+        storage.saveCityItems("Debrecen", List.of(discountedItem));
+
+        List<IngatlanItem> itemsAfterDrop = storage.getItemsByCity("Debrecen");
+        assertEquals(1, itemsAfterDrop.size());
+        IngatlanItem saved2 = itemsAfterDrop.get(0);
+        assertEquals("PRICE_DROP", saved2.getStatus());
+        assertEquals(-5_000_000L, saved2.getPriceDelta());
+        assertEquals(-8.33, saved2.getPriceChangePercent(), 0.01);
+        assertTrue(saved2.isDiscounted());
+
+        List<PriceHistoryEntry> history2 = storage.getPriceHistory(testUrl);
+        assertEquals(2, history2.size());
+        PriceHistoryEntry h2 = history2.get(1);
+        assertEquals(55_000_000L, h2.priceAmount());
+        assertEquals(60_000_000L, h2.previousPriceAmount());
+        assertEquals(-5_000_000L, h2.priceDelta());
+        assertEquals(-8.33, h2.changePercent(), 0.01);
+
+        List<StatusLogEntry> status2 = storage.getStatusLog(testUrl);
+        assertEquals(2, status2.size());
+        assertEquals("PRICE_DROP", status2.get(1).status());
+        assertTrue(status2.get(1).note().contains("-5000000 Ft"));
+
+        // 3. Leárazott ingatlanok szűrése
+        List<IngatlanItem> discountedList = storage.getDiscountedProperties("Debrecen");
+        assertEquals(1, discountedList.size());
+        assertEquals(testUrl, discountedList.get(0).getUrl());
+
+        // 4. Harmadik mentés: áremelés 58 M Ft-ra (+3 M Ft, +5.45%)
+        IngatlanItem increasedItem = new IngatlanItem("pt-1", "Duna House", testUrl, "Kertes ház", "58 M Ft", "Debrecen", "Debrecen", "100 m²", "2026-10-14 14:00:00", false);
+        increasedItem.setPriceInfo(new PriceInfo("58 M Ft", 58_000_000L, 58.0));
+        storage.saveCityItems("Debrecen", List.of(increasedItem));
+
+        List<IngatlanItem> itemsAfterIncrease = storage.getItemsByCity("Debrecen");
+        IngatlanItem saved3 = itemsAfterIncrease.get(0);
+        assertEquals("PRICE_INCREASE", saved3.getStatus());
+        assertEquals(3_000_000L, saved3.getPriceDelta());
+        assertEquals(5.45, saved3.getPriceChangePercent(), 0.01);
+        assertFalse(saved3.isDiscounted());
+
+        List<PriceHistoryEntry> history3 = storage.getPriceHistory(testUrl);
+        assertEquals(3, history3.size());
+        assertEquals(3_000_000L, history3.get(2).priceDelta());
+
+        // Már nem minősül leárazottnak
+        assertTrue(storage.getDiscountedProperties("Debrecen").isEmpty());
+    }
+
+    @Test
+    @DisplayName("Hirdetés törlésekor kaszkádoltan törlődik az ártörténet és a státusznapló is")
+    void testPriceHistoryCascadeDelete() throws java.sql.SQLException {
+        String testUrl = "https://dh.hu/cascade-test";
+        IngatlanItem item = new IngatlanItem("casc-1", "Duna House", testUrl, "Törlendő lakás", "50 M Ft", "Debrecen", "Debrecen", "60 m²", "2026-10-14 10:00:00", true);
+        item.setPriceInfo(new PriceInfo("50 M Ft", 50_000_000L, 50.0));
+        storage.saveCityItems("Debrecen", List.of(item));
+
+        // Árcsökkenés generálása
+        IngatlanItem itemDrop = new IngatlanItem("casc-1", "Duna House", testUrl, "Törlendő lakás", "45 M Ft", "Debrecen", "Debrecen", "60 m²", "2026-10-14 12:00:00", false);
+        itemDrop.setPriceInfo(new PriceInfo("45 M Ft", 45_000_000L, 45.0));
+        storage.saveCityItems("Debrecen", List.of(itemDrop));
+
+        assertEquals(2, storage.getPriceHistory(testUrl).size());
+        assertEquals(2, storage.getStatusLog(testUrl).size());
+
+        try (java.sql.Connection conn = dbManager.getConnection();
+             java.sql.Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate("DELETE FROM properties WHERE url = '" + testUrl + "';");
+
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM property_price_history WHERE property_id LIKE '%casc-1%';")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), "Ártörténetnek törlődnie kellett ON DELETE CASCADE alapján");
+            }
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM property_status_log WHERE property_id LIKE '%casc-1%';")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), "Státusznaplónak törlődnie kellett ON DELETE CASCADE alapján");
+            }
+        }
     }
 }

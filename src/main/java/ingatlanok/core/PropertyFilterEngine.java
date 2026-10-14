@@ -20,20 +20,32 @@ public class PropertyFilterEngine {
             int filteredByPriceCount,
             int filteredByAreaCount,
             int filteredByViewedCount,
-            int filteredByCityCount
+            int filteredByCityCount,
+            int filteredByDiscountCount
     ) {
+        public FilterResult(
+                List<IngatlanItem> matchingItems,
+                int totalInputCount,
+                int filteredByPriceCount,
+                int filteredByAreaCount,
+                int filteredByViewedCount,
+                int filteredByCityCount
+        ) {
+            this(matchingItems, totalInputCount, filteredByPriceCount, filteredByAreaCount, filteredByViewedCount, filteredByCityCount, 0);
+        }
     }
 
     public FilterResult filter(List<IngatlanItem> items, SearchCriteria criteria, String targetCity) {
         List<IngatlanItem> matching = new ArrayList<>();
         if (items == null || items.isEmpty()) {
-            return new FilterResult(matching, 0, 0, 0, 0, 0);
+            return new FilterResult(matching, 0, 0, 0, 0, 0, 0);
         }
 
         int filteredPrice = 0;
         int filteredArea = 0;
         int filteredViewed = 0;
         int filteredCity = 0;
+        int filteredDiscount = 0;
 
         for (IngatlanItem item : items) {
             if (item == null) continue;
@@ -47,6 +59,11 @@ public class PropertyFilterEngine {
 
             if (criteria != null && criteria.isExcludeViewed() && item.isViewed()) {
                 filteredViewed++;
+                continue;
+            }
+
+            if (criteria != null && criteria.isOnlyDiscounted() && !item.isDiscounted()) {
+                filteredDiscount++;
                 continue;
             }
 
@@ -80,6 +97,6 @@ public class PropertyFilterEngine {
             matching.add(item);
         }
 
-        return new FilterResult(matching, items.size(), filteredPrice, filteredArea, filteredViewed, filteredCity);
+        return new FilterResult(matching, items.size(), filteredPrice, filteredArea, filteredViewed, filteredCity, filteredDiscount);
     }
 }
