@@ -2042,7 +2042,6 @@ public class WebDashboardHtml {
                 portals: portals
             };
 
-            setSearchCollapsed(true);
             submitBtn.disabled = true;
             btnText.textContent = "Keresés folyamatban...";
             btnSpinner.style.display = "inline-block";
