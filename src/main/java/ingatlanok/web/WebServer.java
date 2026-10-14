@@ -271,14 +271,19 @@ public class WebServer {
                 return;
             }
 
-            String body = readBody(exchange);
-            SearchCriteria criteria = GSON.fromJson(body, SearchCriteria.class);
-            if (criteria == null) {
-                criteria = new SearchCriteria();
-            }
+            try {
+                String body = readBody(exchange);
+                SearchCriteria criteria = GSON.fromJson(body, SearchCriteria.class);
+                if (criteria == null) {
+                    criteria = new SearchCriteria();
+                }
 
-            DashboardResponseDto result = DashboardPresentationService.getInstance().executeSearch(criteria);
-            sendJsonResponse(exchange, 200, result);
+                DashboardResponseDto result = DashboardPresentationService.getInstance().executeSearch(criteria);
+                sendJsonResponse(exchange, 200, result);
+            } catch (Exception e) {
+                LOGGER.error("Váratlan hiba a keresés feldolgozásakor: " + e.getMessage(), e);
+                sendJsonResponse(exchange, 500, Map.of("error", "Keresési hiba: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName())));
+            }
         }
     }
 
