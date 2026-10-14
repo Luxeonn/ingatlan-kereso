@@ -186,4 +186,42 @@ class AppLoggerTest {
         List<String> recent = AppLogger.getRecentLogs(10);
         assertEquals(3, recent.size());
     }
+
+    @Test
+    @DisplayName("LogEntry record creation, details and level filtering")
+    void testLogEntryRecordsAndLevelFiltering() {
+        AppLogger logger = AppLogger.getLogger("StructuredTest");
+        AppLogger.setGlobalLevel(AppLogger.LogLevel.DEBUG);
+
+        logger.debug("Debug msg");
+        logger.info("Info msg 1");
+        logger.info("Info msg 2");
+        logger.warn("Warn msg");
+        logger.error("Error msg");
+
+        List<AppLogger.LogEntry> entries = AppLogger.getRecentLogEntries(10);
+        assertEquals(5, entries.size());
+
+        AppLogger.LogEntry infoEntry = entries.get(1);
+        assertEquals("INFO", infoEntry.level());
+        assertEquals("StructuredTest", infoEntry.logger());
+        assertEquals("Info msg 1", infoEntry.message());
+        assertFalse(infoEntry.timestamp().isBlank());
+        assertTrue(infoEntry.rawLine().contains("[INFO] [StructuredTest] - Info msg 1"));
+
+        List<AppLogger.LogEntry> infoOnly = AppLogger.getRecentLogEntries(10, "INFO");
+        assertEquals(2, infoOnly.size());
+        assertTrue(infoOnly.stream().allMatch(e -> e.level().equals("INFO")));
+
+        List<AppLogger.LogEntry> warnOnly = AppLogger.getRecentLogEntries(10, "WARN");
+        assertEquals(1, warnOnly.size());
+        assertEquals("Warn msg", warnOnly.getFirst().message());
+
+        List<AppLogger.LogEntry> errorOnly = AppLogger.getRecentLogEntries(10, "ERROR");
+        assertEquals(1, errorOnly.size());
+
+        AppLogger.clearRecentLogs();
+        assertEquals(0, AppLogger.getRecentLogEntries(10).size());
+        assertEquals(0, AppLogger.getRecentLogs(10).size());
+    }
 }

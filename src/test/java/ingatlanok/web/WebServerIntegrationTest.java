@@ -1,8 +1,10 @@
 package ingatlanok.web;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import ingatlanok.common.AppLogger;
 import ingatlanok.model.SearchCriteria;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -217,6 +219,9 @@ class WebServerIntegrationTest {
     @Test
     @DisplayName("GET /api/logs returns recent structured logs")
     void testLogsEndpoint() throws Exception {
+        AppLogger.getLogger("IntegrationLogTest").info("Teszt INFO naplóbejegyzés");
+        AppLogger.getLogger("IntegrationLogTest").warn("Teszt WARN naplóbejegyzés");
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(getBaseUrl() + "/api/logs?limit=50"))
                 .GET()
@@ -227,7 +232,28 @@ class WebServerIntegrationTest {
         JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
         assertTrue(json.has("logs"));
         assertTrue(json.get("logs").isJsonArray());
+        assertTrue(json.has("rawLogs"));
         assertTrue(json.has("level"));
+
+        JsonArray logsArray = json.getAsJsonArray("logs");
+        assertFalse(logsArray.isEmpty());
+        JsonObject firstLog = logsArray.get(logsArray.size() - 1).getAsJsonObject();
+        assertTrue(firstLog.has("level"));
+        assertTrue(firstLog.has("message"));
+        assertTrue(firstLog.has("timestamp"));
+
+        HttpRequest infoFilterRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/api/logs?limit=50&level=INFO"))
+                .GET()
+                .build();
+        HttpResponse<String> infoResponse = client.send(infoFilterRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, infoResponse.statusCode());
+        JsonObject infoJson = JsonParser.parseString(infoResponse.body()).getAsJsonObject();
+        JsonArray infoLogs = infoJson.getAsJsonArray("logs");
+        assertTrue(infoLogs.size() > 0);
+        for (int i = 0; i < infoLogs.size(); i++) {
+            assertEquals("INFO", infoLogs.get(i).getAsJsonObject().get("level").getAsString());
+        }
 
         HttpRequest postRequest = HttpRequest.newBuilder()
                 .uri(URI.create(getBaseUrl() + "/api/logs"))

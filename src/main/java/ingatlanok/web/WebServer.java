@@ -391,20 +391,23 @@ public class WebServer {
                 return;
             }
             int limit = 100;
+            String levelFilter = null;
             String query = exchange.getRequestURI().getQuery();
-            if (query != null && query.contains("limit=")) {
+            if (query != null && !query.isBlank()) {
                 for (String part : query.split("&")) {
                     if (part.startsWith("limit=")) {
                         try {
                             limit = Integer.parseInt(part.substring(6));
                         } catch (NumberFormatException ignored) {
                         }
-                        break;
+                    } else if (part.startsWith("level=")) {
+                        levelFilter = URLDecoder.decode(part.substring(6), StandardCharsets.UTF_8);
                     }
                 }
             }
             Map<String, Object> data = new LinkedHashMap<>();
-            data.put("logs", AppLogger.getRecentLogs(limit));
+            data.put("logs", AppLogger.getRecentLogEntries(limit, levelFilter));
+            data.put("rawLogs", AppLogger.getRecentLogs(limit));
             data.put("logFilePath", AppLogger.getLogFilePath() != null ? AppLogger.getLogFilePath().toString() : "");
             data.put("level", AppLogger.getGlobalLevel().name());
             sendJsonResponse(exchange, 200, data);

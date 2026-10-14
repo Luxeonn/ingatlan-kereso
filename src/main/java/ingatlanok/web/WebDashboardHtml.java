@@ -1628,9 +1628,9 @@ public class WebDashboardHtml {
                 <div class="log-toolbar">
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
                         <button type="button" class="log-filter-btn active" data-level="ALL" onclick="filterLogs('ALL')">Összes (<span id="log-count-all">0</span>)</button>
-                        <button type="button" class="log-filter-btn" data-level="INFO" onclick="filterLogs('INFO')">INFO</button>
-                        <button type="button" class="log-filter-btn" data-level="WARN" onclick="filterLogs('WARN')">WARN</button>
-                        <button type="button" class="log-filter-btn" data-level="ERROR" onclick="filterLogs('ERROR')">ERROR</button>
+                        <button type="button" class="log-filter-btn" data-level="INFO" onclick="filterLogs('INFO')">INFO (<span id="log-count-info">0</span>)</button>
+                        <button type="button" class="log-filter-btn" data-level="WARN" onclick="filterLogs('WARN')">WARN (<span id="log-count-warn">0</span>)</button>
+                        <button type="button" class="log-filter-btn" data-level="ERROR" onclick="filterLogs('ERROR')">ERROR (<span id="log-count-error">0</span>)</button>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <label style="font-size: 12px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-secondary);">
@@ -2416,6 +2416,7 @@ public class WebDashboardHtml {
                 }
 
                 await refreshHistory();
+                refreshLogs();
 
                 filterInput.value = '';
                 selectedResultPortal = 'all';
@@ -2979,14 +2980,51 @@ public class WebDashboardHtml {
 
         async function refreshLogs() {
             try {
-                const res = await fetch('/api/logs?limit=200');
+                const res = await fetch('/api/logs?limit=300');
                 if (res.ok) {
                     const data = await res.json();
-                    allLogs = Array.isArray(data) ? data : (data.logs || []);
+                    const rawList = Array.isArray(data) ? data : (data.logs || []);
+                    allLogs = rawList.map(item => {
+                        if (typeof item === 'string') {
+                            const match = item.match(/^\\[(.*?)\\]\\s*\\[(.*?)\\]\\s*\\[(.*?)\\]\\s*-\\s*(.*)$/);
+                            if (match) {
+                                return {
+                                    timestamp: match[1],
+                                    level: match[2].toUpperCase(),
+                                    logger: match[3],
+                                    message: match[4],
+                                    rawLine: item
+                                };
+                            }
+                            return {
+                                timestamp: '',
+                                level: 'INFO',
+                                logger: '',
+                                message: item,
+                                rawLine: item
+                            };
+                        }
+                        return {
+                            timestamp: item.timestamp || '',
+                            level: (item.level || 'INFO').toUpperCase(),
+                            logger: item.logger || '',
+                            message: item.message || item.rawLine || '',
+                            rawLine: item.rawLine || ''
+                        };
+                    });
+
                     const badge = document.getElementById('logs-badge-count');
                     const allCount = document.getElementById('log-count-all');
+                    const infoCount = document.getElementById('log-count-info');
+                    const warnCount = document.getElementById('log-count-warn');
+                    const errorCount = document.getElementById('log-count-error');
+
                     if (badge) badge.textContent = allLogs.length;
                     if (allCount) allCount.textContent = allLogs.length;
+                    if (infoCount) infoCount.textContent = allLogs.filter(l => l.level === 'INFO').length;
+                    if (warnCount) warnCount.textContent = allLogs.filter(l => l.level === 'WARN').length;
+                    if (errorCount) errorCount.textContent = allLogs.filter(l => l.level === 'ERROR').length;
+
                     renderLogs();
                 }
             } catch (err) {
@@ -3008,20 +3046,22 @@ public class WebDashboardHtml {
 
             let filtered = allLogs;
             if (currentLogLevel !== 'ALL') {
-                filtered = allLogs.filter(l => (l.level || '').toUpperCase() === currentLogLevel);
+                filtered = allLogs.filter(l => (l.level || 'INFO').toUpperCase() === currentLogLevel);
             }
 
             if (filtered.length === 0) {
-                terminal.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">Nincsenek naplóbejegyzések a megadott szűréssel.</div>`;
+                terminal.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">Nincsenek naplóbejegyzések a megadott szűréssel (${escapeHtml(currentLogLevel)}).</div>`;
                 return;
             }
 
             terminal.innerHTML = filtered.map(l => {
                 const lvl = (l.level || 'INFO').toUpperCase();
+                const loggerBadge = l.logger ? `<span class="log-logger-badge" style="color:var(--text-secondary); font-size:11px; margin-right:6px;">[${escapeHtml(l.logger)}]</span>` : '';
                 return `
                     <div class="log-entry level-${lvl.toLowerCase()}">
                         <span class="log-time">${escapeHtml(l.timestamp || '')}</span>
                         <span class="log-level-badge level-${lvl.toLowerCase()}">${escapeHtml(lvl)}</span>
+                        ${loggerBadge}
                         <span class="log-text">${escapeHtml(l.message || '')}</span>
                     </div>
                 `;
@@ -3034,9 +3074,12 @@ public class WebDashboardHtml {
             const btn = document.getElementById('btn-copy-logs');
             let filtered = allLogs;
             if (currentLogLevel !== 'ALL') {
-                filtered = allLogs.filter(l => (l.level || '').toUpperCase() === currentLogLevel);
+                filtered = allLogs.filter(l => (l.level || 'INFO').toUpperCase() === currentLogLevel);
             }
-            const text = filtered.map(l => `[${l.timestamp || ''}] [${(l.level || 'INFO').toUpperCase()}] ${l.message || ''}`).join('\\n');
+            const text = filtered.map(l => {
+                if (l.rawLine) return l.rawLine;
+                return `[${l.timestamp || ''}] [${(l.level || 'INFO').toUpperCase()}] [${l.logger || 'App'}] - ${l.message || ''}`;
+            }).join('\n');
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(text);
@@ -3067,8 +3110,14 @@ public class WebDashboardHtml {
                     allLogs = [];
                     const badge = document.getElementById('logs-badge-count');
                     const allCount = document.getElementById('log-count-all');
+                    const infoCount = document.getElementById('log-count-info');
+                    const warnCount = document.getElementById('log-count-warn');
+                    const errorCount = document.getElementById('log-count-error');
                     if (badge) badge.textContent = '0';
                     if (allCount) allCount.textContent = '0';
+                    if (infoCount) infoCount.textContent = '0';
+                    if (warnCount) warnCount.textContent = '0';
+                    if (errorCount) errorCount.textContent = '0';
                     renderLogs();
                     showToast("🗑️ Rendszernapló törölve.");
                 }
