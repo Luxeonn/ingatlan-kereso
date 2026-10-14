@@ -133,6 +133,44 @@ Ha webes felület nélkül, pusztán a parancssorból szeretnéd lekérni és na
 mvn compile exec:java "-Dexec.args=--cli"
 ```
 
+#### 5. Konténerizált indítás Dockerrel és GHCR-rel (GitHub Container Registry)
+A projekt automatikusan publikált, azonnal futtatható és biztonságosan minimális futtatókörnyezetet használó (non-root) Docker konténerképeket biztosít a **GitHub Container Registry (GHCR)** felületén keresztül.
+
+##### A) Develop (legfrissebb fejlesztői tesztverzió):
+```bash
+# Legfrissebb konténer letöltése
+docker pull ghcr.io/luxeonn/ingatlan-kereso:latest
+
+# Futtatás háttérben helyi adatbázis és napló mappák csatolásával
+docker run -d -p 8080:8080 \
+  -v ./data:/app/data \
+  -v ./logs:/app/logs \
+  ghcr.io/luxeonn/ingatlan-kereso:latest
+```
+
+##### B) Main / Release (stabil fix verzió):
+A reprodukálhatóság és kiszámíthatóság érdekében a `main` ágon publikált stabil verziók fix címkével rendelkeznek:
+```bash
+# Stabil fix verzió letöltése (pl. v1.0 vagy SemVer release)
+docker pull ghcr.io/luxeonn/ingatlan-kereso:v1.0
+
+# Futtatás fix verzióval
+docker run -d -p 8080:8080 \
+  -v ./data:/app/data \
+  -v ./logs:/app/logs \
+  ghcr.io/luxeonn/ingatlan-kereso:v1.0
+```
+
+##### C) Indítás Docker Compose-zal:
+```bash
+# Indítás az előre konfigurált docker-compose.yml segítségével
+docker compose up -d
+
+# Tetszőleges verzió indítása környezeti változóval:
+INGATLAN_IMAGE=ghcr.io/luxeonn/ingatlan-kereso:v1.0 docker compose up -d
+```
+A konténer indulása után a Web Dashboard azonnal elérhető a `http://localhost:8080` címen.
+
 ---
 
 ## ⚙️ Konfiguráció és Adattárolás
