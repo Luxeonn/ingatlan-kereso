@@ -40,8 +40,12 @@ public class Main {
 
             System.out.println("\n[Siker] A felület elérhető a következő címen: " + url);
 
-            boolean isHeadless = java.awt.GraphicsEnvironment.isHeadless() || "0.0.0.0".equals(host);
-            if (!isHeadless) {
+            boolean noBrowser = Boolean.getBoolean("no.browser")
+                    || "true".equalsIgnoreCase(System.getenv("NO_BROWSER"))
+                    || java.awt.GraphicsEnvironment.isHeadless()
+                    || "0.0.0.0".equals(host);
+
+            if (!noBrowser) {
                 System.out.println("Böngésző megnyitása a háttérben...");
                 Thread.ofVirtual().start(() -> {
                     if (!BrowserUtils.openUrl(url)) {
@@ -49,7 +53,7 @@ public class Main {
                     }
                 });
             } else {
-                System.out.println("[Info] Headless / Konténer környezet észlelve. Nyisd meg a böngésződben: " + url);
+                System.out.println("[Info] Headless / Konténer környezet. Nyisd meg a böngésződben: " + url);
             }
 
             System.out.println("\n==================================================");

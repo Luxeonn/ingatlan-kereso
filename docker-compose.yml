@@ -9,6 +9,7 @@ services:
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
+      - NO_BROWSER=true
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs

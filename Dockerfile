@@ -37,6 +37,7 @@ USER appuser:appuser
 # Default container configurations
 ENV SERVER_HOST=0.0.0.0 \
     SERVER_PORT=8080 \
+    NO_BROWSER=true \
     JAVA_TOOL_OPTIONS="-Djava.awt.headless=true"
 
 EXPOSE 8080
