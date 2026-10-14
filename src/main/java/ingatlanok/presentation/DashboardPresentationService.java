@@ -1,18 +1,32 @@
 package ingatlanok.presentation;
 
+import ingatlanok.core.MarketAnalyticsEngine;
+import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.scraper.PortalScrapeResult;
-import ingatlanok.service.IngatlanSearchService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Prezentációs Facade a Core keresőmotor és analitika felé.
+ */
 public class DashboardPresentationService {
 
     private static final DashboardPresentationService INSTANCE = new DashboardPresentationService();
 
+    private final SearchExecutionEngine searchEngine;
+    private final MarketAnalyticsEngine analyticsEngine;
+
     private DashboardPresentationService() {
+        this(SearchExecutionEngine.getInstance(), new MarketAnalyticsEngine());
+    }
+
+    public DashboardPresentationService(SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
+        this.searchEngine = searchEngine != null ? searchEngine : SearchExecutionEngine.getInstance();
+        this.analyticsEngine = analyticsEngine != null ? analyticsEngine : new MarketAnalyticsEngine();
     }
 
     public static DashboardPresentationService getInstance() {
@@ -20,8 +34,8 @@ public class DashboardPresentationService {
     }
 
     public DashboardResponseDto executeSearch(SearchCriteria criteria) {
-        SearchResult searchResult = IngatlanSearchService.getInstance().executeSearch(criteria);
-        MarketStatsDto marketStats = calculateMarketStats(searchResult.getItems());
+        SearchResult searchResult = searchEngine.executeSearch(criteria);
+        MarketStatsDto marketStats = analyticsEngine.calculateMarketStats(searchResult.getItems());
         List<PortalStatusDto> portalStatuses = buildPortalStatuses(searchResult);
         searchResult.setPortalStatuses(portalStatuses);
 
@@ -29,53 +43,7 @@ public class DashboardPresentationService {
     }
 
     public MarketStatsDto calculateMarketStats(List<IngatlanItem> items) {
-        MarketStatsDto stats = new MarketStatsDto();
-        if (items == null || items.isEmpty()) {
-            return stats;
-        }
-
-        List<Double> pricesMillion = new ArrayList<>();
-        List<Long> pricesPerM2 = new ArrayList<>();
-        Map<String, Integer> cityCounts = new LinkedHashMap<>();
-        int newItemsCount = 0;
-
-        for (IngatlanItem item : items) {
-            if (item.isNew()) {
-                newItemsCount++;
-            }
-
-            String city = item.getCity();
-            if (city != null) {
-                cityCounts.put(city, cityCounts.getOrDefault(city, 0) + 1);
-            }
-
-            if (item.getPriceInfo() != null && item.getPriceInfo().getAmountMillion() != null) {
-                pricesMillion.add(item.getPriceInfo().getAmountMillion());
-            }
-
-            if (item.getDetailsInfo() != null && item.getDetailsInfo().getPricePerSquareMeter() != null) {
-                pricesPerM2.add(item.getDetailsInfo().getPricePerSquareMeter());
-            }
-        }
-
-        if (!pricesMillion.isEmpty()) {
-            double sum = pricesMillion.stream().mapToDouble(Double::doubleValue).sum();
-            double avg = sum / pricesMillion.size();
-            stats.setAveragePriceMillion(Math.round(avg * 10.0) / 10.0);
-            stats.setMinPriceMillion(pricesMillion.stream().mapToDouble(Double::doubleValue).min().orElse(0.0));
-            stats.setMaxPriceMillion(pricesMillion.stream().mapToDouble(Double::doubleValue).max().orElse(0.0));
-        }
-
-        if (!pricesPerM2.isEmpty()) {
-            long sumM2 = pricesPerM2.stream().mapToLong(Long::longValue).sum();
-            stats.setAveragePricePerM2(sumM2 / pricesPerM2.size());
-        }
-
-        double newRate = Math.round(((double) newItemsCount / items.size() * 100.0) * 10.0) / 10.0;
-        stats.setNewRatePercent(newRate);
-        stats.setCityBreakdown(cityCounts);
-
-        return stats;
+        return analyticsEngine.calculateMarketStats(items);
     }
 
     private List<PortalStatusDto> buildPortalStatuses(SearchResult searchResult) {

@@ -78,6 +78,11 @@ ingatlan-kereso/
 │       │   ├── HttpFetcher.java                 # Jsoup HTTP kliens: User-Agent, fejlécek, timeout, hibatűrés
 │       │   ├── PropertyParser.java              # Ár, méret, szobaszám és azonosító regex kinyerés és normalizálás
 │       │   └── SlugUtils.java                   # Diakritikus ékezetmentesítés és keresési URL slug generálás
+│       ├── core/                                # Réteg 2: Tiszta üzleti feldolgozó motorok (Core Processing)
+│       │   ├── PropertyFilterEngine.java        # Keresési kritériumok szerinti szűrés (ár, méret, város, megtekintett)
+│       │   ├── DeduplicationEngine.java         # Duplikátumszűrés, új találatok azonosítása, snapshot kezelés
+│       │   ├── MarketAnalyticsEngine.java       # Piaci KPI és statisztikai számítások (átlagár, m² ár, breakdown)
+│       │   └── SearchExecutionEngine.java       # Párhuzamos kereséskoordinátor (Virtual Threads, 15s timeout, 0-crash)
 │       ├── model/
 │       │   ├── IngatlanItem.java                # Hirdetés adatmodell (gazdag értékobjektumokkal)
 │       │   ├── PortalSource.java                # Portálforrás metaadat (azonosító, szín, közvetlen típus)
@@ -85,30 +90,39 @@ ingatlan-kereso/
 │       │   ├── PropertyDetails.java             # Részletek (alapterület m², szobaszám, számított Ft/m²)
 │       │   ├── SearchCriteria.java              # Keresési paraméterek (városok, árhatárok, típus, aktív portálok)
 │       │   └── SearchResult.java                # Keresési aggregáció és portálstatisztikák modellje
-│       ├── persistence/
-│       │   └── IngatlanRepository.java          # Fájlalapú thread-safe JSON adatbázis és beállításkezelő
-│       ├── presentation/                        # Prezentációs és Facade réteg (UI & csatorna izoláció)
+│       ├── persistence/                         # Réteg 4: Leválasztott perzisztencia (Decoupled Persistence)
+│       │   ├── ListingStorage.java              # Hirdetés-tárolási interfész
+│       │   ├── ConfigStorage.java               # Konfiguráció-tárolási interfész
+│       │   ├── JsonFileListingStorage.java      # Atomi .tmp + ATOMIC_MOVE JSON tároló ReentrantReadWriteLock-kal
+│       │   ├── JsonConfigStorage.java           # Atomi konfiguráció tároló
+│       │   ├── LegacyMigrationService.java      # Monolitikus és szöveges napló migráció
+│       │   └── IngatlanRepository.java          # Visszafelé kompatibilis Singleton Facade
+│       ├── portal/                              # Réteg 3: Külső csatolók és portálmotorok (Pluggable Portal Engines)
+│       │   ├── PortalDescriptor.java            # Portál metaadat rekord (név, szín, keresőlink, támogatott típusok)
+│       │   ├── PortalEngine.java                # Egységes portálmotor interfész (getDescriptor, scrape)
+│       │   ├── PortalEngineRegistry.java        # Dinamikus portálmotor regiszter és provider factory (OCP)
+│       │   ├── dh/                              # Duna House (DunaHouseUrlBuilder, DunaHouseParser, DunaHousePortalEngine)
+│       │   ├── oc/                              # Otthon Centrum (OtthonCentrumUrlBuilder, OtthonCentrumParser, OtthonCentrumPortalEngine)
+│       │   ├── jofogas/                         # Jófogás (JofogasUrlBuilder, JofogasParser, JofogasPortalEngine)
+│       │   ├── ingatlanbazar/                   # Ingatlanbazár REST API (IngatlanBazarQueryBuilder, JsonParser, LocationResolver)
+│       │   ├── koltozzbe/                       # Költözzbe DOM & JSON-LD (KoltozzbeUrlBuilder, KoltozzbeParser)
+│       │   └── ingatlancom/                     # Ingatlan.com Cloudflare fallback (IngatlanComUrlBuilder, Parser)
+│       ├── presentation/                        # Réteg 1a: Prezentációs réteg (UI & csatorna izoláció)
 │       │   ├── DashboardPresentationService.java# Facade: KPI statisztikák, portál állapotok, aggregáció
 │       │   ├── DashboardResponseDto.java        # Gazdagított válaszmodell a felület és kliensek felé
 │       │   ├── MarketStatsDto.java              # Piaci KPI mutatók (átlagár, átlagos m² ár, új arány)
 │       │   └── PortalStatusDto.java             # Portál egészségügyi és hibaállapot információs kártyák
-│       ├── scraper/                             # Dedikált web scraping réteg
-│       │   ├── IngatlanScraper.java             # Portálfüggetlen scraper interfész (search, getUrls, getName)
-│       │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & lapozási logika)
+│       ├── scraper/                             # Visszafelé kompatibilis adapter réteg (IngatlanScraper híd)
+│       │   ├── IngatlanScraper.java             # Portálfüggetlen scraper interfész
+│       │   ├── BaseScraper.java                 # Absztrakt ősosztály
 │       │   ├── PortalScrapeResult.java          # Állapotgazdag és izolált kimenet per portál
 │       │   ├── PortalScrapeStatus.java          # Portál futási státusz (SUCCESS, BOT_PROTECTED, stb.)
-│       │   ├── ScraperRegistry.java             # Dinamikus Scraper Provider Factory (OCP elv)
-│       │   ├── DunaHouseScraper.java            # dh.hu scraper (élő találatok és kártya metaadatok)
-│       │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok és paraméteres szűrés)
-│       │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok és kártyainformációk)
-│       │   ├── IngatlanComScraper.java          # ingatlan.com scraper (Cloudflare bot-védelem graceful fallback)
-│       │   ├── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (élő belső REST JSON API kliens)
-│       │   └── IngatlanBazarLocationResolver.java # Ingatlanbazár helyszín- és településazonosító feloldó gyorsítótárral
+│       │   └── ScraperRegistry.java             # Legacy regiszter, amely a PortalEngineRegistry-re delegál
 │       ├── service/
-│       │   └── IngatlanSearchService.java       # Keresést vezérlő és portálokat összesítő orchestrator
-│       └── web/
-│           ├── WebServer.java                   # Beágyazott REST API szerver Java 21 Virtual Threads alapon
-│           └── WebDashboardHtml.java            # Beágyazott reszponzív SPA sablon (HTML5, Tailwind-stílus, JS)
+│       │   └── IngatlanSearchService.java       # Magas szintű keresést vezérlő orchestrator (delegál SearchExecutionEngine-re)
+│       └── web/                                 # Réteg 1b: Beágyazott webkiszolgáló és dinamikus UI
+│           ├── WebServer.java                   # Beágyazott REST API szerver Java 21 Virtual Threads alapon (/api/portals, CSP)
+│           └── WebDashboardHtml.java            # Dinamikus SPA felület shimmer skeletonokkal és portál betöltéssel
 ```
 
 ### Főbb Komponensek és Szerepkörök
@@ -205,6 +219,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 - [x] Költözzbe.hu élő ház és debreceni agglomeráció scraper adapter (`KoltozzbeScraper`, kártya és JSON-LD parsing, település és árszűrés).
 - [x] Egységes, bolondbiztos asztali indító (`START.bat`), elavult fájlok takarítása, megerősített `.gitignore` és tesztlefedettség növelés (78.75%).
 - [x] Otthon Centrum és Ingatlan.com scraper 0 találatos hibáinak elhárítása (#38: oc.hu rejtett autocomplete sablon kiszűrése, gazdag kártya és nagy felbontású kép parsing, Chrome 133 Sec-Ch-Ua fejlécek, robusztus Cloudflare WAF bot-védelem detektálás és egységtesztek, tesztlefedettség növelés 78.99%-ra).
+- [x] 4 rétegű moduláris rendszer, pluggable portálmotorok és leválasztott perzisztencia (#52: Core feldolgozó motorok, Pluggable PortalEngine réteg, ListingStorage/ConfigStorage atomi perzisztencia, WebServer biztonsági fejlécek és dinamikus /api/portals UI betöltés shimmer loading skeletonokkal, 191 zöld egység- és integrációs teszt, 79.27% lefedettség).
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.
