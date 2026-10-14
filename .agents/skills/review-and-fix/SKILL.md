@@ -62,21 +62,33 @@ Minden PR-t kizárólag akkor engedünk át, ha az érintett szakterület dedik�
 
 Amikor a vizsgálat sikeresen lezárult, a PR leírásának legfelső blokkjaként kötelező beilleszteni az alábbi formátumot a CI PR Guard követelményeinek megfelelően.
 **Követelmény:** 
-- Sikeres vizsgálat esetén a státusz egyszerűen **`OK`** (nem érintett téma esetén **`N/A`**).
-- Kizárólag nem megfelelő (**`NOK`**) státusz esetén szükséges a probléma tömör, pontosan **1 mondatos indoklása**.
+- Az ágensek nem hagyhatják üresen vagy pusztán jelölőnégyzettel az eredményt.
+- Kötelező **pontosan egy tömör mondatban megindokolni**, hogy az adott szakértői terület miért lett **`[OK]`** (jóváhagyva), **`[NOK]`** (elutasítva/javítandó), vagy **`[N/A]`** (relevancia hiánya).
 
 ```markdown
 ### 🛡️ Thematic Agent Approval Gate
-- [x] Architecture (`deep-architect`): OK
-- [x] UI/UX (`ui-designer`): OK
-- [x] Security (`security-specialist`): OK
-- [x] Database (`database-specialist`): OK
-- [x] Workflow/CI (`workflow-engineer`): OK
+- [x] Architecture (`deep-architect`): [OK] – A Clean Architecture réteghatárok és a 0-crash elv maradéktalanul érvényesül.
+- [x] UI/UX (`ui-designer`): [N/A] – A változtatás nem érinti a webes dashboard felületét vagy stílusait.
+- [x] Security (`security-specialist`): [OK] – A bemenet-validáció és a szerverbiztonsági fejlécek sértetlenek.
+- [x] Database (`database-specialist`): [OK] – A szálbiztos tárolás és az atomi perzisztencia garantált.
+- [x] Workflow/CI (`workflow-engineer`): [OK] – A GitHub Actions munkafolyamatok és a PR guard szabályok rendben vannak.
+- [x] DevOps (`devops-specialist`): [N/A] – Konténerizációs vagy futtatási fájlok nem módosultak.
+- [x] Scraper Reliability (`scraper-reliability-engineer`): [N/A] – Web scraping és portálmotorok nem érintettek.
+- [x] QA/Testing (`qa-test-engineer`): [OK] – Minden automatizált teszt hibátlanul lefut.
 ```
 
-Amennyiben egy PR egy adott témakört nem érint:
-`- [x] <Téma> (<agent-id>): N/A`
-
 Probléma / elutasítás esetén:
-`- [ ] <Téma> (<agent-id>): NOK – [1 mondatos indoklás a hiányosságról]`
+`- [ ] <Téma> (<agent-id>): [NOK] – [1 mondatos szakmai indoklás a hiányosságról]`
+
+---
+
+## 4. Szigorú PR Javítási Ciklus Zöld CI-ig (Strict Fix Loop Until Green CI)
+
+- **Zéró tolerancia elbukott CI-re:** Ha bármilyen CI pipeline, guard vagy teszt elbukik a Pull Requesten, a fejlesztést végző ágens nem zárhatja le a munkát 'kész'-ként.
+- **Azonnali Fix Loop indítása:**
+  1. Hiba elemzése a CI logok alapján (`gh run view --log-failed`).
+  2. Dedikált `fix:` commit létrehozása és pusholása a PR ágra.
+  3. Ellenőrzés megismétlése mindaddig, amíg minden pipeline ellenőrzés maradéktalanul **100%-ban zöld** nem lesz.
+- Tilos a PR-t jóváhagyottnak vagy befejezettnek tekinteni piros vagy még futó CI pipeline mellett.
+
 

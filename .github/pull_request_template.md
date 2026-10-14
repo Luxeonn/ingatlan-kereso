@@ -1,13 +1,16 @@
 ### 🛡️ Thematic Agent Approval Gate
 
 > [!IMPORTANT]
-> A [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) 6. fejezete és a `.github/workflows/pr-guard.yml` előírja a kijelölt szakértői jóváhagyást. A státusz `OK` (ha megfelelt) vagy `N/A` (ha nem érintett). Kizárólag nem megfelelő (`NOK`) értékelés esetén kötelező a rövid, 1 mondatos indoklás!
+> A [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) 6. fejezete és a `.github/workflows/pr-guard.yml` előírja a kijelölt szakértői jóváhagyást. Az ágensek nem hagyhatják üresen az eredményt: kötelező **pontosan 1 tömör mondatban megindokolni**, hogy az adott szakértői terület miért lett **`[OK]`**, **`[NOK]`** vagy **`[N/A]`**!
 
-- [ ] Architecture (`deep-architect`): OK
-- [ ] UI/UX (`ui-designer`): OK
-- [ ] Security (`security-specialist`): OK
-- [ ] Database (`database-specialist`): OK
-- [ ] Workflow/CI (`workflow-engineer`): OK
+- [ ] Architecture (`deep-architect`): [OK / NOK / N/A] – [1 mondatos indoklás]
+- [ ] UI/UX (`ui-designer`): [OK / NOK / N/A] – [1 mondatos indoklás]
+- [ ] Security (`security-specialist`): [OK / NOK / N/A] – [1 mondatos indoklás]
+- [ ] Database (`database-specialist`): [OK / NOK / N/A] – [1 mondatos indoklás]
+- [ ] Workflow/CI (`workflow-engineer`): [OK / NOK / N/A] – [1 mondatos indoklás]
+- [ ] DevOps (`devops-specialist`): [OK / NOK / N/A] – [1 mondatos indoklás]
+- [ ] Scraper Reliability (`scraper-reliability-engineer`): [OK / NOK / N/A] – [1 mondatos indoklás]
+- [ ] QA/Testing (`qa-test-engineer`): [OK / NOK / N/A] – [1 mondatos indoklás]
 
 ---
 
