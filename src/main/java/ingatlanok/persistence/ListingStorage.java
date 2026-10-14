@@ -83,6 +83,13 @@ public interface ListingStorage {
     int getTotalCount();
 
     /**
+     * Visszaadja a tárolt hirdetések számát forrásportálonként csoportosítva.
+     */
+    default Map<String, Long> countByPortal() {
+        return Map.of();
+    }
+
+    /**
      * Visszaadja a legutóbbi keresési futás időbélyegét.
      */
     String getLastRunTime();

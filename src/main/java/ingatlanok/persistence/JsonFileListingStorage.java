@@ -508,6 +508,23 @@ public class JsonFileListingStorage implements ListingStorage {
     }
 
     @Override
+    public Map<String, Long> countByPortal() {
+        rwLock.readLock().lock();
+        try {
+            Map<String, Long> counts = new LinkedHashMap<>();
+            for (IngatlanItem item : itemMap.values()) {
+                if (item.getPortal() != null && !item.getPortal().isBlank()) {
+                    String p = item.getPortal().trim().toLowerCase();
+                    counts.put(p, counts.getOrDefault(p, 0L) + 1L);
+                }
+            }
+            return counts;
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
     public String getLastRunTime() {
         return lastRunTime;
     }

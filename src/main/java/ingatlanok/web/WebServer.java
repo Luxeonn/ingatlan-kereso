@@ -195,7 +195,23 @@ public class WebServer {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
             }
-            List<PortalDescriptor> descriptors = PortalEngineRegistry.getInstance().getAllDescriptors();
+            Map<String, Long> portalCounts = IngatlanRepository.getInstance().countByPortal();
+            List<PortalDescriptor> descriptors = PortalEngineRegistry.getInstance().getAllDescriptors().stream()
+                    .map(d -> {
+                        long count = 0L;
+                        String dId = d.id().trim().toLowerCase();
+                        String dName = d.name().trim().toLowerCase();
+                        for (Map.Entry<String, Long> entry : portalCounts.entrySet()) {
+                            String k = entry.getKey().trim().toLowerCase();
+                            if (k.equals(dId) || k.equals(dName) || k.contains(dId) || dName.contains(k)) {
+                                count += entry.getValue();
+                            }
+                        }
+                        return d.withSavedListingCount(count);
+                    })
+                    .sorted(Comparator.comparingLong(PortalDescriptor::savedListingCount).reversed()
+                            .thenComparing(PortalDescriptor::name))
+                    .toList();
             sendJsonResponse(exchange, 200, descriptors);
         }
     }

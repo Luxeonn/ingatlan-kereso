@@ -144,6 +144,11 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     }
 
     @Override
+    public Map<String, Long> countByPortal() {
+        return listingStorage.countByPortal();
+    }
+
+    @Override
     public String getLastRunTime() {
         return listingStorage.getLastRunTime();
     }
