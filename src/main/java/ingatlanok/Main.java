@@ -28,19 +28,26 @@ public class Main {
 
         IngatlanRepository.getInstance();
 
-        int defaultPort = Integer.getInteger("server.port", 8080);
-        WebServer server = new WebServer(defaultPort);
+        String host = WebServer.resolveDefaultHost();
+        int defaultPort = WebServer.resolveDefaultPort();
+        WebServer server = new WebServer(host, defaultPort);
 
         try {
             server.start();
             int actualPort = server.getPort();
-            String url = "http://localhost:" + actualPort;
+            String displayHost = ("0.0.0.0".equals(host) || "::".equals(host)) ? "localhost" : host;
+            String url = "http://" + displayHost + ":" + actualPort;
 
             System.out.println("\n[Siker] A felület elérhető a következő címen: " + url);
-            System.out.println("Böngésző megnyitása folyamatban...");
 
-            if (!BrowserUtils.openUrl(url)) {
-                System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
+            boolean isHeadless = java.awt.GraphicsEnvironment.isHeadless() || "0.0.0.0".equals(host);
+            if (!isHeadless) {
+                System.out.println("Böngésző megnyitása folyamatban...");
+                if (!BrowserUtils.openUrl(url)) {
+                    System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
+                }
+            } else {
+                System.out.println("[Info] Headless / Konténer környezet észlelve. Nyisd meg a böngésződben: " + url);
             }
 
             System.out.println("\nA szerver a háttérben fut. Nyomj Ctrl+C billentyűkombinációt a leállításhoz.");

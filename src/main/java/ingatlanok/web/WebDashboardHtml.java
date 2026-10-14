@@ -2700,6 +2700,23 @@ public class WebDashboardHtml {
             }
 
             showToast(`🚀 ${newUrls.length} böngészőfül megnyitása...`);
+
+            // Kliensoldali fülnyitás a felhasználó saját böngészőjében
+            for (let i = 0; i < newUrls.length; i++) {
+                const u = newUrls[i];
+                setTimeout(() => {
+                    window.open(u, '_blank');
+                }, i * 150);
+            }
+
+            // Helyi állapot azonnali frissítése megtekintettre
+            for (const u of newUrls) {
+                const it = currentItems.find(item => item.url === u);
+                if (it) it.viewed = true;
+            }
+            renderListings();
+            btnOpenAllNew.style.display = 'none';
+
             try {
                 await fetch('/api/open-urls', {
                     method: 'POST',
@@ -2707,7 +2724,7 @@ public class WebDashboardHtml {
                     body: JSON.stringify(newUrls)
                 });
             } catch (e) {
-                showToast("Hiba a fülek megnyitásakor: " + e.message);
+                showToast("Hiba a hirdetések státuszának mentésekor: " + e.message);
             }
         }
 
