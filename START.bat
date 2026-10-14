@@ -23,7 +23,7 @@ if defined JAVA_HOME (
 ) else (
     where java >nul 2>&1
     if errorlevel 1 (
-        echo [HIBA] Nem található Java futtatókörnyezet (Java 21 LTS szükséges)!
+        echo [HIBA] Nem található Java futtatókörnyezet [Java 21 LTS szükséges]!
         echo Kérlek telepítsd a Java 21-et vagy állítsd be a JAVA_HOME változót.
         pause
         exit /b 1
@@ -57,6 +57,6 @@ echo.
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [HIBA] Hiba történt a futtatás során (Hibakód: %ERRORLEVEL%).
+    echo [HIBA] Hiba történt a futtatás során [Hibakód: %ERRORLEVEL%].
     pause
 )
