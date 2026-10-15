@@ -1,6 +1,5 @@
 package ingatlanok.persistence.dao;
 
-import ingatlanok.dto.ListingDto;
 import ingatlanok.dto.PriceHistoryDto;
 import ingatlanok.dto.StatusLogDto;
 import ingatlanok.persistence.mapper.ListingRowMapper;

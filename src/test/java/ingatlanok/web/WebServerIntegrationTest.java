@@ -34,6 +34,25 @@ class WebServerIntegrationTest {
 
     @BeforeAll
     static void setUp() throws IOException {
+        ingatlanok.portal.PortalEngine mockEngine = new ingatlanok.portal.PortalEngine() {
+            @Override
+            public ingatlanok.portal.PortalDescriptor getDescriptor() {
+                return new ingatlanok.portal.PortalDescriptor("mockbazar", "Mock Ingatlanbazár", "#336699", "https://mockbazar.hu", true, List.of("lakas"), true);
+            }
+            @Override
+            public ingatlanok.scraper.PortalScrapeResult scrape(SearchCriteria criteria) {
+                IngatlanItem item = new IngatlanItem(
+                        "mb1", ingatlanok.model.PortalSource.of("mockbazar"), "https://mockbazar.hu/1", "Debreceni lakás",
+                        new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                        "Debrecen",
+                        new ingatlanok.model.PropertyDetails("100 m²", 100.0, 3.0, 500_000L),
+                        "2026-10-15", true
+                );
+                return ingatlanok.scraper.PortalScrapeResult.success("mockbazar", "Mock Ingatlanbazár", List.of(item), 10);
+            }
+        };
+        ingatlanok.portal.PortalEngineRegistry.getInstance().register(mockEngine);
+
         webServer = new WebServer(8990);
         webServer.start();
         port = webServer.getPort();
@@ -178,7 +197,7 @@ class WebServerIntegrationTest {
         criteria.setPropertyType("lakas");
         criteria.setMinPriceMillion(40);
         criteria.setMaxPriceMillion(60);
-        criteria.setPortals(List.of("ingatlanbazar"));
+        criteria.setPortals(List.of("mockbazar"));
 
         String payload = GSON.toJson(criteria);
 

@@ -23,6 +23,28 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RepositoryAndPresentationCoverageTest {
 
+    @org.junit.jupiter.api.BeforeAll
+    static void setupMockPortal() {
+        ingatlanok.portal.PortalEngine mockEngine = new ingatlanok.portal.PortalEngine() {
+            @Override
+            public ingatlanok.portal.PortalDescriptor getDescriptor() {
+                return new ingatlanok.portal.PortalDescriptor("mockbazar", "Mock Ingatlanbazár", "#336699", "https://mockbazar.hu", true, List.of("lakas"), true);
+            }
+            @Override
+            public ingatlanok.scraper.PortalScrapeResult scrape(SearchCriteria criteria) {
+                IngatlanItem item = new IngatlanItem(
+                        "mb1", PortalSource.of("mockbazar"), "https://mockbazar.hu/1", "Debreceni lakás",
+                        new ingatlanok.model.PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                        "Debrecen",
+                        new ingatlanok.model.PropertyDetails("100 m²", 100.0, 3.0, 500_000L),
+                        "2026-10-15", true
+                );
+                return PortalScrapeResult.success("mockbazar", "Mock Ingatlanbazár", List.of(item), 10);
+            }
+        };
+        ingatlanok.portal.PortalEngineRegistry.getInstance().register(mockEngine);
+    }
+
     @Test
     @DisplayName("IngatlanRepository operations and edge cases")
     void testIngatlanRepositoryMethods() {
@@ -91,6 +113,7 @@ class RepositoryAndPresentationCoverageTest {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Debrecen");
         criteria.setPropertyType("lakas");
+        criteria.setPortals(List.of("mockbazar"));
 
         DashboardResponseDto dto = service.executeSearch(criteria);
         assertNotNull(dto);

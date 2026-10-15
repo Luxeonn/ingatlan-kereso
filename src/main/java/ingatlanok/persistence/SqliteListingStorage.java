@@ -107,7 +107,7 @@ public class SqliteListingStorage implements ListingStorage {
                     dao.upsertLocation(cityKey, cityName, cityKey);
 
                     String rawId = item.getId() != null ? item.getId().trim() : "";
-                    String propertyId = (!rawId.isBlank()) ? portalId + "_" + rawId : portalId + "_" + Math.abs(url.hashCode());
+                    String propertyId = (!rawId.isBlank()) ? portalId + "_" + rawId : portalId + "_" + Integer.toUnsignedString(url.hashCode());
                     String title = item.getTitle() != null ? item.getTitle() : "";
                     String discoveredAt = item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now;
                     int viewed = item.isViewed() ? 1 : 0;
