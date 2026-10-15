@@ -1,14 +1,24 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { compression } from 'vite-plugin-compression2'
 import path from 'path'
+
+import { fileURLToPath } from 'url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    compression({
+      algorithms: ['gzip'],
+      threshold: 1024,
+      deleteOriginalAssets: false,
+    }),
+  ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
