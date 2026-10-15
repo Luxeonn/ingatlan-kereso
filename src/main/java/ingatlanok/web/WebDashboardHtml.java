@@ -1496,7 +1496,7 @@ public class WebDashboardHtml {
                             <button type="button" class="btn-text-link" onclick="deselectAllPortals()" title="Minden weboldal kijelölésének törlése">✕ Mindet töröl</button>
                         </div>
                     </div>
-                    <div class="portal-checkboxes">
+                    <div class="portal-checkboxes" id="portal-container">
                         <label class="portal-chip">
                             <input type="checkbox" id="portal-dh" value="dh" checked> Duna House
                         </label>
@@ -1704,6 +1704,15 @@ public class WebDashboardHtml {
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
+        }
+
+        function normalizeStr(text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
+                .normalize('NFD')
+                .replace(/[\\u0300-\\u036f]/g, '')
+                .toLowerCase()
+                .trim();
         }
 
         let currentItems = [];
@@ -2066,7 +2075,8 @@ public class WebDashboardHtml {
             const customAddEl = document.getElementById('city-custom-add');
             if (!listEl) return;
 
-            const term = (citySearchInput ? citySearchInput.value : '').toLowerCase().trim();
+            const rawTerm = (citySearchInput ? citySearchInput.value : '').trim();
+            const termNorm = normalizeStr(rawTerm);
             const trackedKeys = new Set(trackedCities.map(tc => (tc.key || '').toLowerCase()));
             const trackedCounts = {};
             trackedCities.forEach(tc => {
@@ -2074,37 +2084,48 @@ public class WebDashboardHtml {
             });
 
             const filtered = predefinedCities.filter(c => {
-                if (!term) return true;
-                return (c.name && c.name.toLowerCase().includes(term)) ||
-                       (c.county && c.county.toLowerCase().includes(term)) ||
-                       (c.group && c.group.toLowerCase().includes(term));
+                if (!termNorm) return true;
+                const nameNorm = normalizeStr(c.name);
+                const countyNorm = normalizeStr(c.county);
+                const groupNorm = normalizeStr(c.group);
+                return nameNorm.includes(termNorm) ||
+                       countyNorm.includes(termNorm) ||
+                       groupNorm.includes(termNorm);
             });
 
-            listEl.innerHTML = filtered.map(c => {
-                const isSelected = selectedCities.includes(c.name);
-                const isTracked = trackedKeys.has((c.key || '').toLowerCase());
-                const count = trackedCounts[(c.key || '').toLowerCase()] || 0;
-
-                let metaText = '✨ Új város';
-                if (isTracked) {
-                    metaText = `💾 Mentve (${count} db)`;
-                }
-
-                return `
-                    <div class="city-dropdown-item ${isSelected ? 'selected' : ''}" onclick="toggleCityTag('${escapeHtml(c.name)}')">
-                        <div class="city-name-group">
-                            <span>${isSelected ? '✓ ' : '+ '}<strong>${escapeHtml(c.name)}</strong></span>
-                            <span style="font-size:11px; color:var(--text-secondary);">${escapeHtml(c.county || '')}</span>
-                        </div>
-                        <span class="city-meta-badge">${metaText}</span>
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div style="padding:14px; text-align:center; color:var(--text-secondary); font-size:12px;">
+                        Nem található előre rögzített település a(z) "<strong>${escapeHtml(rawTerm)}</strong>" kifejezésre.
                     </div>
                 `;
-            }).join('');
+            } else {
+                listEl.innerHTML = filtered.map(c => {
+                    const isSelected = selectedCities.includes(c.name);
+                    const isTracked = trackedKeys.has((c.key || '').toLowerCase());
+                    const count = trackedCounts[(c.key || '').toLowerCase()] || 0;
 
-            if (term && !predefinedCities.some(c => c.name.toLowerCase() === term) && !selectedCities.some(c => c.toLowerCase() === term)) {
+                    let metaText = '✨ Új város';
+                    if (isTracked) {
+                        metaText = `💾 Mentve (${count} db)`;
+                    }
+
+                    return `
+                        <div class="city-dropdown-item ${isSelected ? 'selected' : ''}" onclick="toggleCityTag('${escapeHtml(c.name)}')">
+                            <div class="city-name-group">
+                                <span>${isSelected ? '✓ ' : '+ '}<strong>${escapeHtml(c.name)}</strong></span>
+                                <span style="font-size:11px; color:var(--text-secondary);">${escapeHtml(c.county || '')}</span>
+                            </div>
+                            <span class="city-meta-badge">${metaText}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (rawTerm && !predefinedCities.some(c => normalizeStr(c.name) === termNorm) && !selectedCities.some(c => normalizeStr(c) === termNorm)) {
                 if (customAddEl) {
                     customAddEl.style.display = 'flex';
-                    customAddEl.innerHTML = `➕ "<strong>${escapeHtml(citySearchInput.value.trim())}</strong>" hozzáadása új városként`;
+                    customAddEl.innerHTML = `➕ "<strong>${escapeHtml(rawTerm)}</strong>" hozzáadása új városként`;
                 }
             } else if (customAddEl) {
                 customAddEl.style.display = 'none';
@@ -2374,13 +2395,10 @@ public class WebDashboardHtml {
                     if (conf.maxPriceMillion !== undefined && conf.maxPriceMillion !== null) document.getElementById('max-price-input').value = conf.maxPriceMillion;
                     if (conf.minArea !== undefined && conf.minArea !== null) document.getElementById('min-area-input').value = conf.minArea;
                     if (conf.maxArea !== undefined && conf.maxArea !== null) document.getElementById('max-area-input').value = conf.maxArea;
-                    if (conf.portals) {
-                        document.getElementById('portal-dh').checked = conf.portals.includes('dh');
-                        document.getElementById('portal-oc').checked = conf.portals.includes('oc');
-                        document.getElementById('portal-jf').checked = conf.portals.includes('jofogas');
-                        document.getElementById('portal-ic').checked = conf.portals.includes('ingatlancom');
-                        if (document.getElementById('portal-ib')) document.getElementById('portal-ib').checked = conf.portals.includes('ingatlanbazar');
-                        if (document.getElementById('portal-kb')) document.getElementById('portal-kb').checked = conf.portals.includes('koltozzbe');
+                    if (conf.portals && Array.isArray(conf.portals)) {
+                        document.querySelectorAll('.portal-checkboxes input[type="checkbox"]').forEach(cb => {
+                            cb.checked = conf.portals.includes(cb.value);
+                        });
                     }
                 } else {
                     renderSelectedCityChips();
@@ -2590,15 +2608,17 @@ public class WebDashboardHtml {
 
         function itemMatchesQuickSearch(item, filterTerm) {
             if (!filterTerm) return true;
-            const tokens = filterTerm.toLowerCase().trim().split(/\\s+/).filter(t => t.length > 0);
+            const tokens = filterTerm.trim().split(/\\s+/).filter(t => t.length > 0);
             if (tokens.length === 0) return true;
             const searchable = buildSearchableString(item);
+            const searchableNorm = normalizeStr(searchable);
             return tokens.every(token => {
-                if (searchable.includes(token)) return true;
-                const cleanArea = token.replace(/m2|m²/g, '').trim();
-                if (cleanArea && searchable.includes(cleanArea)) return true;
-                const cleanPrice = token.replace(/mft|m ft|ft/g, '').trim();
-                if (cleanPrice && searchable.includes(cleanPrice)) return true;
+                const tokenNorm = normalizeStr(token);
+                if (searchableNorm.includes(tokenNorm)) return true;
+                const cleanArea = normalizeStr(token.replace(/m2|m²/g, ''));
+                if (cleanArea && searchableNorm.includes(cleanArea)) return true;
+                const cleanPrice = normalizeStr(token.replace(/mft|m ft|ft/g, ''));
+                if (cleanPrice && searchableNorm.includes(cleanPrice)) return true;
                 return false;
             });
         }
@@ -3171,7 +3191,7 @@ public class WebDashboardHtml {
             const text = filtered.map(l => {
                 if (l.rawLine) return l.rawLine;
                 return `[${l.timestamp || ''}] [${(l.level || 'INFO').toUpperCase()}] [${l.logger || 'App'}] - ${l.message || ''}`;
-            }).join('\n');
+            }).join('\\n');
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(text);

@@ -139,7 +139,8 @@ public class WebServer {
         exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
         exchange.getResponseHeaders().set("X-Frame-Options", "DENY");
         exchange.getResponseHeaders().set("Referrer-Policy", "strict-origin-when-cross-origin");
-        exchange.getResponseHeaders().set("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data: https:;");
+        exchange.getResponseHeaders().set("Content-Security-Policy",
+                "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self';");
     }
 
     private static class RootHandler implements HttpHandler {
