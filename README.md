@@ -136,7 +136,19 @@ mvn compile exec:java "-Dexec.args=--cli"
 #### 5. Konténerizált indítás Dockerrel és GHCR-rel (GitHub Container Registry)
 A projekt automatikusan publikált, azonnal futtatható és biztonságosan minimális futtatókörnyezetet használó (non-root) Docker konténerképeket biztosít a **GitHub Container Registry (GHCR)** felületén keresztül.
 
-##### A) Zéró-konfigurációs gyorsindítás (Zero-Config / Single `docker run`):
+##### A) Zéró-konfigurációs egykattintásos indítás (`start-docker.bat` / `start-docker.sh`):
+A legegyszerűbb, dobozból azonnal működő indítás. Automatikusan lekéri a legfrissebb távoli GHCR image-et (`docker pull`), eltávolítja az esetleges korábbi futó példányt, fixen `ingatlan-kereso` néven indítja el a konténert a `8080:8080` port forwarddal és menedzselt kötetekkel, majd megnyitja a böngészőt:
+* **Windows alatt:** Kattints duplán a **`start-docker.bat`** fájlra, vagy futtasd terminálból:
+  ```cmd
+  start-docker.bat
+  ```
+* **Linux / macOS alatt:**
+  ```bash
+  chmod +x start-docker.sh
+  ./start-docker.sh
+  ```
+
+##### B) Zéró-konfigurációs gyorsindítás parancssorból (Zero-Config / Single `docker run`):
 A beépített `VOLUME` direktíváknak és előre beállított környezeti változóknak köszönhetően az alkalmazás egyetlen paranccsal, manuális mappakötések nélkül is azonnal futtatható. A Docker automatikusan menedzselt köteteket rendel hozzá, így az adatok újraindításkor is megmaradnak:
 ```bash
 # Legfrissebb konténer futtatása háttérben
