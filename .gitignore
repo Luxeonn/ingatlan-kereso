@@ -6,9 +6,6 @@ build/
 .gradle/
 *.class
 
-# Gradle wrapper jar must NOT be ignored
-!gradle/wrapper/gradle-wrapper.jar
-
 # Packaged binaries / archives
 *.jar
 *.war
@@ -17,6 +14,9 @@ build/
 *.zip
 *.tar.gz
 *.rar
+
+# Gradle wrapper jar must NOT be ignored
+!gradle/wrapper/gradle-wrapper.jar
 
 # JaCoCo Code Coverage
 *.exec
