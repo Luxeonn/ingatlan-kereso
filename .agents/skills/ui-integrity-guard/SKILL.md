@@ -15,12 +15,10 @@ Ez a skill az **ingatlan-kereso** alkalmazás beágyazott webes felhasználói f
 
 ---
 
-## 1. Miért volt szükség erre a Guardra? (Gyökérok Elemzés)
+## 1. Architektúra és Minőségi Kapuk (Modern Decoupled React 19 SPA)
 
-A projekt zéró külső függőségű architektúrája miatt a webes felület (`WebDashboardHtml.java`) Java multiline text blockként (`"""..."""`) tartalmazza a HTML, CSS és Vanilla JavaScript kódot.
-* **A veszély:** Egyetlen elhibázott escape karakter (pl. `join('\n')` a `join('\\n')` helyett egy Java szövegblokkban) valós sortörést szúr be a kimeneti JavaScript stringbe, ami a böngészőben `SyntaxError: Invalid or unexpected token` hibát okoz a script betöltésekor.
-* **A következmény:** A teljes JavaScript végrehajtás azonnal leáll, a gombok eseménykezelői nem regisztrálódnak, a városkereső autocomplete és a keresés indítása gomb teljesen érzéketlenné válik.
-* **A védelem célja:** Olyan automatizált, többszintű kapu és ellenőrzési protokoll biztosítása, amely 100%-os biztonsággal elbuktatja a buildet és a PR-t, ha bármilyen szintaktikai, escape-elési vagy DOM konzisztencia-hiba kerül a kódba.
+A korábbi monolitikus Java szövegblokkos felületet (`WebDashboardHtml.java`) felváltotta egy önálló, modern, típusbiztos React 19 + TypeScript + Vite SPA a `frontend/` mappában.
+* **A védelem célja:** Olyan automatizált, többszintű minőségbiztosítási kapu garantálása, amely meggátolja a runtime hibák, hibás DOM állapotok és API szerződés-törések élesbe kerülését.
 
 ---
 
@@ -28,10 +26,10 @@ A projekt zéró külső függőségű architektúrája miatt a webes felület (
 
 ```mermaid
 flowchart TD
-    Start["Kódmódosítás (WebDashboardHtml / WebServer / UI)"] --> L1["1. Réteg: Java Token & Escape Lexer Teszt"]
-    L1 --> L2["2. Réteg: Node.js V8 Motor Szintaxisellenőrző (node --check)"]
-    L2 --> L3["3. Réteg: DOM ID & Eseménykezelő Keresztreferencia Teszt"]
-    L3 --> L4["4. Réteg: REST API Végpont Szerződés Konzultáció"]
+    Start["Kódmódosítás (frontend / WebServer / REST API)"] --> L1["1. Réteg: TypeScript Típusellenőrzés (tsc --noEmit)"]
+    L1 --> L2["2. Réteg: Vitest Komponens- és Logikai Egységtesztek"]
+    L2 --> L3["3. Réteg: Vite Production Build & Asset Hashing"]
+    L3 --> L4["4. Réteg: REST API Szerződés és CORS Preflight Ellenőrzés"]
     L4 --> L5["5. Réteg: CI Headless Runtime Smoke Teszt (Élő JAR & curl)"]
     
     L1 & L2 & L3 & L4 & L5 --> Decision{"Minden réteg 100% zöld?"}

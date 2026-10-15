@@ -108,7 +108,7 @@ public class WebServer {
 
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
-        server.createContext("/", new RootHandler(port));
+        server.createContext("/", new StaticFileHandler(port));
         server.createContext("/api/status", new StatusHandler(port));
         server.createContext("/api/config", new ConfigHandler());
         server.createContext("/api/cities", new CitiesHandler());
@@ -140,24 +140,142 @@ public class WebServer {
         exchange.getResponseHeaders().set("X-Frame-Options", "DENY");
         exchange.getResponseHeaders().set("Referrer-Policy", "strict-origin-when-cross-origin");
         exchange.getResponseHeaders().set("Content-Security-Policy",
-                "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self';");
+                "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:* http://127.0.0.1:*;");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
     }
 
-    private static class RootHandler implements HttpHandler {
+    private static boolean handleCorsPreflight(HttpExchange exchange) throws IOException {
+        setSecurityHeaders(exchange);
+        if (exchange.getRequestMethod().equalsIgnoreCase("OPTIONS")) {
+            exchange.sendResponseHeaders(204, -1);
+            return true;
+        }
+        return false;
+    }
+
+    private static class StaticFileHandler implements HttpHandler {
         private final int port;
 
-        public RootHandler(int port) {
+        public StaticFileHandler(int port) {
             this.port = port;
         }
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             setSecurityHeaders(exchange);
-            if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+
+            if (exchange.getRequestMethod().equalsIgnoreCase("OPTIONS")) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            if (!exchange.getRequestMethod().equalsIgnoreCase("GET") && !exchange.getRequestMethod().equalsIgnoreCase("HEAD")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
             }
-            String html = WebDashboardHtml.getHtml(port);
+
+            String rawPath = exchange.getRequestURI().getPath();
+            if (rawPath == null || rawPath.isBlank() || rawPath.equals("/")) {
+                rawPath = "/index.html";
+            }
+
+            // Path normalization and Path Traversal attack prevention
+            if (rawPath.contains("..") || rawPath.contains("\\") || rawPath.contains("//")) {
+                sendResponse(exchange, 400, "Bad Request");
+                return;
+            }
+
+            String resourcePath = "static" + rawPath;
+            InputStream rawStream = WebServer.class.getClassLoader().getResourceAsStream(resourcePath);
+
+            // SPA Routing Fallback: ha a kért útvonal nem közvetlen asset fájl kiterjesztéssel, akkor index.html
+            if (rawStream == null) {
+                boolean isStaticAsset = rawPath.contains(".") && !rawPath.endsWith(".html");
+                if (!isStaticAsset) {
+                    resourcePath = "static/index.html";
+                    rawStream = WebServer.class.getClassLoader().getResourceAsStream(resourcePath);
+                }
+            }
+
+            if (rawStream == null) {
+                serveDevPlaceholder(exchange, port);
+                return;
+            }
+
+            try (InputStream in = rawStream) {
+                byte[] bytes = in.readAllBytes();
+                String mimeType = getMimeType(resourcePath);
+                exchange.getResponseHeaders().set("Content-Type", mimeType);
+
+                if (resourcePath.startsWith("static/assets/")) {
+                    exchange.getResponseHeaders().set("Cache-Control", "public, max-age=31536000, immutable");
+                } else {
+                    exchange.getResponseHeaders().set("Cache-Control", "no-cache, no-store, must-revalidate");
+                }
+
+                exchange.sendResponseHeaders(200, bytes.length);
+                if (!exchange.getRequestMethod().equalsIgnoreCase("HEAD")) {
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(bytes);
+                    }
+                }
+            }
+        }
+
+        private static String getMimeType(String path) {
+            String lower = path.toLowerCase();
+            if (lower.endsWith(".html")) return "text/html; charset=UTF-8";
+            if (lower.endsWith(".js") || lower.endsWith(".mjs")) return "text/javascript; charset=UTF-8";
+            if (lower.endsWith(".css")) return "text/css; charset=UTF-8";
+            if (lower.endsWith(".svg")) return "image/svg+xml";
+            if (lower.endsWith(".json")) return "application/json; charset=UTF-8";
+            if (lower.endsWith(".ico")) return "image/x-icon";
+            if (lower.endsWith(".png")) return "image/png";
+            if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+            if (lower.endsWith(".webp")) return "image/webp";
+            if (lower.endsWith(".woff2")) return "font/woff2";
+            if (lower.endsWith(".woff")) return "font/woff";
+            if (lower.endsWith(".ttf")) return "font/ttf";
+            return "application/octet-stream";
+        }
+
+        private static void serveDevPlaceholder(HttpExchange exchange, int port) throws IOException {
+            String html = """
+                <!DOCTYPE html>
+                <html lang="hu">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Ingatlan Kereső - Fejlesztői Mód</title>
+                    <style>
+                        body { font-family: system-ui, sans-serif; background: #0b0f19; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+                        .card { background: #131b2e; border: 1px solid #263352; border-radius: 16px; padding: 32px; max-width: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+                        h1 { color: #3b82f6; margin-top: 0; font-size: 22px; }
+                        code { background: #1a2238; padding: 3px 8px; border-radius: 6px; color: #38bdf8; font-family: monospace; }
+                        ol { padding-left: 20px; line-height: 1.8; color: #94a3b8; font-size: 14px; }
+                        .btn { display: inline-block; background: #2563eb; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <h1>🚀 Ingatlan Kereső Backend (Port: %d)</h1>
+                        <p>A Java REST API sikeresen fut, de a statikus React SPA build még nem található a <code>src/main/resources/static/</code> mappában.</p>
+                        <h3>Kétféleképpen indíthatod el a felületet:</h3>
+                        <ol>
+                            <li><strong>Fejlesztői mód azonnali HMR-rel (Ajánlott):</strong><br>
+                                Futtasd: <code>cd frontend && npm install && npm run dev</code><br>
+                                Majd nyisd meg: <a class="btn" href="http://localhost:5173" target="_blank">http://localhost:5173</a>
+                            </li>
+                            <li style="margin-top: 10px;"><strong>Produkciós statikus csomagolás:</strong><br>
+                                Futtasd: <code>cd frontend && npm run build</code> és másold a <code>dist/</code> tartalmát a <code>src/main/resources/static/</code> mappába.
+                            </li>
+                        </ol>
+                    </div>
+                </body>
+                </html>
+                """.formatted(port);
+
             byte[] bytes = html.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, bytes.length);
@@ -176,6 +294,7 @@ public class WebServer {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -193,6 +312,7 @@ public class WebServer {
     private static class PortalsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -221,6 +341,7 @@ public class WebServer {
     private static class CitiesHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -236,6 +357,7 @@ public class WebServer {
     private static class ConfigHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 SearchCriteria sc = IngatlanRepository.getInstance().getLastCriteria();
                 sendJsonResponse(exchange, 200, sc);
@@ -255,6 +377,7 @@ public class WebServer {
     private static class HistoryHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -288,6 +411,7 @@ public class WebServer {
     private static class PropertiesHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -365,6 +489,7 @@ public class WebServer {
     private static class SearchHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -389,6 +514,7 @@ public class WebServer {
     private static class OpenUrlsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -415,6 +541,7 @@ public class WebServer {
     private static class MarkViewedHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -443,6 +570,7 @@ public class WebServer {
     private static class ClearHistoryHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -485,6 +613,7 @@ public class WebServer {
     private static class LogsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -516,6 +645,7 @@ public class WebServer {
     private static class LogsClearHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handleCorsPreflight(exchange)) return;
             if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -538,8 +668,6 @@ public class WebServer {
         String json = GSON.toJson(data);
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
         exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);

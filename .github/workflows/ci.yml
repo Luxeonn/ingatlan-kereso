@@ -35,6 +35,21 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Build and Test Frontend SPA (React 19, TypeScript, Vitest)
+        run: |
+          echo "=== ⚛️ Frontend SPA Build & Tesztek Indítása ==="
+          cd frontend
+          npm ci
+          npm run typecheck
+          npm run test
+          npm run build
+          echo "SPA assetek másolása a Java static erőforrásokhoz..."
+          mkdir -p ../src/main/resources/static
+          rm -rf ../src/main/resources/static/*
+          cp -r dist/* ../src/main/resources/static/
+          cd ..
+          echo "✅ Frontend SPA sikeresen lefordítva és beágyazva."
+
       - name: Compile and Test with Maven
         run: mvn --batch-mode --no-transfer-progress clean test package
 
@@ -63,22 +78,30 @@ jobs:
           fi
 
           echo "=== 🔍 Végpontok és Frontend Smoke Ellenőrzése ==="
-          # 1. Dashboard HTML letöltése és méretvizsgálata
+          # 1. SPA index.html letöltése és root vizsgálata
           curl -s -f http://127.0.0.1:8099/ > /tmp/dashboard.html
-          HTML_SIZE=$(wc -c < /tmp/dashboard.html)
-          echo "Dashboard HTML mérete: $HTML_SIZE bájt"
-          if [ $HTML_SIZE -lt 5000 ]; then
-            echo "::error::A kiszolgált Dashboard HTML túl kicsi vagy csonka!"
+          grep -q 'id="root"' /tmp/dashboard.html || { echo "::error::Hiányzik a root div az index.html-ből!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          grep -q 'Ingatlan Kereső' /tmp/dashboard.html || { echo "::error::Hiányzik az alkalmazás címe az index.html-ből!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          echo "✅ SPA index.html sikeresen kiszolgálva."
+
+          # 2. Bundle JavaScript letöltése és Node.js V8 szintaxisvizsgálat
+          JS_PATH=$(grep -oE '/assets/index-[a-zA-Z0-9_-]+\.js' /tmp/dashboard.html | head -n 1)
+          if [ -n "$JS_PATH" ]; then
+            echo "Élő JS bundle letöltése: $JS_PATH"
+            curl -s -f "http://127.0.0.1:8099$JS_PATH" > /tmp/dashboard_live.js
+            node --check /tmp/dashboard_live.js
+            echo "✅ A valós szerver által kiszolgált SPA JavaScript kód hibátlan (node --check pass)!"
+          else
+            echo "::error::Nem található JS bundle hivatkozás az index.html-ben!"
             kill -9 $APP_PID 2>/dev/null || true
             exit 1
           fi
 
-          # 2. JavaScript kinyerése a valós szerver HTML válaszából és Node.js V8 szintaxisvizsgálat
-          sed -n '/<script>/,/<\/script>/p' /tmp/dashboard.html | sed '1d;$d' > /tmp/dashboard_live.js
-          node --check /tmp/dashboard_live.js
-          echo "✅ A valós szerver által kiszolgált JavaScript kód hibátlan (node --check pass)!"
+          # 3. CORS Preflight ellenőrzés
+          curl -s -I -X OPTIONS http://127.0.0.1:8099/api/search | grep -qi "Access-Control-Allow-Origin" || { echo "::error::CORS preflight nem adott Access-Control-Allow-Origin fejlécet"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          echo "✅ CORS Preflight megfelelően működik."
 
-          # 3. Alapvető REST API végpontok szerződés-ellenőrzése
+          # 4. Alapvető REST API végpontok szerződés-ellenőrzése
           echo "REST API végpontok ellenőrzése..."
           curl -s -f http://127.0.0.1:8099/api/config | grep -q "cities" || { echo "::error::/api/config nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
           curl -s -f http://127.0.0.1:8099/api/portals | grep -q "id" || { echo "::error::/api/portals nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
