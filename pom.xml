@@ -16,6 +16,8 @@
         <commons-io.version>2.22.0</commons-io.version>
         <commons-lang3.version>3.21.0</commons-lang3.version>
         <liquibase.version>5.0.4</liquibase.version>
+        <jdbi.version>3.48.0</jdbi.version>
+        <hikaricp.version>6.2.1</hikaricp.version>
         <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
     </properties>
 
@@ -54,6 +56,30 @@
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
             <version>${liquibase.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jdbi</groupId>
+            <artifactId>jdbi3-core</artifactId>
+            <version>${jdbi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jdbi</groupId>
+            <artifactId>jdbi3-sqlobject</artifactId>
+            <version>${jdbi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jdbi</groupId>
+            <artifactId>jdbi3-sqlite</artifactId>
+            <version>${jdbi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
         </dependency>
 
         <dependency>
