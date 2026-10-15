@@ -12,40 +12,31 @@ metadata:
 
 # Adatbázis és Perzisztencia Specialista Skill
 
-Ez a skill a tárolási architektúra, a beágyazott relációs SQLite perzisztencia réteg, az atomi I/O műveletek, a duplikátumszűrés és az adatbázis-optimalizáció alapelveit és gyakorlatát rögzíti az **ingatlan-kereso** alkalmazáshoz.
+Ez a skill a tárolási architektúra, a beágyazott NoSQL dokumentum adatbázis (Nitrite DB + MVStore) perzisztencia réteg, az atomi I/O műveletek, a duplikátumszűrés és az adatbázis-optimalizáció alapelveit és gyakorlatát rögzíti az **ingatlan-kereso** alkalmazáshoz.
 
 ---
 
-## 1. Megvalósult Tárolási Architektúra (SQLite & Leválasztott Perzisztencia)
+## 1. Megvalósult Tárolási Architektúra (Nitrite NoSQL & Leválasztott Perzisztencia)
 
 Az alkalmazás az absztrakt `ListingStorage` és `ConfigStorage` interfészekre épülő, leválasztott perzisztencia modellt valósít meg az `ingatlanok.persistence` csomagban:
 
 ```text
 data/
-├── ingatlanok.db            # Elsődleges relációs SQLite adatbázis (WAL mód, indexek)
-├── config.json              # Aktuális keresési konfiguráció
-└── cities/                  # Visszafelé kompatibilis JSON export és fallback
-    ├── budapest.json
-    ├── debrecen.json
-    └── ...
+└── ingatlanok_nosql.db      # Elsődleges beágyazott NoSQL adatbázis (Nitrite DB + MVStore tömörítéssel)
 ```
 
 ### 1.1 Fő Implementációk
-1. **`SqliteListingStorage` (Elsődleges Tároló):**
-   - Beágyazott ACID relációs adatbázis `org.xerial:sqlite-jdbc` meghajtóval.
-   - Magas párhuzamosságú olvasás és írás **WAL (Write-Ahead Logging)** módban (`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;`).
-   - B-Tree indexelés az azonnali szűréshez és duplikátum-ellenőrzéshez:
-     - `idx_listings_city` a városszintű lekérdezésekhez.
-     - `idx_listings_portal` a portálstatisztikákhoz.
-     - `idx_listings_discovered_at` az időrendi rendezéshez.
-   - Batch mentés tranzakcióban (`connection.setAutoCommit(false)`), minimalizálva a lemezre írási overheadet.
-2. **`JsonFileListingStorage` (Atomi Fájlalapú Fallback):**
-   - Kétszintű JSON struktúra (`data/cities/*.json` és aggregált napló).
-   - `ReentrantReadWriteLock` védett szálbiztos hozzáférés.
-   - Szigorúan atomi lemezre írás (`.tmp` + `StandardCopyOption.ATOMIC_MOVE`).
+1. **`NitriteListingStorage` (Elsődleges Tároló):**
+   - Beágyazott dokumentum-orientált NoSQL adatbázis `org.dizitart:nitrite` és `nitrite-mvstore-adapter` motorral.
+   - Magas párhuzamosságú olvasás és írás MVStore tömörített tárolóval.
+   - B-Tree indexelés az azonnali szűréshez és O(1) duplikátum-ellenőrzéshez:
+     - Egyedi (Unique) B-Tree index az `url`-re (garantált kanonikus integritás).
+     - Non-unique indexek: `city`, `normalizedCity`, `portal`, `discoveredAt`.
+   - Idősoros ártörténet (`price_history`) és státusznapló (`status_log`) külön NoSQL kollekciókban.
+2. **`NitriteConfigStorage`:**
+   - Keresési konfigurációk és rendszerbeállítások NoSQL dokumentumként való tárolása.
 3. **`IngatlanRepository` (Singleton Facade):**
-   - Visszafelé kompatibilis átjáró a felsőbb rétegek felé, amely transzparensen delegál a `ListingStorage` és `ConfigStorage` implementációkra.
-   - Automatikus migráció induláskor a régebbi JSON fájlokból az új SQLite adatbázisba.
+   - Átjáró a felsőbb rétegek felé, amely transzparensen delegál a `ListingStorage` és `ConfigStorage` implementációkra. Tiszta lappal indul, felesleges legacy migráció nélkül.
 
 ---
 
@@ -79,21 +70,17 @@ Ha JSON fájlt kell menteni, soha ne írj közvetlenül a végleges `.json` fáj
 ## 3. Séma Evolúció és Visszafelé Kompatibilitás
 
 Amikor új mező kerül a modellbe (pl. `minFloorArea`, `viewed`, `viewedAt`):
-1. **Biztonságos deszerializáció:** A Gson és a JDBC mapping alapértelmezetten `null` vagy `false` értékkel inicializálja a hiányzó mezőket a korábbi rekordok betöltésekor.
+1. **Biztonságos deszerializáció:** A NoSQL dokumentum modell alapértelmezetten `null` vagy `false` értékkel inicializálja a hiányzó mezőket a korábbi rekordok betöltésekor.
 2. **Defensive Getters:** A domain objektumban biztosíts ésszerű alapértelmezést, ha a mező nincs beállítva.
-3. **Idempotens DDL:** Minden táblalétrehozás és indexelés `CREATE TABLE IF NOT EXISTS` és `CREATE INDEX IF NOT EXISTS` szintaxissal történjen.
-4. **Automatikus Adatmigráció:** Az `IngatlanRepository` és `LegacyMigrationService` automatikusan és adatvesztés nélkül migrálnak a régebbi tárolókból.
+3. **Idempotens Séma:** Minden Nitrite kollekció és B-Tree index inicializálása idempotens módon történik.
 
 ---
 
 ## 4. Jövőbeli Bővíthetőség és Skálázási Irányok
 
 Amikor a rendszer hálózatos vagy multi-tenant környezetbe kerül:
-* **Külső SQL támogatás:** A `ListingStorage` interfészen keresztül külső PostgreSQL vagy MySQL kapcsolat bevezethető.
+* **Külső SQL / NoSQL támogatás:** A `ListingStorage` interfészen keresztül külső PostgreSQL, MongoDB vagy Elasticsearch kapcsolat bevezethető.
 * **Adatretenciós és Archiválási Szabályzat:** Periodikus tisztító feladat a 90+ napos inaktív hirdetések archiválására.
-* **Connection Pooling:** Nagy párhuzamos konkurens terhelés esetén HikariCP bevezetése.
-
-A részletes sémadefiníciót és a migrációs háttéranyagot a [SQLite Architektúra és Séma Referenciában](./references/sqlite-migration-plan.md) találod.
 
 ---
 

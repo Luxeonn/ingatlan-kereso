@@ -15,9 +15,7 @@
         <jsoup.version>1.23.2</jsoup.version>
         <commons-io.version>2.22.0</commons-io.version>
         <commons-lang3.version>3.21.0</commons-lang3.version>
-        <liquibase.version>5.0.4</liquibase.version>
-        <jdbi.version>3.48.0</jdbi.version>
-        <hikaricp.version>6.2.1</hikaricp.version>
+        <nitrite.version>4.3.0</nitrite.version>
         <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
     </properties>
 
@@ -46,40 +44,17 @@
             <version>2.14.0</version>
         </dependency>
 
+        <!-- Beágyazott NoSQL Dokumentum Adatbázis (Nitrite DB + MVStore) -->
         <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>3.53.4.0</version>
+            <groupId>org.dizitart</groupId>
+            <artifactId>nitrite</artifactId>
+            <version>${nitrite.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core</artifactId>
-            <version>${liquibase.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jdbi</groupId>
-            <artifactId>jdbi3-core</artifactId>
-            <version>${jdbi.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jdbi</groupId>
-            <artifactId>jdbi3-sqlobject</artifactId>
-            <version>${jdbi.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jdbi</groupId>
-            <artifactId>jdbi3-sqlite</artifactId>
-            <version>${jdbi.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>${hikaricp.version}</version>
+            <groupId>org.dizitart</groupId>
+            <artifactId>nitrite-mvstore-adapter</artifactId>
+            <version>${nitrite.version}</version>
         </dependency>
 
         <dependency>
