@@ -183,6 +183,9 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 * **`qa-test-engineer` (`.agents/skills/qa-test-engineer/`):**
   * Minőségbiztosítási, tesztelési és kódlefedettségi mérnök (QA).
   * Fókusz: Rétegzett tesztelési piramis, determinisztikus és 100% offline lefutás, scraper parser tesztek mentett HTML/JSON fixture-ökkel, SQLite `@TempDir` és in-memory integrációs tesztek, WebServer REST integrációs tesztek, és szigorú 80%+ JaCoCo kódlefedettség fenntartása.
+* **`ui-integrity-guard` (`.agents/skills/ui-integrity-guard/`):**
+  * Alkalmazás és UI integritási, szintaktikai és runtime stabilitási specialista (Skill Guard).
+  * Fókusz: Beágyazott Single Page Application (WebDashboardHtml) épsége, JavaScript szintaxis és escape-elési integritás (`node --check`, multiline string hibák elkerülése), DOM ID konzisztencia, REST API szerződések összhangja, és headless runtime smoke tesztelés.
 
 ---
 
@@ -306,6 +309,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      ### 🛡️ Thematic Agent Approval Gate
 >      - [x] Architecture (`deep-architect`): [OK] – A Clean Architecture réteghatárok és a 0-crash elv maradéktalanul érvényesül.
 >      - [x] UI/UX (`ui-designer`): [N/A] – A módosítás nem érinti a webes dashboardot vagy a frontend kódokat.
+>      - [x] UI Integrity (`ui-integrity-guard`): [OK] – A beágyazott JavaScript szintaktikailag és escape-elés szempontjából validált, DOM ID-k konzisztensek.
 >      - [x] Security (`security-specialist`): [OK] – A bemenet-validáció és a localhost szerverbiztonsági fejlécek sértetlenek.
 >      - [x] Database (`database-specialist`): [OK] – A szálbiztos tárolás és az atomi perzisztencia garantált.
 >      - [x] Workflow/CI (`workflow-engineer`): [OK] – A GitHub Actions munkafolyamatok és a PR guard szabályok rendben vannak.
