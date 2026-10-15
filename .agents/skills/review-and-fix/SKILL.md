@@ -85,10 +85,15 @@ Probléma / elutasítás esetén:
 ## 4. Szigorú PR Javítási Ciklus Zöld CI-ig (Strict Fix Loop Until Green CI)
 
 - **Zéró tolerancia elbukott CI-re:** Ha bármilyen CI pipeline, guard vagy teszt elbukik a Pull Requesten, a fejlesztést végző ágens nem zárhatja le a munkát 'kész'-ként.
+- **A PR CSAK AKKOR MERGELHETŐ, HA MINDEN ZÖLD:**
+  - A Java CI (építés, egység- és integrációs tesztek, frontend Vite build & Vitest, headless smoke teszt) sikeres.
+  - A PR Guard (cím, branch prefix, leírás, Thematic Agent Gate) sikeres.
+  - Nincs függőben lévő vagy elbukott ellenőrzés.
 - **Azonnali Fix Loop indítása:**
   1. Hiba elemzése a CI logok alapján (`gh run view --log-failed`).
   2. Dedikált `fix:` commit létrehozása és pusholása a PR ágra.
   3. Ellenőrzés megismétlése mindaddig, amíg minden pipeline ellenőrzés maradéktalanul **100%-ban zöld** nem lesz.
 - Tilos a PR-t jóváhagyottnak vagy befejezettnek tekinteni piros vagy még futó CI pipeline mellett.
+
 
 

@@ -94,4 +94,5 @@ A részletes, azonnal használható munkafolyamat sablonokat a [Workflow Sablono
 - [ ] **Időkorlát:** Minden job rendelkezik `timeout-minutes` beállítással?
 - [ ] **Gyorstárazás:** A Maven és Docker Buildx rétegek cache-elve vannak?
 - [ ] **Docker verziózás:** Szigorú tagelés történik, elkerülve a lebegő latest tag nem szándékolt felülírását?
+- [ ] **Minden státusz zöld:** A PR Guard és a CI csak 100%-ban zöld pipeline esetén engedélyezi a merge-et?
 - [ ] **Tiszta kimenet:** A workflow hibája esetén az ok egyértelműen megjelenik a `$GITHUB_STEP_SUMMARY`-ban?

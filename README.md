@@ -193,11 +193,11 @@ A konténer indulása után a Web Dashboard azonnal elérhető a `http://localho
 
 ## ⚙️ Konfiguráció és Adattárolás
 
-Az alkalmazás nem igényel külső adatbázis-kiszolgálót; a beállításokat és hirdetési előzményeket a helyi `data/` mappában tárolja JSON formátumban:
+Az alkalmazás beágyazott relációs SQLite adatbázist és atomi JSON konfigurációt használ a `data/` könyvtárban:
 
-* **`data/last_config.json`:** Az utolsó keresés során használt szűrőfeltételek (kiválasztott városok, ingatlantípus, min/max ár, aktív portálok, lapmegnyitási beállítások). Az alkalmazás újraindításakor automatikusan betölti ezeket.
-* **`data/cities/<city-key>.json`:** Városonként csoportosított hirdetési előzmények a duplikátumok gyors és pontos szűréséhez.
-* **`data/ingatlanok_db.json`:** Aggregált hirdetésadatbázis minden valaha rögzített ingatlan metaadataival és az első rögzítés időbélyegével.
+* **`data/ingatlanok.db`:** Elsődleges relációs SQLite adatbázis WAL módban és B-Tree indexekkel a gyors lekérdezésekhez és azonnali duplikátumszűréshez.
+* **`data/last_config.json`:** Az utolsó keresés során használt szűrőfeltételek (városok, típus, ársáv, aktív portálok).
+* **`data/cities/<city-key>.json`:** Városonként csoportosított előzmények és kompatibilitási export/fallback.
 
 > [!TIP]
 > A felületen a **"Keresési előzmények törlése"** gombra kattintva bármikor alaphelyzetbe állítható a helyi adatbázis, így a következő kereséskor minden találat újra frissként fog megjelenni.
@@ -210,17 +210,16 @@ Szívesen fogadunk hibajavításokat és új funkciókat! A hozzájáruláshoz k
 
 ### 1. Build és tesztelés
 ```bash
-# Függőségek letöltése és teljes fordítás
-mvn clean compile
+# Frontend tesztelése és fordítása (React 19 + TypeScript + Vite)
+cd frontend
+npm ci && npm run test && npm run build
+cd ..
 
-# Egység- és integrációs tesztek futtatása
-mvn test
-
-# Futtatható csomag összeállítása
-mvn package
+# Backend fordítás és tesztelés (Java 21 + Maven)
+mvn clean test package
 ```
 
-### 2. Git munkafolyamat
+### 2. Git munkafolyamat & Minőségi Kapuk
 * A fejlesztések kiindulási és integrációs ága a **`develop`**. Közvetlenül a `main` vagy `develop` ágra pusholni tilos.
 * Hozz létre új munkavégző ágat a feladat típusának megfelelő prefixummal:
   * `feature/<rovid-angol-leiras>` – új funkció
@@ -228,6 +227,7 @@ mvn package
   * `docs/<rovid-angol-leiras>` – dokumentáció módosítása
   * `refactor/<rovid-angol-leiras>` – kódstruktúra átalakítása
 * Pull Request beküldésekor használj beszédes, angol nyelvű Conventional Commits címet (pl. `feat: add price filter to dashboard`).
+* **Szigorú Merge Követelmény:** A PR kizárólag akkor mergelhető, ha az összes CI ellenőrzés (Java CI, frontend Vitest, headless smoke teszt, PR Guard) **100%-ban zöld**.
 
 ### 3. Helyi Push-védelem aktiválása
 A véletlen közvetlen push-ok megelőzésére a projekt előre konfigurált git hookokat tartalmaz:

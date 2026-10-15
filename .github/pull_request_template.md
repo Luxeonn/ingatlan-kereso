@@ -59,3 +59,5 @@ Változik-e az adatbázis formátum, a keresési viselkedés vagy a CLI paramét
 - [ ] A forráság a `develop` ágból indul ki, és oda is céloz.
 - [ ] Minden változtatás új, leíró üzenetű commitban van rögzítve (nincs elnyomott commit).
 - [ ] Megfelelő GitHub címke hozzáadva a PR-hoz (`enhancement`, `bug`, `chore`, `documentation`).
+- [ ] 🟢 **Minden CI státusz zöld:** Szigorúan CSAK AKKOR mergelhető, ha a Java CI és a PR Guard is 100%-ban zöld!
+

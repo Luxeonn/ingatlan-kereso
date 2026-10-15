@@ -203,8 +203,10 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
    * Ár-, méret- és szobaszám parsing (`PropertyParser`), ékezetmentesítés és slugosítás (`SlugUtils`), településkezelés (`CityUtils`) és asztali integráció (`BrowserUtils`) egy helyre szervezve az SRP és DRY elvek mentén.
 4. **0-Crash és Robusztus Graceful Degradation:**
    * Egyetlen weboldal hálózati hibája vagy DOM struktúra-változása sem okozhatja az alkalmazás leállását. A scraperek elkapják a helyi kivételeket, és hibaüzenettel kísért üres találati listát vagy fallback linket szolgáltatnak.
-5. **Zéró Külső Frontend Függőség:**
-   * A webes felület teljesen önálló, offline is működő Single Page Applicationként van beágyazva a `WebDashboardHtml` osztályba, elkerülve a Node.js/NPM és külső frontend build lépések szükségességét.
+5. **Modern Decoupled React 19 SPA Kliens:**
+   * A felhasználói felület egy teljesen önálló, típusbiztos React 19 + TypeScript + Vite + TailwindCSS alkalmazás a `frontend/` mappában.
+   * Az éles build (`frontend/dist/`) statikus erőforrásként (`src/main/resources/static/`) közvetlenül beágyazódik a fat JAR-ba, és a Java 21 `WebServer` `StaticFileHandler` kezeli le SPA fallback támogatással.
+
 
 ---
 
@@ -324,13 +326,17 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.
 >
 > 9. **Szigorú PR Javítási Ciklus Zöld CI-ig (Strict Fix Loop Until Green CI):**
+>    - **A PR CSAK AKKOR MERGELHETŐ, HA MINDEN ZÖLD:**
+>      - A GitHub Actions Java CI (építés, egység- és integrációs tesztek, frontend Vite build, headless smoke teszt) sikeres.
+>      - A PR Guard (cím, branch naming, leírás, Thematic Agent Gate) sikeres.
+>      - Nincs függőben lévő, átugrott vagy elbukott ellenőrzés.
 >    - Ha a Pull Requesten futó bármelyik CI pipeline, PR Guard vagy teszt elbukik (piros státusz), a feladatot **tilos késznek nyilvánítani vagy a felhasználóra hagyni a hibajavítást**.
 >    - Az ágens köteles azonnal megkezdeni a **Fix Loop** ciklust:
 >      1. A hiba pontos okának feltárása a CI és workflow futási naplók (`gh run view --log-failed`) vagy helyi vizsgálat alapján.
 >      2. A szükséges korrekciók elvégzése a kódban, tesztekben vagy konfigurációban.
 >      3. Dedikált, leíró üzenetű új commit létrehozása (`git commit -m "fix: ..."`) és azonnali feltöltése (`git push origin <branch>`).
 >      4. A CI futások újraellenőrzése mindaddig, amíg **az összes pipeline ellenőrzés kivétel nélkül 100%-ban zöld nem lesz**.
->    - Egyetlen PR sem tekinthető befejezettnek sikertelen vagy függőben lévő CI ellenőrzés mellett.
+>    - Egyetlen PR sem tekinthető befejezettnek vagy elfogadhatónak sikertelen vagy még futó CI ellenőrzés mellett.
 >
 > 10. **PR Beolvasztás / Merge Szigorú Tilalma (Never Merge Pull Requests):**
 >    - Az AI asszisztens **soha, semmilyen körülmények között nem mergelheti be a Pull Requesteket** a felhasználó nevében (`gh pr merge` vagy közvetlen git merge futtatása szigorúan tilos).
@@ -343,6 +349,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      - `Resolves #<issue_number>`
 >    - A GitHub beépített mechanizmusa révén, amikor a PR jóváhagyásra és összefésülésre kerül (`merged`) a védett ágba (`develop` vagy `main`), a hivatkozott issue automatikusan lezárásra (`CLOSED`) kerül.
 >    - A PR létrehozásakor (`gh pr create`) a `--body` mező végén vagy a dedikált *Kapcsolódó Hibajegyek (Related Issues)* blokkban mindig szerepeljen a pontos hivatkozás (pl. `Closes #93`).
+
 
 
 
