@@ -98,4 +98,82 @@ class SpaStaticServingIntegrationTest {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(400, response.statusCode());
     }
+
+    @Test
+    @DisplayName("Biztonság: Content-Security-Policy fejléc nem tartalmaz külső CDN függőséget")
+    void testContentSecurityPolicyZeroExternalCdn() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        String csp = response.headers().firstValue("Content-Security-Policy").orElse("");
+        assertFalse(csp.contains("fonts.googleapis.com"), "CSP nem tartalmazhat külső Google Fonts domaint");
+        assertFalse(csp.contains("fonts.gstatic.com"), "CSP nem tartalmazhat külső gstatic domaint");
+        assertTrue(csp.contains("default-src 'self'"));
+    }
+
+    @Test
+    @DisplayName("Gzip előtömörítés: Accept-Encoding: gzip fejléc esetén Content-Encoding: gzip választ kapunk")
+    void testGzipPrecompressedServing() throws Exception {
+        HttpRequest htmlRequest = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/"))
+                .GET()
+                .build();
+        HttpResponse<String> htmlResponse = client.send(htmlRequest, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, htmlResponse.statusCode());
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("/assets/index-[a-zA-Z0-9_-]+\\.js").matcher(htmlResponse.body());
+        assertTrue(matcher.find(), "index.html tartalmazza a JS bundle elérési útját");
+        String jsPath = matcher.group();
+
+        // 1. Kérés Accept-Encoding nélkül
+        HttpRequest uncompressedReq = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + jsPath))
+                .GET()
+                .build();
+        HttpResponse<byte[]> uncompressedResp = client.send(uncompressedReq, HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(200, uncompressedResp.statusCode());
+        assertTrue(uncompressedResp.headers().firstValue("Content-Type").orElse("").contains("javascript"));
+        assertTrue(uncompressedResp.headers().firstValue("Content-Encoding").isEmpty());
+
+        // 2. Kérés Accept-Encoding: gzip fejléccel
+        HttpRequest gzipReq = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + jsPath))
+                .header("Accept-Encoding", "gzip, deflate, br")
+                .GET()
+                .build();
+        HttpResponse<byte[]> gzipResp = client.send(gzipReq, HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(200, gzipResp.statusCode());
+        assertEquals("gzip", gzipResp.headers().firstValue("Content-Encoding").orElse(""));
+        assertTrue(gzipResp.headers().firstValue("Content-Type").orElse("").contains("javascript"));
+        assertTrue(gzipResp.headers().firstValue("Cache-Control").orElse("").contains("immutable"));
+        assertTrue(gzipResp.body().length < uncompressedResp.body().length, "A gzip tömörített tartalomnak kisebbnek kell lennie");
+    }
+
+    @Test
+    @DisplayName("Ismeretlen statikus asset fájl kérése 404 Not Found hibát ad, nem index.html-t")
+    void testMissingAssetReturns404() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/assets/non-existent-bundle-999.js"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(404, response.statusCode());
+    }
+
+    @Test
+    @DisplayName("Biztonság: érvénytelen karaktereket tartalmazó asset útvonal 400 Bad Request-et kap")
+    void testInvalidAssetFileNamePath() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(getBaseUrl() + "/assets/../../pom.xml"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, response.statusCode());
+    }
 }

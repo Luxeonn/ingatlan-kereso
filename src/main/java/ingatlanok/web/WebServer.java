@@ -142,7 +142,7 @@ public class WebServer {
         exchange.getResponseHeaders().set("X-Frame-Options", "DENY");
         exchange.getResponseHeaders().set("Referrer-Policy", "strict-origin-when-cross-origin");
         exchange.getResponseHeaders().set("Content-Security-Policy",
-                "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:* http://127.0.0.1:*;");
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' http://localhost:* http://127.0.0.1:*;");
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
         exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
@@ -184,25 +184,61 @@ public class WebServer {
             }
 
             // Path normalization and Path Traversal attack prevention
-            if (rawPath.contains("..") || rawPath.contains("\\") || rawPath.contains("//")) {
+            if (rawPath.contains("..") || rawPath.contains("\\") || rawPath.contains("//") || rawPath.contains("%")) {
                 sendResponse(exchange, 400, "Bad Request");
                 return;
             }
 
-            String resourcePath = "static" + rawPath;
-            InputStream rawStream = WebServer.class.getClassLoader().getResourceAsStream(resourcePath);
+            boolean isAsset = rawPath.startsWith("/assets/");
+            String resourcePath;
 
-            // SPA Routing Fallback: ha a kért útvonal nem közvetlen asset fájl kiterjesztéssel, akkor index.html
-            if (rawStream == null) {
-                boolean isStaticAsset = rawPath.contains(".") && !rawPath.endsWith(".html");
-                if (!isStaticAsset) {
+            if (isAsset) {
+                String assetFileName = rawPath.substring("/assets/".length());
+                // Only allow direct file names with alphanumeric characters, dots, dashes, underscores
+                if (assetFileName.isEmpty() || !assetFileName.matches("^[a-zA-Z0-9_.-]+$") || assetFileName.startsWith(".")) {
+                    sendResponse(exchange, 400, "Bad Request");
+                    return;
+                }
+                resourcePath = "static/assets/" + assetFileName;
+            } else {
+                if (rawPath.equals("/index.html") || rawPath.equals("/favicon.ico")) {
+                    resourcePath = "static" + rawPath;
+                } else if (rawPath.contains(".")) {
+                    // Unknown static file outside /assets/ -> 404 Not Found
+                    sendResponse(exchange, 404, "Not Found");
+                    return;
+                } else {
+                    // SPA Routing Fallback (e.g. /analytics, /search, /history)
                     resourcePath = "static/index.html";
-                    rawStream = WebServer.class.getClassLoader().getResourceAsStream(resourcePath);
+                }
+            }
+
+            boolean clientAcceptsGzip = false;
+            String acceptEncoding = exchange.getRequestHeaders().getFirst("Accept-Encoding");
+            if (acceptEncoding != null && acceptEncoding.toLowerCase().contains("gzip")) {
+                clientAcceptsGzip = true;
+            }
+
+            InputStream rawStream = null;
+            boolean isGzipped = false;
+
+            if (clientAcceptsGzip) {
+                rawStream = WebServer.class.getClassLoader().getResourceAsStream(resourcePath + ".gz");
+                if (rawStream != null) {
+                    isGzipped = true;
                 }
             }
 
             if (rawStream == null) {
-                serveDevPlaceholder(exchange, port);
+                rawStream = WebServer.class.getClassLoader().getResourceAsStream(resourcePath);
+            }
+
+            if (rawStream == null) {
+                if (resourcePath.equals("static/index.html")) {
+                    serveDevPlaceholder(exchange, port);
+                } else {
+                    sendResponse(exchange, 404, "Not Found");
+                }
                 return;
             }
 
@@ -210,6 +246,11 @@ public class WebServer {
                 byte[] bytes = in.readAllBytes();
                 String mimeType = getMimeType(resourcePath);
                 exchange.getResponseHeaders().set("Content-Type", mimeType);
+                exchange.getResponseHeaders().set("Vary", "Accept-Encoding");
+
+                if (isGzipped) {
+                    exchange.getResponseHeaders().set("Content-Encoding", "gzip");
+                }
 
                 if (resourcePath.startsWith("static/assets/")) {
                     exchange.getResponseHeaders().set("Cache-Control", "public, max-age=31536000, immutable");
@@ -228,18 +269,20 @@ public class WebServer {
 
         private static String getMimeType(String path) {
             String lower = path.toLowerCase();
+            if (lower.endsWith(".gz")) {
+                lower = lower.substring(0, lower.length() - 3);
+            }
             if (lower.endsWith(".html")) return "text/html; charset=UTF-8";
             if (lower.endsWith(".js") || lower.endsWith(".mjs")) return "text/javascript; charset=UTF-8";
             if (lower.endsWith(".css")) return "text/css; charset=UTF-8";
+            if (lower.endsWith(".woff2")) return "font/woff2";
+            if (lower.endsWith(".woff")) return "font/woff";
             if (lower.endsWith(".svg")) return "image/svg+xml";
             if (lower.endsWith(".json")) return "application/json; charset=UTF-8";
             if (lower.endsWith(".ico")) return "image/x-icon";
             if (lower.endsWith(".png")) return "image/png";
             if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
             if (lower.endsWith(".webp")) return "image/webp";
-            if (lower.endsWith(".woff2")) return "font/woff2";
-            if (lower.endsWith(".woff")) return "font/woff";
-            if (lower.endsWith(".ttf")) return "font/ttf";
             return "application/octet-stream";
         }
 
