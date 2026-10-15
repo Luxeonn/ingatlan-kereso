@@ -61,8 +61,8 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - ingatlan_data:/app/data
+      - ingatlan_logs:/app/logs
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
@@ -75,6 +75,12 @@ services:
           memory: 512M
         reservations:
           memory: 256M
+
+volumes:
+  ingatlan_data:
+    name: ingatlan_data
+  ingatlan_logs:
+    name: ingatlan_logs
 ```
 
 ---

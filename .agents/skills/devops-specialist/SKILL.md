@@ -37,8 +37,9 @@ A konténer image-nek minimális méretűnek, biztonságosnak és gyorsan indít
 
 ### 2.1 Kötetkezelés és Adatintegritás
 Az SQLite relációs adatbázis és az alkalmazásnaplók megmaradnak a konténer újraindítása vagy új verzióra frissítése után is:
-* `./data:/app/data` – Perzisztens SQLite adatbázis (`data/ingatlanok.db`), konfigurációk és városszintű cache-ek tárolására.
-* `./logs:/app/logs` – Rendszernaplók perzisztens tárolása (`logs/scraper.log`).
+* **Deklaratív `VOLUME ["/app/data", "/app/logs"]`:** Lehetővé teszi a zéró-konfigurációs indítást (`docker run -d -p 8080:8080 <image>`), ahol a Docker automatikusan felügyeli a perzisztens tárolást.
+* **Menedzselt nevesített kötetek (`named volumes`):** A `docker-compose.yml` és CLI futtatás során az `ingatlan_data:/app/data` és `ingatlan_logs:/app/logs` köteteket használjuk, elkerülve a hoszt fájlrendszer jogosultsági és útvonalkülönbségeit.
+* **Hoszt bind mountok (opcionális):** `./data:/app/data` és `./logs:/app/logs` közvetlen hozzáférést ad a hoszt felőli vizsgálathoz.
 
 ### 2.2 Környezeti Változók és Rugalmas Konfiguráció
 Minden hálózati és alkalmazás-paraméter külső környezeti változókból konfigurálható:
