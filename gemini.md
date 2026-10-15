@@ -263,7 +263,13 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >    - A `develop` a védett integrációs ág.
 >    - Minden feladatot új munkavégző ágon (`feature/*`, `fix/*`, `docs/*`, stb.) kell elvégezni, amely a `develop` ágból indul ki.
 >
-> 2. **Strukturált branch elnevezés (`feature/`, `fix/`, stb.):**
+> 2. **Issue alapú munkavégzésnél kötelező Git Worktree használata:**
+>    - Ha egy GitHub issue alapján kezdesz dolgozni, **mindig dedikált `git worktree`-ben kell dolgozni**, biztosítva a fő munkakönyvtár és más ágak tisztaságát és függetlenségét:
+>      ```bash
+>      git worktree add -b <branch-name> ../worktrees/<branch-name> develop
+>      ```
+>
+> 3. **Strukturált branch elnevezés (`feature/`, `fix/`, stb.):**
 >    - Az ágak neve kötelezően kövesse a típus szerinti struktúrát és angol leírást:
 >      - `feature/<rovid-angol-leiras>` – új funkció, felületi vagy logikai fejlesztés
 >      - `fix/<rovid-angol-leiras>` – hibajavítás, rendellenesség elhárítása
@@ -271,17 +277,23 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      - `refactor/<rovid-angol-leiras>` – kódstruktúra tisztítása, refaktorálás viselkedésváltozás nélkül
 >      - `chore/<rovid-angol-leiras>` – build beállítások, függőségek, CI/CD karbantartás
 >
-> 3. **Mindig új commit a PR-ba:**
+> 4. **Atomi commitok – Tilos az összevonás (No Squash/Monolithic Commits):**
+>    - SOHA nem használhatsz összevonásokat (squash) menet közben! Az egyes fejlesztési és javítási részeket **lépésenként, logikai egységenként (atomi módon), külön-külön commitként kell rögzíteni**.
 >    - Minden változtatáshoz külön, leíró üzenetű új commitot kell készíteni (`git commit -m "..."`).
 >    - Tilos már pusholt commitokat felülírni (`--amend` tilos push után); minden módosítás vagy javítás új committal bővítse a branch történetét.
 >
-> 4. **Angol nyelvű, beszédes PR elnevezés (Title):**
+> 5. **Pipeline hatékonyság – Csak az aktuális fusson, a feleslegeseket azonnal le kell állítani:**
+>    - A pipeline-ban mindig csak az éppen aktuális munkafolyamatnak szabad futnia.
+>    - A GitHub Actions automatikusan megszakítja a futást új push esetén (`concurrency: cancel-in-progress: true`).
+>    - Ha egy korábbi vagy elavult futás még tart, azt a GitHub CLI-vel vagy API-val manuálisan is azonnal le kell állítani (`gh run cancel <run-id>`).
+>
+> 6. **Angol nyelvű, beszédes PR elnevezés (Title):**
 >    - A Pull Request neve **mindig kötelezően angol nyelvű** legyen, és pontosan mutassa be a feladat típusát és tartalmát Conventional Commits formátumban:
 >      - Pl.: `feat: add stepper controls and portal counters to dashboard`
 >      - Pl.: `fix: resolve timeout issue in jofogas scraper`
 >      - Pl.: `docs: update workflow rules with branch structure and label requirements`
 >
-> 5. **Kötelező GitHub Label (Címke) a PR-on:**
+> 7. **Kötelező GitHub Label (Címke) a PR-on:**
 >    - A PR-t kötelező címkével ellátva létrehozni (`gh pr create --label "<label>"`).
 >    - Használandó címkék:
 >      - `enhancement` – új funkcionalitás vagy UI bővítés esetén
@@ -289,7 +301,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      - `documentation` – leírások, dokumentáció és szabályzat esetén
 >      - Ha a címke még nem létezik a repóban, a `gh label create` paranccsal azonnal létre kell hozni.
 >
-> 6. **Beszédes, részletes magyar nyelvű összefoglaló (Summary / Description):**
+> 8. **Beszédes, részletes magyar nyelvű összefoglaló (Summary / Description):**
 >    - A PR törzse (`--body`) és a chat-válasz záró összefoglalója magyar nyelvű legyen.
 >    - Az összefoglalónak kifejezetten **beszédesnek és részletesnek** kell lennie (nem 1 mondatos összegzés), hogy világosan érthető legyen:
 >      - **Mi a cél és kontextus:** Miért készült a módosítás?
@@ -297,10 +309,10 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      - **Felhasználói és működési hatás:** Mit tapasztal a felhasználó, hogyan változik a működés?
 >      - **Verifikáció és tesztelés:** Hogyan lett ellenőrizve a módosítás helyessége?
 >
-> 7. **Közvetlen PR Link a válaszban:**
+> 9. **Közvetlen PR Link a válaszban:**
 >    - A feladat befejezésekor a beszélgetésben **mindig kötelező közvetlen kattintható linket adni az elkészült GitHub Pull Request-re**.
 >
-> 8. **Kötelező Tematikus Agent Jóváhagyási Kapu (Thematic Agent Approval Gate & Review-and-Fix):**
+> 10. **Kötelező Tematikus Agent Jóváhagyási Kapu (Thematic Agent Approval Gate & Review-and-Fix):**
 >    - Egyetlen Pull Request sem fogadható el és nem fésülhető össze a védett ágakba (`develop`, `main`) anélkül, hogy a módosítás által érintett szakterület kijelölt AI ágense azt jóvá nem hagyta:
 >      - **Rendszerarchitektúra & Scraper réteg (`service/`, `scraper/`, `core/`, `portal/`, szálkezelés):** A `deep-architect` és `scraper-reliability-engineer` ágens jóváhagyása kötelező (Clean Architecture, 0-crash garancia).
 >      - **Frontend és Felület (`WebDashboardHtml.java`, CSS, JS komponensek):** A `ui-designer` ágens jóváhagyása kötelező (zéró külső függőség, reszponzivitás, UX).
@@ -325,7 +337,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      ```
 >    - A `.github/workflows/pr-guard.yml` CI munkafolyamat automatikusan elemzi a diffet, és meghiúsítja az ellenőrzést, ha a szükséges tematikus ágens jóváhagyása hiányzik.
 >
-> 9. **Szigorú PR Javítási Ciklus Zöld CI-ig (Strict Fix Loop Until Green CI):**
+> 11. **Szigorú PR Javítási Ciklus Zöld CI-ig (Strict Fix Loop Until Green CI):**
 >    - **A PR CSAK AKKOR MERGELHETŐ, HA MINDEN ZÖLD:**
 >      - A GitHub Actions Java CI (építés, egység- és integrációs tesztek, frontend Vite build, headless smoke teszt) sikeres.
 >      - A PR Guard (cím, branch naming, leírás, Thematic Agent Gate) sikeres.
@@ -338,17 +350,18 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 >      4. A CI futások újraellenőrzése mindaddig, amíg **az összes pipeline ellenőrzés kivétel nélkül 100%-ban zöld nem lesz**.
 >    - Egyetlen PR sem tekinthető befejezettnek vagy elfogadhatónak sikertelen vagy még futó CI ellenőrzés mellett.
 >
-> 10. **PR Beolvasztás / Merge Szigorú Tilalma (Never Merge Pull Requests):**
+> 12. **PR Beolvasztás / Merge Szigorú Tilalma (Never Merge Pull Requests):**
 >    - Az AI asszisztens **soha, semmilyen körülmények között nem mergelheti be a Pull Requesteket** a felhasználó nevében (`gh pr merge` vagy közvetlen git merge futtatása szigorúan tilos).
 >    - A feladat hatóköre a kódolásnál, tesztelésnél, commitolásnál, pusholásnál, a PR létrehozásánál és a zöld CI státusz eléréséig tart. A PR átvizsgálása, jóváhagyása és beolvasztása kizárólag a humán felhasználó / repó tulajdonos jogköre.
 >
-> 11. **Kapcsolódó Hibajegyek / Ticketek Automatikus Lezárása (Closing Linked Issues):**
+> 13. **Kapcsolódó Hibajegyek / Ticketek Automatikus Lezárása (Closing Linked Issues):**
 >    - Ha a Pull Request egy meglévő issue-t / ticketet valósít meg vagy javít, **a PR leírásában kötelező használni a GitHub hivatalos összekapcsoló kulcsszavait**:
 >      - `Closes #<issue_number>`
 >      - `Fixes #<issue_number>`
 >      - `Resolves #<issue_number>`
 >    - A GitHub beépített mechanizmusa révén, amikor a PR jóváhagyásra és összefésülésre kerül (`merged`) a védett ágba (`develop` vagy `main`), a hivatkozott issue automatikusan lezárásra (`CLOSED`) kerül.
 >    - A PR létrehozásakor (`gh pr create`) a `--body` mező végén vagy a dedikált *Kapcsolódó Hibajegyek (Related Issues)* blokkban mindig szerepeljen a pontos hivatkozás (pl. `Closes #93`).
+
 
 
 
