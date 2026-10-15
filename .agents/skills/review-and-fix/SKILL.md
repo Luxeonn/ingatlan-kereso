@@ -1,99 +1,87 @@
 ---
 name: review-and-fix
 description: >-
-  Multi-agent minőségbiztosítási, kódvizsgálati és automatikus javítási (review-and-fix) specialista.
-  Használd ezt a skillt pull requestek, stage-elt vagy lokális változtatások átfogó ellenőrzéséhez,
-  a tematikus specialista agentek (deep-architect, ui-designer, security-specialist, database-specialist)
-  jóváhagyási kapujának validálásához, valamint az észlelt hiányosságok automatikus javításához.
+  Multi-agent quality assurance, code review, and automated repair specialist.
+  Use this skill to perform comprehensive reviews of pull requests, validate the Thematic Agent
+  Approval Gate across all domains, and execute automated fix cycles until all CI checks are green.
 metadata:
   icon: task_alt
 ---
 
-# Review and Fix Multi-Agent Minőségbiztosítási Skill
+# Review and Fix Multi-Agent Quality Assurance Skill
 
-Ez a skill a [`.gemini/commands/review-and-fix.toml`](file:///e:/github/ingatlan-kereso/.gemini/commands/review-and-fix.toml) parancs mintájára épül, és összehangolja a specializált tematikus agentek review és jóváhagyási folyamatát.
+This skill coordinates the specialist review and approval workflow across all domains for **ingatlan-kereso**.
 
 ---
 
-## 1. Működési Folyamat
+## 1. Review and Approval Workflow
 
 ```mermaid
 flowchart TD
-    Start["Kódváltozások (PR diff / Staged)"] --> Scope["Tematikus Hatókör Elemzése"]
+    Start["Code Changes (PR Diff / Staged)"] --> Scope["Analyze Thematic Scope"]
     
-    Scope -->|Architektúra / Core / Portálok| A1["Deep Architect & Scraper Reliability"]
-    Scope -->|Frontend / Dashboard SPA| A2["UI Designer Audit"]
-    Scope -->|Szerver / Hálózat / Hardening| A3["Security Specialist Audit"]
-    Scope -->|Perzisztencia / SQLite / Fájl I/O| A4["Database Specialist Audit"]
+    Scope -->|Architecture / Core / Engines| A1["Deep Architect & Scraper Reliability"]
+    Scope -->|Frontend / React SPA| A2["UI Designer & Integrity Guard"]
+    Scope -->|Server / Network / Hardening| A3["Security Specialist Audit"]
+    Scope -->|Persistence / SQLite / I/O| A4["Database Specialist Audit"]
     Scope -->|CI/CD & Workflows| A5["Workflow Engineer Audit"]
-    Scope -->|Konténerizáció / Docker| A6["DevOps Specialist Audit"]
-    Scope -->|Tesztek & Kódlefedettség| A7["QA Test Engineer Audit"]
+    Scope -->|Containerization / Docker| A6["DevOps Specialist Audit"]
+    Scope -->|Tests & Coverage| A7["QA Test Engineer Audit"]
     
-    A1 & A2 & A3 & A4 & A5 & A6 & A7 --> Eval{"Minden audit sikeres?"}
+    A1 & A2 & A3 & A4 & A5 & A6 & A7 --> Eval{"All Audits Passed?"}
     
-    Eval -->|Nem: Hibák találhatók| Fix["Phase 2: Automatikus Javítási Ciklus (Fix Loop)"]
-    Fix --> Test["Tesztfuttatás (mvn test)"]
+    Eval -->|No: Defects Found| Fix["Automated Fix Loop"]
+    Fix --> Test["Execute Test Suite"]
     Test --> Eval
     
-    Eval -->|Igen: Megfelelt| Signoff["Thematic Agent Approval Gate Kiadása"]
-    Signoff --> PR["PR Leírás Frissítése & CI Zöld Jelzés"]
+    Eval -->|Yes: Compliant| Signoff["Generate Thematic Approval Gate"]
+    Signoff --> PR["Update PR Body & Verify Green CI"]
 ```
 
 ---
 
-## 2. Tematikus Jóváhagyási Szabályok (Thematic Approval Rules)
+## 2. Thematic Approval Matrix
 
-Minden PR-t kizárólag akkor engedünk át, ha az érintett szakterület dedikált ágense jóváhagyja:
-
-| Érintett Komponens / Fájl | Felelős Agent(ek) | Főbb Ellenőrzési Feltételek |
+| Domain / Modified Files | Responsible Agent | Verification Criteria |
 | :--- | :--- | :--- |
-| `core/*`, `service/*`, `Main.java` | **`deep-architect`** | Clean Architecture réteg-izoláció, 0-crash elv, Virtual Threads helyes használata, Carrier Thread pinning mentesség. |
-| `portal/*`, `scraper/*` | **`scraper-reliability-engineer`** / **`deep-architect`** | Pluggable Portal Engine OCP megfelelőség, robusztus DOM/API parsing, bot-védelem graceful kezelése (`BOT_PROTECTED`), 0-crash garancia. |
-| `web/WebDashboardHtml.java`, CSS, JS | **`ui-designer`** / **`ui-integrity-guard`** | Zéró külső függőség, reszponzív nézet (360px-2560px), azonnali visszajelzés flicker nélkül, design tokenek követése, shimmering skeletonok, napló betekintő. JavaScript szintaktikai épség (`node --check`), multiline escape integritás, DOM ID és eseménykezelő szinkron, kritikus vezérlők megléte. |
-| `web/WebServer.java`, `SidecarCliExecutor.java`, `BrowserUtils.java` | **`security-specialist`** | `127.0.0.1` localhost binding, `405 Method Not Allowed`, CSP/nosniff fejlécek, Path Traversal prevenció, XSS escaping, safe process execution. |
-| `persistence/*`, `IngatlanRepository.java`, `data/*` | **`database-specialist`** | Thread-safe kollekciók, SQLite WAL mód és indexek, tranzakciós batch mentés, atomi JSON mentés (`.tmp` + `ATOMIC_MOVE`), O(1) duplikátumszűrés. |
-| `Dockerfile`, `docker-compose.yml` | **`devops-specialist`** / **`security-specialist`** | Multi-stage build (Temurin Alpine JRE), non-root felhasználó (`appuser:10001`), perzisztens kötetek csatolása (`./data`, `./logs`), `SERVER_HOST` / `SERVER_PORT` konfigurálhatóság. |
-| `.github/workflows/*`, `.githooks/*` | **`workflow-engineer`** | Minimális jogosultságok (`permissions`), shell injection védelem, GHCR publish szabályok, gyorstárazás (`cache`), concurrency és PR kapu integritás. |
-| `src/test/*`, JaCoCo | **`qa-test-engineer`** | Legalább 80%+ kódlefedettség fenntartása, offline Jsoup és WireMock fixture-ök, regressziómentes integrációs tesztek. |
+| `core/*`, `service/*`, `Main.java` | **`deep-architect`** | Clean Architecture layer isolation, 0-crash principle, non-blocking Virtual Threads. |
+| `portal/*`, `scraper/*` | **`scraper-reliability-engineer`** | Pluggable portal OCP compliance, robust parsing, graceful bot fallback (`BOT_PROTECTED`). |
+| `frontend/*`, `src/main/resources/static/` | **`ui-designer`** / **`ui-integrity-guard`** | React 19 SPA responsiveness, Vitest passes, bundle integrity (`node --check`), zero runtime errors. |
+| `web/WebServer.java`, security configs | **`security-specialist`** | Localhost binding, CSP/nosniff headers, XSS sanitization, safe subprocess execution. |
+| `persistence/*`, `data/*` | **`database-specialist`** | Thread-safety, SQLite WAL mode, B-Tree indexes, atomic JSON fallbacks, O(1) deduplication. |
+| `Dockerfile`, `docker-compose.yml` | **`devops-specialist`** | Multi-stage build, non-root user (UID 10001), named persistent volumes (`ingatlan_data`, `ingatlan_logs`). |
+| `.github/workflows/*` | **`workflow-engineer`** | Least-privilege permissions, concurrency cancellation, job timeouts, shell injection prevention. |
+| `src/test/*`, JaCoCo | **`qa-test-engineer`** | 80%+ test coverage maintained, offline fixture mocking, deterministic test runs. |
 
 ---
 
-## 3. Thematic Agent Approval Gate Blokk Sablon
+## 3. Thematic Agent Approval Gate Template
 
-Amikor a vizsgálat sikeresen lezárult, a PR leírásának legfelső blokkjaként kötelező beilleszteni az alábbi formátumot a CI PR Guard követelményeinek megfelelően.
-**Követelmény:** 
-- Az ágensek nem hagyhatják üresen vagy pusztán jelölőnégyzettel az eredményt.
-- Kötelező **pontosan egy tömör mondatban megindokolni**, hogy az adott szakértői terület miért lett **`[OK]`** (jóváhagyva), **`[NOK]`** (elutasítva/javítandó), vagy **`[N/A]`** (relevancia hiánya).
+Place this template at the very top of the Pull Request description:
 
 ```markdown
 ### 🛡️ Thematic Agent Approval Gate
-- [x] Architecture (`deep-architect`): [OK] – A Clean Architecture réteghatárok és a 0-crash elv maradéktalanul érvényesül.
-- [x] UI/UX (`ui-designer`): [N/A] – A változtatás nem érinti a webes dashboard felületét vagy stílusait.
-- [x] Security (`security-specialist`): [OK] – A bemenet-validáció és a szerverbiztonsági fejlécek sértetlenek.
-- [x] Database (`database-specialist`): [OK] – A szálbiztos tárolás és az atomi perzisztencia garantált.
-- [x] Workflow/CI (`workflow-engineer`): [OK] – A GitHub Actions munkafolyamatok és a PR guard szabályok rendben vannak.
-- [x] DevOps (`devops-specialist`): [N/A] – Konténerizációs vagy futtatási fájlok nem módosultak.
-- [x] Scraper Reliability (`scraper-reliability-engineer`): [N/A] – Web scraping és portálmotorok nem érintettek.
-- [x] QA/Testing (`qa-test-engineer`): [OK] – Minden automatizált teszt hibátlanul lefut.
+- [x] Architecture (`deep-architect`): [OK] – Clean Architecture boundaries and 0-crash principle fully maintained.
+- [x] UI/UX (`ui-designer`): [N/A] – No frontend components modified.
+- [x] UI Integrity (`ui-integrity-guard`): [OK] – Frontend build and headless smoke tests pass without errors.
+- [x] Security (`security-specialist`): [OK] – Least-privilege permissions and security headers intact.
+- [x] Database (`database-specialist`): [OK] – SQLite WAL mode and atomic persistence verified.
+- [x] Workflow/CI (`workflow-engineer`): [OK] – Pipeline concurrency, timeouts, and green merge gate verified.
+- [x] DevOps (`devops-specialist`): [N/A] – Containerization files unchanged.
+- [x] Scraper Reliability (`scraper-reliability-engineer`): [N/A] – Portal engines unchanged.
+- [x] QA/Testing (`qa-test-engineer`): [OK] – All automated tests pass deterministically.
 ```
-
-Probléma / elutasítás esetén:
-`- [ ] <Téma> (<agent-id>): [NOK] – [1 mondatos szakmai indoklás a hiányosságról]`
 
 ---
 
-## 4. Szigorú PR Javítási Ciklus Zöld CI-ig (Strict Fix Loop Until Green CI)
+## 4. Strict Green Merge Gate & Fix Loop
 
-- **Zéró tolerancia elbukott CI-re:** Ha bármilyen CI pipeline, guard vagy teszt elbukik a Pull Requesten, a fejlesztést végző ágens nem zárhatja le a munkát 'kész'-ként.
-- **A PR CSAK AKKOR MERGELHETŐ, HA MINDEN ZÖLD:**
-  - A Java CI (építés, egység- és integrációs tesztek, frontend Vite build & Vitest, headless smoke teszt) sikeres.
-  - A PR Guard (cím, branch prefix, leírás, Thematic Agent Gate) sikeres.
-  - Nincs függőben lévő vagy elbukott ellenőrzés.
-- **Azonnali Fix Loop indítása:**
-  1. Hiba elemzése a CI logok alapján (`gh run view --log-failed`).
-  2. Dedikált `fix:` commit létrehozása és pusholása a PR ágra.
-  3. Ellenőrzés megismétlése mindaddig, amíg minden pipeline ellenőrzés maradéktalanul **100%-ban zöld** nem lesz.
-- Tilos a PR-t jóváhagyottnak vagy befejezettnek tekinteni piros vagy még futó CI pipeline mellett.
-
-
-
+1. **ONLY MERGE WHEN ALL CHECKS ARE GREEN:**
+   - Java CI (build, unit/integration tests, frontend build & Vitest, headless smoke test) must be green.
+   - PR Guard (title format, branch convention, description, Thematic Gate) must be green.
+   - No checks may be pending, skipped, or failed.
+2. **Immediate Fix Loop on Failure:**
+   - Diagnose root cause from workflow failure logs (`gh run view --log-failed`).
+   - Implement targeted fix in code, tests, or workflow configuration.
+   - Commit changes with a descriptive Conventional Commits message (`fix: ...`) and push.
+   - Re-evaluate until 100% of pipeline checks pass.

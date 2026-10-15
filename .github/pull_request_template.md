@@ -1,63 +1,61 @@
 ### 🛡️ Thematic Agent Approval Gate
 
 > [!IMPORTANT]
-> A [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) 6. fejezete és a `.github/workflows/pr-guard.yml` előírja a kijelölt szakértői jóváhagyást. Az ágensek nem hagyhatják üresen az eredményt: kötelező **pontosan 1 tömör mondatban megindokolni**, hogy az adott szakértői terület miért lett **`[OK]`**, **`[NOK]`** vagy **`[N/A]`**!
+> Section 5 of [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) and `.github/workflows/pr-guard.yml` mandate designated specialist approvals. Each reviewer must provide **exactly one concise sentence explaining** why the domain is marked **`[OK]`**, **`[NOK]`**, or **`[N/A]`**.
 
-- [ ] Architecture (`deep-architect`): [OK / NOK / N/A] – [1 mondatos indoklás]
-- [ ] UI/UX (`ui-designer`): [OK / NOK / N/A] – [1 mondatos indoklás]
-- [ ] Security (`security-specialist`): [OK / NOK / N/A] – [1 mondatos indoklás]
-- [ ] Database (`database-specialist`): [OK / NOK / N/A] – [1 mondatos indoklás]
-- [ ] Workflow/CI (`workflow-engineer`): [OK / NOK / N/A] – [1 mondatos indoklás]
-- [ ] DevOps (`devops-specialist`): [OK / NOK / N/A] – [1 mondatos indoklás]
-- [ ] Scraper Reliability (`scraper-reliability-engineer`): [OK / NOK / N/A] – [1 mondatos indoklás]
-- [ ] QA/Testing (`qa-test-engineer`): [OK / NOK / N/A] – [1 mondatos indoklás]
-
----
-
-## Cél és kontextus (Context & Goal)
-
-<!-- Foglald össze tömören és érthetően, hogy miért készült ez a módosítás, és milyen problémát vagy fejlesztési igényt old meg. -->
+- [ ] Architecture (`deep-architect`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] UI/UX (`ui-designer`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] UI Integrity (`ui-integrity-guard`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Security (`security-specialist`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Database (`database-specialist`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Workflow/CI (`workflow-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] DevOps (`devops-specialist`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Scraper Reliability (`scraper-reliability-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] QA/Testing (`qa-test-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
 
 ---
 
-## Részletes Technikai Változtatások
+## Context & Goal
 
-<!-- Részletezd a változtatásokat komponens- és fájlszinten:
-1. Mely osztályok, modulok, interfészek módosultak és miért?
-2. Milyen tervezési minták, új függvények vagy adatmodellek kerültek bevezetésre? -->
+<!-- Provide a concise summary of why this change was made and what problem it solves. -->
 
 ---
 
-## Kapcsolódó Hibajegyek (Related Issues)
+## Detailed Technical Changes
 
-<!-- Használj automatikusan záró kulcsszavakat (pl. Closes #123, Fixes #456). 
-Ha csak hivatkozol egy megbeszélésre: Related to #123 -->
+<!-- Detail changes at the component and file level:
+1. Which classes, modules, and interfaces were modified and why?
+2. What design patterns or algorithms were introduced? -->
+
+---
+
+## Related Issues
+
+<!-- Use official auto-closing keywords (e.g., Closes #123, Fixes #456). -->
 - Closes #
 
 ---
 
-## Felhasználói és Működési Hatás
+## User & Operational Impact
 
-<!-- Mit tapasztal a végfelhasználó a felületen vagy a működésben?
-Változik-e az adatbázis formátum, a keresési viselkedés vagy a CLI paraméterezés? -->
-
----
-
-## Verifikáció és Tesztelés (How to Validate)
-
-<!-- Részletezd az elvégzett automatizált és manuális ellenőrzéseket:
-- [ ] Maven tesztek lefutása: `mvn test` (sikeres lefutás, 0 hiba)
-- [ ] Manuális ellenőrzés / füstteszt lépései
-- [ ] JaCoCo tesztlefedettségi eredmények -->
+<!-- What does the end user or operations team observe after this change? -->
 
 ---
 
-## Leadás Előtti Ellenőrző Lista (Pre-Submission Checklist)
+## How to Validate
 
-- [ ] A PR címe követi a Conventional Commits szabványt (`feat: ...`, `fix: ...`, `chore: ...`).
-- [ ] A forráság neve követi az előírt formátumot (`feature/...`, `fix/...`, `chore/...`).
-- [ ] A forráság a `develop` ágból indul ki, és oda is céloz.
-- [ ] Minden változtatás új, leíró üzenetű commitban van rögzítve (nincs elnyomott commit).
-- [ ] Megfelelő GitHub címke hozzáadva a PR-hoz (`enhancement`, `bug`, `chore`, `documentation`).
-- [ ] 🟢 **Minden CI státusz zöld:** Szigorúan CSAK AKKOR mergelhető, ha a Java CI és a PR Guard is 100%-ban zöld!
+<!-- Detail automated and manual verification steps:
+- [ ] Maven test execution: mvn test (clean pass, 0 errors)
+- [ ] Frontend test execution: npm test
+- [ ] Smoke test steps -->
 
+---
+
+## Pre-Submission Checklist
+
+- [ ] PR title strictly follows Conventional Commits (`feat: ...`, `fix: ...`, `docs: ...`).
+- [ ] Source branch follows naming convention (`feature/...`, `fix/...`, `docs/...`).
+- [ ] Source branch originates from `develop` and targets `develop`.
+- [ ] Discrete atomic commits used without squashing work-in-progress.
+- [ ] Appropriate GitHub label added (`enhancement`, `bug`, `documentation`).
+- [ ] 🟢 **ONLY MERGE WHEN ALL CHECKS ARE GREEN:** 100% of CI and PR Guard checks must pass.

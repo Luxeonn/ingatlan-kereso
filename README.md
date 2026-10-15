@@ -5,245 +5,116 @@
 [![Jsoup](https://img.shields.io/badge/Jsoup-1.23.2-6DB33F?style=for-the-badge)](https://jsoup.org/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 
-Java 21 LTS alapú asztali segédprogram és webes vezérlőpult magyar ingatlanhirdetési portálok automatizált figyelésére, duplikátumszűrésére és az új találatok azonnali megtekintésére.
+High-performance real estate monitoring and scraping application built with Java 21 LTS Virtual Threads, SQLite WAL persistence, and a decoupled modern React 19 SPA dashboard.
 
 ---
 
-## 📌 Áttekintés
+## 📌 Overview
 
-Az **ingatlan-kereso** egy modern, beágyazott REST API szerverrel és reszponzív webes felülettel ellátott ingatlanfigyelő rendszer. Megszabadít a portálok manuális böngészésétől: egyetlen kereséssel több vezető hazai hirdetési oldal adatait aggregálja, kiszűri a már korábban látott hirdetéseket, és azonnal megmutatja a friss piaci ajánlatokat.
+**ingatlan-kereso** automates property search across major Hungarian real estate portals. It aggregates active listings in a single unified view, deduplicates known ads, tracks newly discovered properties, and provides actionable market analytics.
 
-* **Egykattintásos indítás:** Asztali indítóállomány (`start-ui.bat`), amely elindítja a szervert és automatikusan megnyitja a böngészőt.
-* **Többvárosos figyelés:** Egyszerre több település vagy előre definiált régió (pl. Debrecen és agglomerációja, egyetemvárosok) figyelése.
-* **Valós idejű szűrés és rendezés:** Hirdetések szűrése településre, árra, típusra, csak új találatokra, valamint azonnali rendezés ár szerint.
-* **0-összeomlás garancia:** Robusztus hibatűrés a védelem alatt álló vagy SPA technológiájú portáloknál (graceful fallback).
-
----
-
-## 🚀 Főbb Funkciók
-
-* **Modern Web Dashboard (SPA):** Letisztult, gyors egyoldalas felület világos és sötét móddal (Dark/Light toggle), azonnali gépelés közbeni gyorskeresővel.
-* **Multi-Select Településválasztó:** Több mint 35 előre rögzített magyar város és gyorsválasztó sablonok (Presets), egyedi településnév megadásával kiegészítve.
-* **Hirdetéskártyák és Metaadatok:** Ár, alapterület, szobaszám, település, közvetlen portállink és feltűnő **✨ ÚJ TALÁLAT** matrica a friss hirdetéseken.
-* **Rendezés és Szűrés:** 
-  * Ár szerinti rendezés (alapértelmezett, növekvő vagy csökkenő).
-  * Szűrés kizárólag az új (még nem látott) hirdetésekre egyetlen kapcsolóval.
-* **Böngészős kényelmi funkciók:** Kapcsoló az új találatok külön böngészőlapokon történő automatikus megnyitásához, illetve dedikált gomb az összes új találat egyidejű megnyitásához.
-* **Strukturált JSON Adatbázis:** A hirdetési előzmények városonként szegmentálva (`data/cities/<város>.json`) és aggregált formában (`data/ingatlanok_db.json`) tárolódnak, így a korábbi találatok újraindítás után sem vesznek el.
+* **Unified Multi-City Search:** Monitor multiple cities or predefined regional clusters (e.g., Budapest & Agglomeration, Debrecen area, University cities).
+* **0-Crash Resilience:** Graceful degradation on anti-bot protected or dynamic single-page portals.
+* **Modern Decoupled React 19 SPA:** Fast frontend with TailwindCSS, dark/light themes, instant filtering, and responsive listing cards.
+* **ACID Embedded SQLite Storage:** Fast queries, WAL mode concurrency, and automatic legacy JSON data migration.
 
 ---
 
-## 🌐 Támogatott Portálok és Állapotuk
+## 🌐 Supported Portals
 
-| Portál | Weboldal | Állapot | Implementáció / Megjegyzés |
+| Portal | Domain | Status | Method / Notes |
 | :--- | :--- | :---: | :--- |
-| **Duna House** | [dh.hu](https://dh.hu) | **Működik** (élő adatok) | `ingatlanok.scraper.DunaHouseScraper` (ár, alapterület, szobák) |
-| **Otthon Centrum** | [oc.hu](https://www.oc.hu) | **Működik** (élő adatok) | `ingatlanok.scraper.OtthonCentrumScraper` (kártya metaadatok) |
-| **Jófogás Ingatlan** | [jofogas.hu](https://ingatlan.jofogas.hu) | **Működik** (élő adatok) | `ingatlanok.scraper.JofogasScraper` (ár- és lokációszűrőkkel) |
-| **Ingatlan.com** | [ingatlan.com](https://ingatlan.com) | ⚠️ *Korlátozott (kezelt)* | `ingatlanok.scraper.IngatlanComScraper` (Cloudflare fallback) |
-| **Ingatlanbazár** | [ingatlanbazar.hu](https://ingatlanbazar.hu) | ⚠️ *Korlátozott (kezelt)* | `ingatlanok.scraper.IngatlanBazarScraper` (Angular SPA fallback) |
+| **Duna House** | [dh.hu](https://dh.hu) | **Active** | Live Jsoup DOM parsing (price, floor area, rooms) |
+| **Otthon Centrum** | [oc.hu](https://www.oc.hu) | **Active** | Live Jsoup DOM parsing with Sec-Ch-Ua client hints |
+| **Jófogás Ingatlan** | [jofogas.hu](https://ingatlan.jofogas.hu) | **Active** | Live Jsoup DOM search query and regex parsing |
+| **Költözzbe** | [koltozzbe.hu](https://koltozzbe.hu) | **Active** | Live DOM and Schema.org JSON-LD parsing |
+| **Ingatlanbazár** | [ingatlanbazar.hu](https://ingatlanbazar.hu) | **Active** | Fast internal REST JSON API with cached geo lookup |
+| **Ingatlan.com** | [ingatlan.com](https://ingatlan.com) | ⚠️ *Bot-protected* | Graceful fallback link generation (Cloudflare WAF protected) |
 
 ---
 
-## 🏗 Projekt Struktúra
+## 🏗 Architecture & Project Structure
 
 ```text
 ingatlan-kereso/
-├── pom.xml                                      # Maven konfiguráció és függőségek (Java 21, Gson, Jsoup)
-├── README.md                                    # Felhasználói és fejlesztői dokumentáció
-├── gemini.md                                    # Rendszer- és architektúra leírás
-├── START.bat                                    # Egységes egykattintásos indító Windowsra
-├── start-ui.bat                                 # Kompatibilitási indító wrapper Windowsra
-├── start-ui.ps1                                 # PowerShell indító script
-├── data/                                        # Helyi perzisztens JSON adatbázis mappa (.gitignore)
-│   ├── ingatlanok_db.json                       # Hirdetés adatok, ár, alapterület, időpont
-│   ├── last_config.json                         # Mentett keresési szűrők
-│   └── cities/                                  # Városonként szegmentált hirdetés cache
-└── src/main/java/
-    └── ingatlanok/
-        ├── Main.java                            # Belépési pont (Web Dashboard & CLI fallback)
-        ├── common/                              # Közös megosztott modul
-        │   ├── BrowserUtils.java                # Böngészőfül megnyitása Desktop és fallback támogatással
-        │   ├── CityUtils.java                   # Településnevek normalizálása, listája és sablonok
-        │   ├── HttpFetcher.java                 # Jsoup HTTP kliens (User-Agent, timeoutok, hibatűrés)
-        │   ├── PropertyParser.java              # Ár, méret, szobaszám regex kinyerés és normalizálás
-        │   └── SlugUtils.java                   # Ékezetmentesítés és URL slug generálás
-        ├── model/
-        │   ├── IngatlanItem.java                # Hirdetés adatmodell (gazdag értékobjektumokkal)
-        │   ├── PriceInfo.java                   # Strukturált ár (nyers szöveg, numerikus Ft és M Ft)
-        │   ├── PropertyDetails.java             # Részletek (alapterület m², szobaszám, számított Ft/m²)
-        │   ├── PortalSource.java                # Portálforrás metaadat (azonosító, szín, típus)
-        │   ├── SearchCriteria.java              # Keresési paraméterek (városok, típus, portálok)
-        │   └── SearchResult.java                # Találati aggregáció modell
-        ├── persistence/
-        │   └── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
-        ├── presentation/                        # Prezentációs és Facade réteg (UI & csatorna izoláció)
-        │   ├── DashboardPresentationService.java# Facade: KPI statisztikák, portál állapotok
-        │   ├── DashboardResponseDto.java        # Gazdagított válaszmodell a felület és kliensek felé
-        │   ├── MarketStatsDto.java              # Piaci KPI mutatók (átlagár, átlagos m² ár)
-        │   └── PortalStatusDto.java             # Portál egészségügyi és információs kártyák
-        ├── scraper/                             # Dedikált web scraping réteg
-        │   ├── IngatlanScraper.java             # Scraper interfész (`search`, `scrape`)
-        │   ├── BaseScraper.java                 # Absztrakt ősosztály (HttpFetcher & letöltés)
-        │   ├── PortalScrapeResult.java          # Állapotgazdag és izolált kimenet per portál
-        │   ├── ScraperRegistry.java             # Dinamikus Scraper Provider Factory (OCP elv)
-        │   ├── DunaHouseScraper.java            # dh.hu scraper (élő találatok + metaadatok)
-        │   ├── OtthonCentrumScraper.java        # oc.hu scraper (élő találatok + metaadatok)
-        │   ├── JofogasScraper.java              # jofogas.hu scraper (élő találatok + metaadatok)
-        │   ├── IngatlanComScraper.java          # ingatlan.com scraper (Cloudflare fallback)
-        │   └── IngatlanBazarScraper.java        # ingatlanbazar.hu scraper (Angular SPA fallback)
-        ├── service/
-        │   └── IngatlanSearchService.java       # Központi keresési orchestrator
-        └── web/
-            ├── WebServer.java                   # Beágyazott Java 21 REST API szerver
-            └── WebDashboardHtml.java            # Modern reszponzív SPA HTML/CSS/JS sablon
+├── pom.xml                                      # Maven configuration (Java 21, SQLite JDBC, Jsoup, Gson)
+├── README.md                                    # Main user and developer documentation
+├── gemini.md                                    # Comprehensive system architecture & AI workflow rules
+├── START.bat / start-docker.bat                 # One-click Windows desktop and Docker launchers
+├── data/                                        # Persistent runtime database directory
+│   ├── ingatlanok.db                            # SQLite relational database (WAL mode, B-Tree indexes)
+│   ├── last_config.json                         # Saved search criteria
+│   └── cities/                                  # Per-city JSON cache & compatibility exports
+├── frontend/                                    # Modern Decoupled SPA (React 19, TypeScript, Vite, TailwindCSS)
+│   ├── src/                                     # React components, Zustand stores, TanStack Query hooks
+│   └── package.json                             # Frontend dependencies and test scripts
+└── src/main/java/ingatlanok/
+    ├── Main.java                                # Application entry point (Web server & CLI mode)
+    ├── common/                                  # Cross-cutting utilities (HttpFetcher, PropertyParser, SlugUtils)
+    ├── core/                                    # Pure business engines (Filter, Deduplication, Analytics, Execution)
+    ├── model/                                   # Domain models and value objects
+    ├── persistence/                             # Decoupled persistence (SqliteListingStorage, JsonFileListingStorage)
+    ├── portal/                                  # Pluggable Portal Engines (DH, OC, Jófogás, Bazár, Költözzbe, IngatlanCom)
+    └── web/                                     # Embedded Sun HttpServer (Java 21 Virtual Threads, StaticFileHandler)
 ```
 
 ---
 
-## 💻 Rendszerkövetelmények és Gyorsindítás
+## 💻 Quickstart
 
-### Előfeltételek
-* **Java JDK:** Java 21 LTS vagy újabb (OpenJDK, Eclipse Temurin, Oracle JDK vagy JetBrains JBR)
-* **Build eszköz:** Apache Maven 3.9+ (vagy a fejlesztői környezetbe épített Maven)
-* **Böngésző:** Bármely modern webböngésző (Chrome, Firefox, Edge)
+### Prerequisites
+* **Java:** JDK 21 LTS or newer
+* **Build Tool:** Apache Maven 3.9+
+* **Node.js:** Node 20+ & npm (required only for building the frontend)
 
----
+### 1. One-Click Desktop Launch (Windows)
+Double-click `START.bat`. The script detects Java and Maven, builds assets if missing, starts the server on port `8080`, and opens the browser.
 
-### Indítási Módok
-
-#### 1. Egykattintásos indítás Windows alatt (Ajánlott)
-Kattints duplán a gyökérkönyvtárban található **`START.bat`** (vagy `start-ui.bat`) fájlra.  
-A parancsfájl automatikusan felderíti a Java 21 és Maven környezetet, lefordítja a szükséges forrásokat, elindítja a beágyazott szervert, és elérhetővé teszi a Web Dashboardot a `http://localhost:8080` címen.
-
-#### 2. Indítás PowerShellből
-```powershell
-./start-ui.ps1
-```
-
-#### 3. Indítás Maven parancssorból
+### 2. Docker Quickstart (GHCR)
+Run with zero manual configuration using Docker:
 ```bash
-# Web Dashboard elindítása (alapértelmezett port: 8080)
-mvn compile exec:java
-```
-
-#### 4. Háttérbeli parancssori (CLI / Headless) futtatás
-Ha webes felület nélkül, pusztán a parancssorból szeretnéd lekérni és naplózni az aktuális hirdetéseket:
-```bash
-mvn compile exec:java "-Dexec.args=--cli"
-```
-
-#### 5. Konténerizált indítás Dockerrel és GHCR-rel (GitHub Container Registry)
-A projekt automatikusan publikált, azonnal futtatható és biztonságosan minimális futtatókörnyezetet használó (non-root) Docker konténerképeket biztosít a **GitHub Container Registry (GHCR)** felületén keresztül.
-
-##### A) Zéró-konfigurációs egykattintásos indítás (`start-docker.bat` / `start-docker.sh`):
-A legegyszerűbb, dobozból azonnal működő indítás. Automatikusan lekéri a legfrissebb távoli GHCR image-et (`docker pull`), eltávolítja az esetleges korábbi futó példányt, fixen `ingatlan-kereso` néven indítja el a konténert a `8080:8080` port forwarddal és menedzselt kötetekkel, majd megnyitja a böngészőt:
-* **Windows alatt:** Kattints duplán a **`start-docker.bat`** fájlra, vagy futtasd terminálból:
-  ```cmd
-  start-docker.bat
-  ```
-* **Linux / macOS alatt:**
-  ```bash
-  chmod +x start-docker.sh
-  ./start-docker.sh
-  ```
-
-##### B) Zéró-konfigurációs gyorsindítás parancssorból (Zero-Config / Single `docker run`):
-A beépített `VOLUME` direktíváknak és előre beállított környezeti változóknak köszönhetően az alkalmazás egyetlen paranccsal, manuális mappakötések nélkül is azonnal futtatható. A Docker automatikusan menedzselt köteteket rendel hozzá, így az adatok újraindításkor is megmaradnak:
-```bash
-# Legfrissebb konténer futtatása háttérben
 docker run -d -p 8080:8080 --name ingatlan-kereso ghcr.io/luxeonn/ingatlan-kereso:latest
 ```
-
-Ha explicit nevesített köteteket (named volumes) vagy hoszt mappákat szeretnél használni:
+Or use Docker Compose:
 ```bash
-# Futtatás dedikált nevesített kötetekkel (ajánlott Windows/Linux/macOS alatt)
-docker run -d -p 8080:8080 --name ingatlan-kereso \
-  -v ingatlan_data:/app/data \
-  -v ingatlan_logs:/app/logs \
-  ghcr.io/luxeonn/ingatlan-kereso:latest
-
-# Vagy lokális hoszt mappák közvetlen csatolásával:
-docker run -d -p 8080:8080 --name ingatlan-kereso \
-  -v ./data:/app/data \
-  -v ./logs:/app/logs \
-  ghcr.io/luxeonn/ingatlan-kereso:latest
-```
-
-##### B) Main / Release (stabil fix verzió):
-A reprodukálhatóság és kiszámíthatóság érdekében a `main` ágon publikált stabil verziók fix címkével rendelkeznek:
-```bash
-# Stabil fix verzió futtatása (pl. v1.0 vagy SemVer release)
-docker run -d -p 8080:8080 --name ingatlan-kereso \
-  ghcr.io/luxeonn/ingatlan-kereso:v1.0
-```
-
-##### C) Indítás Docker Compose-zal (Menedzselt nevesített kötetekkel):
-A `docker-compose.yml` automatikusan a Docker által felügyelt `ingatlan_data` és `ingatlan_logs` nevesített köteteket használja:
-```bash
-# Indítás az előre konfigurált docker-compose.yml segítségével
 docker compose up -d
-
-# Tetszőleges verzió indítása környezeti változóval:
-INGATLAN_IMAGE=ghcr.io/luxeonn/ingatlan-kereso:v1.0 docker compose up -d
 ```
-A konténer indulása után a Web Dashboard azonnal elérhető a `http://localhost:8080` címen.
 
----
-
-## ⚙️ Konfiguráció és Adattárolás
-
-Az alkalmazás beágyazott relációs SQLite adatbázist és atomi JSON konfigurációt használ a `data/` könyvtárban:
-
-* **`data/ingatlanok.db`:** Elsődleges relációs SQLite adatbázis WAL módban és B-Tree indexekkel a gyors lekérdezésekhez és azonnali duplikátumszűréshez.
-* **`data/last_config.json`:** Az utolsó keresés során használt szűrőfeltételek (városok, típus, ársáv, aktív portálok).
-* **`data/cities/<city-key>.json`:** Városonként csoportosított előzmények és kompatibilitási export/fallback.
-
-> [!TIP]
-> A felületen a **"Keresési előzmények törlése"** gombra kattintva bármikor alaphelyzetbe állítható a helyi adatbázis, így a következő kereséskor minden találat újra frissként fog megjelenni.
-
----
-
-## 🛠 Fejlesztői Útmutató és Hozzájárulás
-
-Szívesen fogadunk hibajavításokat és új funkciókat! A hozzájáruláshoz kövesd az alábbi lépéseket:
-
-### 1. Build és tesztelés
+### 3. Local Development Build
 ```bash
-# Frontend tesztelése és fordítása (React 19 + TypeScript + Vite)
+# 1. Build Frontend SPA (React 19 + TypeScript + Vite)
 cd frontend
 npm ci && npm run test && npm run build
 cd ..
 
-# Backend fordítás és tesztelés (Java 21 + Maven)
+# 2. Compile and Test Backend (Java 21 + Maven)
 mvn clean test package
-```
 
-### 2. Git munkafolyamat & Minőségi Kapuk
-* A fejlesztések kiindulási és integrációs ága a **`develop`**. Közvetlenül a `main` vagy `develop` ágra pusholni tilos.
-* Hozz létre új munkavégző ágat a feladat típusának megfelelő prefixummal:
-  * `feature/<rovid-angol-leiras>` – új funkció
-  * `fix/<rovid-angol-leiras>` – hibajavítás
-  * `docs/<rovid-angol-leiras>` – dokumentáció módosítása
-  * `refactor/<rovid-angol-leiras>` – kódstruktúra átalakítása
-* Pull Request beküldésekor használj beszédes, angol nyelvű Conventional Commits címet (pl. `feat: add price filter to dashboard`).
-* **Szigorú Merge Követelmény:** A PR kizárólag akkor mergelhető, ha az összes CI ellenőrzés (Java CI, frontend Vitest, headless smoke teszt, PR Guard) **100%-ban zöld**.
-
-### 3. Helyi Push-védelem aktiválása
-A véletlen közvetlen push-ok megelőzésére a projekt előre konfigurált git hookokat tartalmaz:
-```bash
-git config core.hooksPath .githooks
+# 3. Run Web Dashboard
+java -jar target/ingatlan-1.0.jar
 ```
 
 ---
 
-## 📖 Rendszer- és Architektúra Dokumentáció
+## ⚙️ Configuration & Storage
 
-A rendszer mélyreható technikai felépítéséről, a beágyazott szerverről, a web scraping mechanizmusokról, valamint az automatizált AI munkafolyamat-szabályokról részletes információ a **[GEMINI.md](GEMINI.md)** fájlban található.
+* **`data/ingatlanok.db`:** Primary relational SQLite database with WAL mode and indexes (`idx_listings_city`, `idx_listings_portal`, `idx_listings_discovered_at`).
+* **`data/last_config.json`:** Last used search parameters (cities, min/max price, property type, active portals).
+* **`data/cities/<city-key>.json`:** Backward-compatible per-city JSON exports and fallbacks.
 
 ---
 
-## 📄 Licenc és Szerző
+## 🛡️ Developer Workflow & Quality Gate
 
-* **Eredeti szerző:** Pusinszky Viktor (2017)
-* **Licenc:** [GNU General Public License v3.0](LICENSE)
+* **Base Branch:** All feature work branches off from `develop`. Direct pushes to `main` and `develop` are prohibited.
+* **Branch Naming:** `feature/<name>`, `fix/<name>`, `docs/<name>`, `refactor/<name>`, `chore/<name>`.
+* **Atomic Commits:** Make discrete, descriptive commits using Conventional Commits (`feat: ...`, `fix: ...`). No squash or monolithic merges during development.
+* **Worktree Usage:** When developing from an issue, always create a dedicated `git worktree`.
+* **Merge Prerequisite:** Pull requests are strictly mergeable **ONLY WHEN ALL CHECKS ARE GREEN** (Java CI, Vitest, runtime smoke test, PR Guard).
+
+---
+
+## 📄 License & Authors
+
+* **Original Author:** Viktor Pusinszky (2017)
+* **License:** [GNU General Public License v3.0](LICENSE)
