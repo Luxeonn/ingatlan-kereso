@@ -11,6 +11,38 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class IngatlanSearchServiceTest {
 
+    private static final String MOCK_PORTAL_ID = "mockbazar";
+
+    @org.junit.jupiter.api.BeforeAll
+    static void setupMockPortal() {
+        ingatlanok.portal.PortalEngine mockEngine = new ingatlanok.portal.PortalEngine() {
+            @Override
+            public ingatlanok.portal.PortalDescriptor getDescriptor() {
+                return new ingatlanok.portal.PortalDescriptor(MOCK_PORTAL_ID, "Mock Ingatlanbazár", "#336699", "https://mockbazar.hu", true, List.of("lakas"), true);
+            }
+
+            @Override
+            public ingatlanok.scraper.PortalScrapeResult scrape(SearchCriteria criteria) {
+                ingatlanok.model.IngatlanItem item1 = new ingatlanok.model.IngatlanItem(
+                        "mb1", ingatlanok.model.PortalSource.of(MOCK_PORTAL_ID), "https://mockbazar.hu/1", "Debreceni lakás 1",
+                        new ingatlanok.model.PriceInfo("45 M Ft", 45_000_000L, 45.0),
+                        "Debrecen",
+                        new ingatlanok.model.PropertyDetails("100 m²", 100.0, 3.0, 450_000L),
+                        "2026-10-15", true
+                );
+                ingatlanok.model.IngatlanItem item2 = new ingatlanok.model.IngatlanItem(
+                        "mb2", ingatlanok.model.PortalSource.of(MOCK_PORTAL_ID), "https://mockbazar.hu/2", "Debreceni lakás 2",
+                        new ingatlanok.model.PriceInfo("55 M Ft", 55_000_000L, 55.0),
+                        "Debrecen",
+                        new ingatlanok.model.PropertyDetails("120 m²", 120.0, 4.0, 458_333L),
+                        "2026-10-15", false
+                );
+                return ingatlanok.scraper.PortalScrapeResult.success(MOCK_PORTAL_ID, "Mock Ingatlanbazár", List.of(item1, item2), 10);
+            }
+        };
+        ingatlanok.portal.PortalEngineRegistry.getInstance().register(mockEngine);
+    }
+
     @Test
     @DisplayName("IngatlanSearchService null criteria handling")
     void testSearchNullCriteria() {
@@ -29,13 +61,13 @@ class IngatlanSearchServiceTest {
         criteria.setPropertyType("lakas");
         criteria.setMinPriceMillion(40);
         criteria.setMaxPriceMillion(60);
-        criteria.setPortals(List.of("ingatlanbazar"));
+        criteria.setPortals(List.of(MOCK_PORTAL_ID));
 
         SearchResult result = service.executeSearch(criteria);
         assertNotNull(result);
         assertNotNull(result.getItems());
         assertNotNull(result.getPortalCounts());
-        assertTrue(result.getPortalCounts().containsKey("Ingatlanbazár"));
+        assertTrue(result.getPortalCounts().containsKey("Mock Ingatlanbazár"));
         assertFalse(result.getItems().isEmpty());
     }
 
@@ -48,7 +80,7 @@ class IngatlanSearchServiceTest {
         criteria.setPropertyType("lakas");
         criteria.setMinPriceMillion(40);
         criteria.setMaxPriceMillion(60);
-        criteria.setPortals(List.of("ingatlanbazar"));
+        criteria.setPortals(List.of(MOCK_PORTAL_ID));
 
         SearchResult result = service.executeSearch(criteria);
         assertNotNull(result);

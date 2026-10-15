@@ -453,16 +453,29 @@ public class WebServer {
                             case "city" -> cityParam = val;
                             case "onlyDiscounted" -> onlyDiscounted = Boolean.parseBoolean(val);
                             case "portal" -> portalParam = val;
-                            case "minPrice" -> { try { minPrice = Double.parseDouble(val); } catch (Exception ignored) {} }
-                            case "maxPrice" -> { try { maxPrice = Double.parseDouble(val); } catch (Exception ignored) {} }
-                            case "minArea" -> { try { minArea = Double.parseDouble(val); } catch (Exception ignored) {} }
-                            case "maxArea" -> { try { maxArea = Double.parseDouble(val); } catch (Exception ignored) {} }
-                            case "minRooms" -> { try { minRooms = Double.parseDouble(val); } catch (Exception ignored) {} }
-                            case "maxRooms" -> { try { maxRooms = Double.parseDouble(val); } catch (Exception ignored) {} }
+                            case "minPrice" -> minPrice = parseDoubleOrNull(val);
+                            case "maxPrice" -> maxPrice = parseDoubleOrNull(val);
+                            case "minArea" -> minArea = parseDoubleOrNull(val);
+                            case "maxArea" -> maxArea = parseDoubleOrNull(val);
+                            case "minRooms" -> minRooms = parseDoubleOrNull(val);
+                            case "maxRooms" -> maxRooms = parseDoubleOrNull(val);
                             case "excludeViewed" -> excludeViewed = Boolean.parseBoolean(val);
                             case "sortBy" -> sortBy = val;
-                            case "limit" -> { try { limit = Integer.parseInt(val); } catch (Exception ignored) {} }
-                            case "offset" -> { try { offset = Integer.parseInt(val); } catch (Exception ignored) {} }
+                            case "limit" -> {
+                                Integer parsed = parseIntOrNull(val);
+                                if (parsed != null) {
+                                    limit = parsed;
+                                }
+                            }
+                            case "offset" -> {
+                                Integer parsed = parseIntOrNull(val);
+                                if (parsed != null) {
+                                    offset = parsed;
+                                }
+                            }
+                            default -> {
+                                // Ignore unrecognized query parameters
+                            }
                         }
                     }
                 }
@@ -753,6 +766,22 @@ public class WebServer {
         exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
+        }
+    }
+
+    private static Double parseDoubleOrNull(String val) {
+        try {
+            return Double.parseDouble(val);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static Integer parseIntOrNull(String val) {
+        try {
+            return Integer.parseInt(val);
+        } catch (Exception e) {
+            return null;
         }
     }
 }

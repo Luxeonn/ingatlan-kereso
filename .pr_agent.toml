@@ -1,0 +1,59 @@
+# Qodo PR-Agent Configuration (ingatlan-kereso)
+# Reference: https://github.com/qodo-ai/pr-agent
+
+[config]
+model = "gpt-4o"
+fallback_models = ["gpt-4o-mini", "claude-3-5-sonnet-20241022"]
+git_provider = "github"
+verbosity_level = 1
+ignore_pr_title = ["\\[bot\\]", "chore\\(deps\\)", "Automatic Dependency Submission"]
+ignore_file_patterns = [
+    "src/main/resources/static/**",
+    "frontend/dist/**",
+    "frontend/package-lock.json",
+    "data/**",
+    "*.db",
+    "*.db-wal",
+    "*.db-shm",
+    "*.woff",
+    "*.woff2",
+    "*.gz"
+]
+
+[pr_description]
+publish_labels = true
+publish_description_as_comment = false
+add_custom_labels = true
+enable_semantic_files_types = true
+inline_svg_graphs = true
+extra_instructions = """
+Format the description strictly in English according to Conventional Commits.
+Mention linked issues (e.g. Closes #..., Fixes #...) and state which of the 4 architectural layers
+(Presentation, Web, Core/Portal, Persistence) are touched by the PR.
+"""
+
+[pr_reviewer]
+require_focused_review = true
+require_score_review = true
+require_tests_review = true
+require_security_review = true
+require_can_be_split_review = false
+enable_review_labels_effort = true
+num_code_suggestions = 4
+extra_instructions = """
+Strictly evaluate the PR against the project's core guidelines:
+1. Java 21 Virtual Threads concurrency (Executors.newVirtualThreadPerTaskExecutor()). No carrier thread blocking.
+2. 0-Crash resilience: Portal scraper errors, network dropouts, or bot protection triggers must never crash the service.
+3. Decoupled Persistence: ListingStorage and ConfigStorage contracts must be respected with SQLite WAL mode.
+4. Hermetic Tests: All tests must run 100% offline without live internet access.
+5. Modern Frontend: React 19 + TypeScript SPA components must be modular and type-safe.
+"""
+
+[pr_code_suggestions]
+num_code_suggestions = 4
+rank_by_importance = true
+commitable_code_suggestions = true
+focus_only_on_problems = true
+
+[pr_questions]
+enable_auto_checking = false

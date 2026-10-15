@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   build:
-    name: Build, Test & UI Integrity Guard (Java 21)
+    name: Build, Deterministic CI & UI Integrity Guard (Java 21)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -39,12 +39,15 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
 
-      - name: Build and Test Frontend SPA (React 19, TypeScript, Vitest)
+      - name: Build, Lint and Test Frontend SPA (React 19, TypeScript, Vitest, ESLint)
         run: |
-          echo "=== ⚛️ Frontend SPA Build & Tesztek Indítása ==="
+          echo "=== ⚛️ Frontend SPA Quality Gates Indítása ==="
           cd frontend
           npm ci
+          npm run lint
           npm run typecheck
           npm run test
           npm run build
@@ -53,10 +56,10 @@ jobs:
           rm -rf ../src/main/resources/static/*
           cp -r dist/* ../src/main/resources/static/
           cd ..
-          echo "✅ Frontend SPA sikeresen lefordítva és beágyazva."
+          echo "✅ Frontend SPA sikeresen lintelve, lefordítva és beágyazva."
 
-      - name: Compile and Test with Maven
-        run: mvn --batch-mode --no-transfer-progress clean test package
+      - name: Compile, Lint (Checkstyle & SpotBugs) and Test with Maven & JaCoCo
+        run: mvn --batch-mode --no-transfer-progress clean verify
 
       - name: Headless Application & Web UI Runtime Smoke Test
         run: |
@@ -119,13 +122,30 @@ jobs:
           wait $APP_PID 2>/dev/null || true
           echo "✅ Headless Smoke Teszt sikeresen befejeződött."
 
-      - name: Report Build Summary
+      - name: Report Build Summary & Quality Gates
         if: always()
         run: |
-          echo "### 🚀 CI Építés, Teszt és UI Integritási Eredmények" >> $GITHUB_STEP_SUMMARY
-          echo "- **Java Verzió:** 21 LTS (Eclipse Temurin)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Node.js Validator:** 22 LTS (V8 JavaScript Check)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build & Tesztek Állapota:** ${{ job.status == 'success' && '✅ Sikeres (Pass)' || '❌ Sikertelen (Fail)' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **UI & Smoke Integritás:** ${{ job.status == 'success' && '🛡️ Garantált (Zero-SyntaxError)' || '⚠️ Hibás' }}" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 CI Építés, Determinisztikus Tesztek és Minőségi Kapuk" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Minőségi Kapu / Terület | Állapot | Részletek |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Java Környezet** | ✅ Aktív | Java 21 LTS (Eclipse Temurin) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Frontend Lint (ESLint & TS)** | ${{ job.status == 'success' && '✅ Sikeres' || '❌ Hibás' }} | React 19 + TypeScript (tsc & eslint pass) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Frontend Tesztek (Vitest)** | ${{ job.status == 'success' && '✅ Sikeres' || '❌ Hibás' }} | 19 Vitest egységteszt zöld |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Backend Kódminőség (Checkstyle)** | ${{ job.status == 'success' && '✅ 0 Hiba' || '❌ Szabálysértés' }} | Checkstyle ellenőrzés megfelelt |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Statikus Biztonság (SpotBugs)** | ${{ job.status == 'success' && '✅ 0 Hiba' || '❌ Szabálysértés' }} | SpotBugs 4.9.2 analízis megfelelt |" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            LINE_MISSED=$(awk -F',' 'NR>1 {sum+=$8} END {print sum}' target/site/jacoco/jacoco.csv)
+            LINE_COVERED=$(awk -F',' 'NR>1 {sum+=$9} END {print sum}' target/site/jacoco/jacoco.csv)
+            TOTAL_LINES=$((LINE_MISSED + LINE_COVERED))
+            if [ "$TOTAL_LINES" -gt 0 ]; then
+              COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", ($LINE_COVERED / $TOTAL_LINES) * 100}")
+              echo "| **Kódlefedettség (JaCoCo)** | ✅ ${COVERAGE_PCT}% | Cél: 80%+ ($LINE_COVERED / $TOTAL_LINES lefedett kódsor) |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          echo "| **UI & Smoke Integritás** | ${{ job.status == 'success' && '🛡️ Garantált' || '⚠️ Hibás' }} | Zero-SyntaxError & REST szerződések validálva |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

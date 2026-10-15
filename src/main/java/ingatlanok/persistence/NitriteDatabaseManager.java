@@ -59,8 +59,8 @@ public class NitriteDatabaseManager implements Closeable {
         INSTANCE_CACHE.put(key, this);
 
         File parentDir = this.databasePath.toFile().getParentFile();
-        if (parentDir != null && !parentDir.exists()) {
-            parentDir.mkdirs();
+        if (parentDir != null && !parentDir.exists() && !parentDir.mkdirs()) {
+            LOGGER.warn("Nem sikerült létrehozni a könyvtárat: {}", parentDir.getAbsolutePath());
         }
 
         MVStoreModule storeModule = MVStoreModule.withConfig()

@@ -130,6 +130,8 @@ class HajduszoboszloIssue19Test {
     }
 
     @Test
+    @org.junit.jupiter.api.Tag("live")
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "RUN_LIVE_TESTS", matches = "true")
     void testLiveSearchHajduszoboszloIssue19() {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Hajdúszoboszló");

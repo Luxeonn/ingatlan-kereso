@@ -14,7 +14,6 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.collection.UpdateOptions;
-import org.dizitart.no2.filters.FluentFilter;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -158,7 +157,7 @@ public class NitriteListingStorage implements ListingStorage {
                 previouslyViewedAt = existing.get("viewedAt", String.class);
             } else {
                 String rawId = item.getId() != null ? item.getId().trim() : "";
-                propertyId = (!rawId.isBlank()) ? portal + "_" + rawId : portal + "_" + Math.abs(url.hashCode());
+                propertyId = (!rawId.isBlank()) ? portal + "_" + rawId : portal + "_" + Integer.toUnsignedString(url.hashCode());
             }
 
             boolean finalViewed = previouslyViewed || item.isViewed();
