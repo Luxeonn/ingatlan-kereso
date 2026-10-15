@@ -120,9 +120,12 @@ ingatlan-kereso/
 │       │   └── ScraperRegistry.java             # Legacy regiszter, amely a PortalEngineRegistry-re delegál
 │       ├── service/
 │       │   └── IngatlanSearchService.java       # Magas szintű keresést vezérlő orchestrator (delegál SearchExecutionEngine-re)
-│       └── web/                                 # Réteg 1b: Beágyazott webkiszolgáló és dinamikus UI
-│           ├── WebServer.java                   # Beágyazott REST API szerver Java 21 Virtual Threads alapon (/api/portals, CSP)
-│           └── WebDashboardHtml.java            # Dinamikus SPA felület shimmer skeletonokkal és portál betöltéssel
+│       └── web/                                 # Réteg 1b: Beágyazott webkiszolgáló és REST API
+│           └── WebServer.java                   # Beágyazott REST API szerver Java 21 Virtual Threads alapon, StaticFileHandler és CORS
+├── frontend/                                    # Réteg 1a: Önálló Modern Decoupled SPA Kliens (React 19, TypeScript, Vite, TailwindCSS)
+│   ├── src/                                     # Komponensek, Zustand store-ok, TanStack Query hookok, típusok
+│   ├── package.json                             # Független frontend csomagdefiníció és scriptek (build, test, typecheck)
+│   └── vite.config.ts                           # Vite konfiguráció /api proxyval és Vitest tesztkörnyezettel
 ```
 
 ### Főbb Komponensek és Szerepkörök
@@ -239,6 +242,7 @@ A projekt dedikált, verziókövetett Antigravity workspace skillekkel rendelkez
 - [x] Automatikus Docker konténer build és publish GitHub Container Registry-be (#80: .github/workflows/docker-publish.yml, develop -> latest, main/release -> fix verzió SemVer/pom.xml alapján expliciten tiltva a lebegő latest felülírását, docker-compose környezeti változós GHCR támogatás, GHA buildx gyorstárazás és formázott Step Summary).
 - [x] Docker zéró-konfigurációs indítás és belső nevesített kötetek támogatása (#109: Dockerfile deklaratív VOLUME és konténer-optimalizált JVM flag-ek, docker-compose.yml menedzselt ingatlan_data és ingatlan_logs named volume-ok, leegyszerűsített single-command indítási dokumentáció és CI step summary).
 - [x] Egykattintásos GHCR Docker indítókészlet és asztali integráció (#114: start-docker.bat és start-docker.sh zéró-konfigurációs scriptek, automatikus docker pull, fix 'ingatlan-kereso' konténernév, 8080:8080 port forwarding, nevesített kötetek és automatikus böngészőlap-nyitás).
+- [x] Modern Decoupled SPA Kliens (#89: React 19, TypeScript, Vite, TailwindCSS, TanStack Query, Zustand, a monolitikus WebDashboardHtml.java kivezetése, beágyazott StaticFileHandler MIME-típus felismeréssel és SPA fallbackkel, Vitest egységtesztek, 3-fázisú multi-stage Docker build).
 
 ### Tervezett Fejlesztések
 - [ ] **Értesítési csatornák:** Telegram Bot API és Discord Webhook integráció az új találatok azonnali továbbításához.

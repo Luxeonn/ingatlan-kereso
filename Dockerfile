@@ -1,4 +1,15 @@
-# Stage 1: Build & Package (Multi-stage)
+# Stage 1: Build Frontend SPA (React 19, TypeScript, Vite)
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+COPY frontend/package*.json ./
+RUN npm ci
+
+COPY frontend ./
+RUN npm run build
+
+# Stage 2: Build & Package Java Uber-JAR (Multi-stage)
 FROM maven:3.9.9-eclipse-temurin-21-jammy AS builder
 
 WORKDIR /build
@@ -7,11 +18,13 @@ WORKDIR /build
 COPY pom.xml .
 RUN mvn dependency:go-offline -B || true
 
-# 2. Source copy & build
+# 2. Source copy & include static SPA assets from frontend-builder
 COPY src ./src
+COPY --from=frontend-builder /frontend/dist ./src/main/resources/static
+
 RUN mvn clean package -DskipTests
 
-# Stage 2: Minimal hardened runtime
+# Stage 3: Minimal hardened runtime
 FROM eclipse-temurin:21-jre-jammy
 
 # Install curl for HEALTHCHECK and clean package lists
