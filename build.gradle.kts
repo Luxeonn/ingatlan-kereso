@@ -3,8 +3,8 @@ plugins {
     application
     jacoco
     checkstyle
-    id("com.github.spotbugs") version "6.1.7"
-    id("com.gradleup.shadow") version "8.3.6"
+    id("com.github.spotbugs") version "6.5.13"
+    id("com.gradleup.shadow") version "9.6.1"
 }
 
 group = "hu.pushinsky.viktor"
@@ -28,7 +28,7 @@ val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
 val gsonVersion = "2.14.0"
-val nitriteVersion = "4.3.0"
+val nitriteVersion = "5.4.0"
 val junitVersion = "6.1.3"
 
 dependencies {
