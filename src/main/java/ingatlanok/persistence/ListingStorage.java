@@ -116,4 +116,11 @@ public interface ListingStorage {
     default List<IngatlanItem> getDiscountedProperties(String city) {
         return List.of();
     }
+
+    /**
+     * Típusbiztos Criteria Builder alapú dinamikus keresés és szűrés DTO eredménylistával.
+     */
+    default List<ingatlanok.dto.ListingDto> findByCriteria(ingatlanok.dto.ListingFilterDto filter) {
+        return List.of();
+    }
 }
