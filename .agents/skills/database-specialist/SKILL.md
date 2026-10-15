@@ -22,12 +22,7 @@ Az alkalmazás az absztrakt `ListingStorage` és `ConfigStorage` interfészekre 
 
 ```text
 data/
-├── ingatlanok_nosql.db      # Elsődleges beágyazott NoSQL adatbázis (Nitrite DB + MVStore tömörítéssel)
-├── config.json              # Aktuális keresési konfiguráció
-└── cities/                  # Visszafelé kompatibilis JSON export és fallback
-    ├── budapest.json
-    ├── debrecen.json
-    └── ...
+└── ingatlanok_nosql.db      # Elsődleges beágyazott NoSQL adatbázis (Nitrite DB + MVStore tömörítéssel)
 ```
 
 ### 1.1 Fő Implementációk
@@ -40,10 +35,8 @@ data/
    - Idősoros ártörténet (`price_history`) és státusznapló (`status_log`) külön NoSQL kollekciókban.
 2. **`NitriteConfigStorage`:**
    - Keresési konfigurációk és rendszerbeállítások NoSQL dokumentumként való tárolása.
-3. **`NoSqlMigrationService`:**
-   - Automatikus, adatvesztésmentes migráció régebbi városszintű JSON fájlokból az új NoSQL adatbázisba.
-4. **`IngatlanRepository` (Singleton Facade):**
-   - Visszafelé kompatibilis átjáró a felsőbb rétegek felé, amely transzparensen delegál a `ListingStorage` és `ConfigStorage` implementációkra.
+3. **`IngatlanRepository` (Singleton Facade):**
+   - Átjáró a felsőbb rétegek felé, amely transzparensen delegál a `ListingStorage` és `ConfigStorage` implementációkra. Tiszta lappal indul, felesleges legacy migráció nélkül.
 
 ---
 
@@ -77,21 +70,17 @@ Ha JSON fájlt kell menteni, soha ne írj közvetlenül a végleges `.json` fáj
 ## 3. Séma Evolúció és Visszafelé Kompatibilitás
 
 Amikor új mező kerül a modellbe (pl. `minFloorArea`, `viewed`, `viewedAt`):
-1. **Biztonságos deszerializáció:** A Gson és a JDBC mapping alapértelmezetten `null` vagy `false` értékkel inicializálja a hiányzó mezőket a korábbi rekordok betöltésekor.
+1. **Biztonságos deszerializáció:** A NoSQL dokumentum modell alapértelmezetten `null` vagy `false` értékkel inicializálja a hiányzó mezőket a korábbi rekordok betöltésekor.
 2. **Defensive Getters:** A domain objektumban biztosíts ésszerű alapértelmezést, ha a mező nincs beállítva.
-3. **Idempotens DDL:** Minden táblalétrehozás és indexelés `CREATE TABLE IF NOT EXISTS` és `CREATE INDEX IF NOT EXISTS` szintaxissal történjen.
-4. **Automatikus Adatmigráció:** Az `IngatlanRepository` és `LegacyMigrationService` automatikusan és adatvesztés nélkül migrálnak a régebbi tárolókból.
+3. **Idempotens Séma:** Minden Nitrite kollekció és B-Tree index inicializálása idempotens módon történik.
 
 ---
 
 ## 4. Jövőbeli Bővíthetőség és Skálázási Irányok
 
 Amikor a rendszer hálózatos vagy multi-tenant környezetbe kerül:
-* **Külső SQL támogatás:** A `ListingStorage` interfészen keresztül külső PostgreSQL vagy MySQL kapcsolat bevezethető.
+* **Külső SQL / NoSQL támogatás:** A `ListingStorage` interfészen keresztül külső PostgreSQL, MongoDB vagy Elasticsearch kapcsolat bevezethető.
 * **Adatretenciós és Archiválási Szabályzat:** Periodikus tisztító feladat a 90+ napos inaktív hirdetések archiválására.
-* **Connection Pooling:** Nagy párhuzamos konkurens terhelés esetén HikariCP bevezetése.
-
-A részletes sémadefiníciót és a migrációs háttéranyagot a [SQLite Architektúra és Séma Referenciában](./references/sqlite-migration-plan.md) találod.
 
 ---
 

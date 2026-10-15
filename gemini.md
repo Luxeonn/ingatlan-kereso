@@ -41,10 +41,8 @@ flowchart TD
     subgraph Persistence ["Persistence Layer (NoSQL Document Store)"]
         Storage["ListingStorage / ConfigStorage"]
         Nitrite[("data/ingatlanok_nosql.db (Nitrite DB + MVStore)")]
-        JSON[("data/cities/*.json & config.json")]
         
         Storage --> Nitrite
-        Storage -.-> JSON
     end
 
     Event -->|POST /api/search| HTTP
@@ -87,7 +85,6 @@ ingatlan-kereso/
 │   │   ├── NitriteDatabaseManager.java          # Nitrite DB lifecycle & B-Tree index manager
 │   │   ├── NitriteListingStorage.java           # Nitrite NoSQL document store with O(1) deduplication
 │   │   ├── NitriteConfigStorage.java            # Nitrite NoSQL configuration storage
-│   │   ├── NoSqlMigrationService.java           # Automatic migration from legacy formats
 │   │   └── IngatlanRepository.java              # Thread-safe Singleton facade
 │   ├── portal/                                  # Layer 3: Pluggable portal engines (OCP)
 │   │   ├── PortalEngine.java                    # Uniform portal engine interface

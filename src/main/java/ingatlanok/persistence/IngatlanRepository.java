@@ -27,7 +27,6 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
 
     private static ListingStorage createDefaultListingStorage() {
         NitriteDatabaseManager dbManager = NitriteDatabaseManager.getInstance(null);
-        new NoSqlMigrationService(dbManager).migrateIfEmpty();
         return new NitriteListingStorage(dbManager);
     }
 
