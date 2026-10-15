@@ -45,8 +45,8 @@
 ## How to Validate
 
 <!-- Detail automated and manual verification steps:
-- [ ] Maven test execution: mvn test (clean pass, 0 errors)
-- [ ] Frontend test execution: npm test
+- [ ] Gradle test execution: ./gradlew check (clean pass, 0 errors)
+- [ ] Frontend test execution: cd frontend && npm test
 - [ ] Smoke test steps -->
 
 ---

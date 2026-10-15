@@ -31,12 +31,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Extract project version from pom.xml
+      - name: Extract project version from build.gradle.kts
         id: pom-version
         run: |
-          VERSION=$(sed -n 's/.*<version>\([^<]*\)<\/version>.*/\1/p' pom.xml | head -n 1)
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' build.gradle.kts | head -n 1)
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Extracted pom.xml project version: ${VERSION}"
+          echo "Extracted build.gradle.kts project version: ${VERSION}"
 
       - name: Extract Docker metadata (tags, labels)
         id: meta
@@ -55,7 +55,7 @@ jobs:
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
             type=ref,event=tag
 
-            # main ágra érkező push: fix verziószám a pom.xml-ből és commit SHA (NEM latest)
+            # main ágra érkező push: fix verziószám a build.gradle.kts-ből és commit SHA (NEM latest)
             type=raw,value=v${{ steps.pom-version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ steps.pom-version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=v${{ steps.pom-version.outputs.version }}-,enable=${{ github.ref == 'refs/heads/main' }}

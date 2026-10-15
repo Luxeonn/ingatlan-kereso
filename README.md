@@ -37,14 +37,15 @@ High-performance real estate monitoring and scraping application built with Java
 
 ```text
 ingatlan-kereso/
-├── pom.xml                                      # Maven configuration (Java 21, SQLite JDBC, Jsoup, Gson)
+├── build.gradle.kts                             # Gradle Kotlin DSL configuration (Java 21, Nitrite NoSQL, Jsoup, Gson)
+├── settings.gradle.kts                          # Gradle project settings
+├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
 ├── README.md                                    # Main user and developer documentation
 ├── gemini.md                                    # Comprehensive system architecture & AI workflow rules
 ├── START.bat / start-docker.bat                 # One-click Windows desktop and Docker launchers
 ├── data/                                        # Persistent runtime database directory
-│   ├── ingatlanok.db                            # SQLite relational database (WAL mode, B-Tree indexes)
-│   ├── last_config.json                         # Saved search criteria
-│   └── cities/                                  # Per-city JSON cache & compatibility exports
+│   ├── ingatlanok_nosql.db                      # Nitrite DB NoSQL document store (MVStore)
+│   └── last_config.json                         # Saved search criteria
 ├── frontend/                                    # Modern Decoupled SPA (React 19, TypeScript, Vite, TailwindCSS)
 │   ├── src/                                     # React components, Zustand stores, TanStack Query hooks
 │   └── package.json                             # Frontend dependencies and test scripts
@@ -53,7 +54,7 @@ ingatlan-kereso/
     ├── common/                                  # Cross-cutting utilities (HttpFetcher, PropertyParser, SlugUtils)
     ├── core/                                    # Pure business engines (Filter, Deduplication, Analytics, Execution)
     ├── model/                                   # Domain models and value objects
-    ├── persistence/                             # Decoupled persistence (SqliteListingStorage, JsonFileListingStorage)
+    ├── persistence/                             # Decoupled persistence (NitriteListingStorage, NitriteConfigStorage)
     ├── portal/                                  # Pluggable Portal Engines (DH, OC, Jófogás, Bazár, Költözzbe, IngatlanCom)
     └── web/                                     # Embedded Sun HttpServer (Java 21 Virtual Threads, StaticFileHandler)
 ```
@@ -64,11 +65,11 @@ ingatlan-kereso/
 
 ### Prerequisites
 * **Java:** JDK 21 LTS or newer
-* **Build Tool:** Apache Maven 3.9+
+* **Build Tool:** Gradle Wrapper (`gradlew`, included)
 * **Node.js:** Node 20+ & npm (required only for building the frontend)
 
 ### 1. One-Click Desktop Launch (Windows)
-Double-click `START.bat`. The script detects Java and Maven, builds assets if missing, starts the server on port `8080`, and opens the browser.
+Double-click `START.bat`. The script detects Java and Gradle Wrapper, builds assets if missing, starts the server on port `8080`, and opens the browser.
 
 ### 2. Docker Quickstart (GHCR)
 Run with zero manual configuration using Docker:
@@ -87,11 +88,11 @@ cd frontend
 npm ci && npm run test && npm run build
 cd ..
 
-# 2. Compile and Test Backend (Java 21 + Maven)
-mvn clean test package
+# 2. Compile, Quality Check and Package Backend (Java 21 + Gradle)
+./gradlew check shadowJar
 
 # 3. Run Web Dashboard
-java -jar target/ingatlan-1.0.jar
+java -jar build/libs/ingatlan-1.0.jar
 ```
 
 ---

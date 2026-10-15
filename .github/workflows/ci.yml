@@ -1,4 +1,4 @@
-name: Java CI with Maven
+name: Java CI with Gradle
 
 on:
   push:
@@ -33,7 +33,10 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
+          cache: gradle
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v4
 
       - name: Set up Node.js 22 (JavaScript Validator Engine)
         uses: actions/setup-node@v7
@@ -58,13 +61,13 @@ jobs:
           cd ..
           echo "✅ Frontend SPA sikeresen lintelve, lefordítva és beágyazva."
 
-      - name: Compile, Lint (Checkstyle & SpotBugs) and Test with Maven & JaCoCo
-        run: mvn --batch-mode --no-transfer-progress clean verify
+      - name: Compile, Lint (Checkstyle & SpotBugs) and Test with Gradle & JaCoCo
+        run: ./gradlew check shadowJar --no-daemon
 
       - name: Headless Application & Web UI Runtime Smoke Test
         run: |
           echo "=== 🚀 Web Dashboard és Szerver Runtime Smoke Teszt Indítása ==="
-          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 java -jar target/ingatlan-1.0.jar &
+          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 java -jar build/libs/ingatlan-1.0.jar &
           APP_PID=$!
           echo "Szerver elindítva a háttérben PID: $APP_PID"
 

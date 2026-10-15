@@ -55,10 +55,10 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 ## 5. Testing & Hermetic Quality Gates
 
-1. **100% Offline & Hermetic Tests:** Automated unit and integration tests must run without external network connectivity. Live web scraping during `mvn test` is strictly prohibited.
+1. **100% Offline & Hermetic Tests:** Automated unit and integration tests must run without external network connectivity. Live web scraping during `./gradlew test` is strictly prohibited.
 2. **Mocking & Fixtures:** Use pre-recorded offline HTML/JSON fixtures (`src/test/resources/`) and mock portal engines.
 3. **Coverage Standard:** Maintain 80%+ JaCoCo instruction and line coverage across domain and persistence packages.
-4. **Static Code Analysis:** Checkstyle and SpotBugs are strictly enforced on `mvn verify`.
+4. **Static Code Analysis:** Checkstyle and SpotBugs are strictly enforced on `./gradlew check`.
 
 ---
 

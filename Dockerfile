@@ -10,19 +10,21 @@ COPY frontend ./
 RUN npm run build
 
 # Stage 2: Build & Package Java Uber-JAR (Multi-stage)
-FROM maven:3.9.9-eclipse-temurin-21-jammy AS builder
+FROM eclipse-temurin:21-jdk-jammy AS builder
 
 WORKDIR /build
 
-# 1. Dependency caching
-COPY pom.xml .
-RUN mvn dependency:go-offline -B || true
+# 1. Gradle wrapper and build configuration caching
+COPY gradlew gradlew
+COPY gradle/ gradle/
+COPY settings.gradle.kts build.gradle.kts checkstyle.xml spotbugs-exclude.xml ./
+RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
 # 2. Source copy & include static SPA assets from frontend-builder
 COPY src ./src
 COPY --from=frontend-builder /frontend/dist ./src/main/resources/static
 
-RUN mvn clean package -DskipTests
+RUN ./gradlew shadowJar --no-daemon -x test
 
 # Stage 3: Minimal hardened runtime
 FROM eclipse-temurin:21-jre-jammy
@@ -43,7 +45,7 @@ RUN mkdir -p /app/data /app/logs && \
     chown -R appuser:appuser /app
 
 # Copy executable uber-jar from builder stage
-COPY --from=builder --chown=appuser:appuser /build/target/ingatlan-1.0.jar /app/ingatlan-1.0.jar
+COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-1.0.jar /app/ingatlan-1.0.jar
 
 USER appuser:appuser
 

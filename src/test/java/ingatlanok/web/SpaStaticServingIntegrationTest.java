@@ -169,7 +169,7 @@ class SpaStaticServingIntegrationTest {
     @DisplayName("Biztonság: érvénytelen karaktereket tartalmazó asset útvonal 400 Bad Request-et kap")
     void testInvalidAssetFileNamePath() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(getBaseUrl() + "/assets/../../pom.xml"))
+                .uri(URI.create(getBaseUrl() + "/assets/../../build.gradle.kts"))
                 .GET()
                 .build();
 

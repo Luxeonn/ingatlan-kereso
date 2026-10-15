@@ -1,19 +1,10 @@
 # ==============================================================================
-# Java & Maven Build Artifacts
+# Java, Gradle & Maven Build Artifacts
 # ==============================================================================
 target/
+build/
+.gradle/
 *.class
-
-# Maven release & dependency files
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
 
 # Packaged binaries / archives
 *.jar
@@ -23,6 +14,9 @@ buildNumber.properties
 *.zip
 *.tar.gz
 *.rar
+
+# Gradle wrapper jar must NOT be ignored
+!gradle/wrapper/gradle-wrapper.jar
 
 # JaCoCo Code Coverage
 *.exec
