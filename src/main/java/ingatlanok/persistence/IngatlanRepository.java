@@ -25,28 +25,13 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
         this.configStorage = configStorage != null ? configStorage : createDefaultConfigStorage();
     }
 
-    private static boolean isJsonStoragePreferred() {
-        String env = System.getenv("STORAGE_TYPE");
-        if (env != null && env.equalsIgnoreCase("json")) {
-            return true;
-        }
-        String prop = System.getProperty("storage.type");
-        return prop != null && prop.equalsIgnoreCase("json");
-    }
-
     private static ListingStorage createDefaultListingStorage() {
-        if (isJsonStoragePreferred()) {
-            return new JsonFileListingStorage();
-        }
         SqliteDatabaseManager dbManager = new SqliteDatabaseManager();
         new SqliteMigrationService(dbManager).migrateIfEmpty();
         return new SqliteListingStorage(dbManager);
     }
 
     private static ConfigStorage createDefaultConfigStorage() {
-        if (isJsonStoragePreferred()) {
-            return new JsonConfigStorage();
-        }
         SqliteDatabaseManager dbManager = new SqliteDatabaseManager();
         return new SqliteConfigStorage(dbManager);
     }
@@ -166,5 +151,10 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     @Override
     public List<IngatlanItem> getDiscountedProperties(String city) {
         return listingStorage.getDiscountedProperties(city);
+    }
+
+    @Override
+    public List<ingatlanok.dto.ListingDto> findByCriteria(ingatlanok.dto.ListingFilterDto filter) {
+        return listingStorage.findByCriteria(filter);
     }
 }

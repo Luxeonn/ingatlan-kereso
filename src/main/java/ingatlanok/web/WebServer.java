@@ -9,6 +9,8 @@ import com.sun.net.httpserver.HttpServer;
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
+import ingatlanok.dto.ListingDto;
+import ingatlanok.dto.ListingFilterDto;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.IngatlanRepository;
@@ -386,25 +388,53 @@ public class WebServer {
             String query = exchange.getRequestURI().getQuery();
             String cityParam = null;
             boolean onlyDiscounted = false;
+            String portalParam = null;
+            Double minPrice = null;
+            Double maxPrice = null;
+            Double minArea = null;
+            Double maxArea = null;
+            Double minRooms = null;
+            Double maxRooms = null;
+            boolean excludeViewed = false;
+            String sortBy = "DISCOVERED_DESC";
+            Integer limit = null;
+            Integer offset = null;
+
             if (query != null) {
                 for (String part : query.split("&")) {
-                    if (part.startsWith("city=")) {
-                        cityParam = URLDecoder.decode(part.substring(5), StandardCharsets.UTF_8);
-                    } else if (part.equals("onlyDiscounted=true")) {
-                        onlyDiscounted = true;
+                    String[] kv = part.split("=", 2);
+                    if (kv.length == 2) {
+                        String key = kv[0];
+                        String val = URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
+                        switch (key) {
+                            case "city" -> cityParam = val;
+                            case "onlyDiscounted" -> onlyDiscounted = Boolean.parseBoolean(val);
+                            case "portal" -> portalParam = val;
+                            case "minPrice" -> { try { minPrice = Double.parseDouble(val); } catch (Exception ignored) {} }
+                            case "maxPrice" -> { try { maxPrice = Double.parseDouble(val); } catch (Exception ignored) {} }
+                            case "minArea" -> { try { minArea = Double.parseDouble(val); } catch (Exception ignored) {} }
+                            case "maxArea" -> { try { maxArea = Double.parseDouble(val); } catch (Exception ignored) {} }
+                            case "minRooms" -> { try { minRooms = Double.parseDouble(val); } catch (Exception ignored) {} }
+                            case "maxRooms" -> { try { maxRooms = Double.parseDouble(val); } catch (Exception ignored) {} }
+                            case "excludeViewed" -> excludeViewed = Boolean.parseBoolean(val);
+                            case "sortBy" -> sortBy = val;
+                            case "limit" -> { try { limit = Integer.parseInt(val); } catch (Exception ignored) {} }
+                            case "offset" -> { try { offset = Integer.parseInt(val); } catch (Exception ignored) {} }
+                        }
                     }
                 }
             }
 
-            List<IngatlanItem> items;
-            if (onlyDiscounted) {
-                items = IngatlanRepository.getInstance().getDiscountedProperties(cityParam);
-            } else if (cityParam != null && !cityParam.isBlank()) {
-                items = IngatlanRepository.getInstance().getItemsByCity(cityParam);
-            } else {
-                items = IngatlanRepository.getInstance().getAll();
-            }
-            sendJsonResponse(exchange, 200, items);
+            List<String> cities = (cityParam != null && !cityParam.isBlank()) ? List.of(cityParam) : null;
+            List<String> portals = (portalParam != null && !portalParam.isBlank()) ? List.of(portalParam) : null;
+
+            ListingFilterDto filter = new ListingFilterDto(
+                    cities, portals, minPrice, maxPrice, minArea, maxArea, minRooms, maxRooms,
+                    excludeViewed, onlyDiscounted, sortBy, limit, offset
+            );
+
+            List<ListingDto> dtoList = IngatlanRepository.getInstance().findByCriteria(filter);
+            sendJsonResponse(exchange, 200, dtoList);
         }
     }
 

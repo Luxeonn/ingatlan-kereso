@@ -34,6 +34,13 @@ class SqliteListingStorageTest {
         storage = new SqliteListingStorage(dbManager);
     }
 
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        if (dbManager != null) {
+            dbManager.close();
+        }
+    }
+
     @Test
     @DisplayName("Hirdetések mentése és lekérdezése városonként és globálisan")
     void testSaveAndGetItems() {

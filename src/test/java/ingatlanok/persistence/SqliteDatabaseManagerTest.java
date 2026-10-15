@@ -21,55 +21,55 @@ class SqliteDatabaseManagerTest {
     @DisplayName("Adatbázis inicializálásakor létrejön a séma és a PRAGMA beállítások aktívak")
     void testInitAndPragmas() throws SQLException {
         Path dbFile = tempDir.resolve("test_ingatlanok.db");
-        SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile);
+        try (SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile)) {
+            assertEquals(dbFile, dbManager.getDbPath());
+            assertTrue(dbManager.getJdbcUrl().startsWith("jdbc:sqlite:"));
 
-        assertEquals(dbFile, dbManager.getDbPath());
-        assertTrue(dbManager.getJdbcUrl().startsWith("jdbc:sqlite:"));
+            try (Connection conn = dbManager.getConnection();
+                 Statement stmt = conn.createStatement()) {
 
-        try (Connection conn = dbManager.getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            // PRAGMA journal_mode ellenőrzése (WAL mód)
-            try (ResultSet rs = stmt.executeQuery("PRAGMA journal_mode;")) {
-                assertTrue(rs.next());
-                assertEquals("wal", rs.getString(1).toLowerCase());
-            }
-
-            // Táblák létezésének ellenőrzése
-            try (ResultSet rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")) {
-                var tables = new java.util.ArrayList<String>();
-                while (rs.next()) {
-                    tables.add(rs.getString(1));
+                // PRAGMA journal_mode ellenőrzése (WAL mód)
+                try (ResultSet rs = stmt.executeQuery("PRAGMA journal_mode;")) {
+                    assertTrue(rs.next());
+                    assertEquals("wal", rs.getString(1).toLowerCase());
                 }
-                assertTrue(tables.contains("properties"), "properties táblának léteznie kell");
-                assertTrue(tables.contains("portals"), "portals táblának léteznie kell");
-                assertTrue(tables.contains("locations"), "locations táblának léteznie kell");
-                assertTrue(tables.contains("property_attributes"), "property_attributes táblának léteznie kell");
-                assertTrue(tables.contains("property_images"), "property_images táblának léteznie kell");
-                assertTrue(tables.contains("property_price_history"), "property_price_history táblának léteznie kell");
-                assertTrue(tables.contains("property_status_log"), "property_status_log táblának léteznie kell");
-                assertTrue(tables.contains("search_config"), "search_config táblának léteznie kell");
-                assertTrue(tables.contains("search_runs"), "search_runs táblának léteznie kell");
-            }
 
-            // Indexek létezésének ellenőrzése
-            try (ResultSet rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='index';")) {
-                var indexes = new java.util.ArrayList<String>();
-                while (rs.next()) {
-                    indexes.add(rs.getString(1));
+                // Táblák létezésének ellenőrzése
+                try (ResultSet rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")) {
+                    var tables = new java.util.ArrayList<String>();
+                    while (rs.next()) {
+                        tables.add(rs.getString(1));
+                    }
+                    assertTrue(tables.contains("properties"), "properties táblának léteznie kell");
+                    assertTrue(tables.contains("portals"), "portals táblának léteznie kell");
+                    assertTrue(tables.contains("locations"), "locations táblának léteznie kell");
+                    assertTrue(tables.contains("property_attributes"), "property_attributes táblának léteznie kell");
+                    assertTrue(tables.contains("property_images"), "property_images táblának léteznie kell");
+                    assertTrue(tables.contains("property_price_history"), "property_price_history táblának léteznie kell");
+                    assertTrue(tables.contains("property_status_log"), "property_status_log táblának léteznie kell");
+                    assertTrue(tables.contains("search_config"), "search_config táblának léteznie kell");
+                    assertTrue(tables.contains("search_runs"), "search_runs táblának léteznie kell");
                 }
-                assertTrue(indexes.contains("idx_properties_url"));
-                assertTrue(indexes.contains("idx_properties_location_id"));
-                assertTrue(indexes.contains("idx_properties_portal_id"));
-                assertTrue(indexes.contains("idx_properties_viewed"));
-                assertTrue(indexes.contains("idx_properties_discovered_at"));
-                assertTrue(indexes.contains("idx_locations_slug"));
-                assertTrue(indexes.contains("idx_prop_attr_price_amount"));
-                assertTrue(indexes.contains("idx_prop_attr_area_sqm"));
-                assertTrue(indexes.contains("idx_prop_images_property_id"));
-                assertTrue(indexes.contains("idx_price_history_prop_date"));
-                assertTrue(indexes.contains("idx_price_history_delta"));
-                assertTrue(indexes.contains("idx_status_log_prop_date"));
+
+                // Indexek létezésének ellenőrzése
+                try (ResultSet rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='index';")) {
+                    var indexes = new java.util.ArrayList<String>();
+                    while (rs.next()) {
+                        indexes.add(rs.getString(1));
+                    }
+                    assertTrue(indexes.contains("idx_properties_url"));
+                    assertTrue(indexes.contains("idx_properties_location_id"));
+                    assertTrue(indexes.contains("idx_properties_portal_id"));
+                    assertTrue(indexes.contains("idx_properties_viewed"));
+                    assertTrue(indexes.contains("idx_properties_discovered_at"));
+                    assertTrue(indexes.contains("idx_locations_slug"));
+                    assertTrue(indexes.contains("idx_prop_attr_price_amount"));
+                    assertTrue(indexes.contains("idx_prop_attr_area_sqm"));
+                    assertTrue(indexes.contains("idx_prop_images_property_id"));
+                    assertTrue(indexes.contains("idx_price_history_prop_date"));
+                    assertTrue(indexes.contains("idx_price_history_delta"));
+                    assertTrue(indexes.contains("idx_status_log_prop_date"));
+                }
             }
         }
     }
@@ -78,43 +78,43 @@ class SqliteDatabaseManagerTest {
     @DisplayName("Liquibase naplózza a lefutott changeSeteket a DATABASECHANGELOG táblába")
     void testLiquibaseChangelogAudit() throws SQLException {
         Path dbFile = tempDir.resolve("test_liquibase_audit.db");
-        SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile);
+        try (SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile)) {
+            try (Connection conn = dbManager.getConnection();
+                 Statement stmt = conn.createStatement()) {
 
-        try (Connection conn = dbManager.getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            // DATABASECHANGELOG és DATABASECHANGELOGLOCK táblák létezése
-            try (ResultSet rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table';")) {
-                var tables = new java.util.ArrayList<String>();
-                while (rs.next()) {
-                    tables.add(rs.getString(1).toUpperCase());
+                // DATABASECHANGELOG és DATABASECHANGELOGLOCK táblák létezése
+                try (ResultSet rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table';")) {
+                    var tables = new java.util.ArrayList<String>();
+                    while (rs.next()) {
+                        tables.add(rs.getString(1).toUpperCase());
+                    }
+                    assertTrue(tables.contains("DATABASECHANGELOG"), "DATABASECHANGELOG táblának léteznie kell");
+                    assertTrue(tables.contains("DATABASECHANGELOGLOCK"), "DATABASECHANGELOGLOCK táblának léteznie kell");
                 }
-                assertTrue(tables.contains("DATABASECHANGELOG"), "DATABASECHANGELOG táblának léteznie kell");
-                assertTrue(tables.contains("DATABASECHANGELOGLOCK"), "DATABASECHANGELOGLOCK táblának léteznie kell");
-            }
 
-            // Lefutott changeSetek ellenőrzése
-            try (ResultSet rs = stmt.executeQuery("SELECT ID, AUTHOR FROM DATABASECHANGELOG ORDER BY ORDEREXECUTED;")) {
-                var changeSetIds = new java.util.ArrayList<String>();
-                while (rs.next()) {
-                    changeSetIds.add(rs.getString("ID"));
-                    assertEquals("ingatlan-team", rs.getString("AUTHOR"));
+                // Lefutott changeSetek ellenőrzése
+                try (ResultSet rs = stmt.executeQuery("SELECT ID, AUTHOR FROM DATABASECHANGELOG ORDER BY ORDEREXECUTED;")) {
+                    var changeSetIds = new java.util.ArrayList<String>();
+                    while (rs.next()) {
+                        changeSetIds.add(rs.getString("ID"));
+                        assertEquals("ingatlan-team", rs.getString("AUTHOR"));
+                    }
+                    assertTrue(changeSetIds.contains("001-create-properties-table"));
+                    assertTrue(changeSetIds.contains("001-create-properties-indexes"));
+                    assertTrue(changeSetIds.contains("001-create-search-config-table"));
+                    assertTrue(changeSetIds.contains("001-create-search-runs-table"));
+                    assertTrue(changeSetIds.contains("002-create-portals-table"));
+                    assertTrue(changeSetIds.contains("002-create-locations-table"));
+                    assertTrue(changeSetIds.contains("002-create-3nf-properties-table"));
+                    assertTrue(changeSetIds.contains("002-create-property-attributes-table"));
+                    assertTrue(changeSetIds.contains("002-create-property-images-table"));
+                    assertTrue(changeSetIds.contains("002-create-3nf-indexes"));
+                    assertTrue(changeSetIds.contains("003-create-property-price-history-table"));
+                    assertTrue(changeSetIds.contains("003-create-price-history-indexes"));
+                    assertTrue(changeSetIds.contains("003-create-property-status-log-table"));
+                    assertTrue(changeSetIds.contains("003-create-status-log-indexes"));
+                    assertTrue(changeSetIds.contains("003-seed-initial-price-history-and-status"));
                 }
-                assertTrue(changeSetIds.contains("001-create-properties-table"));
-                assertTrue(changeSetIds.contains("001-create-properties-indexes"));
-                assertTrue(changeSetIds.contains("001-create-search-config-table"));
-                assertTrue(changeSetIds.contains("001-create-search-runs-table"));
-                assertTrue(changeSetIds.contains("002-create-portals-table"));
-                assertTrue(changeSetIds.contains("002-create-locations-table"));
-                assertTrue(changeSetIds.contains("002-create-3nf-properties-table"));
-                assertTrue(changeSetIds.contains("002-create-property-attributes-table"));
-                assertTrue(changeSetIds.contains("002-create-property-images-table"));
-                assertTrue(changeSetIds.contains("002-create-3nf-indexes"));
-                assertTrue(changeSetIds.contains("003-create-property-price-history-table"));
-                assertTrue(changeSetIds.contains("003-create-price-history-indexes"));
-                assertTrue(changeSetIds.contains("003-create-property-status-log-table"));
-                assertTrue(changeSetIds.contains("003-create-status-log-indexes"));
-                assertTrue(changeSetIds.contains("003-seed-initial-price-history-and-status"));
             }
         }
     }
@@ -123,10 +123,10 @@ class SqliteDatabaseManagerTest {
     @DisplayName("A Liquibase migráció idempotens: többszöri futtatás sem okoz hibát vagy duplikációt")
     void testLiquibaseIdempotency() {
         Path dbFile = tempDir.resolve("test_liquibase_idempotent.db");
-        SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile);
-
-        // Második futtatás - nem dobhat hibát
-        assertDoesNotThrow(dbManager::runLiquibaseMigrations);
+        try (SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile)) {
+            // Második futtatás - nem dobhat hibát
+            assertDoesNotThrow(dbManager::runLiquibaseMigrations);
+        }
     }
 
     @Test
@@ -141,13 +141,13 @@ class SqliteDatabaseManagerTest {
         }
 
         // Ezután a SqliteDatabaseManager ráereszti a Liquibase-t
-        SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile);
-
-        try (Connection conn = dbManager.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM DATABASECHANGELOG;")) {
-            assertTrue(rs.next());
-            assertTrue(rs.getInt(1) > 0, "A changeSeteknek auditálva kell lenniük még meglévő séma esetén is");
+        try (SqliteDatabaseManager dbManager = new SqliteDatabaseManager(dbFile)) {
+            try (Connection conn = dbManager.getConnection();
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM DATABASECHANGELOG;")) {
+                assertTrue(rs.next());
+                assertTrue(rs.getInt(1) > 0, "A changeSeteknek auditálva kell lenniük még meglévő séma esetén is");
+            }
         }
     }
 }

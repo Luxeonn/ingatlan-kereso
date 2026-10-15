@@ -26,6 +26,13 @@ class SqliteConfigStorageTest {
         configStorage = new SqliteConfigStorage(dbManager);
     }
 
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        if (dbManager != null) {
+            dbManager.close();
+        }
+    }
+
     @Test
     @DisplayName("Alapértelmezett konfigurációt ad vissza, ha még nincs mentve")
     void testGetDefaultCriteria() {

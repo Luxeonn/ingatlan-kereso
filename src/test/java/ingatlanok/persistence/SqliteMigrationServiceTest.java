@@ -42,6 +42,13 @@ class SqliteMigrationServiceTest {
         migrationService = new SqliteMigrationService(dbManager, GSON);
     }
 
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        if (dbManager != null) {
+            dbManager.close();
+        }
+    }
+
     @Test
     @DisplayName("Automatikus migráció JSON fájlokból az üres SQLite adatbázisba (Zero Data Loss)")
     void testMigrationFromLegacyJson() throws IOException {
