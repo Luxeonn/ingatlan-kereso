@@ -9,7 +9,7 @@ interface MarketStatsBarProps {
 }
 
 export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
-  const { setDiagnosticsModalOpen } = useUiStore()
+  const { setDiagnosticsModalOpen, setDashboardTab } = useUiStore()
 
   if (!data) return null
 
@@ -48,7 +48,11 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
       </div>
 
       {/* 3. Average Price */}
-      <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
+      <div
+        onClick={() => setDashboardTab('analytics')}
+        className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md cursor-pointer transition-all hover:border-amber-500/50"
+        title="Kattints a részletes piaci árdiagramokhoz"
+      >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
           <DollarSign className="h-5 w-5" />
         </div>
@@ -61,7 +65,11 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
       </div>
 
       {/* 4. Average Price per m² */}
-      <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
+      <div
+        onClick={() => setDashboardTab('analytics')}
+        className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md cursor-pointer transition-all hover:border-purple-500/50"
+        title="Kattints a részletes fajlagos m² árdiagramokhoz"
+      >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
           <Ruler className="h-5 w-5" />
         </div>
