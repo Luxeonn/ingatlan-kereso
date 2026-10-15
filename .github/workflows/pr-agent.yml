@@ -1,0 +1,51 @@
+name: AI PR Reviewer (Qodo PR-Agent)
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+    branches:
+      - main
+      - develop
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  pr-agent:
+    name: Run AI PR Reviewer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/')) }}
+
+    steps:
+      - name: Verify AI Credentials Availability
+        id: credentials-check
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_KEY" ] || [ -n "$ANTHROPIC_KEY" ] || [ -n "$QODO_API_KEY" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+            echo "✅ AI Reviewer credentials detected."
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No AI Reviewer API key (OPENAI_KEY, ANTHROPIC_KEY, or QODO_API_KEY) found in secrets. Skipping automated review safely."
+          fi
+
+      - name: Execute Qodo PR-Agent
+        if: steps.credentials-check.outputs.has_key == 'true'
+        uses: Codium-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
