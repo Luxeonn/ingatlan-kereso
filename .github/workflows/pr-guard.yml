@@ -7,6 +7,10 @@ on:
       - main
       - develop
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   pull-requests: read
   contents: read
@@ -15,6 +19,7 @@ jobs:
   pr-compliance:
     name: Validate PR Standards & Branch Conventions
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -153,3 +158,13 @@ jobs:
           fi
 
           echo "✅ Minden érintett szakterület rendelkezik a kijelölt Agent jóváhagyásával."
+
+      - name: Report PR Compliance Summary
+        if: always()
+        run: |
+          echo "### 🛡️ PR & Branch Protection Guard Eredmények" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR Cím & Branch Szabályzat:** ${{ job.status == 'success' && '✅ Megfelelt (Conventional Commits & Prefix)' || '❌ Nem felelt meg' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Thematic Agent Approval Gate:** ${{ job.status == 'success' && '✅ Jóváhagyva (1-mondatos szakmai indoklással)' || '❌ Hiányos vagy elutasítva' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a Java CI és a PR Guard is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ág:** \`${{ github.head_ref }}\` -> \`${{ github.base_ref }}\`" >> $GITHUB_STEP_SUMMARY
+

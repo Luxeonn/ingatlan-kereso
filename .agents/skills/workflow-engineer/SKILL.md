@@ -1,97 +1,72 @@
 ---
 name: workflow-engineer
 description: >-
-  GitHub Actions és CI/CD automatizálási mérnök és workflow specialista. Használd ezt a skillt
-  professzionális, biztonságos, optimalizált és megbízható GitHub Actions munkafolyamatok (.github/workflows/),
-  automatizált teszt- és release-folyamatok, CI kapuk, PR guardok, ütemezett botok vagy egyedi
-  composite actionök tervezéséhez és implementálásához.
+  CI/CD automation and GitHub Actions specialist. Use this skill to design, harden, and optimize
+  GitHub Actions workflows (.github/workflows/), maintain PR guard policies, enforce quality gates,
+  and automate container build and publishing processes.
 metadata:
   icon: terminal
 ---
 
-# Workflow Engineer & GitHub Actions Specialista Skill
+# Workflow Engineer & GitHub Actions Specialist Skill
 
-Ez a skill a professzionális **GitHub Actions CI/CD munkafolyamatok**, automatizált ellenőrző kapuk, konténer-publikálási pipeline-ok és biztonsági mechanizmusok tervezési és implementációs irányelveit rögzíti.
+This skill defines standards for robust, secure, and cost-efficient **GitHub Actions CI/CD workflows** for **ingatlan-kereso**.
 
 ---
 
-## 1. Alapelvek és Professzionális Tervezési Szabályok
+## 1. Core Principles & Hardening Standards
 
-### 1.1 Biztonság és Jogosultságkezelés (Least Privilege Principle)
-* **Explicit `permissions` blokk:** Minden workflow-ban és job-ban kötelezően deklaráld a minimálisan szükséges jogosultságokat (pl. `permissions: contents: read`, `packages: write`, `pull-requests: write`). Soha ne hagyatkozz a repó alapértelmezett, túl tág engedélyeire!
-* **Shell Injekció Megelőzése:** Soha ne használj közvetlen `${{ github.event... }}` behelyettesítést a `run:` blokkok szkriptjeiben!
-  - ❌ **Rossz (Sérülékeny):**
-    ```yaml
-    run: echo "PR cím: ${{ github.event.pull_request.title }}"
-    ```
-  - ✅ **Helyes (Biztonságos):**
-    ```yaml
-    env:
-      PR_TITLE: ${{ github.event.pull_request.title }}
-    run: echo "PR cím: $PR_TITLE"
-    ```
-* **Titkok és Tokenek védelme:** Érzékeny adatokat és tokeneket (`GITHUB_TOKEN`) kizárólag a `secrets.*` kontextusból és környezeti változóként adj át.
+### 1.1 Security & Least Privilege
+* **Explicit `permissions` Block:** Declare minimal required permissions per workflow and job (e.g., `contents: read`, `packages: write`).
+* **Shell Injection Prevention:** Never interpolate untrusted GitHub event contexts directly in `run:` scripts. Pass them via environment variables:
+  ```yaml
+  env:
+    PR_TITLE: ${{ github.event.pull_request.title }}
+  run: echo "PR title: $PR_TITLE"
+  ```
+* **Secret Protection:** Pass sensitive credentials only from `secrets.*` into environment variables.
 
-### 1.2 Teljesítmény és Költséghatékonyság
-* **Concurrency és Cancel-in-Progress:** Új commit pusholásakor a korábbi, még futó felesleges futásokat azonnal állítsd le:
+### 1.2 Pipeline Efficiency & Concurrency
+* **Concurrency Management:** Cancel redundant in-progress runs when a new commit is pushed:
   ```yaml
   concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
   ```
-* **Intelligens Gyorstárazás (Caching):**
-  - Maven: `actions/setup-java` beépített `cache: maven`.
-  - Docker Buildx: `cache-from: type=gha` és `cache-to: type=gha,mode=max`.
-* **Időkorlátok (Timeouts):** Minden job-hoz rendelj hozzá explicit `timeout-minutes` értéket (alapértelmezetten max. 10-15 perc), megakadályozva a beragadó végtelen ciklusokat és action-perc pazarlást.
+* **Job Timeouts:** Always declare `timeout-minutes` (typically 10-15 minutes) to prevent runaway jobs.
+* **Intelligent Caching:** Utilize Maven cache (`actions/setup-java` with `cache: maven`) and Docker Buildx cache (`cache-from: type=gha`, `cache-to: type=gha,mode=max`).
 
-### 1.3 Megfigyelhetőség és Lépés-összefoglalók ($GITHUB_STEP_SUMMARY)
-Minden jelentős workflow tartalmazzon formázott Markdown jelentést a `$GITHUB_STEP_SUMMARY` fájlba írva:
-- Sikeres és sikertelen lépések összefoglalása táblázatban.
-- Publikált Docker image tagek és sha256 digestek.
-- JaCoCo tesztlefedettségi mutatók.
-- Érintett komponensek és jóváhagyási kapuk állapota.
+### 1.3 Observability
+* Every workflow must write a structured markdown status summary to `$GITHUB_STEP_SUMMARY`.
 
 ---
 
-## 2. Kulcs Munkafolyamat Típusok és Felépítésük
+## 2. Key Workflow Types
 
-### 2.1 PR Guard & Minőségbiztosítási Kapu (`pr-guard.yml`)
-* **Trigger:** `pull_request` (opened, edited, synchronize, reopened) `main` és `develop` célágakra.
-* **Feladatok:**
-  1. Conventional Commits PR cím ellenőrzés (`feat:`, `fix:`, stb.).
-  2. Forráság elnevezés szabályossága (`feature/*`, `fix/*`, `chore/*`).
-  3. PR leírás minimális tartalmi hossza és issue lezárási kulcsszavak (`Closes #<id>`).
-  4. **Thematic Agent Approval Gate:** A git diff alapján azonosítja a módosított területeket, és megköveteli a megfelelő AI szakértői ágens jóváhagyását a PR leírásában.
+### 2.1 PR & Branch Protection Guard (`pr-guard.yml`)
+* **Trigger:** `pull_request` on `main` and `develop`.
+* **Checks:** Conventional Commits title, branch prefix convention, linked issues, and Thematic Agent Approval Gate.
+* **Gate:** Enforces that the PR is **strictly mergeable ONLY when all checks are green**.
 
-### 2.2 CI Építés és Teszt Pipeline (`ci.yml`)
-* **Trigger:** `push` és `pull_request` események.
-* **Feladatok:**
-  1. JDK 21 beállítása és Maven cache.
-  2. Párhuzamos fordítás és egységtesztek (`mvn test package`).
-  3. JaCoCo lefedettség ellenőrzése.
-  4. Összefoglaló generálása a GitHub Actions felületén.
+### 2.2 Continuous Integration (`ci.yml`)
+* **Trigger:** `push` and `pull_request` on `main` and `develop`.
+* **Jobs:**
+  1. Frontend build, TypeScript validation, and Vitest suite execution.
+  2. Maven clean, test, and package (Java 21).
+  3. Headless runtime smoke test (boot server, verify root div, validate live JS bundle with `node --check`, check CORS preflight).
 
-### 2.3 Konténer Build & GHCR Publish (`docker-publish.yml`)
-* **Trigger:** `push` a `develop` ágra, release tag (`v*.*.*`), vagy `workflow_dispatch`.
-* **Feladatok:**
-  1. Bejelentkezés a GitHub Container Registry-be (`ghcr.io`) `GITHUB_TOKEN`-nel (`packages: write`).
-  2. Docker Buildx beállítása és GHA réteggyorsítótárazás.
-  3. Szigorú tagelési stratégia:
-     - `develop` ágról: `ghcr.io/<repo>:latest` (vagy `:dev`).
-     - Release tag vagy fix verzió: `ghcr.io/<repo>:<version>` és `:<major>.<minor>`.
-     - Explicit védelem a lebegő `latest` tag felülírására release-eknél.
-  4. Részletes összefoglaló a `$GITHUB_STEP_SUMMARY`-ban az image digesttel és futási adatokkal.
-
-A részletes, azonnal használható munkafolyamat sablonokat a [Workflow Sablonok Referenciájában](./references/workflow-templates.md) találod.
+### 2.3 Container Build & GHCR Publish (`docker-publish.yml`)
+* **Trigger:** `push` to `develop`, release tags (`v*`), or `workflow_dispatch`.
+* **Tagging Strategy:** `develop` -> `:latest`; tags/releases -> exact version tag (prohibits floating tag overwrite).
 
 ---
 
-## 3. Workflow Mérnök Ellenőrző Lista (Engineer's Checklist)
+## 3. Workflow Engineer Checklist
 
-- [ ] **Biztonságos bemenet:** Minden dinamikus változó (`github.event.*`) `env:` változón keresztül érkezik, shell injection kizárva?
-- [ ] **Minimális jogosultság:** A `permissions` blokk explicit meg van adva (pl. `contents: read`, `packages: write`)?
-- [ ] **Concurrency védelem:** Be van állítva a `cancel-in-progress: true`?
-- [ ] **Időkorlát:** Minden job rendelkezik `timeout-minutes` beállítással?
-- [ ] **Gyorstárazás:** A Maven és Docker Buildx rétegek cache-elve vannak?
-- [ ] **Docker verziózás:** Szigorú tagelés történik, elkerülve a lebegő latest tag nem szándékolt felülírását?
-- [ ] **Tiszta kimenet:** A workflow hibája esetén az ok egyértelműen megjelenik a `$GITHUB_STEP_SUMMARY`-ban?
+- [ ] All variables passed via `env:` (no shell injection risk).
+- [ ] Explicit `permissions` defined.
+- [ ] `concurrency` with `cancel-in-progress: true` enabled.
+- [ ] Explicit `timeout-minutes` defined for each job.
+- [ ] Caching configured for Maven and Docker Buildx.
+- [ ] Only mergeable when 100% of pipeline checks are green.
+- [ ] Clear status reported to `$GITHUB_STEP_SUMMARY`.
