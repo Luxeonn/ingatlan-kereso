@@ -12,17 +12,17 @@ metadata:
 
 # Adatbázis és Perzisztencia Specialista Skill
 
-Ez a skill a tárolási architektúra, a beágyazott relációs SQLite perzisztencia réteg, az atomi I/O műveletek, a duplikátumszűrés és az adatbázis-optimalizáció alapelveit és gyakorlatát rögzíti az **ingatlan-kereso** alkalmazáshoz.
+Ez a skill a tárolási architektúra, a beágyazott NoSQL dokumentum adatbázis (Nitrite DB + MVStore) perzisztencia réteg, az atomi I/O műveletek, a duplikátumszűrés és az adatbázis-optimalizáció alapelveit és gyakorlatát rögzíti az **ingatlan-kereso** alkalmazáshoz.
 
 ---
 
-## 1. Megvalósult Tárolási Architektúra (SQLite & Leválasztott Perzisztencia)
+## 1. Megvalósult Tárolási Architektúra (Nitrite NoSQL & Leválasztott Perzisztencia)
 
 Az alkalmazás az absztrakt `ListingStorage` és `ConfigStorage` interfészekre épülő, leválasztott perzisztencia modellt valósít meg az `ingatlanok.persistence` csomagban:
 
 ```text
 data/
-├── ingatlanok.db            # Elsődleges relációs SQLite adatbázis (WAL mód, indexek)
+├── ingatlanok_nosql.db      # Elsődleges beágyazott NoSQL adatbázis (Nitrite DB + MVStore tömörítéssel)
 ├── config.json              # Aktuális keresési konfiguráció
 └── cities/                  # Visszafelé kompatibilis JSON export és fallback
     ├── budapest.json
@@ -31,21 +31,19 @@ data/
 ```
 
 ### 1.1 Fő Implementációk
-1. **`SqliteListingStorage` (Elsődleges Tároló):**
-   - Beágyazott ACID relációs adatbázis `org.xerial:sqlite-jdbc` meghajtóval.
-   - Magas párhuzamosságú olvasás és írás **WAL (Write-Ahead Logging)** módban (`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;`).
-   - B-Tree indexelés az azonnali szűréshez és duplikátum-ellenőrzéshez:
-     - `idx_listings_city` a városszintű lekérdezésekhez.
-     - `idx_listings_portal` a portálstatisztikákhoz.
-     - `idx_listings_discovered_at` az időrendi rendezéshez.
-   - Batch mentés tranzakcióban (`connection.setAutoCommit(false)`), minimalizálva a lemezre írási overheadet.
-2. **`JsonFileListingStorage` (Atomi Fájlalapú Fallback):**
-   - Kétszintű JSON struktúra (`data/cities/*.json` és aggregált napló).
-   - `ReentrantReadWriteLock` védett szálbiztos hozzáférés.
-   - Szigorúan atomi lemezre írás (`.tmp` + `StandardCopyOption.ATOMIC_MOVE`).
-3. **`IngatlanRepository` (Singleton Facade):**
+1. **`NitriteListingStorage` (Elsődleges Tároló):**
+   - Beágyazott dokumentum-orientált NoSQL adatbázis `org.dizitart:nitrite` és `nitrite-mvstore-adapter` motorral.
+   - Magas párhuzamosságú olvasás és írás MVStore tömörített tárolóval.
+   - B-Tree indexelés az azonnali szűréshez és O(1) duplikátum-ellenőrzéshez:
+     - Egyedi (Unique) B-Tree index az `url`-re (garantált kanonikus integritás).
+     - Non-unique indexek: `city`, `normalizedCity`, `portal`, `discoveredAt`.
+   - Idősoros ártörténet (`price_history`) és státusznapló (`status_log`) külön NoSQL kollekciókban.
+2. **`NitriteConfigStorage`:**
+   - Keresési konfigurációk és rendszerbeállítások NoSQL dokumentumként való tárolása.
+3. **`NoSqlMigrationService`:**
+   - Automatikus, adatvesztésmentes migráció régebbi városszintű JSON fájlokból az új NoSQL adatbázisba.
+4. **`IngatlanRepository` (Singleton Facade):**
    - Visszafelé kompatibilis átjáró a felsőbb rétegek felé, amely transzparensen delegál a `ListingStorage` és `ConfigStorage` implementációkra.
-   - Automatikus migráció induláskor a régebbi JSON fájlokból az új SQLite adatbázisba.
 
 ---
 
