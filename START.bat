@@ -31,19 +31,14 @@ if defined JAVA_HOME (
     echo [OK] Rendszer Java használata.
 )
 
-rem 2. Maven bináris felderítése
-set "MVN_CMD=mvn"
-where mvn >nul 2>&1
-if errorlevel 1 (
-    if exist "C:\Program Files\JetBrains\IntelliJ IDEA 2025.2.3\plugins\maven\lib\maven3\bin\mvn.cmd" (
-        set "MVN_CMD=C:\Program Files\JetBrains\IntelliJ IDEA 2025.2.3\plugins\maven\lib\maven3\bin\mvn.cmd"
-    ) else (
-        echo [HIBA] Nem található Apache Maven a rendszerben!
-        pause
-        exit /b 1
-    )
+rem 2. Gradle Wrapper felderítése
+set "GRADLEW_CMD=.\gradlew.bat"
+if not exist "gradlew.bat" (
+    echo [HIBA] Nem található gradlew.bat a gyökérkönyvtárban!
+    pause
+    exit /b 1
 )
-echo [OK] Maven parancs: %MVN_CMD%
+echo [OK] Gradle parancs: %GRADLEW_CMD%
 echo.
 
 rem 3. Alkalmazás indítása
@@ -53,10 +48,10 @@ echo Web Dashboard elérhetőség: http://localhost:8080
 echo ==============================================================================
 echo.
 
-if exist "target\ingatlan-1.0.jar" (
-    java -jar target\ingatlan-1.0.jar %*
+if exist "build\libs\ingatlan-1.0.jar" (
+    java -jar build\libs\ingatlan-1.0.jar %*
 ) else (
-    "%MVN_CMD%" compile exec:java %*
+    call %GRADLEW_CMD% run %*
 )
 
 if %ERRORLEVEL% NEQ 0 (
