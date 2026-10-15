@@ -110,11 +110,14 @@ jobs:
             fi
           fi
 
-          # 2. UI & Dashboard SPA (ui-designer)
+          # 2. UI & Dashboard SPA (ui-designer & ui-integrity-guard)
           if echo "$CHANGED_FILES" | grep -qE "WebDashboardHtml\.java|static/|\.css|\.js"; then
-            echo "-> Érintett téma: UI és Dashboard SPA (ui-designer szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI|ui-designer)"; then
+            echo "-> Érintett téma: UI és Dashboard SPA (ui-designer és ui-integrity-guard szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI Designer|ui-designer)"; then
               MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🎨 UI Designer Agent (\`ui-designer\`): Frontend design, reszponzivitás és komponensek jóváhagyása szükséges."
+            fi
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI Integrity|ui-integrity-guard|Integrity Guard)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ UI Integrity Guard Agent (\`ui-integrity-guard\`): Frontend szintaxis, escape-elési integritás (node --check) és DOM ID konzisztencia jóváhagyása szükséges."
             fi
           fi
 

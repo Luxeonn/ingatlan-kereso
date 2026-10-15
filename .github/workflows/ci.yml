@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Test (Java 21)
+    name: Build, Test & UI Integrity Guard (Java 21)
     runs-on: ubuntu-latest
 
     steps:
@@ -30,14 +30,74 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Set up Node.js 20 (JavaScript Validator Engine)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Compile and Test with Maven
         run: mvn --batch-mode --no-transfer-progress clean test package
+
+      - name: Headless Application & Web UI Runtime Smoke Test
+        run: |
+          echo "=== 🚀 Web Dashboard és Szerver Runtime Smoke Teszt Indítása ==="
+          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 java -jar target/ingatlan-1.0.jar &
+          APP_PID=$!
+          echo "Szerver elindítva a háttérben PID: $APP_PID"
+
+          # Várakozás a szerver felszállására (max 15 másodperc)
+          READY=0
+          for i in {1..15}; do
+            if curl -s -f http://127.0.0.1:8099/api/config > /dev/null 2>&1; then
+              READY=1
+              echo "✅ A beágyazott WebServer sikeresen elindult a 8099-es porton ($i. másodpercben)."
+              break
+            fi
+            sleep 1
+          done
+
+          if [ $READY -ne 1 ]; then
+            echo "::error::A beágyazott WebServer nem indult el 15 másodpercen belül!"
+            kill -9 $APP_PID 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "=== 🔍 Végpontok és Frontend Smoke Ellenőrzése ==="
+          # 1. Dashboard HTML letöltése és méretvizsgálata
+          curl -s -f http://127.0.0.1:8099/ > /tmp/dashboard.html
+          HTML_SIZE=$(wc -c < /tmp/dashboard.html)
+          echo "Dashboard HTML mérete: $HTML_SIZE bájt"
+          if [ $HTML_SIZE -lt 5000 ]; then
+            echo "::error::A kiszolgált Dashboard HTML túl kicsi vagy csonka!"
+            kill -9 $APP_PID 2>/dev/null || true
+            exit 1
+          fi
+
+          # 2. JavaScript kinyerése a valós szerver HTML válaszából és Node.js V8 szintaxisvizsgálat
+          sed -n '/<script>/,/<\/script>/p' /tmp/dashboard.html | sed '1d;$d' > /tmp/dashboard_live.js
+          node --check /tmp/dashboard_live.js
+          echo "✅ A valós szerver által kiszolgált JavaScript kód hibátlan (node --check pass)!"
+
+          # 3. Alapvető REST API végpontok szerződés-ellenőrzése
+          echo "REST API végpontok ellenőrzése..."
+          curl -s -f http://127.0.0.1:8099/api/config | grep -q "cities" || { echo "::error::/api/config nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          curl -s -f http://127.0.0.1:8099/api/portals | grep -q "id" || { echo "::error::/api/portals nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          curl -s -f http://127.0.0.1:8099/api/cities | grep -q "Budapest" || { echo "::error::/api/cities nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+
+          echo "✅ Minden kritikus REST API végpont működőképes."
+
+          # Szerver rendezett leállítása
+          kill -15 $APP_PID 2>/dev/null || true
+          wait $APP_PID 2>/dev/null || true
+          echo "✅ Headless Smoke Teszt sikeresen befejeződött."
 
       - name: Report Build Summary
         if: always()
         run: |
-          echo "### 🚀 CI Építés és Teszt Eredmények" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 CI Építés, Teszt és UI Integritási Eredmények" >> $GITHUB_STEP_SUMMARY
           echo "- **Java Verzió:** 21 LTS (Eclipse Temurin)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Állapot:** ${{ job.status == 'success' && '✅ Sikeres' || '❌ Sikertelen' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js Validator:** 20 LTS (V8 JavaScript Check)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build & Tesztek Állapota:** ${{ job.status == 'success' && '✅ Sikeres (Pass)' || '❌ Sikertelen (Fail)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **UI & Smoke Integritás:** ${{ job.status == 'success' && '🛡️ Garantált (Zero-SyntaxError)' || '⚠️ Hibás' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

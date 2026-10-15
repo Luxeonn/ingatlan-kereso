@@ -1496,7 +1496,7 @@ public class WebDashboardHtml {
                             <button type="button" class="btn-text-link" onclick="deselectAllPortals()" title="Minden weboldal kijelölésének törlése">✕ Mindet töröl</button>
                         </div>
                     </div>
-                    <div class="portal-checkboxes">
+                    <div class="portal-checkboxes" id="portal-container">
                         <label class="portal-chip">
                             <input type="checkbox" id="portal-dh" value="dh" checked> Duna House
                         </label>
