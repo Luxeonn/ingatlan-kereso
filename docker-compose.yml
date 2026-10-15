@@ -12,12 +12,12 @@ services:
       - SERVER_PORT=8080
       - NO_BROWSER=true
     volumes:
-      - ingatlan-data:/app/data
-      - ingatlan-logs:/app/logs
+      - ingatlan_data:/app/data
+      - ingatlan_logs:/app/logs
     restart: unless-stopped
 
 volumes:
-  ingatlan-data:
-    name: ingatlan_db_data
-  ingatlan-logs:
-    name: ingatlan_logs_data
+  ingatlan_data:
+    name: ingatlan_data
+  ingatlan_logs:
+    name: ingatlan_logs

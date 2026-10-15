@@ -38,7 +38,10 @@ USER appuser:appuser
 ENV SERVER_HOST=0.0.0.0 \
     SERVER_PORT=8080 \
     NO_BROWSER=true \
-    JAVA_TOOL_OPTIONS="-Djava.awt.headless=true"
+    JAVA_TOOL_OPTIONS="-Djava.awt.headless=true -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+# Declarative volumes for zero-config persistence
+VOLUME ["/app/data", "/app/logs"]
 
 EXPOSE 8080
 

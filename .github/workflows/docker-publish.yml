@@ -111,13 +111,19 @@ jobs:
           echo "#### 🚀 Gyorsindítás a konténerrel" >> "$GITHUB_STEP_SUMMARY"
           if [ "$REF_NAME" = "develop" ]; then
             echo '```bash' >> "$GITHUB_STEP_SUMMARY"
-            echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
-            echo "docker run -d -p 8080:8080 -v ./data:/app/data -v ./logs:/app/logs ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
+            echo "# Zéró-konfigurációs indítás (belső kötetek automatikus felcsatolásával):" >> "$GITHUB_STEP_SUMMARY"
+            echo "docker run -d -p 8080:8080 --name ingatlan-kereso ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "# Vagy menedzselt nevesített kötetekkel:" >> "$GITHUB_STEP_SUMMARY"
+            echo "docker run -d -p 8080:8080 --name ingatlan-kereso -v ingatlan_data:/app/data -v ingatlan_logs:/app/logs ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
           else
             FIRST_TAG=$(echo "$TAGS" | head -n 1)
             echo '```bash' >> "$GITHUB_STEP_SUMMARY"
-            echo "docker pull $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
-            echo "docker run -d -p 8080:8080 -v ./data:/app/data -v ./logs:/app/logs $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
+            echo "# Zéró-konfigurációs indítás:" >> "$GITHUB_STEP_SUMMARY"
+            echo "docker run -d -p 8080:8080 --name ingatlan-kereso $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "# Vagy menedzselt nevesített kötetekkel:" >> "$GITHUB_STEP_SUMMARY"
+            echo "docker run -d -p 8080:8080 --name ingatlan-kereso -v ingatlan_data:/app/data -v ingatlan_logs:/app/logs $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi

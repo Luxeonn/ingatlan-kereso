@@ -136,13 +136,23 @@ mvn compile exec:java "-Dexec.args=--cli"
 #### 5. Konténerizált indítás Dockerrel és GHCR-rel (GitHub Container Registry)
 A projekt automatikusan publikált, azonnal futtatható és biztonságosan minimális futtatókörnyezetet használó (non-root) Docker konténerképeket biztosít a **GitHub Container Registry (GHCR)** felületén keresztül.
 
-##### A) Develop (legfrissebb fejlesztői tesztverzió):
+##### A) Zéró-konfigurációs gyorsindítás (Zero-Config / Single `docker run`):
+A beépített `VOLUME` direktíváknak és előre beállított környezeti változóknak köszönhetően az alkalmazás egyetlen paranccsal, manuális mappakötések nélkül is azonnal futtatható. A Docker automatikusan menedzselt köteteket rendel hozzá, így az adatok újraindításkor is megmaradnak:
 ```bash
-# Legfrissebb konténer letöltése
-docker pull ghcr.io/luxeonn/ingatlan-kereso:latest
+# Legfrissebb konténer futtatása háttérben
+docker run -d -p 8080:8080 --name ingatlan-kereso ghcr.io/luxeonn/ingatlan-kereso:latest
+```
 
-# Futtatás háttérben helyi adatbázis és napló mappák csatolásával
-docker run -d -p 8080:8080 \
+Ha explicit nevesített köteteket (named volumes) vagy hoszt mappákat szeretnél használni:
+```bash
+# Futtatás dedikált nevesített kötetekkel (ajánlott Windows/Linux/macOS alatt)
+docker run -d -p 8080:8080 --name ingatlan-kereso \
+  -v ingatlan_data:/app/data \
+  -v ingatlan_logs:/app/logs \
+  ghcr.io/luxeonn/ingatlan-kereso:latest
+
+# Vagy lokális hoszt mappák közvetlen csatolásával:
+docker run -d -p 8080:8080 --name ingatlan-kereso \
   -v ./data:/app/data \
   -v ./logs:/app/logs \
   ghcr.io/luxeonn/ingatlan-kereso:latest
@@ -151,17 +161,13 @@ docker run -d -p 8080:8080 \
 ##### B) Main / Release (stabil fix verzió):
 A reprodukálhatóság és kiszámíthatóság érdekében a `main` ágon publikált stabil verziók fix címkével rendelkeznek:
 ```bash
-# Stabil fix verzió letöltése (pl. v1.0 vagy SemVer release)
-docker pull ghcr.io/luxeonn/ingatlan-kereso:v1.0
-
-# Futtatás fix verzióval
-docker run -d -p 8080:8080 \
-  -v ./data:/app/data \
-  -v ./logs:/app/logs \
+# Stabil fix verzió futtatása (pl. v1.0 vagy SemVer release)
+docker run -d -p 8080:8080 --name ingatlan-kereso \
   ghcr.io/luxeonn/ingatlan-kereso:v1.0
 ```
 
-##### C) Indítás Docker Compose-zal:
+##### C) Indítás Docker Compose-zal (Menedzselt nevesített kötetekkel):
+A `docker-compose.yml` automatikusan a Docker által felügyelt `ingatlan_data` és `ingatlan_logs` nevesített köteteket használja:
 ```bash
 # Indítás az előre konfigurált docker-compose.yml segítségével
 docker compose up -d
