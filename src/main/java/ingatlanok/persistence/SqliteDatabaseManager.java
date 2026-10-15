@@ -1,15 +1,22 @@
 package ingatlanok.persistence;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import ingatlanok.common.AppLogger;
-
+import ingatlanok.persistence.mapper.ListingRowMapper;
+import ingatlanok.persistence.mapper.PriceHistoryRowMapper;
+import ingatlanok.persistence.mapper.StatusLogRowMapper;
 import liquibase.Contexts;
 import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
+import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.sqlite3.SQLitePlugin;
+import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
-import java.io.IOException;
+import javax.sql.DataSource;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,15 +26,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Szálbiztos SQLite kapcsolat- és sémakezelő modul.
- * WAL (Write-Ahead Logging) mód, szigorú integritás, busy_timeout és Liquibase XML migráció.
+ * Szálbiztos SQLite kapcsolat-, medence- (HikariCP) és sémakezelő modul.
+ * WAL (Write-Ahead Logging) mód, szigorú integritás, busy_timeout, Liquibase migráció
+ * és beágyazott Jdbi v3 példánykezelés Virtual Threads kompatibilis módon.
  */
-public class SqliteDatabaseManager {
+public class SqliteDatabaseManager implements AutoCloseable {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(SqliteDatabaseManager.class);
     private static final String CHANGELOG_PATH = "db/changelog/db.changelog-master.xml";
+
     private final Path dbPath;
     private final String jdbcUrl;
+    private HikariDataSource dataSource;
+    private Jdbi jdbi;
 
     public SqliteDatabaseManager() {
         this(Paths.get("data", "ingatlanok.db"));
@@ -47,7 +58,18 @@ public class SqliteDatabaseManager {
         return jdbcUrl;
     }
 
+    public DataSource getDataSource() {
+        return dataSource;
+    }
+
+    public Jdbi getJdbi() {
+        return jdbi;
+    }
+
     public Connection getConnection() throws SQLException {
+        if (dataSource != null && !dataSource.isClosed()) {
+            return dataSource.getConnection();
+        }
         Connection conn = DriverManager.getConnection(jdbcUrl);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("PRAGMA foreign_keys = ON;");
@@ -63,20 +85,41 @@ public class SqliteDatabaseManager {
                 Files.createDirectories(parent);
             }
 
+            // 1. SQLite fájlszintű inicializálás és WAL mód bekapcsolása közvetlen kapcsolattal
             try (Connection conn = DriverManager.getConnection(jdbcUrl);
                  Statement stmt = conn.createStatement()) {
-
-                // SQLite optimalizációk és konkurens olvasás előkészítése
                 stmt.execute("PRAGMA journal_mode = WAL;");
                 stmt.execute("PRAGMA synchronous = NORMAL;");
                 stmt.execute("PRAGMA foreign_keys = ON;");
                 stmt.execute("PRAGMA busy_timeout = 5000;");
             }
 
-            // Liquibase deklaratív XML sémamigráció
+            // 2. HikariCP connection pool felépítése Virtual Threads kiszolgáláshoz
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl(jdbcUrl);
+            config.setDriverClassName("org.sqlite.JDBC");
+            config.setPoolName("Ingatlan-Hikari-" + Math.abs(dbPath.hashCode() % 10000));
+            config.setMaximumPoolSize(10);
+            config.setMinimumIdle(1);
+            config.setConnectionTimeout(10000);
+            config.setIdleTimeout(600000);
+            config.setMaxLifetime(1800000);
+            config.setConnectionInitSql("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
+
+            this.dataSource = new HikariDataSource(config);
+
+            // 3. Jdbi v3 példány inicializálása és pluginok regisztrálása
+            this.jdbi = Jdbi.create(this.dataSource);
+            this.jdbi.installPlugin(new SqlObjectPlugin());
+            this.jdbi.installPlugin(new SQLitePlugin());
+            this.jdbi.registerRowMapper(new ListingRowMapper());
+            this.jdbi.registerRowMapper(new PriceHistoryRowMapper());
+            this.jdbi.registerRowMapper(new StatusLogRowMapper());
+
+            // 4. Liquibase deklaratív XML sémamigráció
             runLiquibaseMigrations();
 
-            LOGGER.info("[SQLite] Adatbázis és séma sikeresen inicializálva: {}", dbPath);
+            LOGGER.info("[SQLite] Adatbázis, HikariCP medence és Jdbi v3 sikeresen inicializálva: {}", dbPath);
         } catch (Exception e) {
             LOGGER.error("Hiba az SQLite adatbázis inicializálásakor [{}]: {}", dbPath, e.getMessage(), e);
             throw new RuntimeException("SQLite inicializálási hiba: " + e.getMessage(), e);
@@ -92,6 +135,14 @@ public class SqliteDatabaseManager {
         } catch (Exception e) {
             LOGGER.error("Hiba a Liquibase migráció futtatásakor [{}]: {}", dbPath, e.getMessage(), e);
             throw new RuntimeException("Liquibase migrációs hiba: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void close() {
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+            LOGGER.info("[SQLite] HikariCP kapcsolatmedence lezárva: {}", dbPath);
         }
     }
 }
