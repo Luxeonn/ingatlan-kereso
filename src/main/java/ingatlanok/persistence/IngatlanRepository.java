@@ -26,14 +26,13 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     }
 
     private static ListingStorage createDefaultListingStorage() {
-        SqliteDatabaseManager dbManager = new SqliteDatabaseManager();
-        new SqliteMigrationService(dbManager).migrateIfEmpty();
-        return new SqliteListingStorage(dbManager);
+        NitriteDatabaseManager dbManager = NitriteDatabaseManager.getInstance(null);
+        return new NitriteListingStorage(dbManager);
     }
 
     private static ConfigStorage createDefaultConfigStorage() {
-        SqliteDatabaseManager dbManager = new SqliteDatabaseManager();
-        return new SqliteConfigStorage(dbManager);
+        NitriteDatabaseManager dbManager = NitriteDatabaseManager.getInstance(null);
+        return new NitriteConfigStorage(dbManager);
     }
 
     public static IngatlanRepository getInstance() {

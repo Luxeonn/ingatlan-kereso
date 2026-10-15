@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 21 LTS with Virtual Threads, SQLite WAL persistence, and a decoupled modern React 19 SPA frontend embedded into the fat JAR.
+**ingatlan-kereso** is built on Java 21 LTS with Virtual Threads, embedded NoSQL document database (Nitrite DB + MVStore) persistence, and a decoupled modern React 19 SPA frontend embedded into the fat JAR.
 
 ### Workflow Architecture
 
@@ -38,13 +38,11 @@ flowchart TD
         Orchestrator --> P1 & P2 & P3 & P4 & P5 & P6
     end
 
-    subgraph Persistence ["Persistence Layer (Decoupled)"]
+    subgraph Persistence ["Persistence Layer (NoSQL Document Store)"]
         Storage["ListingStorage / ConfigStorage"]
-        SQLite[("data/ingatlanok.db (WAL Mode)")]
-        JSON[("data/cities/*.json & config.json")]
+        Nitrite[("data/ingatlanok_nosql.db (Nitrite DB + MVStore)")]
         
-        Storage --> SQLite
-        Storage -.-> JSON
+        Storage --> Nitrite
     end
 
     Event -->|POST /api/search| HTTP
@@ -81,13 +79,12 @@ ingatlan-kereso/
 │   │   ├── PropertyDetails.java                 # Floor area m², room count, calculated price/m²
 │   │   ├── SearchCriteria.java                  # Multi-city search criteria
 │   │   └── SearchResult.java                    # Aggregated search results and metrics
-│   ├── persistence/                             # Layer 4: Decoupled persistence
+│   ├── persistence/                             # Layer 4: Decoupled NoSQL persistence
 │   │   ├── ListingStorage.java                  # Storage interface for listings
 │   │   ├── ConfigStorage.java                   # Storage interface for configuration
-│   │   ├── SqliteDatabaseManager.java           # SQLite connection pool & schema manager
-│   │   ├── SqliteListingStorage.java            # SQLite implementation with WAL mode & B-Tree indexes
-│   │   ├── JsonFileListingStorage.java          # Atomic JSON fallback storage
-│   │   ├── LegacyMigrationService.java          # Automatic migration from legacy formats
+│   │   ├── NitriteDatabaseManager.java          # Nitrite DB lifecycle & B-Tree index manager
+│   │   ├── NitriteListingStorage.java           # Nitrite NoSQL document store with O(1) deduplication
+│   │   ├── NitriteConfigStorage.java            # Nitrite NoSQL configuration storage
 │   │   └── IngatlanRepository.java              # Thread-safe Singleton facade
 │   ├── portal/                                  # Layer 3: Pluggable portal engines (OCP)
 │   │   ├── PortalEngine.java                    # Uniform portal engine interface
@@ -119,7 +116,7 @@ ingatlan-kereso/
 
 1. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`). Scraping I/O and REST requests never block carrier threads.
 2. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
-3. **Decoupled Persistence:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is SQLite in WAL mode (`journal_mode=WAL`), with B-Tree indexes for instantaneous lookups.
+3. **Decoupled NoSQL Persistence:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is embedded Nitrite DB in MVStore mode with automatic B-Tree indexes for instantaneous O(1) deduplication and criteria queries without relational SQL overhead.
 4. **Modern Decoupled Frontend:** React 19 + TypeScript + Vite SPA built to `frontend/dist/` and embedded into `src/main/resources/static/` during build.
 
 ---
