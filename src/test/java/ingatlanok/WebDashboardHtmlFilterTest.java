@@ -192,5 +192,33 @@ class WebDashboardHtmlFilterTest {
         assertTrue(html.contains("function resetSearchBoundsAndRerun()"), "JS-ben szerepelnie kell a resetSearchBoundsAndRerun függvénynek");
         assertTrue(html.contains("resetSearchBoundsAndRerun()"), "Empty state-nek tartalmaznia kell a hívást");
     }
+
+    @Test
+    void testHtmlScriptHasNoUnescapedMultilineStrings() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        int scriptStart = html.indexOf("<script>");
+        int scriptEnd = html.lastIndexOf("</script>");
+        assertTrue(scriptStart >= 0 && scriptEnd > scriptStart, "HTML-nek tartalmaznia kell a script blokkot");
+
+        String script = html.substring(scriptStart + 8, scriptEnd);
+
+        // Ellenőrizzük, hogy nincs-e elrontott join('\n') ami tényleges sortörést tartalmaz idézőjelek között
+        assertFalse(script.contains("join('\n')"), "Script nem tartalmazhat egyidézőjeles sortörést, join('\\n') szükséges");
+        assertTrue(script.contains("join('\\n')"), "Scriptnek join('\\n') formátumot kell használnia a másoláshoz");
+    }
+
+    @Test
+    void testHtmlContainsNormalizedSearchAndRobustPortalCheckboxRestoration() {
+        String html = WebDashboardHtml.getHtml(8080);
+        assertNotNull(html);
+
+        assertTrue(html.contains("function normalizeStr("), "JS-ben szerepelnie kell a normalizeStr ékezetmentesítő segédfüggvénynek");
+        assertTrue(html.contains("termNorm = normalizeStr("), "Város keresőnek normalizált kifejezést kell használnia");
+        assertTrue(html.contains("nameNorm = normalizeStr(c.name)"), "Város nevének normalizált összehasonlítása szükséges");
+        assertTrue(html.contains("document.querySelectorAll('.portal-checkboxes input[type=\"checkbox\"]').forEach"),
+                "Portálok visszaállításának robusztusan querySelectorAll-lal kell történnie");
+    }
 }
 
