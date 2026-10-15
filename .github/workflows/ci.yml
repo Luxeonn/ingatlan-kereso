@@ -30,10 +30,10 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Set up Node.js 20 (JavaScript Validator Engine)
+      - name: Set up Node.js 22 (JavaScript Validator Engine)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Build and Test Frontend SPA (React 19, TypeScript, Vitest)
         run: |
@@ -119,7 +119,7 @@ jobs:
         run: |
           echo "### 🚀 CI Építés, Teszt és UI Integritási Eredmények" >> $GITHUB_STEP_SUMMARY
           echo "- **Java Verzió:** 21 LTS (Eclipse Temurin)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Node.js Validator:** 20 LTS (V8 JavaScript Check)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js Validator:** 22 LTS (V8 JavaScript Check)" >> $GITHUB_STEP_SUMMARY
           echo "- **Build & Tesztek Állapota:** ${{ job.status == 'success' && '✅ Sikeres (Pass)' || '❌ Sikertelen (Fail)' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **UI & Smoke Integritás:** ${{ job.status == 'success' && '🛡️ Garantált (Zero-SyntaxError)' || '⚠️ Hibás' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY

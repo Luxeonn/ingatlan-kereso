@@ -1,6 +1,9 @@
 version: 2
 updates:
-  # Heti Maven függőségfrissítések figyelése (Java 21, Jsoup, Gson, JUnit5, JaCoCo)
+  # =========================================================================
+  # BACKEND: Java 21 / Maven függőségek (Spring, Jsoup, Gson, SQLite, JaCoCo stb.)
+  # Egyetlen összevont (grouped) Backend PR-ba gyűjti az összes frissítést
+  # =========================================================================
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
@@ -8,14 +11,45 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Budapest"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     target-branch: "develop"
     labels:
       - "dependencies"
+      - "backend"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      backend-dependencies:
+        patterns:
+          - "*"
 
-  # Heti GitHub Actions verziófrissítések figyelése (.github/workflows)
+  # =========================================================================
+  # FRONTEND: React 19 / TypeScript / Vite / Tailwind CSS SPA függőségek
+  # Egyetlen összevont (grouped) Frontend PR-ba gyűjti az összes frissítést
+  # =========================================================================
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Budapest"
+    open-pull-requests-limit: 1
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      frontend-dependencies:
+        patterns:
+          - "*"
+
+  # =========================================================================
+  # CI / WORKFLOW: GitHub Actions verziófrissítések (.github/workflows)
+  # Egyetlen összevont (grouped) Actions PR-ba gyűjti az összes frissítést
+  # =========================================================================
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -23,14 +57,22 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Budapest"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     target-branch: "develop"
     labels:
       - "dependencies"
+      - "workflow"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"
 
-  # Heti Python pip függőségfrissítések figyelése (tools/requirements.txt - Sidecar modul)
+  # =========================================================================
+  # TOOLS: Python segédeszközök és Scraper Sidecar modul (tools/requirements.txt)
+  # Egyetlen összevont (grouped) Tools PR-ba gyűjti az összes frissítést
+  # =========================================================================
   - package-ecosystem: "pip"
     directory: "/tools"
     schedule:
@@ -38,9 +80,14 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Budapest"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     target-branch: "develop"
     labels:
       - "dependencies"
+      - "tools"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      tools-dependencies:
+        patterns:
+          - "*"
