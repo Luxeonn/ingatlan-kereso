@@ -1,11 +1,13 @@
 # Ingatlan Kereső (Real Estate Scraper & Monitor)
 
 [![Java](https://img.shields.io/badge/Java-21%20LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
-[![Maven](https://img.shields.io/badge/Apache%20Maven-3.9%2B-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
-[![Jsoup](https://img.shields.io/badge/Jsoup-1.23.2-6DB33F?style=for-the-badge)](https://jsoup.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![GraalVM](https://img.shields.io/badge/GraalVM-Native%20Image-orange?style=for-the-badge&logo=graalvm&logoColor=white)](https://www.graalvm.org/)
+[![Gradle](https://img.shields.io/badge/Gradle-8.12%2B-02303A?style=for-the-badge&logo=gradle&logoColor=white)](https://gradle.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 
-High-performance real estate monitoring and scraping application built with Java 21 LTS Virtual Threads, SQLite WAL persistence, and a decoupled modern React 19 SPA dashboard.
+High-performance real estate monitoring and scraping application built with Java 21 LTS, Spring Boot 4.1.0, GraalVM Native Image support, Virtual Threads, Spring Data JPA / H2 persistence, and a decoupled modern React 19 SPA dashboard.
 
 ---
 
@@ -16,14 +18,15 @@ High-performance real estate monitoring and scraping application built with Java
 * **Unified Multi-City Search:** Monitor multiple cities or predefined regional clusters (e.g., Budapest & Agglomeration, Debrecen area, University cities).
 * **0-Crash Resilience:** Graceful degradation on anti-bot protected or dynamic single-page portals.
 * **Modern Decoupled React 19 SPA:** Fast frontend with TailwindCSS, dark/light themes, instant filtering, and responsive listing cards.
-* **ACID Embedded SQLite Storage:** Fast queries, WAL mode concurrency, and automatic legacy JSON data migration.
+* **Embedded Spring Data JPA & H2 Storage:** High-performance ACID storage with unique B-Tree indexes for O(1) deduplication and full backward-compatible storage abstractions.
+* **GraalVM Native Image Ready:** Sub-second startup and minimal memory footprint with Ahead-of-Time (AOT) compilation.
 
 ---
 
 ## 🌐 Supported Portals
 
 | Portal | Domain | Status | Method / Notes |
-| :--- | :--- | :---: | :--- |
+| :--- | :--- | :--- : | :--- |
 | **Duna House** | [dh.hu](https://dh.hu) | **Active** | Live Jsoup DOM parsing (price, floor area, rooms) |
 | **Otthon Centrum** | [oc.hu](https://www.oc.hu) | **Active** | Live Jsoup DOM parsing with Sec-Ch-Ua client hints |
 | **Jófogás Ingatlan** | [jofogas.hu](https://ingatlan.jofogas.hu) | **Active** | Live Jsoup DOM search query and regex parsing |
@@ -37,26 +40,27 @@ High-performance real estate monitoring and scraping application built with Java
 
 ```text
 ingatlan-kereso/
-├── build.gradle.kts                             # Gradle Kotlin DSL configuration (Java 21, Nitrite NoSQL, Jsoup, Gson)
+├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, GraalVM Native)
 ├── settings.gradle.kts                          # Gradle project settings
 ├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
+├── Dockerfile                                   # Multi-stage GraalVM native container build
 ├── README.md                                    # Main user and developer documentation
 ├── gemini.md                                    # Comprehensive system architecture & AI workflow rules
-├── START.bat / start-docker.bat                 # One-click Windows desktop and Docker launchers
 ├── data/                                        # Persistent runtime database directory
-│   ├── ingatlanok_nosql.db                      # Nitrite DB NoSQL document store (MVStore)
-│   └── last_config.json                         # Saved search criteria
+│   └── ingatlanok_jpa.mv.db                     # Embedded H2 / JPA database
 ├── frontend/                                    # Modern Decoupled SPA (React 19, TypeScript, Vite, TailwindCSS)
 │   ├── src/                                     # React components, Zustand stores, TanStack Query hooks
 │   └── package.json                             # Frontend dependencies and test scripts
 └── src/main/java/ingatlanok/
-    ├── Main.java                                # Application entry point (Web server & CLI mode)
+    ├── IngatlanApplication.java                 # Spring Boot application entry point (@SpringBootApplication)
+    ├── Main.java                                # Hybrid entry point (Spring Boot & CLI mode)
     ├── common/                                  # Cross-cutting utilities (HttpFetcher, PropertyParser, SlugUtils)
+    ├── config/                                  # CoreEngineConfig, GraalVmRuntimeHints, SpaWebMvcConfig, GlobalCorsFilter
     ├── core/                                    # Pure business engines (Filter, Deduplication, Analytics, Execution)
     ├── model/                                   # Domain models and value objects
-    ├── persistence/                             # Decoupled persistence (NitriteListingStorage, NitriteConfigStorage)
+    ├── persistence/                             # Decoupled persistence (ListingStorage, JpaIngatlanStorage, Entities, Repos)
     ├── portal/                                  # Pluggable Portal Engines (DH, OC, Jófogás, Bazár, Költözzbe, IngatlanCom)
-    └── web/                                     # Embedded Sun HttpServer (Java 21 Virtual Threads, StaticFileHandler)
+    └── web/                                     # Spring MVC REST Controllers, GlobalExceptionHandler, SPA routing
 ```
 
 ---
@@ -88,20 +92,23 @@ cd frontend
 npm ci && npm run test && npm run build
 cd ..
 
-# 2. Compile, Quality Check and Package Backend (Java 21 + Gradle)
-./gradlew check shadowJar
+# 2. Compile, Quality Check and Package Backend (Java 21 + Gradle + Spring Boot)
+./gradlew check bootJar
 
 # 3. Run Web Dashboard
-java -jar build/libs/ingatlan-1.0.jar
+java -jar build/libs/ingatlan-kereso-1.0.0.jar
+
+# 4. Optional: Build & Run Native Executable with GraalVM
+./gradlew nativeCompile
+./build/native/nativeCompile/ingatlan-kereso
 ```
 
 ---
 
 ## ⚙️ Configuration & Storage
 
-* **`data/ingatlanok.db`:** Primary relational SQLite database with WAL mode and indexes (`idx_listings_city`, `idx_listings_portal`, `idx_listings_discovered_at`).
-* **`data/last_config.json`:** Last used search parameters (cities, min/max price, property type, active portals).
-* **`data/cities/<city-key>.json`:** Backward-compatible per-city JSON exports and fallbacks.
+* **`data/ingatlanok_jpa.mv.db`:** Primary embedded H2 database with unique B-Tree index on `url` for O(1) deduplication.
+* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, JPA, Actuator, Virtual Threads).
 
 ---
 

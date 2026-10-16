@@ -17,7 +17,7 @@ public class Main {
         if (isCli) {
             runCliMode();
         } else {
-            runWebDashboard();
+            IngatlanApplication.main(args);
         }
     }
 
@@ -69,7 +69,7 @@ public class Main {
         }
     }
 
-    private static void runCliMode() {
+    static void runCliMode() {
         System.out.println("==================================================");
         System.out.println("  Ingatlan Kereső - Parancssori Keresés (CLI Mód)");
         System.out.println("==================================================");

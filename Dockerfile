@@ -9,29 +9,30 @@ RUN npm ci
 COPY frontend ./
 RUN npm run build
 
-# Stage 2: Build & Package Java Uber-JAR (Multi-stage)
-FROM eclipse-temurin:21-jdk-jammy AS builder
+# Stage 2: Build GraalVM Native Image
+FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 WORKDIR /build
 
-# 1. Gradle wrapper and build configuration caching
+# Gradle wrapper and build caching
 COPY gradlew gradlew
 COPY gradle/ gradle/
 COPY settings.gradle.kts build.gradle.kts checkstyle.xml spotbugs-exclude.xml ./
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
-# 2. Source copy & include static SPA assets from frontend-builder
+# Source copy & include static SPA assets from frontend-builder
 COPY src ./src
 COPY --from=frontend-builder /frontend/dist ./src/main/resources/static
 
-RUN ./gradlew shadowJar --no-daemon -x test
+# Compile GraalVM Native Image
+RUN ./gradlew nativeCompile --no-daemon -x test
 
-# Stage 3: Minimal hardened runtime
-FROM eclipse-temurin:21-jre-jammy
+# Stage 3: Minimal hardened runtime for Native Binary
+FROM debian:bookworm-slim
 
 # Install curl for HEALTHCHECK and clean package lists
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root system user (UID 10001) for container security
@@ -44,23 +45,22 @@ WORKDIR /app
 RUN mkdir -p /app/data /app/logs && \
     chown -R appuser:appuser /app
 
-# Copy executable uber-jar from builder stage
-COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-1.0.jar /app/ingatlan-1.0.jar
+# Copy GraalVM native executable from builder stage
+COPY --from=builder --chown=appuser:appuser /build/build/native/nativeCompile/ingatlan-kereso /app/ingatlan-kereso
 
 USER appuser:appuser
 
 # Default container configurations
 ENV SERVER_HOST=0.0.0.0 \
     SERVER_PORT=8080 \
-    NO_BROWSER=true \
-    JAVA_TOOL_OPTIONS="-Djava.awt.headless=true -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+    NO_BROWSER=true
 
 # Declarative volumes for zero-config persistence
 VOLUME ["/app/data", "/app/logs"]
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/api/status || exit 1
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || curl -f http://localhost:8080/api/status || exit 1
 
-ENTRYPOINT ["java", "-jar", "ingatlan-1.0.jar"]
+ENTRYPOINT ["/app/ingatlan-kereso"]

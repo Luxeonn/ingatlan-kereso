@@ -1,0 +1,59 @@
+package ingatlanok;
+
+import ingatlanok.common.BrowserUtils;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
+
+import java.util.Arrays;
+
+/**
+ * Spring Boot 4.1.0 (Spring Framework 7.0.8) Fő Alkalmazásbelépési pont GraalVM Native Image támogatással.
+ */
+@SpringBootApplication
+public class IngatlanApplication {
+
+    private final Environment environment;
+
+    public IngatlanApplication(Environment environment) {
+        this.environment = environment;
+    }
+
+    public static void main(String[] args) {
+        boolean isCli = Arrays.asList(args).contains("--cli") || Boolean.getBoolean("cli");
+        if (isCli) {
+            Main.runCliMode();
+        } else {
+            SpringApplication.run(IngatlanApplication.class, args);
+        }
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        String port = environment.getProperty("server.port", "8080");
+        String host = environment.getProperty("server.address", "127.0.0.1");
+        String displayHost = ("0.0.0.0".equals(host) || "::".equals(host)) ? "localhost" : host;
+        String url = "http://" + displayHost + ":" + port;
+
+        System.out.println("\n==================================================");
+        System.out.println("  Ingatlan Kereső (Spring Boot 4.1.0) Aktív!");
+        System.out.println("  Web Dashboard: " + url);
+        System.out.println("  Actuator Health: " + url + "/actuator/health");
+        System.out.println("==================================================\n");
+
+        boolean noBrowser = Boolean.getBoolean("no.browser")
+                || "true".equalsIgnoreCase(System.getenv("NO_BROWSER"))
+                || java.awt.GraphicsEnvironment.isHeadless()
+                || "0.0.0.0".equals(host);
+
+        if (!noBrowser) {
+            Thread.ofVirtual().start(() -> {
+                if (!BrowserUtils.openUrl(url)) {
+                    System.out.println("Nyisd meg manuálisan a böngésződben: " + url);
+                }
+            });
+        }
+    }
+}

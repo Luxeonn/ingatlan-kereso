@@ -4,7 +4,9 @@ plugins {
     jacoco
     checkstyle
     id("com.github.spotbugs") version "6.5.13"
-    id("com.gradleup.shadow") version "9.6.1"
+    id("org.springframework.boot") version "4.1.0"
+    id("io.spring.dependency-management") version "1.1.7"
+    id("org.graalvm.buildtools.native") version "0.10.6"
 }
 
 group = "hu.pushinsky.viktor"
@@ -21,7 +23,7 @@ java {
 }
 
 application {
-    mainClass.set("ingatlanok.Main")
+    mainClass.set("ingatlanok.IngatlanApplication")
 }
 
 val jsoupVersion = "1.23.2"
@@ -29,9 +31,15 @@ val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
 val gsonVersion = "2.14.0"
 val nitriteVersion = "5.4.0"
-val junitVersion = "6.1.3"
 
 dependencies {
+    // Spring Boot Starter & Core Modules (Spring Framework 7.0.8)
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    runtimeOnly("com.h2database:h2")
+
+    // Scraping & Utilities
     implementation("org.jsoup:jsoup:$jsoupVersion")
     implementation("commons-io:commons-io:$commonsIoVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
@@ -39,8 +47,20 @@ dependencies {
     implementation("org.dizitart:nitrite:$nitriteVersion")
     implementation("org.dizitart:nitrite-mvstore-adapter:$nitriteVersion")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+    // Testing
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("ingatlan-kereso")
+            mainClass.set("ingatlanok.IngatlanApplication")
+            buildArgs.add("--no-fallback")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+        }
+    }
 }
 
 tasks.withType<JavaCompile> {
@@ -81,6 +101,14 @@ tasks.checkstyleTest {
     enabled = false
 }
 
+tasks.matching { it.name.startsWith("checkstyleAot") }.configureEach {
+    enabled = false
+}
+
+tasks.matching { it.name.startsWith("spotbugsAot") }.configureEach {
+    enabled = false
+}
+
 tasks.withType<Checkstyle> {
     reports {
         xml.required.set(true)
@@ -109,17 +137,8 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
     }
 }
 
-tasks.shadowJar {
+tasks.bootJar {
     archiveBaseName.set("ingatlan")
     archiveClassifier.set("")
     archiveVersion.set("1.0")
-    mergeServiceFiles()
-}
-
-tasks.jar {
-    enabled = false
-}
-
-tasks.build {
-    dependsOn(tasks.shadowJar)
 }

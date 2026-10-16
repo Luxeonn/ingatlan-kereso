@@ -123,12 +123,12 @@ jobs:
           cd ..
           echo "✅ Frontend SPA assetek beágyazva a fat JAR-hoz."
 
-      - name: Compile, Lint (Checkstyle & SpotBugs) and Test with Gradle & JaCoCo
-        run: ./gradlew check shadowJar --no-daemon
+      - name: Compile, Lint (Checkstyle & SpotBugs), GraalVM AOT and Test with Gradle & JaCoCo
+        run: ./gradlew check processAot bootJar --no-daemon
 
       - name: Headless Application & Web UI Runtime Smoke Test
         run: |
-          echo "=== 🚀 Web Dashboard és Szerver Runtime Smoke Teszt Indítása ==="
+          echo "=== 🚀 Web Dashboard és Szerver Runtime Smoke Teszt Indítása (Spring Boot 4.1.0) ==="
           SERVER_PORT=8099 SERVER_HOST=127.0.0.1 java -jar build/libs/ingatlan-1.0.jar &
           APP_PID=$!
           echo "Szerver elindítva a háttérben PID: $APP_PID"

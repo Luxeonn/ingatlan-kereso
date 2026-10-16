@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 21 LTS with Virtual Threads, embedded NoSQL document database (Nitrite DB + MVStore) persistence, and a decoupled modern React 19 SPA frontend embedded into the fat JAR.
+**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.8), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence (with backward-compatible NoSQL interfaces), and a decoupled modern React 19 SPA frontend embedded into the Spring Boot fat JAR (`bootJar`) or Native executable.
 
 ### Workflow Architecture
 
@@ -18,10 +18,10 @@ flowchart TD
         SPA --> Event
     end
 
-    subgraph Server ["Server Layer (Embedded Java 21)"]
-        HTTP["Sun HttpServer (Port 8080)"]
-        VThread["Virtual Threads Executor"]
-        Static["StaticFileHandler (SPA Fallback)"]
+    subgraph Server ["Server Layer (Spring Boot 4.1.0 / Java 21)"]
+        HTTP["Spring MVC REST Controllers (Port 8080)"]
+        VThread["Virtual Threads Dispatcher"]
+        Static["SpaWebMvcConfig (SPA Fallback & Static Assets)"]
         HTTP --> VThread
         HTTP --> Static
     end
@@ -38,11 +38,12 @@ flowchart TD
         Orchestrator --> P1 & P2 & P3 & P4 & P5 & P6
     end
 
-    subgraph Persistence ["Persistence Layer (NoSQL Document Store)"]
-        Storage["ListingStorage / ConfigStorage"]
-        Nitrite[("data/ingatlanok_nosql.db (Nitrite DB + MVStore)")]
+    subgraph Persistence ["Persistence Layer (Spring Data JPA & Storage Abstraction)"]
+        Storage["JpaIngatlanStorage (ListingStorage / ConfigStorage)"]
+        Repo["PropertyRepository / ConfigRepository / HistoryRepository"]
+        H2[("data/ingatlanok_jpa.mv.db (Embedded H2 / JPA)")]
         
-        Storage --> Nitrite
+        Storage --> Repo --> H2
     end
 
     Event -->|POST /api/search| HTTP
@@ -60,7 +61,8 @@ flowchart TD
 ```text
 ingatlan-kereso/
 ├── src/main/java/ingatlanok/
-│   ├── Main.java                                # Entry point (Web server & CLI mode)
+│   ├── IngatlanApplication.java                 # Spring Boot application entry point (@SpringBootApplication)
+│   ├── Main.java                                # Hybrid entry point (Spring Boot delegate & CLI mode)
 │   ├── common/                                  # Shared cross-cutting utilities
 │   │   ├── BrowserUtils.java                    # Desktop browser launcher with limits
 │   │   ├── CityUtils.java                       # Hungarian city normalization and presets
@@ -79,13 +81,14 @@ ingatlan-kereso/
 │   │   ├── PropertyDetails.java                 # Floor area m², room count, calculated price/m²
 │   │   ├── SearchCriteria.java                  # Multi-city search criteria
 │   │   └── SearchResult.java                    # Aggregated search results and metrics
-│   ├── persistence/                             # Layer 4: Decoupled NoSQL persistence
+│   ├── persistence/                             # Layer 4: Storage Abstraction & Spring Data JPA
 │   │   ├── ListingStorage.java                  # Storage interface for listings
 │   │   ├── ConfigStorage.java                   # Storage interface for configuration
-│   │   ├── NitriteDatabaseManager.java          # Nitrite DB lifecycle & B-Tree index manager
-│   │   ├── NitriteListingStorage.java           # Nitrite NoSQL document store with O(1) deduplication
-│   │   ├── NitriteConfigStorage.java            # Nitrite NoSQL configuration storage
-│   │   └── IngatlanRepository.java              # Thread-safe Singleton facade
+│   │   ├── entity/                              # JPA Entities (PropertyEntity, PriceHistoryEntity, etc.)
+│   │   ├── repository/                          # Spring Data JPA Repositories
+│   │   ├── JpaIngatlanStorage.java              # Primary Spring Data JPA implementation
+│   │   ├── NitriteListingStorage.java           # Legacy Nitrite NoSQL implementation
+│   │   └── IngatlanRepository.java              # Thread-safe Singleton & IoC bridge facade
 │   ├── portal/                                  # Layer 3: Pluggable portal engines (OCP)
 │   │   ├── PortalEngine.java                    # Uniform portal engine interface
 │   │   ├── PortalDescriptor.java                # Portal metadata record
@@ -103,7 +106,10 @@ ingatlan-kereso/
 │   │   └── PortalStatusDto.java                 # Portal health status cards
 │   ├── scraper/                                 # Backward-compatible scraper adapters
 │   └── web/                                     # Layer 1b: Embedded Web Server & REST API
-│       └── WebServer.java                       # Virtual Threads HTTP server, StaticFileHandler, CORS
+│       ├── RestApiController.java              # Spring MVC REST Controller (@RestController)
+│       ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
+│       ├── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (SPA fallback router)
+│       └── WebServer.java                       # Legacy Sun HttpServer launcher wrapper
 ├── frontend/                                    # Modern Decoupled React 19 SPA client
 │   ├── src/                                     # React 19, TypeScript, Zustand, TanStack Query
 │   ├── package.json                             # Frontend scripts (typecheck, test, build)
@@ -114,10 +120,11 @@ ingatlan-kereso/
 
 ## 3. Core Architectural Principles
 
-1. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`). Scraping I/O and REST requests never block carrier threads.
-2. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
-3. **Decoupled NoSQL Persistence:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is embedded Nitrite DB in MVStore mode with automatic B-Tree indexes for instantaneous O(1) deduplication and criteria queries without relational SQL overhead.
-4. **Modern Decoupled Frontend:** React 19 + TypeScript + Vite SPA built to `frontend/dist/` and embedded into `src/main/resources/static/` during build.
+1. **Spring Boot 4.1.0 & GraalVM Native Image:** High-performance, cloud-native execution with Ahead-of-Time (AOT) compilation and sub-second startup.
+2. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`spring.threads.virtual.enabled=true`). Scraping I/O and REST requests never block carrier threads.
+3. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
+4. **Decoupled Persistence & Spring Data JPA:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is `JpaIngatlanStorage` on embedded H2, maintaining O(1) deduplication and fast queries without relational lock-in.
+5. **Modern Decoupled Frontend:** React 19 + TypeScript + Vite SPA built to `frontend/dist/` and embedded into `src/main/resources/static/` during build.
 
 ---
 
