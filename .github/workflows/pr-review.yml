@@ -1,25 +1,29 @@
-name: PR & Branch Protection Guard
+name: PR Review
 
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
     branches:
       - main
       - develop
+  issue_comment:
+    types: [created]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
-  pull-requests: read
+  pull-requests: write
+  issues: write
   contents: read
 
 jobs:
-  pr-compliance:
-    name: Validate PR Standards & Branch Conventions
+  guard:
+    name: Guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout repository
@@ -45,13 +49,11 @@ jobs:
           BRANCH: ${{ github.head_ref }}
         run: |
           echo "Ellenőrzés alatt álló forráság: '$BRANCH'"
-          # Ha a develop mergeli a maint vagy forditva release esetén, azt is engedjuk
           if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" ]]; then
             echo "✅ Rendszerág összefésülés engedélyezve: $BRANCH"
             exit 0
           fi
 
-          # Dependabot által automatikusan létrehozott ágak engedélyezése
           if [[ "$BRANCH" =~ ^dependabot\/ ]]; then
             echo "✅ Dependabot automatikus ág engedélyezve: $BRANCH"
             exit 0
@@ -74,14 +76,12 @@ jobs:
             echo "✅ PR leírás kitöltve (${#BODY} karakter)."
           fi
 
-          # Kapcsolódó issue lezárási kulcsszó ellenőrzése és visszajelzés
           if echo "$BODY" | grep -qiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+"; then
             LINKED_MATCH=$(echo "$BODY" | grep -oiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+" | head -n 1)
             echo "🔗 Kapcsolódó issue automatikus lezárása észlelve: '$LINKED_MATCH' (merge-kor automatikusan zárul)."
           else
             echo "ℹ️ Nincs automatikusan lezáró kulcsszó ('Closes #<id>', 'Fixes #<id>') a leírásban. Ha a PR issue-t old meg, add meg a 'Closes #...' kulcsszót!"
           fi
-
 
       - name: Verify Thematic Agent Approval Gate
         env:
@@ -92,14 +92,12 @@ jobs:
         run: |
           echo "=== 🛡️ Thematic Agent Approval Gate Ellenőrzése ==="
 
-          # Dependabot automatikus függőségfrissítések kezelése
           if [[ "$ACTOR" == "dependabot[bot]" || "$ACTOR" == "dependabot" || "$BRANCH" =~ ^dependabot\/ ]]; then
             echo "🤖 Dependabot automatikus függőségfrissítés észlelve ($BRANCH / $ACTOR)."
             echo "✅ Thematic Agent Approval Gate: Dependabot bot által nyitott frissítés automatikusan jóváhagyva."
             exit 0
           fi
           
-          # Módosított fájlok lekérése a célág és a PR között
           CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" || true)
           echo "Módosított fájlok:"
           echo "$CHANGED_FILES"
@@ -143,9 +141,39 @@ jobs:
       - name: Report PR Compliance Summary
         if: always()
         run: |
-          echo "### 🛡️ PR & Branch Protection Guard Eredmények" >> $GITHUB_STEP_SUMMARY
+          echo "### 🛡️ PR Review (Guard) Eredmények" >> $GITHUB_STEP_SUMMARY
           echo "- **PR Cím & Branch Szabályzat:** ${{ job.status == 'success' && '✅ Megfelelt (Conventional Commits & Prefix)' || '❌ Nem felelt meg' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Thematic Agent Approval Gate:** ${{ job.status == 'success' && '✅ Jóváhagyva (1-mondatos szakmai indoklással)' || '❌ Hiányos vagy elutasítva' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a Java CI és a PR Guard is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a CI és a PR Review is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
           echo "- **Ág:** \`${{ github.head_ref }}\` -> \`${{ github.base_ref }}\`" >> $GITHUB_STEP_SUMMARY
 
+  review:
+    name: Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/')) }}
+
+    steps:
+      - name: Verify AI Credentials Availability
+        id: credentials-check
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_KEY" ] || [ -n "$ANTHROPIC_KEY" ] || [ -n "$QODO_API_KEY" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+            echo "✅ AI Reviewer credentials detected."
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No AI Reviewer API key (OPENAI_KEY, ANTHROPIC_KEY, or QODO_API_KEY) found in secrets. Skipping automated review safely."
+          fi
+
+      - name: Execute Qodo PR-Agent
+        if: steps.credentials-check.outputs.has_key == 'true'
+        uses: Codium-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
