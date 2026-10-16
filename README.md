@@ -75,15 +75,36 @@ ingatlan-kereso/
 ### 1. One-Click Desktop Launch (Windows)
 Double-click `START.bat`. The script detects Java and Gradle Wrapper, builds assets if missing, starts the server on port `8080`, and opens the browser.
 
-### 2. Docker Quickstart (GHCR)
-Run with zero manual configuration using Docker:
-```bash
-docker run -d -p 8080:8080 --name ingatlan-kereso ghcr.io/luxeonn/ingatlan-kereso:latest
+### 2. Multi-Container Docker Compose Quickstart
+Start the full 3-tier architecture (PostgreSQL 17 database, headless Spring Boot backend, and Nginx React 19 frontend reverse proxy) with a single command:
+
+**Windows:**
+Double-click `start-docker.bat` or run:
+```cmd
+start-docker.bat
 ```
-Or use Docker Compose:
+
+**Linux / macOS:**
+Run `start-docker.sh` or run:
 ```bash
+chmod +x start-docker.sh && ./start-docker.sh
+```
+
+**Standard Docker Compose Commands:**
+```bash
+# Pull and start all services in the background
 docker compose up -d
+
+# Check service health and running status
+docker compose ps
+
+# View logs (e.g. backend)
+docker compose logs -f backend
+
+# Gracefully stop all services
+docker compose down
 ```
+Once started, access the Web Dashboard at **http://localhost:8080** and the REST API at **http://localhost:8080/api/status**.
 
 ### 3. Local Development Build
 ```bash
