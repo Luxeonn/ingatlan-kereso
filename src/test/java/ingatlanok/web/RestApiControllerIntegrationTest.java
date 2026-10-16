@@ -274,4 +274,25 @@ class RestApiControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.marked").value(false));
     }
+
+    @Test
+    @DisplayName("GET /api/logs hibás típussal - GlobalExceptionHandler 400 Bad Request JSON választ ad")
+    void testGetLogs_InvalidLimitParam_TriggersGlobalExceptionHandler() throws Exception {
+        mockMvc.perform(get("/api/logs?limit=not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("limit")))
+                .andExpect(jsonPath("$.path").value("/api/logs"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("GET /dashboard - Spring MVC SPA router index.html fallback kiszolgálása")
+    void testSpaFallbackRouting() throws Exception {
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("id=\"root\"")));
+    }
 }
