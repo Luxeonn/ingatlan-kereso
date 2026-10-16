@@ -1,50 +1,76 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 chcp 65001 >nul
-title Ingatlan Kereso - Docker Launcher
+title Ingatlan Kereso - Docker Compose Launcher
 
 echo ==============================================================================
-echo                 INGATLAN KERESO - DOCKER LAUNCHER
+echo                 INGATLAN KERESO - DOCKER COMPOSE LAUNCHER
 echo ==============================================================================
 echo.
 
 where docker >nul 2>&1
 if errorlevel 1 (
-    echo [HIBA] A Docker nincs telepitve vagy nem fut!
-    echo Kerlek inditsd el a Docker Desktop alkalmazast.
+    echo [HIBA] A Docker nincs telepitve vagy nem talalhato a PATH-ban!
+    echo Kerlek telepitsd es inditsd el a Docker Desktop alkalmazast.
     echo.
     pause
     exit /b 1
 )
 
-echo [1/4] Legfrissebb GHCR Docker image ellenorzese es frissitese...
-docker pull ghcr.io/luxeonn/ingatlan-kereso:latest
+docker info >nul 2>&1
+if errorlevel 1 (
+    echo [HIBA] A Docker Daemon nem fut!
+    echo Kerlek inditsd el a Docker Desktop alkalmazast es vard meg amig befejezi az inicializalast.
+    echo.
+    pause
+    exit /b 1
+)
 
-echo.
-echo [2/4] Korabbi 'ingatlan-kereso' kontener ellenorzese es eltavolitasa...
+echo [1/4] Korabbi monolitikus 'ingatlan-kereso' kontener eltavolitasa (ha letezik)...
 docker rm -f ingatlan-kereso >nul 2>&1
 
 echo.
-echo [3/4] Kontener inditasa (Nev: ingatlan-kereso, Port: 8080:8080)...
-docker run -d ^
-  --name ingatlan-kereso ^
-  -p 8080:8080 ^
-  -v ingatlan_data:/app/data ^
-  -v ingatlan_logs:/app/logs ^
-  --restart unless-stopped ^
-  ghcr.io/luxeonn/ingatlan-kereso:latest
+echo [2/4] Docker Compose szolgalatasok elokeszitese es inditasa...
+docker compose pull
+if errorlevel 1 (
+    echo [INFO] GHCR image-ek letoltese sikertelen vagy lokalis build szukseges. Helyi epites...
+    docker compose up -d --build
+) else (
+    docker compose up -d
+)
 
 if errorlevel 1 (
     echo.
-    echo [HIBA] Nem sikerult elinditani a Docker kontenert!
+    echo [HIBA] Nem sikerult elinditani a Docker Compose szolgaltatasokat!
+    echo Ellenorizd a hibauzeneteket felette, vagy futtasd a 'docker compose logs' parancsot.
     pause
     exit /b 1
 )
 
 echo.
-echo [4/4] Siker! A kontener 'ingatlan-kereso' neven azonnal elerheto.
-echo Web Dashboard: http://localhost:8080
+echo [3/4] Varakozas a rendszer (PostgreSQL -> Backend -> Nginx Frontend) feleledesere...
+set /a ATTEMPTS=0
+:WAIT_LOOP
+set /a ATTEMPTS+=1
+if !ATTEMPTS! GTR 30 (
+    echo [FIGYELEM] Az inditas hosszabb idot vesz igenybe a vartnal.
+    goto OPEN_BROWSER
+)
+
+curl -s -f http://localhost:8080/ >nul 2>&1
+if errorlevel 1 (
+    timeout /t 1 /nobreak >nul
+    goto WAIT_LOOP
+)
+
+:OPEN_BROWSER
 echo.
-echo Dashboard megnyitasa a bongeszoben...
+echo [4/4] SIKER! A rendszer uzemkesz.
+echo ==============================================================================
+echo Web Dashboard:  http://localhost:8080
+echo REST API:       http://localhost:8080/api/status
+echo ==============================================================================
+echo.
+echo Dashboard megnyitasa az alapertelmezett bongeszoben...
 start http://localhost:8080
-ping 127.0.0.1 -n 3 >nul
+timeout /t 2 /nobreak >nul
