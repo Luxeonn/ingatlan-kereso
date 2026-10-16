@@ -48,7 +48,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/4] Varakozas a rendszer (PostgreSQL -> Backend -> Nginx Frontend) feleledesere...
+echo [3/4] Varakozas a rendszer (PostgreSQL, Backend, Nginx Frontend) feleledesere...
 set /a ATTEMPTS=0
 :WAIT_LOOP
 set /a ATTEMPTS+=1
@@ -57,9 +57,9 @@ if !ATTEMPTS! GTR 30 (
     goto OPEN_BROWSER
 )
 
-curl -s -f http://localhost:8080/ >nul 2>&1
+curl.exe -s -f http://localhost:8080/ >nul 2>&1
 if errorlevel 1 (
-    timeout /t 1 /nobreak >nul
+    ping 127.0.0.1 -n 2 >nul
     goto WAIT_LOOP
 )
 
@@ -73,4 +73,4 @@ echo ===========================================================================
 echo.
 echo Dashboard megnyitasa az alapertelmezett bongeszoben...
 start http://localhost:8080
-timeout /t 2 /nobreak >nul
+ping 127.0.0.1 -n 3 >nul

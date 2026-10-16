@@ -7,13 +7,13 @@ WORKDIR /build
 COPY gradlew gradlew
 COPY gradle/ gradle/
 COPY settings.gradle.kts build.gradle.kts checkstyle.xml spotbugs-exclude.xml ./
-RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
 # Copy backend source files
 COPY src ./src
 
 # Build headless Spring Boot fat JAR without running tests
-RUN ./gradlew bootJar --no-daemon -x test
+RUN sed -i 's/\r$//' gradlew && ./gradlew bootJar --no-daemon -x test
 
 # Stage 2: Minimal hardened runtime with Temurin JRE 21
 FROM eclipse-temurin:21-jre-jammy
