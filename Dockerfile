@@ -18,7 +18,7 @@ WORKDIR /build
 COPY gradlew gradlew
 COPY gradle/ gradle/
 COPY settings.gradle.kts build.gradle.kts checkstyle.xml spotbugs-exclude.xml ./
-RUN chmod +x gradlew && ./gradlew --version
+RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
 # Source copy & include static SPA assets from frontend-builder
 COPY src ./src
