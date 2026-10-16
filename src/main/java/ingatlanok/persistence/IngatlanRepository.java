@@ -13,8 +13,8 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
 
     private static final IngatlanRepository INSTANCE = new IngatlanRepository();
 
-    private final ListingStorage listingStorage;
-    private final ConfigStorage configStorage;
+    private ListingStorage listingStorage;
+    private ConfigStorage configStorage;
 
     private IngatlanRepository() {
         this(createDefaultListingStorage(), createDefaultConfigStorage());
@@ -23,6 +23,15 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     public IngatlanRepository(ListingStorage listingStorage, ConfigStorage configStorage) {
         this.listingStorage = listingStorage != null ? listingStorage : createDefaultListingStorage();
         this.configStorage = configStorage != null ? configStorage : createDefaultConfigStorage();
+    }
+
+    public void setStorage(ListingStorage listingStorage, ConfigStorage configStorage) {
+        if (listingStorage != null) {
+            this.listingStorage = listingStorage;
+        }
+        if (configStorage != null) {
+            this.configStorage = configStorage;
+        }
     }
 
     private static ListingStorage createDefaultListingStorage() {
