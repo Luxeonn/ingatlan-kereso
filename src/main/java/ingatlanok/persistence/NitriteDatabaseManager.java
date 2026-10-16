@@ -33,8 +33,16 @@ public class NitriteDatabaseManager implements Closeable {
 
     private static final Map<String, NitriteDatabaseManager> INSTANCE_CACHE = new ConcurrentHashMap<>();
 
+    private static String resolveDefaultDbPath() {
+        String sysProp = System.getProperty("nitrite.db.path");
+        if (sysProp != null && !sysProp.isBlank()) {
+            return sysProp;
+        }
+        return DEFAULT_DB_PATH;
+    }
+
     public static synchronized NitriteDatabaseManager getInstance(Path databasePath) {
-        Path targetPath = databasePath != null ? databasePath : Paths.get(DEFAULT_DB_PATH);
+        Path targetPath = databasePath != null ? databasePath : Paths.get(resolveDefaultDbPath());
         String key = targetPath.toAbsolutePath().normalize().toString();
         NitriteDatabaseManager existing = INSTANCE_CACHE.get(key);
         if (existing != null && !existing.isClosed()) {
@@ -45,12 +53,24 @@ public class NitriteDatabaseManager implements Closeable {
         return created;
     }
 
+    public static synchronized void closeAll() {
+        for (NitriteDatabaseManager manager : INSTANCE_CACHE.values()) {
+            try {
+                if (manager != null && !manager.isClosed()) {
+                    manager.close();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        INSTANCE_CACHE.clear();
+    }
+
     private final Path databasePath;
     private final Nitrite nitrite;
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     public NitriteDatabaseManager() {
-        this(Paths.get(DEFAULT_DB_PATH));
+        this(Paths.get(resolveDefaultDbPath()));
     }
 
     public NitriteDatabaseManager(Path databasePath) {

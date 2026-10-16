@@ -8,29 +8,38 @@ import java.util.*;
 /**
  * Singleton Facade az Ingatlanhirdetés és Konfiguráció perzisztenciához.
  * Delegál a moduláris {@link ListingStorage} és {@link ConfigStorage} implementációkhoz.
+ * Támogatja a lusta inicializálást (lazy initialization) az MVStore fájlzárolási
+ * hibák megelőzésére.
  */
 public class IngatlanRepository implements ListingStorage, ConfigStorage {
 
     private static final IngatlanRepository INSTANCE = new IngatlanRepository();
 
-    private ListingStorage listingStorage;
-    private ConfigStorage configStorage;
+    private volatile ListingStorage listingStorage;
+    private volatile ConfigStorage configStorage;
 
     private IngatlanRepository() {
-        this(createDefaultListingStorage(), createDefaultConfigStorage());
+        // Lusta inicializálás: ne nyissa meg automatikusan a Nitrite adatbázist betöltéskor
     }
 
     public IngatlanRepository(ListingStorage listingStorage, ConfigStorage configStorage) {
-        this.listingStorage = listingStorage != null ? listingStorage : createDefaultListingStorage();
-        this.configStorage = configStorage != null ? configStorage : createDefaultConfigStorage();
+        this.listingStorage = listingStorage;
+        this.configStorage = configStorage;
     }
 
-    public void setStorage(ListingStorage listingStorage, ConfigStorage configStorage) {
+    public synchronized void setStorage(ListingStorage listingStorage, ConfigStorage configStorage) {
         if (listingStorage != null) {
             this.listingStorage = listingStorage;
         }
         if (configStorage != null) {
             this.configStorage = configStorage;
+        }
+    }
+
+    public static void resetStorage() {
+        synchronized (INSTANCE) {
+            INSTANCE.listingStorage = null;
+            INSTANCE.configStorage = null;
         }
     }
 
@@ -48,121 +57,127 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
         return INSTANCE;
     }
 
-    public ListingStorage getListingStorage() {
+    public synchronized ListingStorage getListingStorage() {
+        if (listingStorage == null || (listingStorage instanceof NitriteListingStorage nls && nls.getDbManager().isClosed())) {
+            listingStorage = createDefaultListingStorage();
+        }
         return listingStorage;
     }
 
-    public ConfigStorage getConfigStorage() {
+    public synchronized ConfigStorage getConfigStorage() {
+        if (configStorage == null || (configStorage instanceof NitriteConfigStorage ncs && ncs.getDbManager().isClosed())) {
+            configStorage = createDefaultConfigStorage();
+        }
         return configStorage;
     }
 
     @Override
     public boolean hasCityDatabase(String city) {
-        return listingStorage.hasCityDatabase(city);
+        return getListingStorage().hasCityDatabase(city);
     }
 
     @Override
     public boolean isNewUrl(String city, String url) {
-        return listingStorage.isNewUrl(city, url);
+        return getListingStorage().isNewUrl(city, url);
     }
 
     @Override
     public boolean containsUrl(String url) {
-        return listingStorage.containsUrl(url);
+        return getListingStorage().containsUrl(url);
     }
 
     @Override
     public void saveCityItems(String city, Collection<IngatlanItem> items) {
-        listingStorage.saveCityItems(city, items);
+        getListingStorage().saveCityItems(city, items);
     }
 
     @Override
     public void saveAll(Collection<IngatlanItem> items) {
-        listingStorage.saveAll(items);
+        getListingStorage().saveAll(items);
     }
 
     @Override
     public boolean markAsViewed(String url) {
-        return listingStorage.markAsViewed(url);
+        return getListingStorage().markAsViewed(url);
     }
 
     @Override
     public boolean isViewed(String url) {
-        return listingStorage.isViewed(url);
+        return getListingStorage().isViewed(url);
     }
 
     @Override
     public Set<String> getAllUrls() {
-        return listingStorage.getAllUrls();
+        return getListingStorage().getAllUrls();
     }
 
     @Override
     public List<IngatlanItem> getAll() {
-        return listingStorage.getAll();
+        return getListingStorage().getAll();
     }
 
     @Override
     public List<IngatlanItem> getItemsByCity(String city) {
-        return listingStorage.getItemsByCity(city);
+        return getListingStorage().getItemsByCity(city);
     }
 
     @Override
     public List<Map<String, Object>> getTrackedCitiesInfo() {
-        return listingStorage.getTrackedCitiesInfo();
+        return getListingStorage().getTrackedCitiesInfo();
     }
 
     @Override
     public void clearCityHistory(String city) {
-        listingStorage.clearCityHistory(city);
+        getListingStorage().clearCityHistory(city);
     }
 
     @Override
     public void clearHistory() {
-        listingStorage.clearHistory();
+        getListingStorage().clearHistory();
     }
 
     @Override
     public SearchCriteria getLastCriteria() {
-        return configStorage.getLastCriteria();
+        return getConfigStorage().getLastCriteria();
     }
 
     @Override
     public void saveLastCriteria(SearchCriteria criteria) {
-        configStorage.saveLastCriteria(criteria);
+        getConfigStorage().saveLastCriteria(criteria);
     }
 
     @Override
     public int getTotalCount() {
-        return listingStorage.getTotalCount();
+        return getListingStorage().getTotalCount();
     }
 
     @Override
     public Map<String, Long> countByPortal() {
-        return listingStorage.countByPortal();
+        return getListingStorage().countByPortal();
     }
 
     @Override
     public String getLastRunTime() {
-        return listingStorage.getLastRunTime();
+        return getListingStorage().getLastRunTime();
     }
 
     @Override
     public List<ingatlanok.model.PriceHistoryEntry> getPriceHistory(String idOrUrl) {
-        return listingStorage.getPriceHistory(idOrUrl);
+        return getListingStorage().getPriceHistory(idOrUrl);
     }
 
     @Override
     public List<ingatlanok.model.StatusLogEntry> getStatusLog(String idOrUrl) {
-        return listingStorage.getStatusLog(idOrUrl);
+        return getListingStorage().getStatusLog(idOrUrl);
     }
 
     @Override
     public List<IngatlanItem> getDiscountedProperties(String city) {
-        return listingStorage.getDiscountedProperties(city);
+        return getListingStorage().getDiscountedProperties(city);
     }
 
     @Override
     public List<ingatlanok.dto.ListingDto> findByCriteria(ingatlanok.dto.ListingFilterDto filter) {
-        return listingStorage.findByCriteria(filter);
+        return getListingStorage().findByCriteria(filter);
     }
 }
