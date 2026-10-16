@@ -25,46 +25,30 @@ Follow these steps to conduct a thorough review:
 
 3. **Determine Thematic Scope & Required Agent Approvals**:
    Analyze the modified files to determine which specialized agent must review and approve:
-   * **Core Architecture & Service (`deep-architect` required):**
-     Touching `ingatlanok.service.*`, `ingatlanok.core.*`, `ingatlanok.portal.*`, `ingatlanok.scraper.*`, `Main.java`, threading/virtual threads, or structural refactoring.
-     *Criteria:* Clean Architecture, loose coupling, 0-crash resilience, structured concurrency.
-   * **User Interface & SPA (`ui-designer` required):**
-     Touching `ingatlanok.web.WebDashboardHtml.java`, CSS tokens, JavaScript components, filters, steppers, or layouts.
-     *Criteria:* Zero-dependency SPA integrity, responsive layout (360px-2560px), dark/light harmony, no flicker, accessibility, shimmering skeletons, log viewer.
-   * **Security & Hardening (`security-specialist` required):**
-     Touching `ingatlanok.web.WebServer.java`, `SidecarCliExecutor.java`, `BrowserUtils.java`, network headers, process execution, Dockerfile/compose permissions, or file path resolving.
-     *Criteria:* 127.0.0.1 localhost binding, 405 Method Not Allowed, CSP/nosniff headers, Path Traversal prevention, XSS escaping, ProcessBuilder command injection safety, non-root user.
-   * **Persistence & Database (`database-specialist` required):**
-     Touching `ingatlanok.persistence.*`, `IngatlanRepository.java`, `data/`, SQLite schema, WAL mode, indexing, or atomic storage formats.
-     *Criteria:* Thread-safe collections, SQLite WAL and indexes, atomic write (.tmp + ATOMIC_MOVE), O(1) deduplication, backward compatibility.
-   * **CI/CD & Workflows (`workflow-engineer` required):**
-     Touching `.github/workflows/*`, `.githooks/*`, Docker publish pipelines, CI scripts, or automated pipelines.
-     *Criteria:* Least privilege permissions, safe environment variables, shell injection safety, caching, concurrency cancel-in-progress, GHCR container publication.
+   * **Fullstack Architecture & UI (`fullstack-architect` required):**
+     Touching `ingatlanok.core.*`, `ingatlanok.presentation.*`, `ingatlanok.web.*`, `ingatlanok.persistence.*`, `Main.java`, `frontend/`, `WebDashboardHtml.java`, or static assets.
+     *Criteria:* Clean Architecture, loose coupling, Virtual Threads, Nitrite NoSQL persistence, React 19 UI integrity (0-SyntaxError), responsive design.
+   * **Scraper & Security (`scraper-security-engineer` required):**
+     Touching `ingatlanok.portal.*`, `ingatlanok.scraper.*`, `ingatlanok.common.*`, `WebServer.java`, network headers, process execution, security configs.
+     *Criteria:* 0-crash resilience, Jsoup/JSON-LD parsing robustness, bot/WAF handling, AppSec (CORS, CSP, localhost bind, XSS, Path Traversal, SSRF).
+   * **Quality & DevOps (`quality-devops-engineer` required):**
+     Touching `.github/workflows/*`, Dockerfile, docker-compose, unit/integration tests (`src/test/`, `frontend/**/__tests__`), build files.
+     *Criteria:* Deterministic offline JUnit 5 & Vitest tests, JaCoCo coverage (80%+), multi-stage Docker builds, secure CI/CD pipelines.
 
 4. **Execute Thematic Audits**:
    For each triggered domain, evaluate the diff against the corresponding specialist skill:
-   - Architecture: `.agents/skills/deep-architect/SKILL.md`
-   - UI/UX: `.agents/skills/ui-designer/SKILL.md`
-   - Security: `.agents/skills/security-specialist/SKILL.md`
-   - Database: `.agents/skills/database-specialist/SKILL.md`
-   - Workflows/CI: `.agents/skills/workflow-engineer/SKILL.md`
-   - DevOps / Containers: `.agents/skills/devops-specialist/SKILL.md`
-   - Scraper Reliability: `.agents/skills/scraper-reliability-engineer/SKILL.md`
-   - QA & Testing: `.agents/skills/qa-test-engineer/SKILL.md`
+   - Fullstack Architecture & UI: `.agents/skills/fullstack-architect/SKILL.md`
+   - Scraper & Security: `.agents/skills/scraper-security-engineer/SKILL.md`
+   - Quality & DevOps: `.agents/skills/quality-devops-engineer/SKILL.md`
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
    * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with concise [OK] / [NOK] / [N/A] status accompanied by a mandatory 1-sentence rationale for every thematic domain:
      ```markdown
      ### 🛡️ Thematic Agent Approval Gate
-     - [x] Architecture (`deep-architect`): [OK] – A Clean Architecture réteghatárok és a 0-crash elv maradéktalanul érvényesül.
-     - [x] UI/UX (`ui-designer`): [N/A] – A változtatás nem érinti a webes dashboard felületét vagy stílusait.
-     - [x] Security (`security-specialist`): [OK] – A bemenet-validáció és a szerverbiztonsági fejlécek sértetlenek.
-     - [x] Database (`database-specialist`): [OK] – A szálbiztos tárolás és az atomi perzisztencia garantált.
-     - [x] Workflow/CI (`workflow-engineer`): [OK] – A GitHub Actions munkafolyamatok és a PR guard szabályok rendben vannak.
-     - [x] DevOps (`devops-specialist`): [N/A] – Konténerizációs vagy futtatási fájlok nem módosultak.
-     - [x] Scraper Reliability (`scraper-reliability-engineer`): [N/A] – Web scraping és portálmotorok nem érintettek.
-     - [x] QA/Testing (`qa-test-engineer`): [OK] – Minden automatizált teszt hibátlanul lefut.
+     - [x] Fullstack Architecture & UI (`fullstack-architect`): [OK] – A Clean Architecture réteghatárok, a NoSQL perzisztencia és a React 19 UI integritás maradéktalanul érvényesül.
+     - [x] Scraper & Security (`scraper-security-engineer`): [OK] – A portálmotorok 0-crash robusztussága és az alkalmazásszintű védelem (AppSec) biztosított.
+     - [x] Quality & DevOps (`quality-devops-engineer`): [OK] – A determinista tesztek lefedettsége megfelelő, a CI/CD pipeline-ok és konténerizáció sértetlenek.
      ```
    * Advance to Phase 2.
 

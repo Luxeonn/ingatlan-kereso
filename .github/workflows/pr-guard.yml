@@ -107,53 +107,34 @@ jobs:
 
           MISSING_APPROVALS=""
 
-          # 1. Rendszerarchitektúra & Scraper réteg (deep-architect)
-          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(service|scraper|core|portal)/|Main\.java"; then
-            echo "-> Érintett téma: Rendszerarchitektúra (deep-architect szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Architecture|deep-architect)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🏛️ Deep Architect Agent (\`deep-architect\`): Architektúra, 0-crash és réteg-izoláció jóváhagyása szükséges."
+          # 1. Fullstack Architecture & UI (fullstack-architect)
+          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(core|presentation|web|persistence|model)/|Main\.java|frontend/|WebDashboardHtml\.java|static/"; then
+            echo "-> Érintett téma: Fullstack Architektúra, Perzisztencia vagy UI (fullstack-architect szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(fullstack-architect|Fullstack Architect)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🏛️ Fullstack Architect Agent (\`fullstack-architect\`): Rendszerarchitektúra, NoSQL perzisztencia, React 19 UI vagy REST szerződés jóváhagyása szükséges."
             fi
           fi
 
-          # 2. UI & Dashboard SPA (ui-designer & ui-integrity-guard)
-          if echo "$CHANGED_FILES" | grep -qE "WebDashboardHtml\.java|static/|\.css|\.js"; then
-            echo "-> Érintett téma: UI és Dashboard SPA (ui-designer és ui-integrity-guard szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI Designer|ui-designer)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🎨 UI Designer Agent (\`ui-designer\`): Frontend design, reszponzivitás és komponensek jóváhagyása szükséges."
-            fi
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI Integrity|ui-integrity-guard|Integrity Guard)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ UI Integrity Guard Agent (\`ui-integrity-guard\`): Frontend szintaxis, escape-elési integritás (node --check) és DOM ID konzisztencia jóváhagyása szükséges."
+          # 2. Scraper Motorok & Alkalmazásbiztonság (scraper-security-engineer)
+          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(portal|scraper|common)/|WebServer\.java|SidecarCliExecutor\.java|BrowserUtils\.java|HttpFetcher\.java"; then
+            echo "-> Érintett téma: Scraper Motorok és Alkalmazásbiztonság (scraper-security-engineer szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(scraper-security-engineer|Scraper & Security)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ Scraper & Security Specialist (\`scraper-security-engineer\`): Scraper megbízhatóság, WAF/bot védelem vagy AppSec hardening jóváhagyása szükséges."
             fi
           fi
 
-          # 3. Biztonság, Hálózat és Folyamatkezelés (security-specialist)
-          if echo "$CHANGED_FILES" | grep -qE "WebServer\.java|SidecarCliExecutor\.java|BrowserUtils\.java|HttpFetcher\.java|Dockerfile|docker-compose"; then
-            echo "-> Érintett téma: Alkalmazásbiztonság és Hálózat (security-specialist szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Security|security-specialist)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ Security Specialist Agent (\`security-specialist\`): AppSec, localhost kötés, XSS és command injection védelem jóváhagyása szükséges."
-            fi
-          fi
-
-          # 4. Adatbázis és Perzisztencia (database-specialist)
-          if echo "$CHANGED_FILES" | grep -qE "persistence/|IngatlanRepository\.java|data/"; then
-            echo "-> Érintett téma: Adatbázis és Perzisztencia (database-specialist szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Database|database-specialist)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 💾 Database Specialist Agent (\`database-specialist\`): Szálbiztosság, atomi lemezre írás és duplikátumszűrés jóváhagyása szükséges."
-            fi
-          fi
-
-          # 5. CI/CD és GitHub Actions (workflow-engineer)
-          if echo "$CHANGED_FILES" | grep -qE "\.github/workflows/|\.githooks/|Dockerfile|docker-compose"; then
-            echo "-> Érintett téma: CI/CD és GitHub Actions (workflow-engineer szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Workflow|CI|workflow-engineer)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ⚙️ Workflow Engineer Agent (\`workflow-engineer\`): GitHub Actions, CI/CD és automatizáció jóváhagyása szükséges."
+          # 3. Minőségbiztosítás, Tesztelés & DevOps/CI (quality-devops-engineer)
+          if echo "$CHANGED_FILES" | grep -qE "\.github/|Dockerfile|docker-compose|src/test/|frontend/.*test|pom\.xml|package\.json"; then
+            echo "-> Érintett téma: Minőségbiztosítás, DevOps vagy CI/CD (quality-devops-engineer szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(quality-devops-engineer|Quality & DevOps)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ⚙️ Quality & DevOps Specialist (\`quality-devops-engineer\`): Tesztlefedettség, determinista tesztek, Docker vagy CI/CD pipeline jóváhagyása szükséges."
             fi
           fi
 
           if [ -n "$MISSING_APPROVALS" ]; then
             echo "::error::Hiányzó Tematikus Agent Jóváhagyás(ok)! A PR nem engedélyezett a megfelelő szakértői ágens igazolása nélkül:${MISSING_APPROVALS}"
             echo ""
-            echo "Futtasd a review-and-fix ágenst (.gemini/commands/review-and-fix.toml), és illeszd be a 'Thematic Agent Approval Gate' blokkot a PR leírásába!"
+            echo "Kérjük, add hozzá a jóváhagyást a PR leírásának 'Thematic Agent Approval Gate' blokkjához!"
             exit 1
           fi
 
