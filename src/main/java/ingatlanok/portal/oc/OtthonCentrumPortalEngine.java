@@ -48,6 +48,10 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
 
     @Override
     public PortalScrapeResult scrape(SearchCriteria criteria) {
+        return scrape(criteria, HttpFetcher::fetchDocument);
+    }
+
+    public PortalScrapeResult scrape(SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
         long startTime = System.currentTimeMillis();
         if (criteria == null) {
             criteria = new SearchCriteria();
@@ -57,7 +61,7 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
         LOGGER.info("Otthon Centrum keresés indítása: {}", searchUrl);
 
         try {
-            Document document = HttpFetcher.fetchDocument(searchUrl);
+            Document document = documentFetcher.apply(searchUrl);
             if (document == null) {
                 long elapsed = System.currentTimeMillis() - startTime;
                 LOGGER.warn("Nem sikerült letölteni az Otthon Centrum keresési oldalt [{} ms]: {}", elapsed, searchUrl);

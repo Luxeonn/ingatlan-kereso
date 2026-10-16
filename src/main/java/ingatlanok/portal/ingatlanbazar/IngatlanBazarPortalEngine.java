@@ -47,6 +47,10 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
 
     @Override
     public PortalScrapeResult scrape(SearchCriteria criteria) {
+        return scrape(criteria, HttpFetcher::fetchJson);
+    }
+
+    public PortalScrapeResult scrape(SearchCriteria criteria, java.util.function.Function<String, String> jsonFetcher) {
         long startTime = System.currentTimeMillis();
         List<IngatlanItem> items = new ArrayList<>();
         if (criteria == null) {
@@ -64,7 +68,7 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
             for (int page = 1; page <= maxPages; page++) {
                 String apiUrl = queryBuilder.buildApiSearchUrl(criteria, page);
                 LOGGER.debug("Ingatlanbazár REST API lekérdezése (oldal: {}): {}", page, apiUrl);
-                String json = HttpFetcher.fetchJson(apiUrl);
+                String json = jsonFetcher.apply(apiUrl);
 
                 if (json == null || json.isBlank()) {
                     if (page == 1) {

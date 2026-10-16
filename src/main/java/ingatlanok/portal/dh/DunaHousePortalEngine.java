@@ -48,6 +48,10 @@ public class DunaHousePortalEngine implements PortalEngine {
 
     @Override
     public PortalScrapeResult scrape(SearchCriteria criteria) {
+        return scrape(criteria, HttpFetcher::fetchDocument);
+    }
+
+    public PortalScrapeResult scrape(SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
         long startTime = System.currentTimeMillis();
         List<IngatlanItem> items = new ArrayList<>();
         if (criteria == null) {
@@ -64,7 +68,7 @@ public class DunaHousePortalEngine implements PortalEngine {
         try {
             for (int i = 1; i <= maxPages; i++) {
                 String pageUrl = (i == 1) ? searchUrl : searchUrl + "/oldal-" + i;
-                Document document = HttpFetcher.fetchDocument(pageUrl);
+                Document document = documentFetcher.apply(pageUrl);
                 if (document == null) {
                     LOGGER.warn("Nem sikerült letölteni a Duna House oldalt: {}", pageUrl);
                     continue;

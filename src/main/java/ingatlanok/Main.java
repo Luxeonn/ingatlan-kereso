@@ -1,75 +1,63 @@
 package ingatlanok;
 
-import ingatlanok.common.BrowserUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.service.IngatlanSearchService;
-import ingatlanok.web.WebServer;
+import org.springframework.boot.SpringApplication;
 
 import java.util.Arrays;
 
+/**
+ * Ingatlan kereső belépési pont és futtatási módválasztó.
+ * Támogatja a parancssori kötegelt futtatást (--cli) és a modern Spring Boot Web Dashboardot (--web vagy alapértelmezett).
+ */
 public class Main {
 
     public static void main(String[] args) {
-        boolean isCli = Arrays.asList(args).contains("--cli") || Boolean.getBoolean("cli");
-
-        if (isCli) {
+        if (isCliRequested(args)) {
             runCliMode();
         } else {
-            IngatlanApplication.main(args);
+            SpringApplication.run(IngatlanApplication.class, filterLauncherArgs(args));
         }
     }
 
-    private static void runWebDashboard() {
-        System.out.println("==================================================");
-        System.out.println("  Ingatlan Kereső - Web Dashboard Indítása");
-        System.out.println("==================================================");
-
-        IngatlanRepository.getInstance();
-
-        String host = WebServer.resolveDefaultHost();
-        int defaultPort = WebServer.resolveDefaultPort();
-        WebServer server = new WebServer(host, defaultPort);
-
-        try {
-            server.start();
-            int actualPort = server.getPort();
-            String displayHost = ("0.0.0.0".equals(host) || "::".equals(host)) ? "localhost" : host;
-            String url = "http://" + displayHost + ":" + actualPort;
-
-            System.out.println("\n[Siker] A felület elérhető a következő címen: " + url);
-
-            boolean noBrowser = Boolean.getBoolean("no.browser")
-                    || "true".equalsIgnoreCase(System.getenv("NO_BROWSER"))
-                    || java.awt.GraphicsEnvironment.isHeadless()
-                    || "0.0.0.0".equals(host);
-
-            if (!noBrowser) {
-                System.out.println("Böngésző megnyitása a háttérben...");
-                Thread.ofVirtual().start(() -> {
-                    if (!BrowserUtils.openUrl(url)) {
-                        System.out.println("Nyisd meg manuálisan a böngésződben a fenti linket: " + url);
-                    }
-                });
-            } else {
-                System.out.println("[Info] Headless / Konténer környezet. Nyisd meg a böngésződben: " + url);
+    /**
+     * Megvizsgálja, hogy a parancssori (CLI) kötegelt mód futtatását kérték-e.
+     *
+     * @param args parancssori argumentumok
+     * @return true, ha a --cli kapcsoló vagy a cli rendszerjellemző be van állítva
+     */
+    public static boolean isCliRequested(String[] args) {
+        if (args != null) {
+            for (String arg : args) {
+                if ("--cli".equalsIgnoreCase(arg)) {
+                    return true;
+                }
             }
-
-            System.out.println("\n==================================================");
-            System.out.println("  Web Dashboard Kiszolgáló Aktív!");
-            System.out.println("  Nyisd meg: " + url);
-            System.out.println("  Leállítás: [Ctrl + C]");
-            System.out.println("==================================================");
-
-            Thread.currentThread().join();
-        } catch (Exception e) {
-            System.err.println("Nem sikerült elindítani a webszervert: " + e.getMessage());
-            e.printStackTrace();
         }
+        return Boolean.getBoolean("cli");
     }
 
-    static void runCliMode() {
+    /**
+     * Kiszűri a futtató kapcsolókat (--web, --cli), hogy ne szennyezzék a Spring környezeti beállításait.
+     *
+     * @param args az eredeti argumentum tömb
+     * @return szűrt argumentum tömb a Spring Boot számára
+     */
+    public static String[] filterLauncherArgs(String[] args) {
+        if (args == null) {
+            return new String[0];
+        }
+        return Arrays.stream(args)
+                .filter(arg -> !"--web".equalsIgnoreCase(arg) && !"--cli".equalsIgnoreCase(arg))
+                .toArray(String[]::new);
+    }
+
+    /**
+     * Parancssori (CLI) kötegelt keresési mód futtatása.
+     */
+    public static void runCliMode() {
         System.out.println("==================================================");
         System.out.println("  Ingatlan Kereső - Parancssori Keresés (CLI Mód)");
         System.out.println("==================================================");
