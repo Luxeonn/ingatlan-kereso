@@ -1,6 +1,7 @@
 package ingatlanok.web;
 
 import com.google.gson.Gson;
+import ingatlanok.config.GlobalCorsFilter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.ListingStorage;
@@ -30,12 +31,17 @@ class RestApiControllerIntegrationTest {
     @Autowired
     private ListingStorage listingStorage;
 
+    @Autowired
+    private GlobalCorsFilter globalCorsFilter;
+
     private MockMvc mockMvc;
     private final Gson gson = new Gson();
 
     @BeforeEach
     void setupMockMvc() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilters(globalCorsFilter)
+                .build();
     }
 
     @Test
@@ -124,7 +130,7 @@ class RestApiControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/logs és POST /api/logs/clear - Naplózás ellenőrzése")
     void testLogsEndpoints() throws Exception {
-        mockMvc.perform(get("/api/logs"))
+        mockMvc.perform(get("/api/logs?limit=50&level=INFO"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.logs").isArray())
                 .andExpect(jsonPath("$.level").exists());
@@ -132,5 +138,140 @@ class RestApiControllerIntegrationTest {
         mockMvc.perform(post("/api/logs/clear"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("GET /api/properties/price-history - Hiányzó paraméter esetén 400 Bad Request")
+    void testGetPriceHistory_MissingParams_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/properties/price-history"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    @DisplayName("GET /api/properties/price-history - Érvényes ID és PathVariable esetén 200 OK")
+    void testGetPriceHistory_ValidId() throws Exception {
+        mockMvc.perform(get("/api/properties/price-history?id=t1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+
+        mockMvc.perform(get("/api/properties/t1/price-history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @DisplayName("GET /api/properties/status-log - Hiányzó paraméter esetén 400 Bad Request")
+    void testGetStatusLog_MissingParams_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/properties/status-log"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    @DisplayName("GET /api/properties/status-log - Érvényes ID és PathVariable esetén 200 OK")
+    void testGetStatusLog_ValidId() throws Exception {
+        mockMvc.perform(get("/api/properties/status-log?url=https://teszt.hu/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+
+        mockMvc.perform(get("/api/properties/t1/status-log"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @DisplayName("GET /api/properties/discounted - Árcsökkentett ingatlanok lekérése")
+    void testGetDiscountedProperties() throws Exception {
+        mockMvc.perform(get("/api/properties/discounted"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+
+        mockMvc.perform(get("/api/properties/discounted?city=Debrecen"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @DisplayName("GET /api/history - Szűrt keresési előzmények")
+    void testGetHistoryWithFilters() throws Exception {
+        mockMvc.perform(get("/api/history")
+                        .param("city", "Debrecen")
+                        .param("minPrice", "30.0")
+                        .param("maxPrice", "90.0")
+                        .param("minArea", "40.0")
+                        .param("maxArea", "100.0")
+                        .param("minRooms", "1.0")
+                        .param("maxRooms", "3.0")
+                        .param("sortBy", "PRICE_ASC")
+                        .param("limit", "10")
+                        .param("offset", "0"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @DisplayName("POST /api/history/clear - Város és teljes előzmény törlése")
+    void testClearHistory() throws Exception {
+        mockMvc.perform(post("/api/history/clear?city=Debrecen"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clearedCity").value("Debrecen"));
+
+        mockMvc.perform(post("/api/history/clear")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"city\":\"Szeged\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clearedCity").value("Szeged"));
+
+        mockMvc.perform(post("/api/history/clear"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clearedAll").value(true));
+    }
+
+    @Test
+    @DisplayName("CORS és biztonsági fejlécek - Localhost engedélyezett, külső origin tiltott")
+    void testCorsAndSecurityHeaders() throws Exception {
+        // Localhost origin kérés
+        mockMvc.perform(get("/api/status")
+                        .header("Origin", "http://localhost:3000"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Origin", "http://localhost:3000"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Security-Policy", org.hamcrest.Matchers.containsString("default-src 'self'")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("X-Content-Type-Options", "nosniff"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("X-Frame-Options", "DENY"));
+
+        // Preflight OPTIONS kérés engedélyezett originről
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/search")
+                        .header("Origin", "http://127.0.0.1:8080")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Origin", "http://127.0.0.1:8080"));
+
+        // Preflight OPTIONS kérés nem engedélyezett külső originről -> 403 Forbidden
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/search")
+                        .header("Origin", "http://malicious-site.com")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("POST /api/open-urls és /api/items/viewed - Üres és érvénytelen törzs kezelése")
+    void testOpenUrlsAndMarkViewed_EdgeCases() throws Exception {
+        mockMvc.perform(post("/api/open-urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[]"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(0));
+
+        mockMvc.perform(post("/api/items/viewed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.marked").value(false));
     }
 }
