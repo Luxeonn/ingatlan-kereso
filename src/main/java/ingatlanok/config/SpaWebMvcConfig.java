@@ -20,7 +20,7 @@ public class SpaWebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")
+                .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD")
                 .allowedHeaders("*")
                 .allowCredentials(false)
@@ -36,18 +36,17 @@ public class SpaWebMvcConfig implements WebMvcConfigurer {
                 .addResolver(new PathResourceResolver() {
                     @Override
                     protected Resource getResource(String resourcePath, Resource location) throws IOException {
-                        Resource requestedResource = location.createRelative(resourcePath);
-                        // Ha a fájl létezik és olvasható (pl. /assets/index-xxx.js vagy /favicon.ico)
-                        if (requestedResource.exists() && requestedResource.isReadable()) {
-                            return requestedResource;
+                        Resource resource = super.getResource(resourcePath, location);
+                        if (resource != null && resource.isReadable()) {
+                            return resource;
                         }
                         // API kéréseket soha ne irányítson az index.html-re (hagyni kell a RestControllernek)
                         if (resourcePath.startsWith("api") || resourcePath.startsWith("actuator")) {
                             return null;
                         }
                         // SPA fallback: minden egyéb kliens útvonal esetén index.html-t adunk vissza
-                        Resource indexHtml = location.createRelative("index.html");
-                        if (indexHtml.exists() && indexHtml.isReadable()) {
+                        Resource indexHtml = super.getResource("index.html", location);
+                        if (indexHtml != null && indexHtml.isReadable()) {
                             return indexHtml;
                         }
                         return null;
