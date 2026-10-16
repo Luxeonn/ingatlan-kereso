@@ -58,6 +58,7 @@ public class GraalVmRuntimeHints {
             // Statikus erőforrások és konfigurációk elérhetősége natív binárisban
             hints.resources().registerPattern("static/*");
             hints.resources().registerPattern("static/assets/*");
+            hints.resources().registerPattern("static/**");
             hints.resources().registerPattern("application.yml");
         }
     }
