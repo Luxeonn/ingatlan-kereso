@@ -1,16 +1,5 @@
-# Stage 1: Build Frontend SPA (React 19, TypeScript, Vite)
-FROM node:20-alpine AS frontend-builder
-
-WORKDIR /frontend
-
-COPY frontend/package*.json ./
-RUN npm ci
-
-COPY frontend ./
-RUN npm run build
-
-# Stage 2: Build GraalVM Native Image
-FROM ghcr.io/graalvm/native-image-community:21 AS builder
+# Stage 1: Build Headless Spring Boot JAR (Java 21 LTS)
+FROM eclipse-temurin:21-jdk-jammy AS builder
 
 WORKDIR /build
 
@@ -20,17 +9,16 @@ COPY gradle/ gradle/
 COPY settings.gradle.kts build.gradle.kts checkstyle.xml spotbugs-exclude.xml ./
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
-# Source copy & include static SPA assets from frontend-builder
+# Copy backend source files
 COPY src ./src
-COPY --from=frontend-builder /frontend/dist ./src/main/resources/static
 
-# Compile GraalVM Native Image
-RUN ./gradlew nativeCompile --no-daemon -x test
+# Build headless Spring Boot fat JAR without running tests
+RUN ./gradlew bootJar --no-daemon -x test
 
-# Stage 3: Minimal hardened runtime for Native Binary
-FROM debian:bookworm-slim
+# Stage 2: Minimal hardened runtime with Temurin JRE 21
+FROM eclipse-temurin:21-jre-jammy
 
-# Install curl for HEALTHCHECK and clean package lists
+# Install curl for HEALTHCHECK and ca-certificates
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -45,22 +33,23 @@ WORKDIR /app
 RUN mkdir -p /app/data /app/logs && \
     chown -R appuser:appuser /app
 
-# Copy GraalVM native executable from builder stage
-COPY --from=builder --chown=appuser:appuser /build/build/native/nativeCompile/ingatlan-kereso /app/ingatlan-kereso
+# Copy executable Spring Boot jar from builder stage
+COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-1.0.jar /app/app.jar
 
 USER appuser:appuser
 
 # Default container configurations
 ENV SERVER_HOST=0.0.0.0 \
     SERVER_PORT=8080 \
-    NO_BROWSER=true
+    NO_BROWSER=true \
+    JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 # Declarative volumes for zero-config persistence
 VOLUME ["/app/data", "/app/logs"]
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || curl -f http://localhost:8080/api/status || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["/app/ingatlan-kereso"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
