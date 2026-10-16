@@ -15,7 +15,7 @@ public class ConfigEntity implements Serializable {
     private String key;
 
     @Lob
-    @Column(name = "config_value", columnDefinition = "CLOB")
+    @Column(name = "config_value", columnDefinition = "TEXT")
     private String value;
 
     public ConfigEntity() {
