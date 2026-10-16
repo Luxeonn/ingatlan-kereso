@@ -19,13 +19,24 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   publish:
-    name: Publish
+    name: Publish (${{ matrix.component }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: backend
+            context: .
+            dockerfile: Dockerfile
+            image: ${{ github.repository }}-backend
+          - component: frontend
+            context: ./frontend
+            dockerfile: frontend/Dockerfile
+            image: ${{ github.repository }}-frontend
 
     steps:
       - name: Checkout repository
@@ -42,7 +53,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ matrix.image }}
           flavor: |
             latest=false
           tags: |
@@ -77,12 +88,13 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 
       - name: Generate Action Step Summary
         if: always() && steps.build-and-push.conclusion == 'success'
@@ -92,13 +104,16 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           EVENT_NAME: ${{ github.event_name }}
           ACTOR: ${{ github.actor }}
+          COMPONENT: ${{ matrix.component }}
+          IMAGE_NAME: ${{ matrix.image }}
         run: |
-          echo "### 🐳 Docker Image Build & Publish Eredmények" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🐳 Docker Image Build & Publish Eredmények (${COMPONENT})" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tulajdonság | Érték |" >> "$GITHUB_STEP_SUMMARY"
           echo "| :--- | :--- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Komponens** | \`$COMPONENT\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Regiszter** | \`ghcr.io\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Image Név** | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image Név** | \`${{ env.REGISTRY }}/${IMAGE_NAME}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Esemény / Ág** | \`$EVENT_NAME\` / \`$REF_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Indító felhasználó** | \`$ACTOR\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Image Digest** | \`$DIGEST\` |" >> "$GITHUB_STEP_SUMMARY"
@@ -108,22 +123,8 @@ jobs:
           echo "$TAGS" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "#### 🚀 Gyorsindítás a konténerrel" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$REF_NAME" = "develop" ]; then
-            echo '```bash' >> "$GITHUB_STEP_SUMMARY"
-            echo "# Zéró-konfigurációs indítás (belső kötetek automatikus felcsatolásával):" >> "$GITHUB_STEP_SUMMARY"
-            echo "docker run -d -p 8080:8080 --name ingatlan-kereso ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "# Vagy menedzselt nevesített kötetekkel:" >> "$GITHUB_STEP_SUMMARY"
-            echo "docker run -d -p 8080:8080 --name ingatlan-kereso -v ingatlan_data:/app/data -v ingatlan_logs:/app/logs ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          else
-            FIRST_TAG=$(echo "$TAGS" | head -n 1)
-            echo '```bash' >> "$GITHUB_STEP_SUMMARY"
-            echo "# Zéró-konfigurációs indítás:" >> "$GITHUB_STEP_SUMMARY"
-            echo "docker run -d -p 8080:8080 --name ingatlan-kereso $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "# Vagy menedzselt nevesített kötetekkel:" >> "$GITHUB_STEP_SUMMARY"
-            echo "docker run -d -p 8080:8080 --name ingatlan-kereso -v ingatlan_data:/app/data -v ingatlan_logs:/app/logs $FIRST_TAG" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "#### 🚀 Gyorsindítás Docker Compose segítségével" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "docker compose pull" >> "$GITHUB_STEP_SUMMARY"
+          echo "docker compose up -d" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
