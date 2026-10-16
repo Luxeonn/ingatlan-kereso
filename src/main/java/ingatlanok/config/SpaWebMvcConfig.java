@@ -22,7 +22,7 @@ public class SpaWebMvcConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD")
-                .allowedHeaders("*")
+                .allowedHeaders("Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With")
                 .allowCredentials(false)
                 .maxAge(3600);
     }
