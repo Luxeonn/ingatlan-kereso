@@ -1,25 +1,29 @@
-name: PR & Branch Protection Guard
+name: PR Review
 
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
     branches:
       - main
       - develop
+  issue_comment:
+    types: [created]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
-  pull-requests: read
+  pull-requests: write
+  issues: write
   contents: read
 
 jobs:
-  pr-compliance:
-    name: Validate PR Standards & Branch Conventions
+  guard:
+    name: Guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout repository
@@ -45,13 +49,11 @@ jobs:
           BRANCH: ${{ github.head_ref }}
         run: |
           echo "Ellenőrzés alatt álló forráság: '$BRANCH'"
-          # Ha a develop mergeli a maint vagy forditva release esetén, azt is engedjuk
           if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" ]]; then
             echo "✅ Rendszerág összefésülés engedélyezve: $BRANCH"
             exit 0
           fi
 
-          # Dependabot által automatikusan létrehozott ágak engedélyezése
           if [[ "$BRANCH" =~ ^dependabot\/ ]]; then
             echo "✅ Dependabot automatikus ág engedélyezve: $BRANCH"
             exit 0
@@ -74,14 +76,12 @@ jobs:
             echo "✅ PR leírás kitöltve (${#BODY} karakter)."
           fi
 
-          # Kapcsolódó issue lezárási kulcsszó ellenőrzése és visszajelzés
           if echo "$BODY" | grep -qiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+"; then
             LINKED_MATCH=$(echo "$BODY" | grep -oiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+" | head -n 1)
             echo "🔗 Kapcsolódó issue automatikus lezárása észlelve: '$LINKED_MATCH' (merge-kor automatikusan zárul)."
           else
             echo "ℹ️ Nincs automatikusan lezáró kulcsszó ('Closes #<id>', 'Fixes #<id>') a leírásban. Ha a PR issue-t old meg, add meg a 'Closes #...' kulcsszót!"
           fi
-
 
       - name: Verify Thematic Agent Approval Gate
         env:
@@ -92,14 +92,12 @@ jobs:
         run: |
           echo "=== 🛡️ Thematic Agent Approval Gate Ellenőrzése ==="
 
-          # Dependabot automatikus függőségfrissítések kezelése
           if [[ "$ACTOR" == "dependabot[bot]" || "$ACTOR" == "dependabot" || "$BRANCH" =~ ^dependabot\/ ]]; then
             echo "🤖 Dependabot automatikus függőségfrissítés észlelve ($BRANCH / $ACTOR)."
             echo "✅ Thematic Agent Approval Gate: Dependabot bot által nyitott frissítés automatikusan jóváhagyva."
             exit 0
           fi
           
-          # Módosított fájlok lekérése a célág és a PR között
           CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" || true)
           echo "Módosított fájlok:"
           echo "$CHANGED_FILES"
@@ -107,53 +105,34 @@ jobs:
 
           MISSING_APPROVALS=""
 
-          # 1. Rendszerarchitektúra & Scraper réteg (deep-architect)
-          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(service|scraper|core|portal)/|Main\.java"; then
-            echo "-> Érintett téma: Rendszerarchitektúra (deep-architect szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Architecture|deep-architect)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🏛️ Deep Architect Agent (\`deep-architect\`): Architektúra, 0-crash és réteg-izoláció jóváhagyása szükséges."
+          # 1. Fullstack Architecture & UI (fullstack-architect)
+          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(core|presentation|web|persistence|model)/|Main\.java|frontend/|WebDashboardHtml\.java|static/"; then
+            echo "-> Érintett téma: Fullstack Architektúra, Perzisztencia vagy UI (fullstack-architect szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(fullstack-architect|Fullstack Architect)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🏛️ Fullstack Architect Agent (\`fullstack-architect\`): Rendszerarchitektúra, NoSQL perzisztencia, React 19 UI vagy REST szerződés jóváhagyása szükséges."
             fi
           fi
 
-          # 2. UI & Dashboard SPA (ui-designer & ui-integrity-guard)
-          if echo "$CHANGED_FILES" | grep -qE "WebDashboardHtml\.java|static/|\.css|\.js"; then
-            echo "-> Érintett téma: UI és Dashboard SPA (ui-designer és ui-integrity-guard szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI Designer|ui-designer)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🎨 UI Designer Agent (\`ui-designer\`): Frontend design, reszponzivitás és komponensek jóváhagyása szükséges."
-            fi
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(UI Integrity|ui-integrity-guard|Integrity Guard)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ UI Integrity Guard Agent (\`ui-integrity-guard\`): Frontend szintaxis, escape-elési integritás (node --check) és DOM ID konzisztencia jóváhagyása szükséges."
+          # 2. Scraper Motorok & Alkalmazásbiztonság (scraper-security-engineer)
+          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(portal|scraper|common)/|WebServer\.java|SidecarCliExecutor\.java|BrowserUtils\.java|HttpFetcher\.java"; then
+            echo "-> Érintett téma: Scraper Motorok és Alkalmazásbiztonság (scraper-security-engineer szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(scraper-security-engineer|Scraper & Security)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ Scraper & Security Specialist (\`scraper-security-engineer\`): Scraper megbízhatóság, WAF/bot védelem vagy AppSec hardening jóváhagyása szükséges."
             fi
           fi
 
-          # 3. Biztonság, Hálózat és Folyamatkezelés (security-specialist)
-          if echo "$CHANGED_FILES" | grep -qE "WebServer\.java|SidecarCliExecutor\.java|BrowserUtils\.java|HttpFetcher\.java|Dockerfile|docker-compose"; then
-            echo "-> Érintett téma: Alkalmazásbiztonság és Hálózat (security-specialist szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Security|security-specialist)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ Security Specialist Agent (\`security-specialist\`): AppSec, localhost kötés, XSS és command injection védelem jóváhagyása szükséges."
-            fi
-          fi
-
-          # 4. Adatbázis és Perzisztencia (database-specialist)
-          if echo "$CHANGED_FILES" | grep -qE "persistence/|IngatlanRepository\.java|data/"; then
-            echo "-> Érintett téma: Adatbázis és Perzisztencia (database-specialist szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Database|database-specialist)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 💾 Database Specialist Agent (\`database-specialist\`): Szálbiztosság, atomi lemezre írás és duplikátumszűrés jóváhagyása szükséges."
-            fi
-          fi
-
-          # 5. CI/CD és GitHub Actions (workflow-engineer)
-          if echo "$CHANGED_FILES" | grep -qE "\.github/workflows/|\.githooks/|Dockerfile|docker-compose"; then
-            echo "-> Érintett téma: CI/CD és GitHub Actions (workflow-engineer szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(Workflow|CI|workflow-engineer)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ⚙️ Workflow Engineer Agent (\`workflow-engineer\`): GitHub Actions, CI/CD és automatizáció jóváhagyása szükséges."
+          # 3. Minőségbiztosítás, Tesztelés & DevOps/CI (quality-devops-engineer)
+          if echo "$CHANGED_FILES" | grep -qE "\.github/|Dockerfile|docker-compose|src/test/|frontend/.*test|pom\.xml|package\.json"; then
+            echo "-> Érintett téma: Minőségbiztosítás, DevOps vagy CI/CD (quality-devops-engineer szükséges)"
+            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(quality-devops-engineer|Quality & DevOps)"; then
+              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ⚙️ Quality & DevOps Specialist (\`quality-devops-engineer\`): Tesztlefedettség, determinista tesztek, Docker vagy CI/CD pipeline jóváhagyása szükséges."
             fi
           fi
 
           if [ -n "$MISSING_APPROVALS" ]; then
             echo "::error::Hiányzó Tematikus Agent Jóváhagyás(ok)! A PR nem engedélyezett a megfelelő szakértői ágens igazolása nélkül:${MISSING_APPROVALS}"
             echo ""
-            echo "Futtasd a review-and-fix ágenst (.gemini/commands/review-and-fix.toml), és illeszd be a 'Thematic Agent Approval Gate' blokkot a PR leírásába!"
+            echo "Kérjük, add hozzá a jóváhagyást a PR leírásának 'Thematic Agent Approval Gate' blokkjához!"
             exit 1
           fi
 
@@ -162,9 +141,39 @@ jobs:
       - name: Report PR Compliance Summary
         if: always()
         run: |
-          echo "### 🛡️ PR & Branch Protection Guard Eredmények" >> $GITHUB_STEP_SUMMARY
+          echo "### 🛡️ PR Review (Guard) Eredmények" >> $GITHUB_STEP_SUMMARY
           echo "- **PR Cím & Branch Szabályzat:** ${{ job.status == 'success' && '✅ Megfelelt (Conventional Commits & Prefix)' || '❌ Nem felelt meg' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Thematic Agent Approval Gate:** ${{ job.status == 'success' && '✅ Jóváhagyva (1-mondatos szakmai indoklással)' || '❌ Hiányos vagy elutasítva' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a Java CI és a PR Guard is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a CI és a PR Review is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
           echo "- **Ág:** \`${{ github.head_ref }}\` -> \`${{ github.base_ref }}\`" >> $GITHUB_STEP_SUMMARY
 
+  review:
+    name: Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/')) }}
+
+    steps:
+      - name: Verify AI Credentials Availability
+        id: credentials-check
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_KEY" ] || [ -n "$ANTHROPIC_KEY" ] || [ -n "$QODO_API_KEY" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+            echo "✅ AI Reviewer credentials detected."
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No AI Reviewer API key (OPENAI_KEY, ANTHROPIC_KEY, or QODO_API_KEY) found in secrets. Skipping automated review safely."
+          fi
+
+      - name: Execute Qodo PR-Agent
+        if: steps.credentials-check.outputs.has_key == 'true'
+        uses: Codium-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

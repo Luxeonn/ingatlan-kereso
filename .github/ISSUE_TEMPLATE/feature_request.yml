@@ -34,12 +34,9 @@ body:
       label: 'Érintett szakterület / felelős ágens'
       description: 'Melyik specialista területet érinti a javaslat?'
       options:
-        - 'Rendszerarchitektúra & Scraper réteg (deep-architect)'
-        - 'Web Dashboard SPA & UI/UX (ui-designer)'
-        - 'Alkalmazásbiztonság & Hálózat (security-specialist)'
-        - 'Perzisztencia & Adattárolás (database-specialist)'
-        - 'CI/CD & GitHub Actions Munkafolyamat (workflow-engineer)'
-        - 'Új Portál Integráció (IngatlanScraper)'
+        - 'Fullstack Architektúra, Adattár & UI (fullstack-architect)'
+        - 'Scraper Motorok & Alkalmazásbiztonság (scraper-security-engineer)'
+        - 'Minőségbiztosítás, DevOps & CI/CD (quality-devops-engineer)'
     validations:
       required: true
 

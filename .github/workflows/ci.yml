@@ -1,4 +1,4 @@
-name: Java CI with Gradle
+name: CI
 
 on:
   push:
@@ -19,8 +19,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build, Deterministic CI & UI Integrity Guard (Java 21)
+  test:
+    name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
