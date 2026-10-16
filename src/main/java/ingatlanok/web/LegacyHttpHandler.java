@@ -167,9 +167,14 @@ final class LegacyHttpHandler {
             sendResponse(exchange, 405, "Method Not Allowed");
             return;
         }
-        String body = readBody(exchange);
-        SearchCriteria criteria = body.isBlank() ? new SearchCriteria() : GSON.fromJson(body, SearchCriteria.class);
-        sendJsonResponse(exchange, 200, REST_CONTROLLER.executeSearch(criteria).getBody());
+        try {
+            String body = readBody(exchange);
+            SearchCriteria criteria = body.isBlank() ? new SearchCriteria() : GSON.fromJson(body, SearchCriteria.class);
+            sendJsonResponse(exchange, 200, REST_CONTROLLER.executeSearch(criteria).getBody());
+        } catch (Exception e) {
+            LOGGER.error("Hiba a /api/search kérés feldolgozásakor: {}", e.getMessage(), e);
+            sendResponse(exchange, 500, "Internal Server Error: " + e.getMessage());
+        }
     }
 
     private static void handleOpenUrls(HttpExchange exchange) throws IOException {

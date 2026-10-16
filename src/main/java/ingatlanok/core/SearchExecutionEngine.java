@@ -1,8 +1,6 @@
 package ingatlanok.core;
 
 import ingatlanok.common.AppLogger;
-import ingatlanok.common.BrowserUtils;
-import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
@@ -13,20 +11,15 @@ import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.scraper.PortalScrapeResult;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 /**
- * Párhuzamos Virtual Threads keresésvezérlő és orchestrator motor.
- * Clean Architecture elv: szigorú réteg-izoláció, 0-Crash garancia és egyedi portál timeoutok.
+ * Párhuzamos keresésvezérlő és folyamatorchestrator motor.
+ * Delegál a moduláris {@link ParallelPortalScrapeExecutor} és {@link SearchResultAggregator} motoroknak.
  */
 public class SearchExecutionEngine {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(SearchExecutionEngine.class);
-    private static final long PORTAL_TIMEOUT_SECONDS = 15;
     private static final SearchExecutionEngine INSTANCE = new SearchExecutionEngine();
 
     private final PortalEngineRegistry portalRegistry;
@@ -35,14 +28,16 @@ public class SearchExecutionEngine {
     private final PropertyFilterEngine filterEngine;
     private final DeduplicationEngine dedupEngine;
     private final MarketAnalyticsEngine analyticsEngine;
+    private final ParallelPortalScrapeExecutor scrapeExecutor;
+    private final SearchResultAggregator resultAggregator;
 
     private SearchExecutionEngine() {
         this(
                 PortalEngineRegistry.getInstance(),
-                IngatlanRepository.getInstance().getListingStorage(),
-                IngatlanRepository.getInstance().getConfigStorage(),
+                IngatlanRepository.getInstance(),
+                IngatlanRepository.getInstance(),
                 new PropertyFilterEngine(),
-                new DeduplicationEngine(IngatlanRepository.getInstance().getListingStorage()),
+                new DeduplicationEngine(IngatlanRepository.getInstance()),
                 new MarketAnalyticsEngine()
         );
     }
@@ -53,12 +48,26 @@ public class SearchExecutionEngine {
                                  PropertyFilterEngine filterEngine,
                                  DeduplicationEngine dedupEngine,
                                  MarketAnalyticsEngine analyticsEngine) {
+        this(portalRegistry, listingStorage, configStorage, filterEngine, dedupEngine, analyticsEngine,
+                new ParallelPortalScrapeExecutor(), new SearchResultAggregator());
+    }
+
+    public SearchExecutionEngine(PortalEngineRegistry portalRegistry,
+                                 ListingStorage listingStorage,
+                                 ConfigStorage configStorage,
+                                 PropertyFilterEngine filterEngine,
+                                 DeduplicationEngine dedupEngine,
+                                 MarketAnalyticsEngine analyticsEngine,
+                                 ParallelPortalScrapeExecutor scrapeExecutor,
+                                 SearchResultAggregator resultAggregator) {
         this.portalRegistry = portalRegistry != null ? portalRegistry : PortalEngineRegistry.getInstance();
-        this.listingStorage = listingStorage != null ? listingStorage : IngatlanRepository.getInstance().getListingStorage();
-        this.configStorage = configStorage != null ? configStorage : IngatlanRepository.getInstance().getConfigStorage();
+        this.listingStorage = listingStorage != null ? listingStorage : IngatlanRepository.getInstance();
+        this.configStorage = configStorage != null ? configStorage : IngatlanRepository.getInstance();
         this.filterEngine = filterEngine != null ? filterEngine : new PropertyFilterEngine();
         this.dedupEngine = dedupEngine != null ? dedupEngine : new DeduplicationEngine(this.listingStorage);
         this.analyticsEngine = analyticsEngine != null ? analyticsEngine : new MarketAnalyticsEngine();
+        this.scrapeExecutor = scrapeExecutor != null ? scrapeExecutor : new ParallelPortalScrapeExecutor();
+        this.resultAggregator = resultAggregator != null ? resultAggregator : new SearchResultAggregator();
     }
 
     public static SearchExecutionEngine getInstance() {
@@ -82,12 +91,12 @@ public class SearchExecutionEngine {
         LOGGER.info("Aktív portálok: {}", criteria.getPortals());
         LOGGER.info("==================================================");
 
-        SearchResult result = new SearchResult();
         List<IngatlanItem> allAggregatedItems = new ArrayList<>();
         Map<String, Integer> portalCounts = new LinkedHashMap<>();
         Map<String, Integer> cityCounts = new LinkedHashMap<>();
+        List<String> newCitiesInitialized = new ArrayList<>();
+        List<PortalScrapeResult> allScrapeResults = new ArrayList<>();
 
-        // Portál számlálók alapértelmezett inicializálása
         for (PortalEngine engine : portalRegistry.getAllEngines()) {
             portalCounts.put(engine.getName(), 0);
         }
@@ -105,128 +114,39 @@ public class SearchExecutionEngine {
 
             boolean isFirstSearch = !listingStorage.hasCityDatabase(currentCity);
             if (isFirstSearch) {
-                result.getNewCitiesInitialized().add(currentCity);
-                LOGGER.info("[Új Város] '{}' még nem szerepel az adatbázisban. Alapállapot (baseline snapshot) rögzítése...", currentCity);
+                newCitiesInitialized.add(currentCity);
+                LOGGER.info("[Új Város] '{}' még nem szerepel az adatbázisban. Alapállapot snapshot rögzítése...", currentCity);
             } else {
                 LOGGER.info("[Ismert Város] '{}' adatbázisa létezik. Differenciál-keresés...", currentCity);
             }
 
             SearchCriteria cityCriteria = criteria.cloneForCity(currentCity);
             List<PortalEngine> activeEngines = portalRegistry.getActiveEngines(cityCriteria);
-            List<IngatlanItem> cityFoundItems = new ArrayList<>();
 
-            // Párhuzamos portál lekérdezés Virtual Threads alapon, szigorú timeouttal és 0-Crash garanciával
-            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                Map<PortalEngine, Future<PortalScrapeResult>> futures = new LinkedHashMap<>();
-                for (PortalEngine engine : activeEngines) {
-                    futures.put(engine, executor.submit(() -> engine.scrape(cityCriteria)));
-                }
+            ParallelPortalScrapeExecutor.CityScrapeOutput scrapeOutput = scrapeExecutor.execute(activeEngines, cityCriteria, currentCity);
+            allScrapeResults.addAll(scrapeOutput.results());
+            scrapeOutput.portalCounts().forEach((k, v) -> portalCounts.merge(k, v, Integer::sum));
 
-                for (Map.Entry<PortalEngine, Future<PortalScrapeResult>> entry : futures.entrySet()) {
-                    PortalEngine engine = entry.getKey();
-                    Future<PortalScrapeResult> future = entry.getValue();
-                    try {
-                        PortalScrapeResult scrapeResult = future.get(PORTAL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-                        result.getPortalResults().add(scrapeResult);
-                        List<IngatlanItem> items = scrapeResult.getItems();
-                        if (items != null) {
-                            cityFoundItems.addAll(items);
-                            portalCounts.put(engine.getName(), portalCounts.getOrDefault(engine.getName(), 0) + items.size());
-                        }
-                        LOGGER.info("  ├─ [{}] {} db hirdetés letöltve (Válaszidő: {} ms, Státusz: {})",
-                                engine.getName(), items != null ? items.size() : 0, scrapeResult.getExecutionTimeMs(), scrapeResult.getStatus());
-                    } catch (TimeoutException te) {
-                        future.cancel(true);
-                        LOGGER.warn("Időtúllépés ({} mp) a(z) {} keresésekor ({})", PORTAL_TIMEOUT_SECONDS, engine.getName(), currentCity);
-                        PortalScrapeResult timeoutResult = PortalScrapeResult.failure(
-                                engine.getId(), engine.getName(), "Időtúllépés (" + PORTAL_TIMEOUT_SECONDS + " mp)", PORTAL_TIMEOUT_SECONDS * 1000
-                        );
-                        result.getPortalResults().add(timeoutResult);
-                    } catch (Exception e) {
-                        LOGGER.error("Hiba a(z) {} keresésekor ({}): {}", engine.getName(), currentCity, e.getMessage(), e);
-                        PortalScrapeResult failResult = PortalScrapeResult.failure(
-                                engine.getId(), engine.getName(), e.getMessage(), 0
-                        );
-                        result.getPortalResults().add(failResult);
-                    }
-                }
-            }
-
-            // Kritérium szerinti szűrés a PropertyFilterEngine segítségével
-            PropertyFilterEngine.FilterResult filterResult = filterEngine.filter(cityFoundItems, cityCriteria, currentCity);
+            PropertyFilterEngine.FilterResult filterResult = filterEngine.filter(scrapeOutput.items(), cityCriteria, currentCity);
             List<IngatlanItem> filteredCityItems = filterResult.matchingItems();
 
-            // Új státusz vizsgálat és baseline snapshot kezelés
             dedupEngine.applyNewStatus(currentCity, filteredCityItems, isFirstSearch);
-
-            // Városszintű duplikátumszűrés URL alapján
             List<IngatlanItem> uniqueCityItems = dedupEngine.deduplicateByUrl(filteredCityItems);
-
-            // Városi találatok atomi mentése a ListingStorage segítségével
             listingStorage.saveCityItems(currentCity, uniqueCityItems);
 
             int cityMatchingCount = uniqueCityItems.size();
-            int cityTotalFiltered = cityFoundItems.size() - cityMatchingCount;
+            int cityTotalFiltered = scrapeOutput.items().size() - cityMatchingCount;
             LOGGER.info("  └─ [{}] Összesítés: {} letöltve -> {} megfelelő találat (Kiszűrve: {} db | Ár: {}, Méret: {}, Megtekintett: {})",
-                    currentCity, cityFoundItems.size(), cityMatchingCount, cityTotalFiltered,
+                    currentCity, scrapeOutput.items().size(), cityMatchingCount, cityTotalFiltered,
                     filterResult.filteredByPriceCount(), filterResult.filteredByAreaCount(), filterResult.filteredByViewedCount());
 
             cityCounts.put(currentCity, uniqueCityItems.size());
             allAggregatedItems.addAll(uniqueCityItems);
         }
 
-        // Globális duplikátumszűrés
         List<IngatlanItem> uniqueAggregatedList = dedupEngine.deduplicateByUrl(allAggregatedItems);
-
-        List<IngatlanItem> newItems = uniqueAggregatedList.stream()
-                .filter(IngatlanItem::isNew)
-                .collect(Collectors.toList());
-
-        // Keresési konfiguráció atomi mentése
-        configStorage.saveLastCriteria(criteria);
-
-        // Opcionális böngésző megnyitás
-        if (criteria.isAutoOpenBrowser() && !newItems.isEmpty()) {
-            Set<String> urlsToOpen = newItems.stream()
-                    .map(IngatlanItem::getUrl)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-            BrowserUtils.openUrls(urlsToOpen);
-        }
-
-        // Rendezés ár növekvő szerint (alapértelmezett), majd új találat és dátum
-        uniqueAggregatedList.sort((a, b) -> {
-            Long priceA = (a.getPriceInfo() != null) ? a.getPriceInfo().getAmountHuf() : null;
-            if (priceA == null && a.getPrice() != null) {
-                priceA = PropertyParser.parsePrice(a.getPrice()).getAmountHuf();
-            }
-            Long priceB = (b.getPriceInfo() != null) ? b.getPriceInfo().getAmountHuf() : null;
-            if (priceB == null && b.getPrice() != null) {
-                priceB = PropertyParser.parsePrice(b.getPrice()).getAmountHuf();
-            }
-
-            if (priceA != null && priceB != null) {
-                int cmp = Long.compare(priceA, priceB);
-                if (cmp != 0) return cmp;
-            } else if (priceA != null) {
-                return -1;
-            } else if (priceB != null) {
-                return 1;
-            }
-
-            if (a.isNew() != b.isNew()) {
-                return Boolean.compare(!a.isNew(), !b.isNew());
-            }
-            if (a.getDiscoveredAt() == null) return 1;
-            if (b.getDiscoveredAt() == null) return -1;
-            return b.getDiscoveredAt().compareTo(a.getDiscoveredAt());
-        });
-
-        result.setItems(uniqueAggregatedList);
-        result.setNewCount(newItems.size());
-        result.setTotalFound(uniqueAggregatedList.size());
-        result.setExecutedAt(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
-        result.setPortalCounts(portalCounts);
-        result.setCityCounts(cityCounts);
+        SearchResult result = resultAggregator.aggregate(uniqueAggregatedList, criteria, configStorage, portalCounts, cityCounts, newCitiesInitialized);
+        result.getPortalResults().addAll(allScrapeResults);
 
         LOGGER.info("==================================================");
         LOGGER.info("Keresés befejeződött: {}", result.getExecutedAt());
