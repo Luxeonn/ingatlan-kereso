@@ -21,27 +21,31 @@ public class NitriteConfigStorage implements ConfigStorage {
     private static final AppLogger LOGGER = AppLogger.getLogger(NitriteConfigStorage.class);
     private static final String CONFIG_KEY_LAST_CRITERIA = "last_criteria";
 
-    private final NitriteDatabaseManager dbManager;
+    private volatile NitriteDatabaseManager dbManager;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     public NitriteConfigStorage() {
-        this(new NitriteDatabaseManager());
+        this(null);
     }
 
     public NitriteConfigStorage(NitriteDatabaseManager dbManager) {
-        this.dbManager = dbManager != null ? dbManager : new NitriteDatabaseManager();
+        this.dbManager = dbManager != null ? dbManager : NitriteDatabaseManager.getInstance(null);
     }
 
     public NitriteDatabaseManager getDbManager() {
+        if (dbManager == null || dbManager.isClosed()) {
+            dbManager = NitriteDatabaseManager.getInstance(dbManager != null ? dbManager.getDatabasePath() : null);
+        }
         return dbManager;
     }
 
     @Override
     public SearchCriteria getLastCriteria() {
-        ReentrantReadWriteLock.ReadLock lock = dbManager.getRwLock().readLock();
+        NitriteDatabaseManager mgr = getDbManager();
+        ReentrantReadWriteLock.ReadLock lock = mgr.getRwLock().readLock();
         lock.lock();
         try {
-            NitriteCollection col = dbManager.getConfigCollection();
+            NitriteCollection col = mgr.getConfigCollection();
             Document doc = col.find(where("key").eq(CONFIG_KEY_LAST_CRITERIA)).firstOrNull();
             if (doc != null) {
                 String json = doc.get("value", String.class);
@@ -65,10 +69,11 @@ public class NitriteConfigStorage implements ConfigStorage {
         if (criteria == null) {
             return;
         }
-        ReentrantReadWriteLock.WriteLock lock = dbManager.getRwLock().writeLock();
+        NitriteDatabaseManager mgr = getDbManager();
+        ReentrantReadWriteLock.WriteLock lock = mgr.getRwLock().writeLock();
         lock.lock();
         try {
-            NitriteCollection col = dbManager.getConfigCollection();
+            NitriteCollection col = mgr.getConfigCollection();
             String json = gson.toJson(criteria);
 
             Document doc = Document.createDocument("key", CONFIG_KEY_LAST_CRITERIA)

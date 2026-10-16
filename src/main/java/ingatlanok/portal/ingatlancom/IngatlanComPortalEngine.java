@@ -53,6 +53,10 @@ public class IngatlanComPortalEngine implements PortalEngine {
 
     @Override
     public PortalScrapeResult scrape(SearchCriteria criteria) {
+        return scrape(criteria, HttpFetcher::fetchDocument);
+    }
+
+    public PortalScrapeResult scrape(SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
         long startTime = System.currentTimeMillis();
         List<IngatlanItem> items = new ArrayList<>();
         if (criteria == null) {
@@ -93,7 +97,7 @@ public class IngatlanComPortalEngine implements PortalEngine {
         }
 
         try {
-            Document document = HttpFetcher.fetchDocument(searchUrl);
+            Document document = documentFetcher.apply(searchUrl);
             if (document == null) {
                 long elapsed = System.currentTimeMillis() - startTime;
                 LOGGER.warn("Ingatlan.com: Nem sikerült közvetlenül letölteni az oldalt (WAF tiltás vagy hálózati hiba) [{} ms] -> fallback: {}", elapsed, searchUrl);

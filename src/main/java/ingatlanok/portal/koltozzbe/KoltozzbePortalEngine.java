@@ -48,6 +48,10 @@ public class KoltozzbePortalEngine implements PortalEngine {
 
     @Override
     public PortalScrapeResult scrape(SearchCriteria criteria) {
+        return scrape(criteria, HttpFetcher::fetchDocument);
+    }
+
+    public PortalScrapeResult scrape(SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
         long startTime = System.currentTimeMillis();
         List<IngatlanItem> items = new ArrayList<>();
         if (criteria == null) {
@@ -68,7 +72,7 @@ public class KoltozzbePortalEngine implements PortalEngine {
                     pageUrl += (pageUrl.contains("?") ? "&" : "?") + "page=" + page;
                 }
 
-                Document doc = HttpFetcher.fetchDocument(pageUrl);
+                Document doc = documentFetcher.apply(pageUrl);
                 if (doc == null) {
                     LOGGER.warn("Nem sikerült letölteni a Költözzbe oldalt: {}", pageUrl);
                     continue;
