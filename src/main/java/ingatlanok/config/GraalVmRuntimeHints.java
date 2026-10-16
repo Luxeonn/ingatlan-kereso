@@ -9,6 +9,8 @@ import ingatlanok.presentation.DashboardResponseDto;
 import ingatlanok.presentation.MarketStatsDto;
 import ingatlanok.presentation.PortalStatusDto;
 import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.scraper.SidecarResponse;
+import ingatlanok.scraper.SidecarResponse.SidecarItem;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -41,13 +43,16 @@ public class GraalVmRuntimeHints {
                     DashboardResponseDto.class,
                     MarketStatsDto.class,
                     PortalStatusDto.class,
-                    PortalScrapeResult.class
+                    PortalScrapeResult.class,
+                    SidecarResponse.class,
+                    SidecarItem.class
             };
 
             for (Class<?> clazz : bindingClasses) {
                 hints.reflection().registerType(clazz,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
-                        MemberCategory.INVOKE_PUBLIC_METHODS);
+                        MemberCategory.INVOKE_PUBLIC_METHODS,
+                        MemberCategory.DECLARED_FIELDS);
             }
 
             // Statikus erőforrások és konfigurációk elérhetősége natív binárisban
