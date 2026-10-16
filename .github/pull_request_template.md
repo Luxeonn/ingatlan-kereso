@@ -3,15 +3,9 @@
 > [!IMPORTANT]
 > Section 5 of [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) and `.github/workflows/pr-guard.yml` mandate designated specialist approvals. Each reviewer must provide **exactly one concise sentence explaining** why the domain is marked **`[OK]`**, **`[NOK]`**, or **`[N/A]`**.
 
-- [ ] Architecture (`deep-architect`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] UI/UX (`ui-designer`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] UI Integrity (`ui-integrity-guard`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] Security (`security-specialist`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] Database (`database-specialist`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] Workflow/CI (`workflow-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] DevOps (`devops-specialist`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] Scraper Reliability (`scraper-reliability-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] QA/Testing (`qa-test-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Fullstack Architecture & UI (`fullstack-architect`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Scraper & Security (`scraper-security-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Quality & DevOps (`quality-devops-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
 
 ---
 

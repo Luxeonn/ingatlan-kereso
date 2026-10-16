@@ -157,7 +157,7 @@ ingatlan-kereso/
 > 8. **Descriptive Summary:** PR description must clearly explain Context & Goal, Technical Changes, and Verification steps.
 > 9. **Direct PR Link:** Always output a clickable GitHub PR link in the final conversation response.
 > 10. **Thematic Agent Approval Gate:**
->     - Every PR requires sign-off from designated specialist agents (`deep-architect`, `ui-designer`, `ui-integrity-guard`, `security-specialist`, `database-specialist`, `workflow-engineer`, `devops-specialist`, `scraper-reliability-engineer`, `qa-test-engineer`).
+>     - Every PR requires sign-off from designated specialist agents (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`).
 >     - Each agent must provide exactly **one concise sentence explaining** why the domain is marked `[OK]`, `[NOK]`, or `[N/A]`.
 > 11. **ONLY MERGE WHEN ALL CHECKS ARE GREEN:**
 >     - Pull requests are strictly mergeable **ONLY IF 100% OF CI AND PR GUARD CHECKS PASS (GREEN)**.

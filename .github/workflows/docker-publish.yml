@@ -1,4 +1,4 @@
-name: Docker Build & Publish (GHCR)
+name: Release
 
 on:
   push:
@@ -23,7 +23,7 @@ env:
 
 jobs:
   publish:
-    name: Build & Publish Container Image
+    name: Publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
