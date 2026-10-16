@@ -123,8 +123,8 @@ jobs:
           cd ..
           echo "✅ Frontend SPA assetek beágyazva a fat JAR-hoz."
 
-      - name: Compile, Lint (Checkstyle & SpotBugs) and Test with Gradle & JaCoCo
-        run: ./gradlew check bootJar --no-daemon
+      - name: Compile, Lint (Checkstyle & SpotBugs), GraalVM AOT and Test with Gradle & JaCoCo
+        run: ./gradlew check processAot bootJar --no-daemon
 
       - name: Headless Application & Web UI Runtime Smoke Test
         run: |
