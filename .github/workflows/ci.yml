@@ -17,13 +17,79 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
-  test:
-    name: Test
+  detect:
+    name: Detect
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Path Filter (Detect Changed Components)
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+            backend:
+              - 'src/**'
+              - 'gradle/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'checkstyle.xml'
+              - 'spotbugs-exclude.xml'
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+
+  frontend:
+    name: Frontend
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22 (JavaScript Validator Engine)
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install, Lint and Test Frontend SPA (React 19, TypeScript, Vitest, ESLint)
+        run: |
+          echo "=== ⚛️ Frontend SPA Quality Gates Indítása ==="
+          cd frontend
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run build
+          echo "✅ Frontend SPA sikeresen lintelve, tesztelve és lefordítva."
+
+      - name: Upload Built SPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  backend:
+    name: Backend
+    needs: detect
+    if: needs.detect.outputs.backend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -38,28 +104,24 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
 
-      - name: Set up Node.js 22 (JavaScript Validator Engine)
+      - name: Set up Node.js 22 (Build Frontend Assets for Uber-JAR)
         uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
-      - name: Build, Lint and Test Frontend SPA (React 19, TypeScript, Vitest, ESLint)
+      - name: Build & Embed Frontend SPA Assets
         run: |
-          echo "=== ⚛️ Frontend SPA Quality Gates Indítása ==="
+          echo "=== ⚛️ Frontend SPA Építése a beágyazáshoz ==="
           cd frontend
           npm ci
-          npm run lint
-          npm run typecheck
-          npm run test
           npm run build
-          echo "SPA assetek másolása a Java static erőforrásokhoz..."
           mkdir -p ../src/main/resources/static
           rm -rf ../src/main/resources/static/*
           cp -r dist/* ../src/main/resources/static/
           cd ..
-          echo "✅ Frontend SPA sikeresen lintelve, lefordítva és beágyazva."
+          echo "✅ Frontend SPA assetek beágyazva a fat JAR-hoz."
 
       - name: Compile, Lint (Checkstyle & SpotBugs) and Test with Gradle & JaCoCo
         run: ./gradlew check shadowJar --no-daemon
@@ -128,13 +190,11 @@ jobs:
       - name: Report Build Summary & Quality Gates
         if: always()
         run: |
-          echo "### 🚀 CI Építés, Determinisztikus Tesztek és Minőségi Kapuk" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Backend Build, Determinisztikus Tesztek és Minőségi Kapuk" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Minőségi Kapu / Terület | Állapot | Részletek |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           echo "| **Java Környezet** | ✅ Aktív | Java 21 LTS (Eclipse Temurin) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Frontend Lint (ESLint & TS)** | ${{ job.status == 'success' && '✅ Sikeres' || '❌ Hibás' }} | React 19 + TypeScript (tsc & eslint pass) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Frontend Tesztek (Vitest)** | ${{ job.status == 'success' && '✅ Sikeres' || '❌ Hibás' }} | 19 Vitest egységteszt zöld |" >> $GITHUB_STEP_SUMMARY
           echo "| **Backend Kódminőség (Checkstyle)** | ${{ job.status == 'success' && '✅ 0 Hiba' || '❌ Szabálysértés' }} | Checkstyle ellenőrzés megfelelt |" >> $GITHUB_STEP_SUMMARY
           echo "| **Statikus Biztonság (SpotBugs)** | ${{ job.status == 'success' && '✅ 0 Hiba' || '❌ Szabálysértés' }} | SpotBugs 4.9.2 analízis megfelelt |" >> $GITHUB_STEP_SUMMARY
 
