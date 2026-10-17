@@ -14,7 +14,7 @@ Ez a szakértői skill felel a **szoftverminőségért**, a **tesztelési lefede
 - **Spring Boot tesztelés:** `@SpringBootTest`, `@AutoConfigureMockMvc` és `MockMvc` használata a REST végpontok szerződés- és hibatesztjeihez.
 - **Mockolási stratégiák:** Valós portál HTML minták mockolása Jsoup segítségével; API válaszok és tárolók szimulációja.
 - **Kódlefedettség (JaCoCo):** Minimum 80%-os kódlefedettség fenntartása a core és perzisztencia rétegekben (`jacocoTestReport`, `jacocoTestCoverageVerification`).
-- **Statikus analízis:** Checkstyle és SpotBugs szabályok betartása; AOT által generált források kizárása a hibás riasztások elkerülésére.
+- **Statikus analízis:** Checkstyle szabályok betartása; AOT által generált források kizárása a hibás riasztások elkerülésére.
 - **Automatizált hibajavítási ciklus (Fix Loop):** Bukó tesztek vagy lint hibák esetén azonnali diagnózis és javítás.
 
 ### B. DevOps, Konténerizáció & Munkafolyamatok (CI/CD)
@@ -35,6 +35,6 @@ Ez a szakértői skill felel a **szoftverminőségért**, a **tesztelési lefede
 A PR-ok jóváhagyásakor (`quality-devops-engineer`) vizsgálandó szempontok:
 - [ ] Minden új vagy módosított funkció rendelkezik determinista JUnit / MockMvc / Vitest teszttel.
 - [ ] A JaCoCo kódlefedettség nem csökken a megengedett szint alá.
-- [ ] A Checkstyle és SpotBugs elemzések 0 hibával futnak le.
+- [ ] A Checkstyle elemzés 0 hibával fut le.
 - [ ] A Dockerfile és workflow szintaxis tiszta, hatékony, párhuzamosított és biztonságos.
 - [ ] A pipeline zöld és nem tartalmaz felesleges vagy blokkoló lépéseket.

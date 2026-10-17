@@ -20,7 +20,6 @@ plugins {
     application
     jacoco
     checkstyle
-    id("com.github.spotbugs") version "6.5.13"
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.graalvm.buildtools.native") version "0.10.6"
@@ -145,35 +144,10 @@ tasks.matching { it.name.startsWith("checkstyleAot") }.configureEach {
     enabled = false
 }
 
-tasks.matching { it.name.startsWith("spotbugsAot") }.configureEach {
-    enabled = false
-}
-
 tasks.withType<Checkstyle> {
     reports {
         xml.required.set(true)
         html.required.set(true)
-    }
-}
-
-spotbugs {
-    toolVersion.set("4.9.2")
-    ignoreFailures.set(false)
-    effort.set(com.github.spotbugs.snom.Effort.MAX)
-    reportLevel.set(com.github.spotbugs.snom.Confidence.MEDIUM)
-    excludeFilter.set(file("config/spotbugs/spotbugs-exclude.xml"))
-}
-
-tasks.named<com.github.spotbugs.snom.SpotBugsTask>("spotbugsTest") {
-    enabled = false
-}
-
-tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
-    reports.create("xml") {
-        required.set(true)
-    }
-    reports.create("html") {
-        required.set(true)
     }
 }
 

@@ -46,12 +46,11 @@ ingatlan-kereso/
 ├── .github/
 │   ├── pull_request_template.md                 # PR checklist & Thematic Agent Gate template
 │   └── workflows/
-│       ├── ci.yml                               # Java 21, Checkstyle, SpotBugs, JaCoCo, Playwright E2E
+│       ├── ci.yml                               # Java 21, Checkstyle, JaCoCo, Playwright E2E
 │       ├── docker-publish.yml                   # Automated GHCR release workflow (clean 1.0.0 tags)
 │       └── pr-review.yml                        # PR Review Guard (Conventional Commits & Thematic Gate)
 ├── config/
-│   ├── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
-│   └── spotbugs/spotbugs-exclude.xml            # SpotBugs 4.9.2 filter
+│   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 ├── scripts/
 │   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container launchers
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)

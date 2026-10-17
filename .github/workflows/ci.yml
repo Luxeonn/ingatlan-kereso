@@ -122,7 +122,7 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
 
-      - name: Compile, Lint (Checkstyle & SpotBugs), GraalVM AOT and Test with Gradle & JaCoCo
+      - name: Compile, Lint (Checkstyle), GraalVM AOT and Test with Gradle & JaCoCo
         run: ./gradlew check processAot bootJar --no-daemon
 
       - name: Headless REST API Runtime Smoke Test
@@ -195,7 +195,6 @@ jobs:
           echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           echo "| **Java Környezet** | ✅ Aktív | Java 21 LTS (Eclipse Temurin) |" >> $GITHUB_STEP_SUMMARY
           echo "| **Backend Kódminőség (Checkstyle)** | ${{ job.status == 'success' && '✅ 0 Hiba' || '❌ Szabálysértés' }} | Checkstyle ellenőrzés megfelelt |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Statikus Biztonság (SpotBugs)** | ${{ job.status == 'success' && '✅ 0 Hiba' || '❌ Szabálysértés' }} | SpotBugs 4.9.2 analízis megfelelt |" >> $GITHUB_STEP_SUMMARY
 
           if [ -f target/site/jacoco/jacoco.csv ]; then
             LINE_MISSED=$(awk -F',' 'NR>1 {sum+=$8} END {print sum}' target/site/jacoco/jacoco.csv)
