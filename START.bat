@@ -48,8 +48,8 @@ echo Web Dashboard elérhetőség: http://localhost:8080
 echo ==============================================================================
 echo.
 
-if exist "build\libs\ingatlan-1.0.jar" (
-    java -jar build\libs\ingatlan-1.0.jar %*
+if exist "build\libs\ingatlan-1.0.0.jar" (
+    java -jar build\libs\ingatlan-1.0.0.jar %*
 ) else (
     call %GRADLEW_CMD% run %*
 )

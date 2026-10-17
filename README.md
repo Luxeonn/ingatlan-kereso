@@ -117,7 +117,7 @@ cd ..
 ./gradlew check bootJar
 
 # 3. Run Web Dashboard
-java -jar build/libs/ingatlan-kereso-1.0.0.jar
+java -jar build/libs/ingatlan-1.0.0.jar
 
 # 4. Optional: Build & Run Native Executable with GraalVM
 ./gradlew nativeCompile

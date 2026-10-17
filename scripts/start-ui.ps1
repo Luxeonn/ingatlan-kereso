@@ -30,8 +30,8 @@ Write-Host "-> Gradle parancs: $gradlew" -ForegroundColor Gray
 Write-Host "-> Alkalmazás indítása és böngésző megnyitása..." -ForegroundColor Green
 Write-Host ""
 
-if (Test-Path "build\libs\ingatlan-1.0.jar") {
-    & java -jar build\libs\ingatlan-1.0.jar $args
+if (Test-Path "build\libs\ingatlan-1.0.0.jar") {
+    & java -jar build\libs\ingatlan-1.0.0.jar $args
 } else {
     & $gradlew run --args="$args"
 }

@@ -148,7 +148,7 @@ jobs:
       - name: Headless Application & Web UI Runtime Smoke Test
         run: |
           echo "=== 🚀 Web Dashboard és Szerver Runtime Smoke Teszt Indítása (Spring Boot 4.1.0) ==="
-          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 java -jar build/libs/ingatlan-1.0.jar &
+          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 java -jar build/libs/ingatlan-1.0.0.jar &
           APP_PID=$!
           echo "Szerver elindítva a háttérben PID: $APP_PID"
 

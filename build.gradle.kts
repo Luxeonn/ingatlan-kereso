@@ -27,7 +27,7 @@ plugins {
 }
 
 group = "hu.pushinsky.viktor"
-version = "1.0"
+version = "1.0.0"
 
 extra["spring-framework.version"] = "7.0.9"
 extra["tomcat.version"] = "11.0.25"
@@ -184,5 +184,5 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
 tasks.bootJar {
     archiveBaseName.set("ingatlan")
     archiveClassifier.set("")
-    archiveVersion.set("1.0")
+    archiveVersion.set("1.0.0")
 }
