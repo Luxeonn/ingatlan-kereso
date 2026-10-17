@@ -85,7 +85,7 @@ public class WebServer {
         int attempts = 0;
         while (attempts < 5) {
             try {
-                server = HttpServer.create(new InetSocketAddress(host, port), 0);
+                server = HttpServer.create(new InetSocketAddress(host, port), 200);
                 break;
             } catch (IOException e) {
                 port++;

@@ -243,14 +243,18 @@ final class LegacyHttpHandler {
             return;
         }
 
-        String rawPath = exchange.getRequestURI().getPath();
-        if (rawPath == null || rawPath.isBlank() || rawPath.equals("/")) {
-            rawPath = "/index.html";
-        }
+        java.net.URI requestUri = exchange.getRequestURI();
+        String uriStr = requestUri.toString();
+        String rawPath = requestUri.getPath();
 
-        if (rawPath.contains("..") || rawPath.contains("\\") || rawPath.contains("//") || rawPath.contains("%")) {
+        if (uriStr.contains("//") || requestUri.getAuthority() != null
+                || (rawPath != null && (rawPath.contains("..") || rawPath.contains("\\") || rawPath.contains("//") || rawPath.contains("%")))) {
             sendResponse(exchange, 400, "Bad Request");
             return;
+        }
+
+        if (rawPath == null || rawPath.isBlank() || rawPath.equals("/")) {
+            rawPath = "/index.html";
         }
 
         String resourcePath;
