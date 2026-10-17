@@ -18,12 +18,12 @@ flowchart TD
         SPA --> Event
     end
 
-    subgraph Server ["Server Layer (Spring Boot 4.1.0 / Java 21)"]
+    subgraph Server ["Server Layer (Headless Spring Boot 4.1.0 / Java 21)"]
         HTTP["Spring MVC REST Controllers (Port 8080)"]
         VThread["Virtual Threads Dispatcher"]
-        Static["SpaWebMvcConfig (SPA Fallback & Static Assets)"]
+        Cors["GlobalCorsFilter & SpaWebMvcConfig (CORS & MVC Config)"]
         HTTP --> VThread
-        HTTP --> Static
+        HTTP --> Cors
     end
 
     subgraph Service ["Core & Scraper Layer"]
@@ -70,14 +70,12 @@ ingatlan-kereso/
 │   ├── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 │   └── spotbugs/spotbugs-exclude.xml            # SpotBugs 4.9.2 filter
 ├── scripts/
-│   ├── start-docker.bat / start-docker.sh       # Docker Compose multi-container runners
-│   └── start-ui.ps1                             # PowerShell desktop dashboard launcher
+│   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container runners
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
 ├── settings.gradle.kts                          # Gradle root project settings
 ├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
 ├── Dockerfile                                   # Multi-stage Temurin JRE 21 runtime container
 ├── docker-compose.yml                           # 3-tier production stack (Postgres, Backend, Nginx UI)
-├── START.bat                                    # One-click Windows desktop launcher
 ├── README.md                                    # Comprehensive user and developer guide
 ├── gemini.md                                    # Technical architecture & AI workflow directives
 ├── data/
@@ -136,7 +134,7 @@ ingatlan-kereso/
     └── web/                                     # Layer 1b: Embedded Web Server & REST API
         ├── RestApiController.java              # Spring MVC REST Controller (@RestController)
         ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
-        ├── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (SPA fallback router)
+        ├── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & MVC configuration)
         └── WebServer.java                       # Legacy Sun HttpServer launcher wrapper
 ```
 
@@ -148,7 +146,7 @@ ingatlan-kereso/
 2. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`spring.threads.virtual.enabled=true`). Scraping I/O and REST requests never block carrier threads.
 3. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
 4. **Decoupled Persistence & Spring Data JPA:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is `JpaIngatlanStorage` on embedded H2, maintaining O(1) deduplication and fast queries without relational lock-in.
-5. **Modern Decoupled Frontend:** React 19 + TypeScript + Vite SPA built to `frontend/dist/` and embedded into `src/main/resources/static/` during build.
+5. **Modern Decoupled Frontend:** Autonomous React 19 + TypeScript + Vite SPA client with online Google Fonts CDN typography, served by Nginx in containerized environments with reverse proxy routing to the headless Spring Boot REST API.
 6. **Containerization & Clean Numeric Versioning:** Multi-stage Temurin JRE 21 Docker image and Docker Compose 3-tier architecture. Container images published to GHCR strictly follow clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
 
 ---

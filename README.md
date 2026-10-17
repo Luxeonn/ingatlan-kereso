@@ -53,14 +53,12 @@ ingatlan-kereso/
 │   ├── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 │   └── spotbugs/spotbugs-exclude.xml            # SpotBugs 4.9.2 filter
 ├── scripts/
-│   ├── start-docker.bat / start-docker.sh       # Docker Compose multi-container launchers
-│   └── start-ui.ps1                             # PowerShell desktop dashboard launcher
+│   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container launchers
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
 ├── settings.gradle.kts                          # Gradle project settings
 ├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
 ├── Dockerfile                                   # Hardened Temurin JRE 21 container build (UID 10001)
 ├── docker-compose.yml                           # 3-tier production stack (Postgres 17, Backend, Nginx UI)
-├── START.bat                                    # One-click Windows desktop launcher
 ├── README.md                                    # Main user and developer documentation
 ├── gemini.md                                    # Comprehensive system architecture & AI workflow rules
 ├── data/                                        # Persistent runtime database directory
@@ -79,7 +77,7 @@ ingatlan-kereso/
     ├── model/                                   # Domain models and value objects
     ├── persistence/                             # Decoupled persistence (ListingStorage, JpaIngatlanStorage, Entities, Repos)
     ├── portal/                                  # Pluggable Portal Engines (DH, OC, Jófogás, Bazár, Költözzbe, IngatlanCom)
-    └── web/                                     # Spring MVC REST Controllers, GlobalExceptionHandler, SPA routing
+    └── web/                                     # Headless Spring MVC REST Controllers, GlobalExceptionHandler, GlobalCorsFilter
 ```
 
 ---
@@ -89,10 +87,22 @@ ingatlan-kereso/
 ### Prerequisites
 * **Java:** JDK 21 LTS or newer
 * **Build Tool:** Gradle Wrapper (`gradlew`, included)
-* **Node.js:** Node 20+ & npm (required only for building the frontend)
+* **Node.js:** Node 20+ & npm (for frontend development)
 
-### 1. One-Click Desktop Launch (Windows)
-Double-click `START.bat`. The script detects Java and Gradle Wrapper, builds assets if missing, starts the server on port `8080`, and opens the browser.
+### 1. Local Development (Headless Backend + Decoupled Frontend)
+
+Start the headless Spring Boot backend:
+```bash
+./gradlew bootRun
+```
+The REST API is active at **http://localhost:8080/api/status** and Actuator health at **http://localhost:8080/actuator/health**.
+
+In a separate terminal, launch the modern React 19 SPA client:
+```bash
+cd frontend
+npm run dev
+```
+The Vite development server runs at **http://localhost:5173** and cleanly reverse-proxies `/api` calls to `http://localhost:8080`.
 
 ### 2. Multi-Container Docker Compose Quickstart
 Start the full 3-tier architecture (PostgreSQL 17 database, headless Spring Boot backend, and Nginx React 19 frontend reverse proxy) with a single command:
@@ -137,10 +147,10 @@ cd frontend
 npm ci && npm run test && npm run build
 cd ..
 
-# 2. Compile, Quality Check and Package Backend (Java 21 + Gradle + Spring Boot)
+# 2. Compile, Quality Check and Package Headless Backend (Java 21 + Gradle + Spring Boot)
 ./gradlew check bootJar
 
-# 3. Run Web Dashboard
+# 3. Run Headless REST API Fat JAR
 java -jar build/libs/ingatlan-1.0.0.jar
 
 # 4. Optional: Build & Run Native Executable with GraalVM
