@@ -1,3 +1,20 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    configurations.classpath {
+        resolutionStrategy {
+            force("org.apache.httpcomponents.client5:httpclient5:5.6.3")
+            force("org.apache.httpcomponents.core5:httpcore5:5.4.3")
+            force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
+            force("org.apache.commons:commons-lang3:3.21.0")
+            force("org.springframework:spring-core:7.0.9")
+            force("tools.jackson.core:jackson-core:3.1.7")
+            force("tools.jackson.core:jackson-databind:3.1.7")
+        }
+    }
+}
+
 plugins {
     java
     application
@@ -11,6 +28,12 @@ plugins {
 
 group = "hu.pushinsky.viktor"
 version = "1.0"
+
+extra["spring-framework.version"] = "7.0.9"
+extra["tomcat.version"] = "11.0.25"
+extra["jackson-bom.version"] = "3.1.7"
+extra["postgresql.version"] = "42.7.12"
+extra["log4j2.version"] = "2.25.5"
 
 repositories {
     mavenCentral()
@@ -33,7 +56,17 @@ val gsonVersion = "2.14.0"
 val nitriteVersion = "5.4.0"
 
 dependencies {
-    // Spring Boot Starter & Core Modules (Spring Framework 7.0.8)
+    constraints {
+        implementation("org.springframework:spring-webmvc:7.0.9")
+        implementation("org.springframework:spring-core:7.0.9")
+        implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.25")
+        implementation("tools.jackson.core:jackson-core:3.1.7")
+        implementation("tools.jackson.core:jackson-databind:3.1.7")
+        implementation("org.postgresql:postgresql:42.7.12")
+        implementation("org.apache.logging.log4j:log4j-api:2.25.5")
+    }
+
+    // Spring Boot Starter & Core Modules (Spring Framework 7.0.9)
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -96,6 +129,13 @@ checkstyle {
     configFile = file("checkstyle.xml")
     isIgnoreFailures = false
     maxWarnings = 0
+}
+
+configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
+    resolutionStrategy {
+        force("org.codehaus.plexus:plexus-utils:3.6.1")
+        force("commons-beanutils:commons-beanutils:1.11.0")
+    }
 }
 
 tasks.checkstyleTest {
