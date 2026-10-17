@@ -17,7 +17,7 @@ export const PortalToggleGroup: FC<PortalToggleGroupProps> = ({
 }) => {
   const { data: portals, isLoading } = usePortals()
 
-  const allPortalIds = portals?.map((p) => p.id.toLowerCase()) || DEFAULT_PORTALS
+  const allPortalIds = Array.isArray(portals) ? portals.map((p) => p.id.toLowerCase()) : DEFAULT_PORTALS
   const isAllSelected = allPortalIds.length > 0 && allPortalIds.every((id) => selectedPortals.includes(id))
 
   const handleToggleAll = () => {
@@ -52,14 +52,14 @@ export const PortalToggleGroup: FC<PortalToggleGroupProps> = ({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {isLoading
+        {isLoading || !Array.isArray(portals)
           ? DEFAULT_PORTALS.map((p) => (
               <div
                 key={p}
                 className="h-8 w-24 animate-pulse rounded-lg bg-[var(--bg-input)] border border-[var(--border-color)]"
               />
             ))
-          : portals?.map((portal) => {
+          : portals.map((portal) => {
               const pId = portal.id.toLowerCase()
               const isSelected = selectedPortals.includes(pId)
               return (

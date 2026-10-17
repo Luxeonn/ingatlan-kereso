@@ -20,7 +20,7 @@ describe('CitySelector component', () => {
       },
       isLoading: false,
       isError: false,
-    } as any)
+    } as unknown as ReturnType<typeof useCitiesModule.useCities>)
 
     const handleAdd = vi.fn()
     const handleRemove = vi.fn()
@@ -59,7 +59,7 @@ describe('CitySelector component', () => {
       },
       isLoading: false,
       isError: false,
-    } as any)
+    } as unknown as ReturnType<typeof useCitiesModule.useCities>)
 
     const handleAdd = vi.fn()
     render(
