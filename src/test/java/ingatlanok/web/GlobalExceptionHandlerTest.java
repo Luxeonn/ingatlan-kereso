@@ -138,4 +138,57 @@ class GlobalExceptionHandlerTest {
         assertEquals("/api/search", response.getBody().get("path"));
         assertNotNull(response.getBody().get("timestamp"));
     }
+
+    @Test
+    @DisplayName("HttpMediaTypeNotSupportedException kezelése - 415 Unsupported Media Type strukturált JSON válasz")
+    void testHandleMediaTypeNotSupported() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/search");
+        org.springframework.web.HttpMediaTypeNotSupportedException ex =
+                new org.springframework.web.HttpMediaTypeNotSupportedException(org.springframework.http.MediaType.TEXT_PLAIN,
+                        java.util.List.of(org.springframework.http.MediaType.APPLICATION_JSON));
+
+        ResponseEntity<Map<String, Object>> response = handler.handleMediaTypeNotSupported(ex, request);
+
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(415, response.getBody().get("status"));
+        assertEquals("Unsupported Media Type", response.getBody().get("error"));
+        assertTrue(((String) response.getBody().get("message")).contains("text/plain"));
+        assertEquals("/api/search", response.getBody().get("path"));
+        assertNotNull(response.getBody().get("timestamp"));
+    }
+
+    @Test
+    @DisplayName("HttpMediaTypeNotAcceptableException kezelése - 406 Not Acceptable strukturált JSON válasz")
+    void testHandleMediaTypeNotAcceptable() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/status");
+        org.springframework.web.HttpMediaTypeNotAcceptableException ex =
+                new org.springframework.web.HttpMediaTypeNotAcceptableException("No acceptable representation");
+
+        ResponseEntity<String> response = handler.handleMediaTypeNotAcceptable(ex, request);
+
+        assertEquals(HttpStatus.NOT_ACCEPTABLE, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("\"status\":406"));
+        assertTrue(response.getBody().contains("\"error\":\"Not Acceptable\""));
+        assertTrue(response.getBody().contains("/api/status"));
+    }
+
+    @Test
+    @DisplayName("MissingServletRequestParameterException kezelése - 400 Bad Request strukturált JSON válasz")
+    void testHandleMissingParameter() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
+        org.springframework.web.bind.MissingServletRequestParameterException ex =
+                new org.springframework.web.bind.MissingServletRequestParameterException("requiredParam", "String");
+
+        ResponseEntity<Map<String, Object>> response = handler.handleMissingParameter(ex, request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(400, response.getBody().get("status"));
+        assertEquals("Bad Request", response.getBody().get("error"));
+        assertEquals("Hiányzó kötelező kérés paraméter: requiredParam", response.getBody().get("message"));
+        assertEquals("/api/test", response.getBody().get("path"));
+        assertNotNull(response.getBody().get("timestamp"));
+    }
 }

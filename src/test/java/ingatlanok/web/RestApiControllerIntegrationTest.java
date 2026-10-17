@@ -323,4 +323,27 @@ class RestApiControllerIntegrationTest {
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.path").value("/api/search"));
     }
+
+    @Test
+    @DisplayName("POST /api/search nem támogatott Content-Type-pal - 415 Unsupported Media Type választ ad")
+    void testUnsupportedContentType_Returns415UnsupportedMediaType() throws Exception {
+        mockMvc.perform(post("/api/search")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("plain text content"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.error").value("Unsupported Media Type"))
+                .andExpect(jsonPath("$.path").value("/api/search"));
+    }
+
+    @Test
+    @DisplayName("GET /api/status nem elfogadható Accept fejléccel - 406 Not Acceptable választ ad")
+    void testUnacceptableMediaType_Returns406NotAcceptable() throws Exception {
+        mockMvc.perform(get("/api/status")
+                        .accept(MediaType.APPLICATION_XML))
+                .andExpect(status().isNotAcceptable())
+                .andExpect(jsonPath("$.status").value(406))
+                .andExpect(jsonPath("$.error").value("Not Acceptable"))
+                .andExpect(jsonPath("$.path").value("/api/status"));
+    }
 }

@@ -48,6 +48,38 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
     }
 
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMediaTypeNotSupported(org.springframework.web.HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
+        String msg = "Nem támogatott média típus: " + ex.getContentType();
+        LOGGER.warn(msg);
+        return buildErrorResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, msg, request.getRequestURI());
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<String> handleMediaTypeNotAcceptable(org.springframework.web.HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
+        String msg = "Nem elfogadható média típus a kért erőforráshoz";
+        LOGGER.warn(msg);
+        String json = "{\"timestamp\":\"" + Instant.now() + "\",\"status\":406,\"error\":\"Not Acceptable\",\"message\":\""
+                + msg + "\",\"path\":\"" + request.getRequestURI() + "\"}";
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(json);
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingParameter(org.springframework.web.bind.MissingServletRequestParameterException ex, HttpServletRequest request) {
+        String msg = "Hiányzó kötelező kérés paraméter: " + ex.getParameterName();
+        LOGGER.warn(msg);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationException(org.springframework.web.method.annotation.HandlerMethodValidationException ex, HttpServletRequest request) {
+        String msg = "Érvénytelen kérés paraméterek";
+        LOGGER.warn(msg);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
+    }
+
     @ExceptionHandler({
         org.springframework.web.servlet.resource.NoResourceFoundException.class,
         org.springframework.web.servlet.NoHandlerFoundException.class

@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 public class GlobalCorsFilter implements Filter {
 
     private static final Pattern LOCALHOST_ORIGIN_PATTERN =
-            Pattern.compile("^https?://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?$");
+            Pattern.compile("^https?://(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|\\[::1\\])(:[0-9]+)?$");
 
     private boolean isAllowedOrigin(String origin) {
         if (origin == null) {
