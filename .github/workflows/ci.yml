@@ -5,10 +5,20 @@ on:
     branches:
       - main
       - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/pull_request_template.md'
   pull_request:
     branches:
       - main
       - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/pull_request_template.md'
   workflow_dispatch:
 
 concurrency:
@@ -46,6 +56,7 @@ jobs:
               - 'settings.gradle.kts'
               - 'config/**'
               - '.github/workflows/ci.yml'
+              - '.github/scripts/**'
 
   frontend:
     name: Frontend
@@ -53,6 +64,9 @@ jobs:
     if: needs.detect.outputs.frontend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      lint_outcome: ${{ steps.frontend-build.outcome }}
+      e2e_outcome: ${{ steps.playwright-e2e.outcome }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -65,6 +79,7 @@ jobs:
           cache-dependency-path: 'frontend/package-lock.json'
 
       - name: Install, Lint and Test Frontend SPA (React 19, TypeScript, Vitest, ESLint)
+        id: frontend-build
         run: |
           echo "=== ⚛️ Frontend SPA Quality Gates Indítása ==="
           cd frontend
@@ -75,12 +90,27 @@ jobs:
           npm run build
           echo "✅ Frontend SPA sikeresen lintelve, tesztelve és lefordítva."
 
-      - name: Install Playwright Browsers (Chromium)
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Playwright Browsers and Dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: |
           cd frontend
           npx playwright install --with-deps chromium
 
+      - name: Install Playwright OS Dependencies (Cache Hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: |
+          cd frontend
+          npx playwright install-deps chromium
+
       - name: Run Playwright E2E UI Action & Endpoint Smoke Tests (Vite Preview)
+        id: playwright-e2e
         run: |
           echo "=== 🎭 Playwright E2E UI Action & Smoke Tesztek Futtatása (Vite Preview) ==="
           cd frontend
@@ -108,6 +138,12 @@ jobs:
     if: needs.detect.outputs.backend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      build_outcome: ${{ steps.gradle-build.outcome }}
+      smoke_outcome: ${{ steps.smoke-test.outcome }}
+      coverage_pct: ${{ steps.jacoco.outputs.coverage_pct }}
+      coverage_lines: ${{ steps.jacoco.outputs.coverage_lines }}
+      coverage_status: ${{ steps.jacoco.outputs.coverage_status }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -117,96 +153,106 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
+
+      - name: Set up Gradle with Build Cache
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
 
       - name: Compile, Lint (Checkstyle), GraalVM AOT and Test with Gradle & JaCoCo
-        run: ./gradlew check bootJar --no-daemon
+        id: gradle-build
+        run: ./gradlew check processAot bootJar --build-cache
 
       - name: Headless REST API Runtime Smoke Test
-        run: |
-          echo "=== 🚀 Headless REST API Runtime Smoke Teszt Indítása (Spring Boot 4.1.0) ==="
-          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 NO_BROWSER=true java -jar build/libs/ingatlan-1.0.0.jar &
-          APP_PID=$!
-          echo "Szerver elindítva a háttérben PID: $APP_PID"
+        id: smoke-test
+        run: bash .github/scripts/run-smoke-test.sh
 
-          # Várakozás a szerver felszállására (max 15 másodperc)
-          READY=0
-          for i in {1..15}; do
-            if curl -s -f http://127.0.0.1:8099/api/status > /dev/null 2>&1; then
-              READY=1
-              echo "✅ A headless Spring Boot REST API sikeresen elindult a 8099-es porton ($i. másodpercben)."
-              break
-            fi
-            sleep 1
-          done
-
-          if [ $READY -ne 1 ]; then
-            echo "::error::A headless REST API nem indult el 15 másodpercen belül!"
-            kill -9 $APP_PID 2>/dev/null || true
-            exit 1
-          fi
-
-          echo "=== 🔍 Végpontok és REST API Szerződés-ellenőrzése ==="
-          # 1. REST API Status és Actuator Hiány ellenőrzés
-          curl -s -f http://127.0.0.1:8099/api/status | grep -q '"status":"UP"' || { echo "::error::REST API /api/status nem UP!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          echo "✅ REST API /api/status sikeresen ellenőrizve."
-          ACTUATOR_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/actuator/health)
-          if [ "$ACTUATOR_CODE" != "404" ]; then
-            echo "::error::Actuator endpoint nem 404-gyel tért vissza (kód: $ACTUATOR_CODE)!"
-            kill -9 $APP_PID 2>/dev/null || true
-            exit 1
-          fi
-          echo "✅ Actuator health hiánya (404 Not Found) sikeresen ellenőrizve."
-
-          # 2. CORS Preflight ellenőrzés
-          curl -s -I -X OPTIONS http://127.0.0.1:8099/api/search | grep -qi "Access-Control-Allow-Origin" || { echo "::error::CORS preflight nem adott Access-Control-Allow-Origin fejlécet"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          echo "✅ CORS Preflight megfelelően működik."
-
-          # 3. Alapvető REST API végpontok szerződés-ellenőrzése
-          echo "REST API végpontok ellenőrzése..."
-          curl -s -f http://127.0.0.1:8099/api/config | grep -q "cities" || { echo "::error::/api/config nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          curl -s -f http://127.0.0.1:8099/api/portals | grep -q "id" || { echo "::error::/api/portals nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          curl -s -f http://127.0.0.1:8099/api/cities | grep -q "Budapest" || { echo "::error::/api/cities nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          curl -s -f http://127.0.0.1:8099/api/status | grep -q "UP" || { echo "::error::/api/status nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-
-          # 4. Headless tisztaság ellenőrzése: nincs beágyazott SPA fallback router, ismeretlen útvonal 404
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/dashboard)
-          if [ "$HTTP_CODE" -ne 404 ]; then
-            echo "::error::Headless REST API nem 404-et adott ismeretlen útvonalra: $HTTP_CODE"
-            kill -9 $APP_PID 2>/dev/null || true
-            exit 1
-          fi
-          echo "✅ Headless végpont-izoláció (404 Not Found a nem létező SPA útvonalakra) ellenőrizve."
-
-          # Szerver rendezett leállítása
-          kill -15 $APP_PID 2>/dev/null || true
-          wait $APP_PID 2>/dev/null || true
-          echo "✅ Headless Smoke Teszt sikeresen befejeződött."
-
-      - name: Report Build Summary & Quality Gates
+      - name: Calculate JaCoCo Code Coverage
+        id: jacoco
         if: always()
-        run: |
-          echo "### 🚀 Backend Build, Determinisztikus Tesztek és Minőségi Kapuk" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Minőségi Kapu / Terület | Állapot | Részletek |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Java Környezet** | ✅ Aktív | Java 21 LTS (Eclipse Temurin) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Backend Kódminőség (Checkstyle)** | ${{ job.status == 'success' && '✅ 0 Hiba' || '❌ Szabálysértés' }} | Checkstyle ellenőrzés megfelelt |" >> $GITHUB_STEP_SUMMARY
+        run: bash .github/scripts/calculate-jacoco.sh
 
-          if [ -f target/site/jacoco/jacoco.csv ]; then
-            LINE_MISSED=$(awk -F',' 'NR>1 {sum+=$8} END {print sum}' target/site/jacoco/jacoco.csv)
-            LINE_COVERED=$(awk -F',' 'NR>1 {sum+=$9} END {print sum}' target/site/jacoco/jacoco.csv)
-            TOTAL_LINES=$((LINE_MISSED + LINE_COVERED))
-            if [ "$TOTAL_LINES" -gt 0 ]; then
-              COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", ($LINE_COVERED / $TOTAL_LINES) * 100}")
-              echo "| **Kódlefedettség (JaCoCo)** | ✅ ${COVERAGE_PCT}% | Cél: 80%+ ($LINE_COVERED / $TOTAL_LINES lefedett kódsor) |" >> $GITHUB_STEP_SUMMARY
-            fi
+  summary:
+    name: Summary
+    needs: [detect, frontend, backend]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Generate Unified CI/CD Pipeline Summary
+        run: |
+          echo "### 📊 Ingatlan Kereső — CI/CD Minőségi Kapuk Összegzése" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Terület | Minőségi Kapu | Állapot | Részletek |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+
+          # Frontend kiértékelés
+          FE_RESULT="${{ needs.frontend.result }}"
+          FE_LINT="${{ needs.frontend.outputs.lint_outcome }}"
+          FE_E2E="${{ needs.frontend.outputs.e2e_outcome }}"
+
+          if [ "$FE_RESULT" = "success" ]; then
+            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ✅ Sikeres | React 19 típusellenőrzés & linter megfelelt |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🧪 Vitest Egységtesztek | ✅ Sikeres | Komponens és állapotkezelő tesztek lefutottak |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🎭 Playwright E2E UI | ✅ Sikeres | Chromium böngésző UI akciók validálva |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$FE_RESULT" = "skipped" ]; then
+            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ⚪ Átugorva | Frontend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🧪 Vitest Egységtesztek | ⚪ Átugorva | Frontend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🎭 Playwright E2E UI | ⚪ Átugorva | Frontend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+          else
+            [ "$FE_LINT" = "failure" ] && FE_LINT_STATUS="❌ Sikertelen" || FE_LINT_STATUS="⚠️ Hiba"
+            [ "$FE_E2E" = "failure" ] && FE_E2E_STATUS="❌ Sikertelen" || FE_E2E_STATUS="⚠️ Hiba"
+            echo "| **Frontend** | ⚛️ ESLint & TypeScript | $FE_LINT_STATUS | Ellenőrizd a Frontend job naplóját |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🧪 Vitest Egységtesztek | $FE_LINT_STATUS | Ellenőrizd a Frontend job naplóját |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🎭 Playwright E2E UI | $FE_E2E_STATUS | Ellenőrizd a Playwright riportot |" >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "| **Headless REST API Integritás** | ${{ job.status == 'success' && '🛡️ Garantált' || '⚠️ Hibás' }} | Zero-SyntaxError & REST szerződések validálva |" >> $GITHUB_STEP_SUMMARY
+          # Backend kiértékelés
+          BE_RESULT="${{ needs.backend.result }}"
+          BE_BUILD="${{ needs.backend.outputs.build_outcome }}"
+          BE_SMOKE="${{ needs.backend.outputs.smoke_outcome }}"
+          BE_COV="${{ needs.backend.outputs.coverage_pct }}"
+          BE_COV_LINES="${{ needs.backend.outputs.coverage_lines }}"
+          BE_COV_STATUS="${{ needs.backend.outputs.coverage_status }}"
+
+          if [ "$BE_RESULT" = "success" ]; then
+            echo "| **Backend** | ☕ Java & Gradle Build | ✅ Sikeres | Java 21 LTS + Spring Boot 4.1.0 + GraalVM AOT |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🔍 Checkstyle Kódminőség | ✅ 0 Hiba | Checkstyle 10.21.4 ellenőrzés megfelelt |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 📈 Kódlefedettség (JaCoCo) | ✅ ${BE_COV:-N/A} | Cél: 80%+ (${BE_COV_LINES:-ismeretlen}) |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🛡️ Headless REST API Smoke | ✅ Garantált | Zero-SyntaxError & REST szerződések validálva |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$BE_RESULT" = "skipped" ]; then
+            echo "| **Backend** | ☕ Java & Gradle Build | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🔍 Checkstyle Kódminőség | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 📈 Kódlefedettség (JaCoCo) | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🛡️ Headless REST API Smoke | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+          else
+            [ "$BE_BUILD" = "failure" ] && BE_BUILD_STATUS="❌ Sikertelen" || BE_BUILD_STATUS="⚠️ Hiba"
+            [ "$BE_SMOKE" = "failure" ] && BE_SMOKE_STATUS="❌ Sikertelen" || BE_SMOKE_STATUS="⚠️ Hiba"
+            echo "| **Backend** | ☕ Java & Gradle Build | $BE_BUILD_STATUS | Fordítási, Checkstyle vagy teszthiba |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🔍 Checkstyle Kódminőség | $BE_BUILD_STATUS | Checkstyle ellenőrzés állapota |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 📈 Kódlefedettség (JaCoCo) | ${BE_COV:-N/A} | ${BE_COV_LINES:-N/A} |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🛡️ Headless REST API Smoke | $BE_SMOKE_STATUS | Headless REST API smoke teszt |" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Kiváltó Esemény:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+
+          # Összesített hibavizsgálat
+          FAILED=0
+          if [ "${{ needs.detect.result }}" = "failure" ] || [ "$FE_RESULT" = "failure" ] || [ "$BE_RESULT" = "failure" ]; then
+            FAILED=1
+          fi
+
+          if [ $FAILED -ne 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+            echo "> **Egy vagy több minőségi kapu nem teljesült!** Kérjük, javítsd a fenti hibákat a merge engedélyezéséhez." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
+            echo "> **Minden minőségi kapu sikeresen teljesült!** A változtatások megfelelnek a szigorú minőségi követelményeknek." >> $GITHUB_STEP_SUMMARY
+          fi
