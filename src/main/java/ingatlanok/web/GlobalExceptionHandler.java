@@ -1,5 +1,6 @@
 package ingatlanok.web;
 
+import com.google.gson.Gson;
 import ingatlanok.common.AppLogger;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(GlobalExceptionHandler.class);
+    private static final Gson GSON = new Gson();
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
@@ -59,11 +61,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleMediaTypeNotAcceptable(org.springframework.web.HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
         String msg = "Nem elfogadható média típus a kért erőforráshoz";
         LOGGER.warn(msg);
-        String json = "{\"timestamp\":\"" + Instant.now() + "\",\"status\":406,\"error\":\"Not Acceptable\",\"message\":\""
-                + msg + "\",\"path\":\"" + request.getRequestURI() + "\"}";
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", HttpStatus.NOT_ACCEPTABLE.value());
+        body.put("error", HttpStatus.NOT_ACCEPTABLE.getReasonPhrase());
+        body.put("message", msg);
+        body.put("path", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(json);
+                .body(GSON.toJson(body));
     }
 
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
