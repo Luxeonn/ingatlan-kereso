@@ -85,6 +85,24 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("NoHandlerFoundException kezelése - 404 Not Found és strukturált JSON válasz")
+    void testHandleNoHandlerFound() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/dashboard");
+        org.springframework.web.servlet.NoHandlerFoundException ex =
+                new org.springframework.web.servlet.NoHandlerFoundException("GET", "/dashboard", new org.springframework.http.HttpHeaders());
+
+        ResponseEntity<Map<String, Object>> response = handler.handleNoResourceFound(ex, request);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(404, response.getBody().get("status"));
+        assertEquals("Not Found", response.getBody().get("error"));
+        assertEquals("Erőforrás nem található: /dashboard", response.getBody().get("message"));
+        assertEquals("/dashboard", response.getBody().get("path"));
+        assertNotNull(response.getBody().get("timestamp"));
+    }
+
+    @Test
     @DisplayName("HttpRequestMethodNotSupportedException kezelése - 405 Method Not Allowed strukturált JSON válasz")
     void testHandleMethodNotSupported() {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/status");
