@@ -24,111 +24,102 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     // provide realistic mock responses for all REST API endpoints.
     const isLiveBackend = Boolean(process.env.PLAYWRIGHT_BASE_URL)
     if (!isLiveBackend) {
-      await page.route('**/api/config', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            cities: ['Debrecen'],
-            minPriceMillion: 20,
-            maxPriceMillion: 120,
-            minArea: 30,
-            maxArea: 150,
-            propertyType: 'FLAT',
-            portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar'],
-            autoOpenBrowser: false,
-            excludeViewed: false,
-          }),
-        })
-      })
-
-      await page.route('**/api/portals', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify([
-            { id: 'dh', name: 'Duna House', color: '#0066cc', searchUrl: 'https://dh.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 5 },
-            { id: 'oc', name: 'Otthon Centrum', color: '#ff9800', searchUrl: 'https://oc.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 8 },
-            { id: 'jofogas', name: 'Jófogás', color: '#4caf50', searchUrl: 'https://jofogas.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 12 },
-            { id: 'koltozzbe', name: 'Költözzbe', color: '#2196f3', searchUrl: 'https://koltozzbe.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 3 },
-            { id: 'ingatlanbazar', name: 'Ingatlanbazár', color: '#9c27b0', searchUrl: 'https://ingatlanbazar.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 15 },
-          ]),
-        })
-      })
-
-      await page.route('**/api/cities', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            predefined: [
-              { key: 'debrecen', name: 'Debrecen', county: 'Hajdú-Bihar' },
-              { key: 'budapest', name: 'Budapest', county: 'Pest' },
-              { key: 'szeged', name: 'Szeged', county: 'Csongrád' },
-            ],
-            presets: {
-              'Főbb egyetemvárosok': ['Budapest', 'Debrecen', 'Szeged'],
-            },
-            trackedCities: [],
-          }),
-        })
-      })
-
-      await page.route('**/api/search', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            items: [],
-            newCount: 0,
-            totalFound: 0,
-            executedAt: new Date().toISOString(),
-            portalStatuses: [
-              { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', durationMs: 250, itemCount: 0, botProtected: false },
-            ],
-            marketStats: {
-              averagePriceMillion: 45,
-              averagePricePerM2: 950000,
-              minPriceMillion: 30,
-              maxPriceMillion: 60,
-              newRatePercent: 0,
-              cityBreakdown: { Debrecen: 0 },
-            },
-          }),
-        })
-      })
-
-      await page.route('**/api/status', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            status: 'UP',
-            port: 4173,
-            totalInDb: 0,
-            trackedCities: {},
-          }),
-        })
-      })
-
-      await page.route('**/api/logs', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            logs: [],
-            rawLogs: [],
-            level: 'INFO',
-          }),
-        })
-      })
-
       await page.route('**/api/**', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({}),
-        })
+        const url = route.request().url()
+        if (url.includes('/api/config')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              cities: ['Debrecen'],
+              minPriceMillion: 20,
+              maxPriceMillion: 120,
+              minArea: 30,
+              maxArea: 150,
+              propertyType: 'FLAT',
+              portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar'],
+              autoOpenBrowser: false,
+              excludeViewed: false,
+            }),
+          })
+        } else if (url.includes('/api/portals')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([
+              { id: 'dh', name: 'Duna House', color: '#0066cc', searchUrl: 'https://dh.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 5 },
+              { id: 'oc', name: 'Otthon Centrum', color: '#ff9800', searchUrl: 'https://oc.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 8 },
+              { id: 'jofogas', name: 'Jófogás', color: '#4caf50', searchUrl: 'https://jofogas.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 12 },
+              { id: 'koltozzbe', name: 'Költözzbe', color: '#2196f3', searchUrl: 'https://koltozzbe.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 3 },
+              { id: 'ingatlanbazar', name: 'Ingatlanbazár', color: '#9c27b0', searchUrl: 'https://ingatlanbazar.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 15 },
+            ]),
+          })
+        } else if (url.includes('/api/cities')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              predefined: [
+                { key: 'debrecen', name: 'Debrecen', county: 'Hajdú-Bihar' },
+                { key: 'budapest', name: 'Budapest', county: 'Pest' },
+                { key: 'szeged', name: 'Szeged', county: 'Csongrád' },
+              ],
+              presets: {
+                'Főbb egyetemvárosok': ['Budapest', 'Debrecen', 'Szeged'],
+              },
+              trackedCities: [],
+            }),
+          })
+        } else if (url.includes('/api/search')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              items: [],
+              newCount: 0,
+              totalFound: 0,
+              executedAt: new Date().toISOString(),
+              portalStatuses: [
+                { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', durationMs: 250, itemCount: 0, botProtected: false },
+              ],
+              marketStats: {
+                averagePriceMillion: 45,
+                averagePricePerM2: 950000,
+                minPriceMillion: 30,
+                maxPriceMillion: 60,
+                newRatePercent: 0,
+                cityBreakdown: { Debrecen: 0 },
+              },
+            }),
+          })
+        } else if (url.includes('/api/status')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              status: 'UP',
+              port: 4173,
+              totalInDb: 0,
+              trackedCities: {},
+            }),
+          })
+        } else if (url.includes('/api/logs')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              logs: [],
+              rawLogs: [],
+              level: 'INFO',
+            }),
+          })
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({}),
+          })
+        }
       })
     }
   })

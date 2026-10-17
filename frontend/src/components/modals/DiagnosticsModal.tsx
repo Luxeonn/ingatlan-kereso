@@ -144,11 +144,12 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
               <p className="text-xs text-[var(--text-secondary)]">
                 Még nem futott le keresés a jelenlegi munkamenetben. Az alábbi motorok állnak rendelkezésre:
               </p>
-              {portals?.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] p-3.5"
-                >
+              {Array.isArray(portals) &&
+                portals.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] p-3.5"
+                  >
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-blue-400" />
                     <span className="text-xs font-bold text-[var(--text-primary)]">{p.name}</span>
