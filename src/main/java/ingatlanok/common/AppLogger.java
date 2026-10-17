@@ -1,5 +1,8 @@
 package ingatlanok.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -9,11 +12,12 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Szabványos alkalmazás-szintű naplózó homlokzat, amely az SLF4J és a fájl perzisztencia réteget kezeli.
+ */
 public class AppLogger {
 
     public enum LogLevel {
@@ -33,13 +37,8 @@ public class AppLogger {
         }
     }
 
-    public record LogEntry(String timestamp, String level, String logger, String message, String rawLine) {}
-
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
     private static final ConcurrentHashMap<String, AppLogger> LOGGERS = new ConcurrentHashMap<>();
-    private static final ConcurrentLinkedDeque<String> RECENT_LOGS = new ConcurrentLinkedDeque<>();
-    private static final ConcurrentLinkedDeque<LogEntry> RECENT_LOG_ENTRIES = new ConcurrentLinkedDeque<>();
-    private static final int MAX_RECENT_LOGS = 500;
     private static final ReentrantLock FILE_LOCK = new ReentrantLock();
 
     private static volatile LogLevel globalLevel = LogLevel.INFO;
@@ -48,9 +47,11 @@ public class AppLogger {
     private static volatile boolean consoleLoggingEnabled = true;
 
     private final String name;
+    private final Logger slf4jLogger;
 
     private AppLogger(String name) {
         this.name = name != null ? name : "App";
+        this.slf4jLogger = LoggerFactory.getLogger(this.name);
     }
 
     public static AppLogger getLogger(Class<?> clazz) {
@@ -90,39 +91,6 @@ public class AppLogger {
 
     public static void setConsoleLoggingEnabled(boolean enabled) {
         consoleLoggingEnabled = enabled;
-    }
-
-    public static List<String> getRecentLogs(int limit) {
-        int max = Math.min(Math.max(limit, 0), RECENT_LOGS.size());
-        List<String> list = new ArrayList<>(RECENT_LOGS);
-        if (list.size() <= max) {
-            return list;
-        }
-        return list.subList(list.size() - max, list.size());
-    }
-
-    public static List<LogEntry> getRecentLogEntries(int limit) {
-        return getRecentLogEntries(limit, null);
-    }
-
-    public static List<LogEntry> getRecentLogEntries(int limit, String levelFilter) {
-        List<LogEntry> list = new ArrayList<>(RECENT_LOG_ENTRIES);
-        if (levelFilter != null && !levelFilter.isBlank() && !levelFilter.equalsIgnoreCase("ALL")) {
-            String filter = levelFilter.trim().toUpperCase();
-            list = list.stream()
-                    .filter(e -> e.level().equalsIgnoreCase(filter))
-                    .toList();
-        }
-        int max = Math.min(Math.max(limit, 0), list.size());
-        if (list.size() <= max) {
-            return list;
-        }
-        return list.subList(list.size() - max, list.size());
-    }
-
-    public static void clearRecentLogs() {
-        RECENT_LOG_ENTRIES.clear();
-        RECENT_LOGS.clear();
     }
 
     public boolean isDebugEnabled() {
@@ -171,33 +139,43 @@ public class AppLogger {
             formattedMessage += " [" + throwable.getClass().getSimpleName() + ": " + throwable.getMessage() + "]";
         }
 
-        String timestamp = LocalDateTime.now().format(FORMATTER);
-        String logLine = "[" + timestamp + "] [" + level.name() + "] [" + name + "] - " + formattedMessage;
-        LogEntry entry = new LogEntry(timestamp, level.name(), name, formattedMessage, logLine);
-
-        recordRecentLog(entry);
-
         if (consoleLoggingEnabled) {
-            if (level == LogLevel.ERROR) {
-                System.err.println(logLine);
-            } else {
-                System.out.println(logLine);
+            switch (level) {
+                case DEBUG -> {
+                    if (throwable != null) {
+                        slf4jLogger.debug(formattedMessage, throwable);
+                    } else {
+                        slf4jLogger.debug(formattedMessage);
+                    }
+                }
+                case INFO -> {
+                    if (throwable != null) {
+                        slf4jLogger.info(formattedMessage, throwable);
+                    } else {
+                        slf4jLogger.info(formattedMessage);
+                    }
+                }
+                case WARN -> {
+                    if (throwable != null) {
+                        slf4jLogger.warn(formattedMessage, throwable);
+                    } else {
+                        slf4jLogger.warn(formattedMessage);
+                    }
+                }
+                case ERROR -> {
+                    if (throwable != null) {
+                        slf4jLogger.error(formattedMessage, throwable);
+                    } else {
+                        slf4jLogger.error(formattedMessage);
+                    }
+                }
             }
         }
 
         if (fileLoggingEnabled && logFilePath != null) {
+            String timestamp = LocalDateTime.now().format(FORMATTER);
+            String logLine = "[" + timestamp + "] [" + level.name() + "] [" + name + "] - " + formattedMessage;
             writeToFile(logLine);
-        }
-    }
-
-    private static void recordRecentLog(LogEntry entry) {
-        RECENT_LOG_ENTRIES.add(entry);
-        while (RECENT_LOG_ENTRIES.size() > MAX_RECENT_LOGS) {
-            RECENT_LOG_ENTRIES.poll();
-        }
-        RECENT_LOGS.add(entry.rawLine());
-        while (RECENT_LOGS.size() > MAX_RECENT_LOGS) {
-            RECENT_LOGS.poll();
         }
     }
 
