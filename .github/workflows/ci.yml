@@ -44,8 +44,7 @@ jobs:
               - 'gradle/**'
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
-              - 'checkstyle.xml'
-              - 'spotbugs-exclude.xml'
+              - 'config/**'
               - 'frontend/**'
               - '.github/workflows/ci.yml'
 

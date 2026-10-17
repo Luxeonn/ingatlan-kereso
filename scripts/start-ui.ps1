@@ -1,6 +1,9 @@
 # Ingatlan Kereső - Web Dashboard Indító Script
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+# Valtsunk a projekt gyokerkonyvtaraba
+Set-Location -Path "$PSScriptRoot\.."
+
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "  Ingatlan Kereső - Web Dashboard Indítása        " -ForegroundColor Yellow
 Write-Host "==================================================" -ForegroundColor Cyan

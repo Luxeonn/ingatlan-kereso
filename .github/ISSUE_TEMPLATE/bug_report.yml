@@ -34,7 +34,7 @@ body:
       label: 'Hogyan reprodukálható? (Lépések)'
       description: 'Lépésről-lépésre leírás a hiba előidézéséhez.'
       placeholder: |
-        1. Indítsd el az alkalmazást: `start-ui.bat`
+        1. Indítsd el az alkalmazást: `START.bat`
         2. Állítsd be a keresési szűrőt: Település = Debrecen, Típus = Lakás
         3. Kattints a "Keresés indítása" gombra
         4. Figyeld meg a konzol kimenetet vagy a felületet...

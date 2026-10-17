@@ -6,7 +6,8 @@ WORKDIR /build
 # Gradle wrapper and build caching
 COPY gradlew gradlew
 COPY gradle/ gradle/
-COPY settings.gradle.kts build.gradle.kts checkstyle.xml spotbugs-exclude.xml ./
+COPY settings.gradle.kts build.gradle.kts ./
+COPY config/ config/
 RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
 # Copy backend source files

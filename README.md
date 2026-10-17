@@ -79,15 +79,15 @@ Double-click `START.bat`. The script detects Java and Gradle Wrapper, builds ass
 Start the full 3-tier architecture (PostgreSQL 17 database, headless Spring Boot backend, and Nginx React 19 frontend reverse proxy) with a single command:
 
 **Windows:**
-Double-click `start-docker.bat` or run:
+Double-click `scripts\start-docker.bat` or run:
 ```cmd
-start-docker.bat
+scripts\start-docker.bat
 ```
 
 **Linux / macOS:**
-Run `start-docker.sh` or run:
+Run `scripts/start-docker.sh` or run:
 ```bash
-chmod +x start-docker.sh && ./start-docker.sh
+chmod +x scripts/start-docker.sh && ./scripts/start-docker.sh
 ```
 
 **Standard Docker Compose Commands:**
