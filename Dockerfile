@@ -35,7 +35,7 @@ RUN mkdir -p /app/data /app/logs && \
     chown -R appuser:appuser /app
 
 # Copy executable Spring Boot jar from builder stage
-COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-1.0.jar /app/app.jar
+COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-1.0.0.jar /app/app.jar
 
 USER appuser:appuser
 
