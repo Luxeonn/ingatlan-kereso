@@ -42,27 +42,35 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          EVENT_NAME: ${{ github.event_name }}
+          RAW_PR_TITLE: ${{ github.event.pull_request.title }}
+          RAW_PR_BODY: ${{ github.event.pull_request.body }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "title<<EOF" >> "$GITHUB_OUTPUT"
-            echo "${{ github.event.pull_request.title }}" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-            echo "head_ref=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
-            echo "base_ref=${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
-            echo "body<<EOF" >> "$GITHUB_OUTPUT"
-            echo "${{ github.event.pull_request.body }}" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-            echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          DELIM=$(openssl rand -hex 16)
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
+            echo "$RAW_PR_TITLE" >> "$GITHUB_OUTPUT"
+            echo "$DELIM" >> "$GITHUB_OUTPUT"
+            echo "head_ref=$PR_HEAD_REF" >> "$GITHUB_OUTPUT"
+            echo "base_ref=$PR_BASE_REF" >> "$GITHUB_OUTPUT"
+            echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
+            echo "$RAW_PR_BODY" >> "$GITHUB_OUTPUT"
+            echo "$DELIM" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
             echo "is_pr=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Workflow triggered via ${{ github.event_name }} on ref ${{ github.ref_name }}."
+            echo "Workflow triggered via $EVENT_NAME on ref $REF_NAME."
             PR_JSON=""
             if [ -n "$INPUT_PR_NUMBER" ]; then
               echo "Fetching PR details for PR #${INPUT_PR_NUMBER}..."
               PR_JSON=$(gh pr view "$INPUT_PR_NUMBER" --json title,headRefName,baseRefName,body,number 2>/dev/null || true)
             else
-              echo "Searching for open PR associated with branch '${{ github.ref_name }}'..."
-              PR_JSON=$(gh pr view "${{ github.ref_name }}" --json title,headRefName,baseRefName,body,number 2>/dev/null || true)
+              echo "Searching for open PR associated with branch '${REF_NAME}'..."
+              PR_JSON=$(gh pr view "${REF_NAME}" --json title,headRefName,baseRefName,body,number 2>/dev/null || true)
             fi
 
             if [ -n "$PR_JSON" ]; then
@@ -71,28 +79,28 @@ jobs:
               PR_BASE=$(echo "$PR_JSON" | jq -r '.baseRefName // ""')
               PR_NUM=$(echo "$PR_JSON" | jq -r '.number // ""')
 
-              echo "title<<EOF" >> "$GITHUB_OUTPUT"
+              echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
               echo "$PR_TITLE" >> "$GITHUB_OUTPUT"
-              echo "EOF" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
               echo "head_ref=${PR_HEAD}" >> "$GITHUB_OUTPUT"
               echo "base_ref=${PR_BASE:-develop}" >> "$GITHUB_OUTPUT"
-              echo "body<<EOF" >> "$GITHUB_OUTPUT"
+              echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
               echo "$PR_JSON" | jq -r '.body // ""' >> "$GITHUB_OUTPUT"
-              echo "EOF" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
               echo "pr_number=${PR_NUM}" >> "$GITHUB_OUTPUT"
               echo "is_pr=true" >> "$GITHUB_OUTPUT"
               echo "✅ Sikerült lekérni a PR #${PR_NUM} adatokat: '$PR_TITLE' ($PR_HEAD -> $PR_BASE)"
             else
               COMMIT_MSG=$(git log -1 --pretty=%s)
               COMMIT_BODY=$(git log -1 --pretty=%b)
-              echo "title<<EOF" >> "$GITHUB_OUTPUT"
+              echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
               echo "$COMMIT_MSG" >> "$GITHUB_OUTPUT"
-              echo "EOF" >> "$GITHUB_OUTPUT"
-              echo "head_ref=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "head_ref=${REF_NAME}" >> "$GITHUB_OUTPUT"
               echo "base_ref=develop" >> "$GITHUB_OUTPUT"
-              echo "body<<EOF" >> "$GITHUB_OUTPUT"
+              echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
               echo "$COMMIT_BODY" >> "$GITHUB_OUTPUT"
-              echo "EOF" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
               echo "pr_number=" >> "$GITHUB_OUTPUT"
               echo "is_pr=false" >> "$GITHUB_OUTPUT"
               echo "ℹ️ Nincs nyitott PR ehhez az ághoz. Ágszintű ellenőrzés a legutóbbi commit üzenettel: '$COMMIT_MSG'"
@@ -168,14 +176,25 @@ jobs:
 
       - name: Report PR Compliance Summary
         if: always()
+        env:
+          HEAD_REF: ${{ steps.pr-ctx.outputs.head_ref }}
+          BASE_REF: ${{ steps.pr-ctx.outputs.base_ref }}
+          IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
+          PR_NUM: ${{ steps.pr-ctx.outputs.pr_number }}
+          STATUS_SUCCESS: ${{ job.status == 'success' }}
         run: |
           echo "### 🛡️ PR Review (Guard) Eredmények" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR Cím & Branch Szabályzat:** ${{ job.status == 'success' && '✅ Megfelelt (Conventional Commits & Prefix)' || '❌ Nem felelt meg' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Thematic Agent Approval Gate:** ${{ job.status == 'success' && '✅ Jóváhagyva (1-mondatos szakmai indoklással)' || '❌ Hiányos vagy elutasítva' }}" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS_SUCCESS" = "true" ]; then
+            echo "- **PR Cím & Branch Szabályzat:** ✅ Megfelelt (Conventional Commits & Prefix)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Thematic Agent Approval Gate:** ✅ Jóváhagyva (1-mondatos szakmai indoklással)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **PR Cím & Branch Szabályzat:** ❌ Nem felelt meg" >> $GITHUB_STEP_SUMMARY
+            echo "- **Thematic Agent Approval Gate:** ❌ Hiányos vagy elutasítva" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a CI és a PR Review is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
-          echo "- **Ág:** \`${{ steps.pr-ctx.outputs.head_ref }}\` -> \`${{ steps.pr-ctx.outputs.base_ref }}\`" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.pr-ctx.outputs.is_pr }}" = "true" ]; then
-            echo "- **PR Szám:** #${{ steps.pr-ctx.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ág:** \`${HEAD_REF}\` -> \`${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "$IS_PR" = "true" ]; then
+            echo "- **PR Szám:** #${PR_NUM}" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Mód:** Manuális ágfuttatás (workflow_dispatch)" >> $GITHUB_STEP_SUMMARY
           fi
