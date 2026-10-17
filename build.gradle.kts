@@ -64,6 +64,9 @@ dependencies {
         implementation("tools.jackson.core:jackson-databind:3.1.7")
         implementation("org.postgresql:postgresql:42.7.12")
         implementation("org.apache.logging.log4j:log4j-api:2.25.5")
+        implementation("org.apache.httpcomponents.client5:httpclient5:5.6.3")
+        implementation("org.apache.httpcomponents.core5:httpcore5:5.4.3")
+        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
     }
 
     // Spring Boot Starter & Core Modules (Spring Framework 7.0.9)
