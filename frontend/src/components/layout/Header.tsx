@@ -1,9 +1,9 @@
-import { Sun, Moon, Terminal, Activity, RotateCcw, Home } from 'lucide-react'
+import { Sun, Moon, Activity, RotateCcw, Home } from 'lucide-react'
 import { useUiStore } from '../../store/useUiStore'
 import { useFilterStore } from '../../store/useFilterStore'
 
 export const Header: React.FC = () => {
-  const { theme, toggleTheme, setLogModalOpen, setDiagnosticsModalOpen } = useUiStore()
+  const { theme, toggleTheme, setDiagnosticsModalOpen } = useUiStore()
   const { resetToDefaults } = useFilterStore()
 
   return (
@@ -50,17 +50,6 @@ export const Header: React.FC = () => {
           >
             <Activity className="h-4 w-4 text-emerald-400" />
             <span className="hidden sm:inline">Diagnosztika</span>
-          </button>
-
-          {/* Log viewer modal button */}
-          <button
-            type="button"
-            onClick={() => setLogModalOpen(true)}
-            title="Rendszernapló Megnyitása"
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-blue-500 hover:text-[var(--text-primary)] sm:px-3"
-          >
-            <Terminal className="h-4 w-4 text-blue-400" />
-            <span className="hidden sm:inline">Napló</span>
           </button>
 
           {/* Theme switcher */}

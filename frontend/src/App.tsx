@@ -5,7 +5,6 @@ import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsGrid } from './components/listings/ListingsGrid'
 import { MarketAnalyticsDashboard } from './components/analytics/MarketAnalyticsDashboard'
-import { LogViewerModal } from './components/modals/LogViewerModal'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { useSearch } from './hooks/useSearch'
 import { useFilterStore } from './store/useFilterStore'
@@ -108,7 +107,6 @@ export const App: FC = () => {
       </main>
 
       {/* Modals */}
-      <LogViewerModal />
       <DiagnosticsModal portalStatuses={data?.portalStatuses} />
     </div>
   )
