@@ -37,10 +37,23 @@ export interface DashboardResponseDto {
   portalStatuses?: PortalStatusDto[]
 }
 
+export interface PredefinedCity {
+  key?: string
+  name: string
+  county?: string
+  description?: string
+}
+
+export interface TrackedCityInfo {
+  name: string
+  key: string
+  count: number
+}
+
 export interface CitiesResponse {
-  predefined: string[]
+  predefined: Array<PredefinedCity | string>
   presets: Record<string, string[]>
-  trackedCities: Record<string, number>
+  trackedCities: TrackedCityInfo[] | Record<string, number>
 }
 
 export interface StatusResponse {

@@ -50,7 +50,7 @@ export const PORTAL_COLORS: Record<string, { bg: string; text: string; border: s
 }
 
 export function getPortalStyle(portalId: string) {
-  const key = portalId.toLowerCase().replace(/[^a-z]/g, '')
+  const key = (portalId || '').toLowerCase().replace(/[^a-z]/g, '')
   for (const [pKey, style] of Object.entries(PORTAL_COLORS)) {
     if (key.includes(pKey)) return style
   }
