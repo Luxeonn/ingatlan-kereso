@@ -381,4 +381,14 @@ class RestApiControllerIntegrationTest {
                 .andExpect(jsonPath("$.error").value("Not Acceptable"))
                 .andExpect(jsonPath("$.path").value("/api/status"));
     }
+
+    @Test
+    @DisplayName("GET /actuator és /actuator/health - Actuator modul kivezetve, 404 Not Found")
+    void testActuatorEndpointsNotExposed() throws Exception {
+        mockMvc.perform(get("/actuator"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isNotFound());
+    }
 }

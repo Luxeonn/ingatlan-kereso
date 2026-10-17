@@ -95,7 +95,7 @@ Start the headless Spring Boot backend:
 ```bash
 ./gradlew bootRun
 ```
-The REST API is active at **http://localhost:8080/api/status** and Actuator health at **http://localhost:8080/actuator/health**.
+The REST API is active at **http://localhost:8080/api/status**.
 
 In a separate terminal, launch the modern React 19 SPA client:
 ```bash
@@ -163,7 +163,7 @@ java -jar build/libs/ingatlan-1.0.0.jar
 ## ⚙️ Configuration & Storage
 
 * **`data/ingatlanok_jpa.mv.db`:** Primary embedded H2 database with unique B-Tree index on `url` for O(1) deduplication.
-* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, JPA, Actuator, Virtual Threads).
+* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, JPA, Virtual Threads).
 
 ---
 

@@ -135,7 +135,7 @@ jobs:
           # Várakozás a szerver felszállására (max 15 másodperc)
           READY=0
           for i in {1..15}; do
-            if curl -s -f http://127.0.0.1:8099/actuator/health > /dev/null 2>&1; then
+            if curl -s -f http://127.0.0.1:8099/api/status > /dev/null 2>&1; then
               READY=1
               echo "✅ A headless Spring Boot REST API sikeresen elindult a 8099-es porton ($i. másodpercben)."
               break
@@ -150,9 +150,16 @@ jobs:
           fi
 
           echo "=== 🔍 Végpontok és REST API Szerződés-ellenőrzése ==="
-          # 1. Actuator Health ellenőrzés
-          curl -s -f http://127.0.0.1:8099/actuator/health | grep -q '"status":"UP"' || { echo "::error::Actuator health nem UP!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          echo "✅ Actuator health sikeresen ellenőrizve."
+          # 1. REST API Status és Actuator Hiány ellenőrzés
+          curl -s -f http://127.0.0.1:8099/api/status | grep -q '"status":"UP"' || { echo "::error::REST API /api/status nem UP!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          echo "✅ REST API /api/status sikeresen ellenőrizve."
+          ACTUATOR_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/actuator/health)
+          if [ "$ACTUATOR_CODE" != "404" ]; then
+            echo "::error::Actuator endpoint nem 404-gyel tért vissza (kód: $ACTUATOR_CODE)!"
+            kill -9 $APP_PID 2>/dev/null || true
+            exit 1
+          fi
+          echo "✅ Actuator health hiánya (404 Not Found) sikeresen ellenőrizve."
 
           # 2. CORS Preflight ellenőrzés
           curl -s -I -X OPTIONS http://127.0.0.1:8099/api/search | grep -qi "Access-Control-Allow-Origin" || { echo "::error::CORS preflight nem adott Access-Control-Allow-Origin fejlécet"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }

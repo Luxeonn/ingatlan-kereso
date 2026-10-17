@@ -68,7 +68,7 @@ We follow coordinated vulnerability disclosure practices and commit to the follo
   - `X-Content-Type-Options: nosniff`
   - `X-Frame-Options: DENY`
   - `Referrer-Policy: strict-origin-when-cross-origin`
-- **Actuator Exposure:** Actuator endpoints are restricted to `health,info,metrics`, and detailed health metrics are hidden unless authorized (`show-details: when-authorized`).
+- **Actuator Removal & Attack Surface Minimization:** All Spring Boot Actuator endpoints and dependencies have been phased out to reduce runtime overhead and eliminate unneeded operational exposure in the integrated client-backend runtime.
 
 ### 2. Web Scraping & SSRF Defense (Scraper Layer)
 - **Domain Whitelisting:** Scraper requests (`HttpFetcher`) only target explicit, predefined real estate portals (`dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, `ingatlan.com`). User inputs are never directly evaluated as arbitrary outbound fetch URLs.
