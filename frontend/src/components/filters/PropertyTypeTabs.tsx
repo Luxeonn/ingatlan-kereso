@@ -24,7 +24,7 @@ export const PropertyTypeTabs: FC<PropertyTypeTabsProps> = ({ value, onChange })
       </label>
       <div className="flex flex-wrap gap-1.5">
         {TYPES.map((t) => {
-          const isActive = value.toLowerCase() === t.id.toLowerCase()
+          const isActive = (value || '').toLowerCase() === t.id.toLowerCase()
           return (
             <button
               key={t.id}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type FC, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, useMemo, type FC, type KeyboardEvent } from 'react'
 import { MapPin, X, ChevronDown } from 'lucide-react'
 import { useCities } from '../../hooks/useCities'
 import { PresetButtons } from './PresetButtons'
@@ -9,6 +9,12 @@ interface CitySelectorProps {
   onRemoveCity: (city: string) => void
   onSetCities: (cities: string[]) => void
 }
+
+const DEFAULT_CITIES = [
+  'Debrecen', 'Budapest', 'Szeged', 'Miskolc', 'Pécs', 'Győr', 'Nyíregyháza', 'Kecskemét',
+  'Székesfehérvár', 'Szombathely', 'Szolnok', 'Tatabánya', 'Kaposvár', 'Békéscsaba', 'Zalaegerszeg',
+  'Veszprém', 'Eger', 'Érd', 'Sopron', 'Mikepércs', 'Hajdúsámson', 'Bocskaikert', 'Józsa', 'Ebes'
+]
 
 export const CitySelector: FC<CitySelectorProps> = ({
   selectedCities,
@@ -21,17 +27,46 @@ export const CitySelector: FC<CitySelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const allCities = citiesData?.predefined || [
-    'Debrecen', 'Budapest', 'Szeged', 'Miskolc', 'Pécs', 'Győr', 'Nyíregyháza', 'Kecskemét',
-    'Székesfehérvár', 'Szombathely', 'Szolnok', 'Tatabánya', 'Kaposvár', 'Békéscsaba', 'Zalaegerszeg',
-    'Veszprém', 'Eger', 'Érd', 'Sopron', 'Mikepércs', 'Hajdúsámson', 'Bocskaikert', 'Józsa', 'Ebes'
-  ]
+  const allCities = useMemo(() => {
+    if (!citiesData?.predefined || !Array.isArray(citiesData.predefined)) {
+      return DEFAULT_CITIES
+    }
+    const extracted = citiesData.predefined
+      .map((item) => {
+        if (typeof item === 'string') return item.trim()
+        if (item && typeof item === 'object') {
+          return (item.name || item.key || '').trim()
+        }
+        return ''
+      })
+      .filter((name): name is string => Boolean(name && name.length > 0))
 
-  const filteredCities = allCities.filter((city) => {
-    const matches = city.toLowerCase().includes(query.toLowerCase())
-    const notSelected = !selectedCities.includes(city)
-    return matches && notSelected
-  })
+    return extracted.length > 0 ? extracted : DEFAULT_CITIES
+  }, [citiesData?.predefined])
+
+  const filteredCities = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return allCities.filter((city) => {
+      const matches = !q || city.toLowerCase().includes(q)
+      const notSelected = !selectedCities.includes(city)
+      return matches && notSelected
+    })
+  }, [allCities, query, selectedCities])
+
+  const getTrackedCount = (city: string): number | null => {
+    if (!citiesData?.trackedCities) return null
+    if (Array.isArray(citiesData.trackedCities)) {
+      const found = citiesData.trackedCities.find(
+        (t) => t.name?.toLowerCase() === city.toLowerCase() || t.key?.toLowerCase() === city.toLowerCase()
+      )
+      return found != null && typeof found.count === 'number' ? found.count : null
+    }
+    if (typeof citiesData.trackedCities === 'object') {
+      const val = (citiesData.trackedCities as Record<string, number>)[city]
+      return typeof val === 'number' ? val : null
+    }
+    return null
+  }
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -124,11 +159,14 @@ export const CitySelector: FC<CitySelectorProps> = ({
                 className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-blue-600 hover:text-white transition-colors"
               >
                 <span>{city}</span>
-                {citiesData?.trackedCities?.[city] != null && (
-                  <span className="text-[10px] opacity-75">
-                    {citiesData.trackedCities[city]} találat
-                  </span>
-                )}
+                {(() => {
+                  const count = getTrackedCount(city)
+                  return count != null && count > 0 ? (
+                    <span className="text-[10px] opacity-75">
+                      {count} találat
+                    </span>
+                  ) : null
+                })()}
               </button>
             ))}
           </div>
