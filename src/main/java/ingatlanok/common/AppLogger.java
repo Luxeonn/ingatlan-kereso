@@ -1,5 +1,8 @@
 package ingatlanok.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +36,15 @@ public class AppLogger {
         }
     }
 
-    public record LogEntry(String timestamp, String level, String logger, String message, String rawLine) {}
+    public record LogEntry(String timestamp, String level, String logger, String message, String rawLine) {
+        public String loggerName() {
+            return logger;
+        }
+
+        public String getLoggerName() {
+            return logger;
+        }
+    }
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
     private static final ConcurrentHashMap<String, AppLogger> LOGGERS = new ConcurrentHashMap<>();
@@ -41,6 +52,11 @@ public class AppLogger {
     private static final ConcurrentLinkedDeque<LogEntry> RECENT_LOG_ENTRIES = new ConcurrentLinkedDeque<>();
     private static final int MAX_RECENT_LOGS = 500;
     private static final ReentrantLock FILE_LOCK = new ReentrantLock();
+    private static final ThreadLocal<Boolean> IN_APP_LOGGER = ThreadLocal.withInitial(() -> false);
+
+    static {
+        RingBufferAppender.ensureRegistered();
+    }
 
     private static volatile LogLevel globalLevel = LogLevel.INFO;
     private static volatile Path logFilePath = Paths.get("logs", "scraper.log");
@@ -48,9 +64,21 @@ public class AppLogger {
     private static volatile boolean consoleLoggingEnabled = true;
 
     private final String name;
+    private final Logger slf4jLogger;
 
     private AppLogger(String name) {
         this.name = name != null ? name : "App";
+        this.slf4jLogger = LoggerFactory.getLogger(this.name);
+    }
+
+    public static boolean isInAppLogger() {
+        return Boolean.TRUE.equals(IN_APP_LOGGER.get());
+    }
+
+    public static void recordLogEntry(LogEntry entry) {
+        if (entry != null) {
+            recordRecentLog(entry);
+        }
     }
 
     public static AppLogger getLogger(Class<?> clazz) {
@@ -178,10 +206,40 @@ public class AppLogger {
         recordRecentLog(entry);
 
         if (consoleLoggingEnabled) {
-            if (level == LogLevel.ERROR) {
-                System.err.println(logLine);
-            } else {
-                System.out.println(logLine);
+            IN_APP_LOGGER.set(true);
+            try {
+                switch (level) {
+                    case DEBUG -> {
+                        if (throwable != null) {
+                            slf4jLogger.debug(formattedMessage, throwable);
+                        } else {
+                            slf4jLogger.debug(formattedMessage);
+                        }
+                    }
+                    case INFO -> {
+                        if (throwable != null) {
+                            slf4jLogger.info(formattedMessage, throwable);
+                        } else {
+                            slf4jLogger.info(formattedMessage);
+                        }
+                    }
+                    case WARN -> {
+                        if (throwable != null) {
+                            slf4jLogger.warn(formattedMessage, throwable);
+                        } else {
+                            slf4jLogger.warn(formattedMessage);
+                        }
+                    }
+                    case ERROR -> {
+                        if (throwable != null) {
+                            slf4jLogger.error(formattedMessage, throwable);
+                        } else {
+                            slf4jLogger.error(formattedMessage);
+                        }
+                    }
+                }
+            } finally {
+                IN_APP_LOGGER.set(false);
             }
         }
 
