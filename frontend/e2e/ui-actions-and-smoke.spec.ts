@@ -19,6 +19,118 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
         consoleErrors.push(msg.text())
       }
     })
+
+    // If running in isolated frontend mode (e.g. Vite Preview without live Spring Boot backend),
+    // provide realistic mock responses for all REST API endpoints.
+    const isLiveBackend = Boolean(process.env.PLAYWRIGHT_BASE_URL)
+    if (!isLiveBackend) {
+      await page.route('**/api/config', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            cities: ['Debrecen'],
+            minPriceMillion: 20,
+            maxPriceMillion: 120,
+            minArea: 30,
+            maxArea: 150,
+            propertyType: 'FLAT',
+            portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar'],
+            autoOpenBrowser: false,
+            excludeViewed: false,
+          }),
+        })
+      })
+
+      await page.route('**/api/portals', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([
+            { id: 'dh', name: 'Duna House', color: '#0066cc', searchUrl: 'https://dh.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 5 },
+            { id: 'oc', name: 'Otthon Centrum', color: '#ff9800', searchUrl: 'https://oc.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 8 },
+            { id: 'jofogas', name: 'Jófogás', color: '#4caf50', searchUrl: 'https://jofogas.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 12 },
+            { id: 'koltozzbe', name: 'Költözzbe', color: '#2196f3', searchUrl: 'https://koltozzbe.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 3 },
+            { id: 'ingatlanbazar', name: 'Ingatlanbazár', color: '#9c27b0', searchUrl: 'https://ingatlanbazar.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 15 },
+          ]),
+        })
+      })
+
+      await page.route('**/api/cities', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            predefined: [
+              { key: 'debrecen', name: 'Debrecen', county: 'Hajdú-Bihar' },
+              { key: 'budapest', name: 'Budapest', county: 'Pest' },
+              { key: 'szeged', name: 'Szeged', county: 'Csongrád' },
+            ],
+            presets: {
+              'Főbb egyetemvárosok': ['Budapest', 'Debrecen', 'Szeged'],
+            },
+            trackedCities: [],
+          }),
+        })
+      })
+
+      await page.route('**/api/search', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            items: [],
+            newCount: 0,
+            totalFound: 0,
+            executedAt: new Date().toISOString(),
+            portalStatuses: [
+              { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', durationMs: 250, itemCount: 0, botProtected: false },
+            ],
+            marketStats: {
+              averagePriceMillion: 45,
+              averagePricePerM2: 950000,
+              minPriceMillion: 30,
+              maxPriceMillion: 60,
+              newRatePercent: 0,
+              cityBreakdown: { Debrecen: 0 },
+            },
+          }),
+        })
+      })
+
+      await page.route('**/api/status', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            status: 'UP',
+            port: 4173,
+            totalInDb: 0,
+            trackedCities: {},
+          }),
+        })
+      })
+
+      await page.route('**/api/logs', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            logs: [],
+            rawLogs: [],
+            level: 'INFO',
+          }),
+        })
+      })
+
+      await page.route('**/api/**', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({}),
+        })
+      })
+    }
   })
 
   test.afterEach(async () => {
@@ -41,23 +153,23 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     const diagBtn = page.getByRole('button', { name: /Diagnosztika/i })
     await expect(diagBtn).toBeVisible()
     await diagBtn.click()
-    await expect(page.getByText('Rendszer- és Portáldiagnosztika')).toBeVisible()
+    await expect(page.getByText('Portál Diagnosztika & Állapotjelentés')).toBeVisible()
 
     // Close Diagnostics Modal
     const closeDiagBtn = page.getByRole('button', { name: /Bezárás/i }).first()
     await closeDiagBtn.click()
-    await expect(page.getByText('Rendszer- és Portáldiagnosztika')).not.toBeVisible()
+    await expect(page.getByText('Portál Diagnosztika & Állapotjelentés')).not.toBeVisible()
 
     // Test Log Viewer Modal
     const logBtn = page.getByRole('button', { name: /Napló/i })
     await expect(logBtn).toBeVisible()
     await logBtn.click()
-    await expect(page.getByText('Rendszernapló & Hibakeresés')).toBeVisible()
+    await expect(page.getByText('Rendszernapló (System Log Viewer)')).toBeVisible()
 
     // Close Log Modal
     const closeLogBtn = page.getByRole('button', { name: /Bezárás/i }).first()
     await closeLogBtn.click()
-    await expect(page.getByText('Rendszernapló & Hibakeresés')).not.toBeVisible()
+    await expect(page.getByText('Rendszernapló (System Log Viewer)')).not.toBeVisible()
   })
 
   test('2. Filter Panel, Steppers, Type Tabs and Portal Toggles interact cleanly', async ({ page }) => {
