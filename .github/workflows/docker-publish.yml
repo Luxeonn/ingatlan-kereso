@@ -7,6 +7,7 @@ on:
       - main
     tags:
       - 'v*'
+      - '[0-9]+.*'
   workflow_dispatch:
 
 concurrency:
@@ -60,16 +61,14 @@ jobs:
             # develop ágon: kizárólag latest
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/develop' }}
 
-            # Git tag esetén (pl. v1.0, v1.0.0):
+            # Git tag esetén (pl. 1.0.0):
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=ref,event=tag
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/0.') }}
 
-            # main ágra érkező push: fix verziószám a build.gradle.kts-ből és commit SHA (NEM latest)
-            type=raw,value=v${{ steps.pom-version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
+            # main ágra érkező push: fix verziószám a build.gradle.kts-ből és commit SHA (v előtag nélkül)
             type=raw,value=${{ steps.pom-version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' }}
-            type=sha,prefix=v${{ steps.pom-version.outputs.version }}-,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=${{ steps.pom-version.outputs.version }}-,enable=${{ github.ref == 'refs/heads/main' }}
 
             # Egyéb ágak workflow_dispatch manuális indításakor
             type=ref,event=branch,enable=${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
