@@ -1,7 +1,7 @@
 version: 2
 updates:
   # =========================================================================
-  # BACKEND: Java 21 / Gradle függőségek (Jsoup, Gson, Nitrite, JaCoCo stb.)
+  # BACKEND: Java 21 / Gradle függőségek (Spring Boot, Jsoup, Gson, JaCoCo stb.)
   # Egyetlen összevont (grouped) Backend PR-ba gyűjti az összes frissítést
   # =========================================================================
   - package-ecosystem: "gradle"
