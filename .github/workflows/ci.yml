@@ -123,7 +123,7 @@ jobs:
         uses: gradle/actions/wrapper-validation@v6
 
       - name: Compile, Lint (Checkstyle), GraalVM AOT and Test with Gradle & JaCoCo
-        run: ./gradlew check processAot bootJar --no-daemon
+        run: ./gradlew check bootJar --no-daemon
 
       - name: Headless REST API Runtime Smoke Test
         run: |
