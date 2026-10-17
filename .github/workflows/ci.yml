@@ -77,6 +77,26 @@ jobs:
           npm run build
           echo "✅ Frontend SPA sikeresen lintelve, tesztelve és lefordítva."
 
+      - name: Install Playwright Browsers (Chromium)
+        run: |
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E UI Action & Endpoint Smoke Tests (Vite Preview)
+        run: |
+          echo "=== 🎭 Playwright E2E UI Action & Smoke Tesztek Futtatása (Vite Preview) ==="
+          cd frontend
+          npm run test:e2e
+          echo "✅ Minden UI gomb, beviteli mező, fül, szűrő és hálózati akció hibátlanul lefutott."
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-frontend
+          path: frontend/playwright-report/
+          retention-days: 7
+
       - name: Upload Built SPA Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -182,10 +202,30 @@ jobs:
 
           echo "✅ Minden kritikus REST API végpont működőképes."
 
+          # 5. Élő Spring Boot beágyazott szerver Playwright E2E UI Action & Smoke validáció
+          echo "=== 🎭 Élő Spring Boot 4.1.0 Fat JAR Playwright E2E Validáció (Port 8099) ==="
+          cd frontend
+          npx playwright install --with-deps chromium
+          if ! PLAYWRIGHT_BASE_URL=http://127.0.0.1:8099 npx playwright test; then
+            echo "::error::Playwright E2E tesztek elbuktak az élő Spring Boot szerveren!"
+            kill -9 $APP_PID 2>/dev/null || true
+            exit 1
+          fi
+          cd ..
+          echo "✅ A beágyazott Spring Boot fat JAR által kiszolgált felület és összes UI interakciója hibátlan!"
+
           # Szerver rendezett leállítása
           kill -15 $APP_PID 2>/dev/null || true
           wait $APP_PID 2>/dev/null || true
           echo "✅ Headless Smoke Teszt sikeresen befejeződött."
+
+      - name: Upload Playwright Report (Backend Live Server)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-backend
+          path: frontend/playwright-report/
+          retention-days: 7
 
       - name: Report Build Summary & Quality Gates
         if: always()
