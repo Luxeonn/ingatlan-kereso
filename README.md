@@ -1,13 +1,16 @@
 # Ingatlan Kereső (Real Estate Scraper & Monitor)
 
+[![Release: 1.0.0](https://img.shields.io/badge/Release-1.0.0-blue?style=for-the-badge)](https://github.com/Luxeonn/ingatlan-kereso/releases)
 [![Java](https://img.shields.io/badge/Java-21%20LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Framework](https://img.shields.io/badge/Spring%20Framework-7.0.9-6DB33F?style=for-the-badge&logo=spring&logoColor=white)](https://spring.io/projects/spring-framework)
 [![GraalVM](https://img.shields.io/badge/GraalVM-Native%20Image-orange?style=for-the-badge&logo=graalvm&logoColor=white)](https://www.graalvm.org/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.12%2B-02303A?style=for-the-badge&logo=gradle&logoColor=white)](https://gradle.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Docker Image](https://img.shields.io/badge/GHCR-1.0.0-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/Luxeonn/ingatlan-kereso/pkgs/container/ingatlan-kereso-backend)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 
-High-performance real estate monitoring and scraping application built with Java 21 LTS, Spring Boot 4.1.0, GraalVM Native Image support, Virtual Threads, Spring Data JPA / H2 persistence, and a decoupled modern React 19 SPA dashboard.
+High-performance real estate monitoring and scraping application built with Java 21 LTS, Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support, Virtual Threads, Spring Data JPA / H2 persistence, and a decoupled modern React 19 SPA dashboard.
 
 ---
 
@@ -40,17 +43,33 @@ High-performance real estate monitoring and scraping application built with Java
 
 ```text
 ingatlan-kereso/
-├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, GraalVM Native)
+├── .github/
+│   ├── pull_request_template.md                 # PR checklist & Thematic Agent Gate template
+│   └── workflows/
+│       ├── ci.yml                               # Java 21, Checkstyle, SpotBugs, JaCoCo, Playwright E2E
+│       ├── docker-publish.yml                   # Automated GHCR release workflow (clean 1.0.0 tags)
+│       └── pr-review.yml                        # PR Review Guard (Conventional Commits & Thematic Gate)
+├── config/
+│   ├── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
+│   └── spotbugs/spotbugs-exclude.xml            # SpotBugs 4.9.2 filter
+├── scripts/
+│   ├── start-docker.bat / start-docker.sh       # Docker Compose multi-container launchers
+│   └── start-ui.ps1                             # PowerShell desktop dashboard launcher
+├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
 ├── settings.gradle.kts                          # Gradle project settings
 ├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
-├── Dockerfile                                   # Multi-stage GraalVM native container build
+├── Dockerfile                                   # Hardened Temurin JRE 21 container build (UID 10001)
+├── docker-compose.yml                           # 3-tier production stack (Postgres 17, Backend, Nginx UI)
+├── START.bat                                    # One-click Windows desktop launcher
 ├── README.md                                    # Main user and developer documentation
 ├── gemini.md                                    # Comprehensive system architecture & AI workflow rules
 ├── data/                                        # Persistent runtime database directory
 │   └── ingatlanok_jpa.mv.db                     # Embedded H2 / JPA database
 ├── frontend/                                    # Modern Decoupled SPA (React 19, TypeScript, Vite, TailwindCSS)
 │   ├── src/                                     # React components, Zustand stores, TanStack Query hooks
-│   └── package.json                             # Frontend dependencies and test scripts
+│   ├── package.json                             # Frontend dependencies and test scripts
+│   ├── nginx.conf                               # Production SPA reverse proxy configuration
+│   └── Dockerfile                               # Production Nginx frontend container
 └── src/main/java/ingatlanok/
     ├── IngatlanApplication.java                 # Spring Boot application entry point (@SpringBootApplication)
     ├── Main.java                                # Hybrid entry point (Spring Boot & CLI mode)
@@ -105,6 +124,11 @@ docker compose logs -f backend
 docker compose down
 ```
 Once started, access the Web Dashboard at **http://localhost:8080** and the REST API at **http://localhost:8080/api/status**.
+
+> [!NOTE]
+> Published production images are automatically hosted on GitHub Container Registry (GHCR):
+> * Backend: `ghcr.io/luxeonn/ingatlan-kereso-backend:1.0.0`
+> * Frontend: `ghcr.io/luxeonn/ingatlan-kereso-frontend:1.0.0`
 
 ### 3. Local Development Build
 ```bash
