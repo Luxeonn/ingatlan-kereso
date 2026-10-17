@@ -45,7 +45,6 @@ jobs:
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
               - 'config/**'
-              - 'frontend/**'
               - '.github/workflows/ci.yml'
 
   frontend:
@@ -123,108 +122,62 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
 
-      - name: Set up Node.js 22 (Build Frontend Assets for Uber-JAR)
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-
-      - name: Build & Embed Frontend SPA Assets
-        run: |
-          echo "=== ⚛️ Frontend SPA Építése a beágyazáshoz ==="
-          cd frontend
-          npm ci
-          npm run build
-          mkdir -p ../src/main/resources/static
-          rm -rf ../src/main/resources/static/*
-          cp -r dist/* ../src/main/resources/static/
-          cd ..
-          echo "✅ Frontend SPA assetek beágyazva a fat JAR-hoz."
-
       - name: Compile, Lint (Checkstyle & SpotBugs), GraalVM AOT and Test with Gradle & JaCoCo
         run: ./gradlew check processAot bootJar --no-daemon
 
-      - name: Headless Application & Web UI Runtime Smoke Test
+      - name: Headless REST API Runtime Smoke Test
         run: |
-          echo "=== 🚀 Web Dashboard és Szerver Runtime Smoke Teszt Indítása (Spring Boot 4.1.0) ==="
-          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 java -jar build/libs/ingatlan-1.0.0.jar &
+          echo "=== 🚀 Headless REST API Runtime Smoke Teszt Indítása (Spring Boot 4.1.0) ==="
+          SERVER_PORT=8099 SERVER_HOST=127.0.0.1 NO_BROWSER=true java -jar build/libs/ingatlan-1.0.0.jar &
           APP_PID=$!
           echo "Szerver elindítva a háttérben PID: $APP_PID"
 
           # Várakozás a szerver felszállására (max 15 másodperc)
           READY=0
           for i in {1..15}; do
-            if curl -s -f http://127.0.0.1:8099/api/config > /dev/null 2>&1; then
+            if curl -s -f http://127.0.0.1:8099/actuator/health > /dev/null 2>&1; then
               READY=1
-              echo "✅ A beágyazott WebServer sikeresen elindult a 8099-es porton ($i. másodpercben)."
+              echo "✅ A headless Spring Boot REST API sikeresen elindult a 8099-es porton ($i. másodpercben)."
               break
             fi
             sleep 1
           done
 
           if [ $READY -ne 1 ]; then
-            echo "::error::A beágyazott WebServer nem indult el 15 másodpercen belül!"
+            echo "::error::A headless REST API nem indult el 15 másodpercen belül!"
             kill -9 $APP_PID 2>/dev/null || true
             exit 1
           fi
 
-          echo "=== 🔍 Végpontok és Frontend Smoke Ellenőrzése ==="
-          # 1. SPA index.html letöltése és root vizsgálata
-          curl -s -f http://127.0.0.1:8099/ > /tmp/dashboard.html
-          grep -q 'id="root"' /tmp/dashboard.html || { echo "::error::Hiányzik a root div az index.html-ből!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          grep -q 'Ingatlan Kereső' /tmp/dashboard.html || { echo "::error::Hiányzik az alkalmazás címe az index.html-ből!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
-          echo "✅ SPA index.html sikeresen kiszolgálva."
+          echo "=== 🔍 Végpontok és REST API Szerződés-ellenőrzése ==="
+          # 1. Actuator Health ellenőrzés
+          curl -s -f http://127.0.0.1:8099/actuator/health | grep -q '"status":"UP"' || { echo "::error::Actuator health nem UP!"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          echo "✅ Actuator health sikeresen ellenőrizve."
 
-          # 2. Bundle JavaScript letöltése és Node.js V8 szintaxisvizsgálat
-          JS_PATH=$(grep -oE '/assets/index-[a-zA-Z0-9_-]+\.js' /tmp/dashboard.html | head -n 1)
-          if [ -n "$JS_PATH" ]; then
-            echo "Élő JS bundle letöltése: $JS_PATH"
-            curl -s -f "http://127.0.0.1:8099$JS_PATH" > /tmp/dashboard_live.js
-            node --check /tmp/dashboard_live.js
-            echo "✅ A valós szerver által kiszolgált SPA JavaScript kód hibátlan (node --check pass)!"
-          else
-            echo "::error::Nem található JS bundle hivatkozás az index.html-ben!"
-            kill -9 $APP_PID 2>/dev/null || true
-            exit 1
-          fi
-
-          # 3. CORS Preflight ellenőrzés
+          # 2. CORS Preflight ellenőrzés
           curl -s -I -X OPTIONS http://127.0.0.1:8099/api/search | grep -qi "Access-Control-Allow-Origin" || { echo "::error::CORS preflight nem adott Access-Control-Allow-Origin fejlécet"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
           echo "✅ CORS Preflight megfelelően működik."
 
-          # 4. Alapvető REST API végpontok szerződés-ellenőrzése
+          # 3. Alapvető REST API végpontok szerződés-ellenőrzése
           echo "REST API végpontok ellenőrzése..."
           curl -s -f http://127.0.0.1:8099/api/config | grep -q "cities" || { echo "::error::/api/config nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
           curl -s -f http://127.0.0.1:8099/api/portals | grep -q "id" || { echo "::error::/api/portals nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
           curl -s -f http://127.0.0.1:8099/api/cities | grep -q "Budapest" || { echo "::error::/api/cities nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
+          curl -s -f http://127.0.0.1:8099/api/status | grep -q "UP" || { echo "::error::/api/status nem adott érvényes választ"; kill -9 $APP_PID 2>/dev/null || true; exit 1; }
 
-          echo "✅ Minden kritikus REST API végpont működőképes."
-
-          # 5. Élő Spring Boot beágyazott szerver Playwright E2E UI Action & Smoke validáció
-          echo "=== 🎭 Élő Spring Boot 4.1.0 Fat JAR Playwright E2E Validáció (Port 8099) ==="
-          cd frontend
-          npx playwright install --with-deps chromium
-          if ! PLAYWRIGHT_BASE_URL=http://127.0.0.1:8099 npx playwright test; then
-            echo "::error::Playwright E2E tesztek elbuktak az élő Spring Boot szerveren!"
+          # 4. Headless tisztaság ellenőrzése: nincs beágyazott SPA fallback router, ismeretlen útvonal 404
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/dashboard)
+          if [ "$HTTP_CODE" -ne 404 ]; then
+            echo "::error::Headless REST API nem 404-et adott ismeretlen útvonalra: $HTTP_CODE"
             kill -9 $APP_PID 2>/dev/null || true
             exit 1
           fi
-          cd ..
-          echo "✅ A beágyazott Spring Boot fat JAR által kiszolgált felület és összes UI interakciója hibátlan!"
+          echo "✅ Headless végpont-izoláció (404 Not Found a nem létező SPA útvonalakra) ellenőrizve."
 
           # Szerver rendezett leállítása
           kill -15 $APP_PID 2>/dev/null || true
           wait $APP_PID 2>/dev/null || true
           echo "✅ Headless Smoke Teszt sikeresen befejeződött."
-
-      - name: Upload Playwright Report (Backend Live Server)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-backend
-          path: frontend/playwright-report/
-          retention-days: 7
 
       - name: Report Build Summary & Quality Gates
         if: always()
@@ -247,7 +200,7 @@ jobs:
             fi
           fi
 
-          echo "| **UI & Smoke Integritás** | ${{ job.status == 'success' && '🛡️ Garantált' || '⚠️ Hibás' }} | Zero-SyntaxError & REST szerződések validálva |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Headless REST API Integritás** | ${{ job.status == 'success' && '🛡️ Garantált' || '⚠️ Hibás' }} | Zero-SyntaxError & REST szerződések validálva |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

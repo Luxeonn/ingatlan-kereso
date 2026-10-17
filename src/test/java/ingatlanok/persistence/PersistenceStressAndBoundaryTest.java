@@ -12,12 +12,10 @@ import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.entity.StatusLogEntity;
 import ingatlanok.persistence.mapper.JpaEntityMapper;
-import ingatlanok.persistence.mapper.NitriteDocumentMapper;
 import ingatlanok.persistence.service.ListingFilterService;
 import ingatlanok.persistence.service.PriceHistoryTracker;
 import ingatlanok.persistence.service.PriceHistoryTracker.PriceDeltaCalculation;
 import ingatlanok.persistence.service.StatusLogTracker;
-import org.dizitart.no2.collection.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -350,7 +348,7 @@ class PersistenceStressAndBoundaryTest {
     }
 
     @Nested
-    @DisplayName("3. JpaEntityMapper and NitriteDocumentMapper Adversarial Challenges")
+    @DisplayName("3. JpaEntityMapper Adversarial Challenges")
     class MapperChallenges {
 
         private JpaEntityMapper jpaMapper;
@@ -427,63 +425,6 @@ class PersistenceStressAndBoundaryTest {
 
             assertThrows(NullPointerException.class, () ->
                     jpaMapper.toEntity(null, null, "2026-03-01", 0L, 0.0, null, "ACTIVE")
-            );
-        }
-
-        @Test
-        @DisplayName("Challenge 3.3: NitriteDocumentMapper handling of null and empty documents")
-        void testNitriteDocumentMapperNullAndEmpty() {
-            assertNull(NitriteDocumentMapper.toItem(null));
-
-            Document emptyDoc = Document.createDocument();
-            IngatlanItem item = NitriteDocumentMapper.toItem(emptyDoc);
-            assertNotNull(item);
-            assertNull(item.getId());
-            assertNull(item.getUrl());
-            assertFalse(item.isNew());
-            assertFalse(item.isViewed());
-            assertNull(item.getPriceInfo());
-            assertNull(item.getDetailsInfo());
-
-            assertDoesNotThrow(() -> NitriteDocumentMapper.normalizeItem(null));
-        }
-
-        @Test
-        @DisplayName("Challenge 3.4: NitriteDocumentMapper polymorphic numeric extraction and type resilience")
-        void testNitriteDocumentMapperNumericResilience() {
-            Document docWithDifferentNumberTypes = Document.createDocument("url", "https://site.hu/1")
-                    .put("id", "site_1")
-                    .put("priceAmount", 40_000_000) // Integer
-                    .put("priceMillions", 40.0f)     // Float
-                    .put("priceDelta", -1_000_000)    // Integer
-                    .put("priceChangePercent", -2.5f) // Float
-                    .put("areaSqm", 50)              // Integer
-                    .put("rooms", 2)                 // Integer
-                    .put("pricePerSqm", 800_000);    // Integer
-
-            IngatlanItem item = NitriteDocumentMapper.toItem(docWithDifferentNumberTypes);
-            assertNotNull(item);
-            assertNotNull(item.getPriceInfo());
-            assertEquals(40_000_000L, item.getPriceInfo().getAmountHuf());
-            assertEquals(40.0, item.getPriceInfo().getAmountMillion(), 0.001);
-            assertEquals(-1_000_000L, item.getPriceDelta());
-            assertEquals(-2.5, item.getPriceChangePercent(), 0.001);
-
-            assertNotNull(item.getDetailsInfo());
-            assertEquals(50.0, item.getDetailsInfo().getAreaSquareMeters());
-            assertEquals(2.0, item.getDetailsInfo().getRoomCount());
-            assertEquals(800_000L, item.getDetailsInfo().getPricePerSquareMeter());
-        }
-
-        @Test
-        @DisplayName("Challenge 3.5: NitriteDocumentMapper null document behavior on history/status entries")
-        void testNitriteDocumentMapperNullDocObservations() {
-            assertThrows(NullPointerException.class, () ->
-                    NitriteDocumentMapper.toPriceHistoryEntry(null, "fallback")
-            );
-
-            assertThrows(NullPointerException.class, () ->
-                    NitriteDocumentMapper.toStatusLogEntry(null, "fallback")
             );
         }
     }

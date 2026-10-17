@@ -1,6 +1,6 @@
 # GitHub Copilot & AI Code Review Instructions for Ingatlan Kereső
 
-This repository is **ingatlan-kereso**, a high-performance Hungarian real estate aggregator built on Java 21 LTS, SQLite WAL mode, and a modern embedded React 19 SPA frontend.
+This repository is **ingatlan-kereso**, a high-performance Hungarian real estate aggregator built on Java 21 LTS with Spring Boot 4.1.0, Spring Data JPA / H2, Virtual Threads, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend.
 
 When generating code, reviewing Pull Requests, or proposing refactors, strictly adhere to the following architectural directives and coding standards:
 
@@ -11,7 +11,7 @@ When generating code, reviewing Pull Requests, or proposing refactors, strictly 
 Code is organized strictly into four decoupled layers. Cross-layer dependencies must follow unidirectional flow:
 
 ```
-[Layer 1: Frontend SPA & Web API] (React 19 SPA + WebServer REST Endpoints)
+[Layer 1: Frontend SPA & REST API] (Decoupled React 19 SPA + Spring MVC Headless REST API)
              │
              ▼
 [Layer 2: Core Domain & Business Logic] (FilterEngine, DeduplicationEngine, MarketAnalyticsEngine)

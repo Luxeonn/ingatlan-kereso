@@ -34,7 +34,7 @@ body:
       label: 'Hogyan reprodukálható? (Lépések)'
       description: 'Lépésről-lépésre leírás a hiba előidézéséhez.'
       placeholder: |
-        1. Indítsd el az alkalmazást: `START.bat`
+        1. Indítsd el az alkalmazást: `docker compose up -d` vagy `./gradlew bootRun`
         2. Állítsd be a keresési szűrőt: Település = Debrecen, Típus = Lakás
         3. Kattints a "Keresés indítása" gombra
         4. Figyeld meg a konzol kimenetet vagy a felületet...
@@ -53,8 +53,8 @@ body:
         - 'Ingatlan.com Scraper & Sidecar'
         - 'Ingatlanbazár Scraper (ingatlanbazar.hu)'
         - 'Web Dashboard SPA Felület (UI)'
-        - 'Beágyazott WebServer (REST API)'
-        - 'Perzisztencia & Adatbázis (JSON tároló)'
+        - 'Headless REST API (Spring Boot)'
+        - 'Perzisztencia & Adatbázis (Spring Data JPA / H2)'
         - 'Egyéb / Általános'
     validations:
       required: true

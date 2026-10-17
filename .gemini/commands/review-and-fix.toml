@@ -27,9 +27,9 @@ Follow these steps to conduct a thorough review:
    Analyze the modified files to determine which specialized agent must review and approve:
    * **Fullstack Architecture & UI (`fullstack-architect` required):**
      Touching `ingatlanok.core.*`, `ingatlanok.presentation.*`, `ingatlanok.web.*`, `ingatlanok.persistence.*`, `Main.java`, `frontend/`, `WebDashboardHtml.java`, or static assets.
-     *Criteria:* Clean Architecture, loose coupling, Virtual Threads, Nitrite NoSQL persistence, React 19 UI integrity (0-SyntaxError), responsive design.
+     *Criteria:* Clean Architecture, loose coupling, Virtual Threads, Spring Data JPA persistence, React 19 UI integrity (0-SyntaxError), responsive design.
    * **Scraper & Security (`scraper-security-engineer` required):**
-     Touching `ingatlanok.portal.*`, `ingatlanok.scraper.*`, `ingatlanok.common.*`, `WebServer.java`, network headers, process execution, security configs.
+     Touching `ingatlanok.portal.*`, `ingatlanok.scraper.*`, `ingatlanok.common.*`, network headers, process execution, security configs.
      *Criteria:* 0-crash resilience, Jsoup/JSON-LD parsing robustness, bot/WAF handling, AppSec (CORS, CSP, localhost bind, XSS, Path Traversal, SSRF).
    * **Quality & DevOps (`quality-devops-engineer` required):**
      Touching `.github/workflows/*`, Dockerfile, docker-compose, unit/integration tests (`src/test/`, `frontend/**/__tests__`), build files.
@@ -46,7 +46,7 @@ Follow these steps to conduct a thorough review:
    * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with concise [OK] / [NOK] / [N/A] status accompanied by a mandatory 1-sentence rationale for every thematic domain:
      ```markdown
      ### 🛡️ Thematic Agent Approval Gate
-     - [x] Fullstack Architecture & UI (`fullstack-architect`): [OK] – A Clean Architecture réteghatárok, a NoSQL perzisztencia és a React 19 UI integritás maradéktalanul érvényesül.
+     - [x] Fullstack Architecture & UI (`fullstack-architect`): [OK] – A Clean Architecture réteghatárok, a Spring Data JPA perzisztencia és a React 19 UI integritás maradéktalanul érvényesül.
      - [x] Scraper & Security (`scraper-security-engineer`): [OK] – A portálmotorok 0-crash robusztussága és az alkalmazásszintű védelem (AppSec) biztosított.
      - [x] Quality & DevOps (`quality-devops-engineer`): [OK] – A determinista tesztek lefedettsége megfelelő, a CI/CD pipeline-ok és konténerizáció sértetlenek.
      ```

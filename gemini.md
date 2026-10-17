@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence (with backward-compatible NoSQL interfaces), and a decoupled modern React 19 SPA frontend embedded into the Spring Boot fat JAR (`bootJar`) or Native executable.
+**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose).
 
 ### Workflow Architecture
 
@@ -18,12 +18,12 @@ flowchart TD
         SPA --> Event
     end
 
-    subgraph Server ["Server Layer (Spring Boot 4.1.0 / Java 21)"]
+    subgraph Server ["Server Layer (Headless Spring Boot 4.1.0 / Java 21)"]
         HTTP["Spring MVC REST Controllers (Port 8080)"]
         VThread["Virtual Threads Dispatcher"]
-        Static["SpaWebMvcConfig (SPA Fallback & Static Assets)"]
+        Cors["GlobalCorsFilter & SpaWebMvcConfig (CORS & MVC Config)"]
         HTTP --> VThread
-        HTTP --> Static
+        HTTP --> Cors
     end
 
     subgraph Service ["Core & Scraper Layer"]
@@ -70,14 +70,12 @@ ingatlan-kereso/
 │   ├── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 │   └── spotbugs/spotbugs-exclude.xml            # SpotBugs 4.9.2 filter
 ├── scripts/
-│   ├── start-docker.bat / start-docker.sh       # Docker Compose multi-container runners
-│   └── start-ui.ps1                             # PowerShell desktop dashboard launcher
+│   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container runners
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
 ├── settings.gradle.kts                          # Gradle root project settings
 ├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
 ├── Dockerfile                                   # Multi-stage Temurin JRE 21 runtime container
 ├── docker-compose.yml                           # 3-tier production stack (Postgres, Backend, Nginx UI)
-├── START.bat                                    # One-click Windows desktop launcher
 ├── README.md                                    # Comprehensive user and developer guide
 ├── gemini.md                                    # Technical architecture & AI workflow directives
 ├── data/
@@ -115,7 +113,7 @@ ingatlan-kereso/
     │   ├── entity/                              # JPA Entities (PropertyEntity, PriceHistoryEntity, etc.)
     │   ├── repository/                          # Spring Data JPA Repositories
     │   ├── JpaIngatlanStorage.java              # Primary Spring Data JPA implementation
-    │   ├── NitriteListingStorage.java           # Legacy Nitrite NoSQL implementation
+    │   ├── InMemoryListingStorage.java          # In-memory storage fallback implementation
     │   └── IngatlanRepository.java              # Thread-safe Singleton & IoC bridge facade
     ├── portal/                                  # Layer 3: Pluggable portal engines (OCP)
     │   ├── PortalEngine.java                    # Uniform portal engine interface
@@ -132,12 +130,11 @@ ingatlan-kereso/
     │   ├── DashboardResponseDto.java            # Enriched client response payload
     │   ├── MarketStatsDto.java                  # Market analytics KPIs
     │   └── PortalStatusDto.java                 # Portal health status cards
-    ├── scraper/                                 # Backward-compatible scraper adapters
+    ├── scraper/                                 # Portal scraping data models and resolvers
     └── web/                                     # Layer 1b: Embedded Web Server & REST API
         ├── RestApiController.java              # Spring MVC REST Controller (@RestController)
         ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
-        ├── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (SPA fallback router)
-        └── WebServer.java                       # Legacy Sun HttpServer launcher wrapper
+        └── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & MVC configuration)
 ```
 
 ---
@@ -148,7 +145,7 @@ ingatlan-kereso/
 2. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`spring.threads.virtual.enabled=true`). Scraping I/O and REST requests never block carrier threads.
 3. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
 4. **Decoupled Persistence & Spring Data JPA:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is `JpaIngatlanStorage` on embedded H2, maintaining O(1) deduplication and fast queries without relational lock-in.
-5. **Modern Decoupled Frontend:** React 19 + TypeScript + Vite SPA built to `frontend/dist/` and embedded into `src/main/resources/static/` during build.
+5. **Modern Decoupled Frontend:** Autonomous React 19 + TypeScript + Vite SPA client with online Google Fonts CDN typography, served by Nginx in containerized environments with reverse proxy routing to the headless Spring Boot REST API.
 6. **Containerization & Clean Numeric Versioning:** Multi-stage Temurin JRE 21 Docker image and Docker Compose 3-tier architecture. Container images published to GHCR strictly follow clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
 
 ---

@@ -53,7 +53,6 @@ val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
 val gsonVersion = "2.14.0"
-val nitriteVersion = "5.4.0"
 
 dependencies {
     constraints {
@@ -81,8 +80,6 @@ dependencies {
     implementation("commons-io:commons-io:$commonsIoVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
     implementation("com.google.code.gson:gson:$gsonVersion")
-    implementation("org.dizitart:nitrite:$nitriteVersion")
-    implementation("org.dizitart:nitrite-mvstore-adapter:$nitriteVersion")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")

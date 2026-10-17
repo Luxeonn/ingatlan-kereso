@@ -26,6 +26,7 @@ public class GraalVmRuntimeHints {
 
     public static class AppRuntimeHintsRegistrar implements RuntimeHintsRegistrar {
         @Override
+        @SuppressWarnings("removal")
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
             Class<?>[] bindingClasses = new Class<?>[] {
                     IngatlanItem.class,
@@ -55,10 +56,7 @@ public class GraalVmRuntimeHints {
                         MemberCategory.DECLARED_FIELDS);
             }
 
-            // Statikus erőforrások és konfigurációk elérhetősége natív binárisban
-            hints.resources().registerPattern("static/*");
-            hints.resources().registerPattern("static/assets/*");
-            hints.resources().registerPattern("static/**");
+            // Konfigurációk és erőforrások elérhetősége a natív binárisban
             hints.resources().registerPattern("application.yml");
         }
     }

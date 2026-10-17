@@ -76,10 +76,9 @@ logs/
 !tools/requirements.txt
 !requirements*.txt
 
-# Launcher scripts (START.bat as primary unified entry point)
+# Launcher scripts
 run.bat
 run.ps1
-!START.bat
 !scripts/
 
 # ==============================================================================
