@@ -138,6 +138,7 @@ Once started, access the Web Dashboard at **http://localhost:8080** and the REST
 > Published production images are automatically hosted on GitHub Container Registry (GHCR):
 > * Backend: `ghcr.io/luxeonn/ingatlan-kereso-backend:1.0.0`
 > * Frontend: `ghcr.io/luxeonn/ingatlan-kereso-frontend:1.0.0`
+> * **Manual Releases (`workflow_dispatch`):** Release workflows can be triggered manually for any branch via `gh workflow run docker-publish.yml --ref <branch> -f custom_tag_suffix=<suffix>`, dynamically generating `<version>-<branch>` (or `<version>-<suffix>`) tags.
 
 ### 3. Local Development Build
 ```bash
