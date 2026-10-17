@@ -81,7 +81,7 @@ We follow coordinated vulnerability disclosure practices and commit to the follo
 
 ### 4. Supply Chain & Continuous Integration (CI/CD)
 - **Dependabot Automation:** Weekly automated vulnerability scans and updates for both Gradle (Java backend) and npm (React frontend) ecosystems.
-- **Static Code Analysis:** Checkstyle and SpotBugs are integrated into CI builds (`./gradlew check`) to catch security and code quality defects prior to merge.
+- **Static Code Analysis:** Checkstyle is integrated into CI builds (`./gradlew check`) to catch security and code quality defects prior to merge.
 - **End-to-End Verification:** Playwright E2E UI action suites and offline JUnit 5 / MockMvc tests validate runtime integrity and error handling.
 
 ---
