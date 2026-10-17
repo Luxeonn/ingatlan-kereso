@@ -36,7 +36,7 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("MethodArgumentTypeMismatchException kezelése - 400 Bad Request típuseltérés esetén")
     void testHandleTypeMismatch() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/logs");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test-param");
         MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException(
                 "abc", Integer.class, "limit", null, null);
 
@@ -46,7 +46,7 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody());
         assertEquals(400, response.getBody().get("status"));
         assertEquals("Érvénytelen paraméter típus: limit", response.getBody().get("message"));
-        assertEquals("/api/logs", response.getBody().get("path"));
+        assertEquals("/api/test-param", response.getBody().get("path"));
     }
 
     @Test

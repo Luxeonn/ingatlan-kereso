@@ -24,12 +24,9 @@
         </encoder>
     </appender>
 
-    <appender name="RING_BUFFER" class="ingatlanok.common.RingBufferAppender" />
-
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="FILE" />
-        <appender-ref ref="RING_BUFFER" />
     </root>
 
     <logger name="ingatlanok" level="DEBUG" />
