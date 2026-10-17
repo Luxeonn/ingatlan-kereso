@@ -7,6 +7,8 @@ import ingatlanok.scraper.IngatlanBazarScraper;
 import ingatlanok.scraper.PortalScrapeResult;
 import ingatlanok.scraper.PortalScrapeStatus;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +17,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 class IngatlanBazarScraperTest {
+
+    private static final Logger log = LoggerFactory.getLogger(IngatlanBazarScraperTest.class);
 
     private final IngatlanBazarScraper scraper = new IngatlanBazarScraper();
 
@@ -142,7 +146,7 @@ class IngatlanBazarScraperTest {
             assertTrue(first.getUrl().startsWith("https://www.ingatlanbazar.hu"));
             assertNotNull(first.getTitle());
             assertNotNull(first.getPriceInfo());
-            System.out.println("Élő Ingatlanbazár találat: " + first.getTitle() + " | " + first.getPrice() + " | " + first.getUrl());
+            log.info("Élő Ingatlanbazár találat: {} | {} | {}", first.getTitle(), first.getPrice(), first.getUrl());
         }
     }
 }
