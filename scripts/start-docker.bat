@@ -3,6 +3,8 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul
 title Ingatlan Kereso - Docker Compose Launcher
 
+cd /d "%~dp0.."
+
 echo ==============================================================================
 echo                 INGATLAN KERESO - DOCKER COMPOSE LAUNCHER
 echo ==============================================================================

@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
 set -e
 
+# Valtsunk a projekt gyokerkonyvtaraba
+cd "$(dirname "$0")/.."
+
 echo "=============================================================================="
 echo "          INGATLAN KERESO - DOCKER COMPOSE LAUNCHER (Linux/macOS)"
 echo "=============================================================================="

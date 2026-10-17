@@ -129,7 +129,7 @@ tasks.jacocoTestReport {
 
 checkstyle {
     toolVersion = "10.21.4"
-    configFile = file("checkstyle.xml")
+    configFile = file("config/checkstyle/checkstyle.xml")
     isIgnoreFailures = false
     maxWarnings = 0
 }
@@ -165,7 +165,7 @@ spotbugs {
     ignoreFailures.set(false)
     effort.set(com.github.spotbugs.snom.Effort.MAX)
     reportLevel.set(com.github.spotbugs.snom.Confidence.MEDIUM)
-    excludeFilter.set(file("spotbugs-exclude.xml"))
+    excludeFilter.set(file("config/spotbugs/spotbugs-exclude.xml"))
 }
 
 tasks.named<com.github.spotbugs.snom.SpotBugsTask>("spotbugsTest") {

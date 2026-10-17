@@ -80,8 +80,7 @@ logs/
 run.bat
 run.ps1
 !START.bat
-!start-ui.bat
-!start-ui.ps1
+!scripts/
 
 # ==============================================================================
 # IDEs & Code Editors
