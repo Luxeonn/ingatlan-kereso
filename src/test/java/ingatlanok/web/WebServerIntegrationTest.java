@@ -25,6 +25,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("removal")
 class WebServerIntegrationTest {
 
     private static WebServer webServer;

@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("WebServerAdversarialStressTest - Empirical Challenger Stress Harness")
+@SuppressWarnings("removal")
 class WebServerAdversarialStressTest {
 
     private static WebServer webServer;

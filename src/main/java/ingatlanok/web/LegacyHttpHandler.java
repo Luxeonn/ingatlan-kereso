@@ -17,6 +17,13 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * Legacy HTTP kéréskezelő adapter a korábbi Sun HttpServer kompatibilitáshoz.
+ *
+ * @deprecated Eltávolításra tervezett régebbi HTTP adapter; használd a Spring MVC RestApiController-t.
+ */
+@Deprecated(since = "1.0.0", forRemoval = true)
+@SuppressWarnings("removal")
 final class LegacyHttpHandler {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(LegacyHttpHandler.class);

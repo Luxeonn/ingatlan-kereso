@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("removal")
 class WebServerHostConfigTest {
 
     @Test

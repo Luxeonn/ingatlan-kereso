@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence (with backward-compatible NoSQL interfaces), and a decoupled modern React 19 SPA frontend embedded into the Spring Boot fat JAR (`bootJar`) or Native executable.
+**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence (with backward-compatible NoSQL interfaces), a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose).
 
 ### Workflow Architecture
 

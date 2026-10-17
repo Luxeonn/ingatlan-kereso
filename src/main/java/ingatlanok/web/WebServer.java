@@ -11,10 +11,13 @@ import java.util.concurrent.Executors;
 
 /**
  * Beágyazott webszerver homlokzat (facade).
- * Megőrzi a publikus életciklus API-t a meglévő tesztek és kliensek számára,
- * miközben a kérések kiszolgálását a Spring MVC RestApiController és
- * a LegacyHttpHandler adapter végzi.
+ * Megőrzi a publikus életciklus API-t a meglévő tesztek számára,
+ * miközben az éles alkalmazás kizárólag a Spring Boot headless REST API-t használja.
+ *
+ * @deprecated Eltávolításra tervezett régebbi Sun HttpServer homlokzat; használd az IngatlanApplication-t.
  */
+@Deprecated(since = "1.0.0", forRemoval = true)
+@SuppressWarnings("removal")
 public class WebServer {
 
     private static final AppLogger LOGGER = AppLogger.getLogger(WebServer.class);
