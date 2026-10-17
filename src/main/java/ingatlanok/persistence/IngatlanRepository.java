@@ -8,8 +8,6 @@ import java.util.*;
 /**
  * Singleton Facade az Ingatlanhirdetés és Konfiguráció perzisztenciához.
  * Delegál a moduláris {@link ListingStorage} és {@link ConfigStorage} implementációkhoz.
- * Támogatja a lusta inicializálást (lazy initialization) az MVStore fájlzárolási
- * hibák megelőzésére.
  */
 public class IngatlanRepository implements ListingStorage, ConfigStorage {
 
@@ -19,7 +17,6 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     private volatile ConfigStorage configStorage;
 
     private IngatlanRepository() {
-        // Lusta inicializálás: ne nyissa meg automatikusan a Nitrite adatbázist betöltéskor
     }
 
     public IngatlanRepository(ListingStorage listingStorage, ConfigStorage configStorage) {
@@ -44,13 +41,11 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     }
 
     private static ListingStorage createDefaultListingStorage() {
-        NitriteDatabaseManager dbManager = NitriteDatabaseManager.getInstance(null);
-        return new NitriteListingStorage(dbManager);
+        return new InMemoryListingStorage();
     }
 
     private static ConfigStorage createDefaultConfigStorage() {
-        NitriteDatabaseManager dbManager = NitriteDatabaseManager.getInstance(null);
-        return new NitriteConfigStorage(dbManager);
+        return new InMemoryListingStorage();
     }
 
     public static IngatlanRepository getInstance() {
@@ -58,14 +53,14 @@ public class IngatlanRepository implements ListingStorage, ConfigStorage {
     }
 
     public synchronized ListingStorage getListingStorage() {
-        if (listingStorage == null || (listingStorage instanceof NitriteListingStorage nls && nls.getDbManager().isClosed())) {
+        if (listingStorage == null) {
             listingStorage = createDefaultListingStorage();
         }
         return listingStorage;
     }
 
     public synchronized ConfigStorage getConfigStorage() {
-        if (configStorage == null || (configStorage instanceof NitriteConfigStorage ncs && ncs.getDbManager().isClosed())) {
+        if (configStorage == null) {
             configStorage = createDefaultConfigStorage();
         }
         return configStorage;

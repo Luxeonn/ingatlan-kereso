@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence (with backward-compatible NoSQL interfaces), a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose).
+**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose).
 
 ### Workflow Architecture
 
@@ -113,7 +113,7 @@ ingatlan-kereso/
     │   ├── entity/                              # JPA Entities (PropertyEntity, PriceHistoryEntity, etc.)
     │   ├── repository/                          # Spring Data JPA Repositories
     │   ├── JpaIngatlanStorage.java              # Primary Spring Data JPA implementation
-    │   ├── NitriteListingStorage.java           # Legacy Nitrite NoSQL implementation
+    │   ├── InMemoryListingStorage.java          # In-memory storage fallback implementation
     │   └── IngatlanRepository.java              # Thread-safe Singleton & IoC bridge facade
     ├── portal/                                  # Layer 3: Pluggable portal engines (OCP)
     │   ├── PortalEngine.java                    # Uniform portal engine interface
@@ -130,12 +130,11 @@ ingatlan-kereso/
     │   ├── DashboardResponseDto.java            # Enriched client response payload
     │   ├── MarketStatsDto.java                  # Market analytics KPIs
     │   └── PortalStatusDto.java                 # Portal health status cards
-    ├── scraper/                                 # Backward-compatible scraper adapters
+    ├── scraper/                                 # Portal scraping data models and resolvers
     └── web/                                     # Layer 1b: Embedded Web Server & REST API
         ├── RestApiController.java              # Spring MVC REST Controller (@RestController)
         ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
-        ├── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & MVC configuration)
-        └── WebServer.java                       # Legacy Sun HttpServer launcher wrapper
+        └── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & MVC configuration)
 ```
 
 ---
