@@ -60,6 +60,7 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
             </button>
             <button
               type="button"
+              aria-label="Bezárás"
               onClick={() => setDiagnosticsModalOpen(false)}
               className="rounded-lg p-1 text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-[var(--text-primary)]"
             >

@@ -96,6 +96,7 @@ export const LogViewerModal: FC = () => {
             {/* Close */}
             <button
               type="button"
+              aria-label="Bezárás"
               onClick={() => setLogModalOpen(false)}
               className="rounded p-1 text-gray-400 hover:text-white hover:bg-gray-800"
             >
