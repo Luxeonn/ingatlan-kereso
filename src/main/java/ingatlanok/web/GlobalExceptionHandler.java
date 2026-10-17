@@ -34,6 +34,13 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex, HttpServletRequest request) {
+        String msg = "Erőforrás nem található: " + request.getRequestURI();
+        LOGGER.warn(msg);
+        return buildErrorResponse(HttpStatus.NOT_FOUND, msg, request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex, HttpServletRequest request) {
         LOGGER.error("Váratlan hiba történt a(z) " + request.getRequestURI() + " kérés feldolgozása közben", ex);

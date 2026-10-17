@@ -39,19 +39,17 @@ public class IngatlanApplication {
 
         System.out.println("\n==================================================");
         System.out.println("  Ingatlan Kereső (Spring Boot 4.1.0) Aktív!");
-        System.out.println("  Web Dashboard: " + url);
+        System.out.println("  Headless REST API: " + url + "/api/status");
         System.out.println("  Actuator Health: " + url + "/actuator/health");
         System.out.println("==================================================\n");
 
-        boolean noBrowser = Boolean.getBoolean("no.browser")
-                || "true".equalsIgnoreCase(System.getenv("NO_BROWSER"))
-                || java.awt.GraphicsEnvironment.isHeadless()
-                || "0.0.0.0".equals(host);
+        boolean openBrowser = Boolean.getBoolean("open.browser")
+                || "true".equalsIgnoreCase(System.getenv("OPEN_BROWSER"));
 
-        if (!noBrowser) {
+        if (openBrowser && !java.awt.GraphicsEnvironment.isHeadless() && !"0.0.0.0".equals(host)) {
             Thread.ofVirtual().start(() -> {
-                if (!BrowserUtils.openUrl(url)) {
-                    System.out.println("Nyisd meg manuálisan a böngésződben: " + url);
+                if (!BrowserUtils.openUrl(url + "/api/status")) {
+                    System.out.println("Nyisd meg manuálisan a böngésződben: " + url + "/api/status");
                 }
             });
         }

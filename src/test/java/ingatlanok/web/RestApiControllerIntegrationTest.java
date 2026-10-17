@@ -288,11 +288,9 @@ class RestApiControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /dashboard - Spring MVC SPA router index.html fallback kiszolgálása")
-    void testSpaFallbackRouting() throws Exception {
+    @DisplayName("GET /dashboard - Headless REST API esetén nincs beágyazott SPA router fallback (404 Not Found)")
+    void testHeadlessNoSpaFallbackRouting() throws Exception {
         mockMvc.perform(get("/dashboard"))
-                .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
-                        .string(org.hamcrest.Matchers.containsString("id=\"root\"")));
+                .andExpect(status().isNotFound());
     }
 }

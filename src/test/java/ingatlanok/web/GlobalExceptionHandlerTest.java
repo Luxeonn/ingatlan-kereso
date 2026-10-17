@@ -64,4 +64,23 @@ class GlobalExceptionHandlerTest {
         assertEquals("Váratlan szerverhiba történt", response.getBody().get("message"));
         assertEquals("/api/search", response.getBody().get("path"));
     }
+
+    @Test
+    @DisplayName("NoResourceFoundException kezelése - 404 Not Found és strukturált JSON válasz")
+    void testHandleNoResourceFound() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/dashboard");
+        org.springframework.web.servlet.resource.NoResourceFoundException ex =
+                new org.springframework.web.servlet.resource.NoResourceFoundException(
+                        org.springframework.http.HttpMethod.GET, "/dashboard", "Erőforrás nem található: /dashboard");
+
+        ResponseEntity<Map<String, Object>> response = handler.handleNoResourceFound(ex, request);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(404, response.getBody().get("status"));
+        assertEquals("Not Found", response.getBody().get("error"));
+        assertEquals("Erőforrás nem található: /dashboard", response.getBody().get("message"));
+        assertEquals("/dashboard", response.getBody().get("path"));
+        assertNotNull(response.getBody().get("timestamp"));
+    }
 }
