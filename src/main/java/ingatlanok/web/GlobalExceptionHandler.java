@@ -34,6 +34,20 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
     }
 
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodNotSupported(org.springframework.web.HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        String msg = "A kért HTTP metódus nem támogatott: " + ex.getMethod();
+        LOGGER.warn(msg);
+        return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, msg, request.getRequestURI());
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex, HttpServletRequest request) {
+        String msg = "Érvénytelen kéréstörzs (hibás JSON formátum)";
+        LOGGER.warn(msg);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
+    }
+
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex, HttpServletRequest request) {
         String msg = "Erőforrás nem található: " + request.getRequestURI();

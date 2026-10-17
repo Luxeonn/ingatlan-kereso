@@ -291,6 +291,36 @@ class RestApiControllerIntegrationTest {
     @DisplayName("GET /dashboard - Headless REST API esetén nincs beágyazott SPA router fallback (404 Not Found)")
     void testHeadlessNoSpaFallbackRouting() throws Exception {
         mockMvc.perform(get("/dashboard"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"));
+    }
+
+    @Test
+    @DisplayName("POST /api/status és GET /api/search - Nem támogatott HTTP metódus 405 Method Not Allowed választ ad")
+    void testUnsupportedHttpMethods_Return405MethodNotAllowed() throws Exception {
+        mockMvc.perform(post("/api/status"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.status").value(405))
+                .andExpect(jsonPath("$.error").value("Method Not Allowed"))
+                .andExpect(jsonPath("$.path").value("/api/status"));
+
+        mockMvc.perform(get("/api/search"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.status").value(405))
+                .andExpect(jsonPath("$.error").value("Method Not Allowed"))
+                .andExpect(jsonPath("$.path").value("/api/search"));
+    }
+
+    @Test
+    @DisplayName("POST /api/search hibás JSON-nal - 400 Bad Request választ ad")
+    void testMalformedJson_Returns400BadRequest() throws Exception {
+        mockMvc.perform(post("/api/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{invalid json body}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.path").value("/api/search"));
     }
 }

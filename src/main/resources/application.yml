@@ -8,6 +8,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  web:
+    resources:
+      add-mappings: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1}
     username: ${SPRING_DATASOURCE_USERNAME:sa}

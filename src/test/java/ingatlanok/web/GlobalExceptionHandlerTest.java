@@ -83,4 +83,41 @@ class GlobalExceptionHandlerTest {
         assertEquals("/dashboard", response.getBody().get("path"));
         assertNotNull(response.getBody().get("timestamp"));
     }
+
+    @Test
+    @DisplayName("HttpRequestMethodNotSupportedException kezelése - 405 Method Not Allowed strukturált JSON válasz")
+    void testHandleMethodNotSupported() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/status");
+        org.springframework.web.HttpRequestMethodNotSupportedException ex =
+                new org.springframework.web.HttpRequestMethodNotSupportedException("POST");
+
+        ResponseEntity<Map<String, Object>> response = handler.handleMethodNotSupported(ex, request);
+
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(405, response.getBody().get("status"));
+        assertEquals("Method Not Allowed", response.getBody().get("error"));
+        assertEquals("A kért HTTP metódus nem támogatott: POST", response.getBody().get("message"));
+        assertEquals("/api/status", response.getBody().get("path"));
+        assertNotNull(response.getBody().get("timestamp"));
+    }
+
+    @Test
+    @DisplayName("HttpMessageNotReadableException kezelése - 400 Bad Request hibás JSON esetén")
+    void testHandleMessageNotReadable() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/search");
+        org.springframework.http.converter.HttpMessageNotReadableException ex =
+                new org.springframework.http.converter.HttpMessageNotReadableException(
+                        "JSON parse error", (org.springframework.http.HttpInputMessage) null);
+
+        ResponseEntity<Map<String, Object>> response = handler.handleMessageNotReadable(ex, request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(400, response.getBody().get("status"));
+        assertEquals("Bad Request", response.getBody().get("error"));
+        assertEquals("Érvénytelen kéréstörzs (hibás JSON formátum)", response.getBody().get("message"));
+        assertEquals("/api/search", response.getBody().get("path"));
+        assertNotNull(response.getBody().get("timestamp"));
+    }
 }
