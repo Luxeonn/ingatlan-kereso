@@ -62,7 +62,7 @@ jobs:
       - name: Resolve Commit SHA
         id: resolve-sha
         run: |
-          COMMIT_SHA="${GITHUB_SHA}"
+          COMMIT_SHA="$(git rev-parse HEAD)"
           SHORT_SHA=$(echo "$COMMIT_SHA" | cut -c1-7)
           echo "sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
