@@ -66,15 +66,15 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            # develop ágon: latest tag
+            # On the develop branch: latest tag
             type=raw,value=latest,enable=${{ github.event.workflow_run.head_branch == 'develop' }}
 
-            # Git tag esetén (pl. 1.0.0):
+            # For Git tags (e.g. 1.0.0):
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/0.') }}
 
-            # main ág: fix verziószám a build.gradle.kts-ből és commit SHA (v előtag nélkül)
+            # On the main branch: fixed version from build.gradle.kts and commit SHA (without the v prefix)
             type=raw,value=${{ steps.pom-version.outputs.version }},enable=${{ github.event.workflow_run.head_branch == 'main' }}
             type=raw,value=${{ steps.pom-version.outputs.version }}-${{ steps.resolve-sha.outputs.short_sha }},enable=${{ github.event.workflow_run.head_branch == 'main' }}
 
@@ -110,23 +110,23 @@ jobs:
           COMPONENT: ${{ matrix.component }}
           IMAGE_NAME: ${{ matrix.image }}
         run: |
-          echo "### 🐳 Docker Image Build & Publish Eredmények (${COMPONENT})" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🐳 Docker Image Build & Publish Results (${COMPONENT})" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tulajdonság | Érték |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
           echo "| :--- | :--- |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Komponens** | \`$COMPONENT\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Component** | \`$COMPONENT\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Regiszter** | \`ghcr.io\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Image Név** | \`${{ env.REGISTRY }}/${IMAGE_NAME}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Ág** | \`$REF_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Indító felhasználó** | \`$ACTOR\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image Name** | \`${{ env.REGISTRY }}/${IMAGE_NAME}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Branch** | \`$REF_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Triggered by** | \`$ACTOR\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Image Digest** | \`$DIGEST\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "#### 🏷️ Generált és Publikált Címkék (Tags)" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### 🏷️ Generated and Published Tags" >> "$GITHUB_STEP_SUMMARY"
           echo '```text' >> "$GITHUB_STEP_SUMMARY"
           echo "$TAGS" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "#### 🚀 Gyorsindítás Docker Compose segítségével" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### 🚀 Quick Start with Docker Compose" >> "$GITHUB_STEP_SUMMARY"
           echo '```bash' >> "$GITHUB_STEP_SUMMARY"
           echo "docker compose pull" >> "$GITHUB_STEP_SUMMARY"
           echo "docker compose up -d" >> "$GITHUB_STEP_SUMMARY"
