@@ -1,8 +1,8 @@
 version: 2
 updates:
   # =========================================================================
-  # BACKEND: Java 21 / Gradle függőségek (Spring Boot, Jsoup, Gson, JaCoCo stb.)
-  # Egyetlen összevont (grouped) Backend PR-ba gyűjti az összes frissítést
+  # BACKEND: Java 21 / Gradle dependencies (Spring Boot, Jsoup, Gson, JaCoCo, etc.)
+  # Groups all updates into a single consolidated Backend PR
   # =========================================================================
   - package-ecosystem: "gradle"
     directory: "/"
@@ -24,8 +24,8 @@ updates:
           - "*"
 
   # =========================================================================
-  # FRONTEND: React 19 / TypeScript / Vite / Tailwind CSS SPA függőségek
-  # Egyetlen összevont (grouped) Frontend PR-ba gyűjti az összes frissítést
+  # FRONTEND: React 19 / TypeScript / Vite / Tailwind CSS SPA dependencies
+  # Groups all updates into a single consolidated Frontend PR
   # =========================================================================
   - package-ecosystem: "npm"
     directory: "/frontend"
@@ -47,8 +47,8 @@ updates:
           - "*"
 
   # =========================================================================
-  # CI / WORKFLOW: GitHub Actions verziófrissítések (.github/workflows)
-  # Egyetlen összevont (grouped) Actions PR-ba gyűjti az összes frissítést
+  # CI / WORKFLOW: GitHub Actions version updates (.github/workflows)
+  # Groups all updates into a single consolidated Actions PR
   # =========================================================================
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -70,8 +70,8 @@ updates:
           - "*"
 
   # =========================================================================
-  # TOOLS: Python segédeszközök és Scraper Sidecar modul (tools/requirements.txt)
-  # Egyetlen összevont (grouped) Tools PR-ba gyűjti az összes frissítést
+  # TOOLS: Python utilities and the Scraper Sidecar module (tools/requirements.txt)
+  # Groups all updates into a single consolidated Tools PR
   # =========================================================================
   - package-ecosystem: "pip"
     directory: "/tools"

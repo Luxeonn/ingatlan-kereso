@@ -100,8 +100,18 @@ tasks.withType<JavaCompile> {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("live")
+    }
     finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.register<Test>("liveTest") {
+    description = "Runs live integration tests against real Hungarian property portals."
+    group = "verification"
+    useJUnitPlatform {
+        includeTags("live")
+    }
 }
 
 tasks.jacocoTestReport {

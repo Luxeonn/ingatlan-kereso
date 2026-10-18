@@ -12,7 +12,8 @@ import java.util.Arrays;
 
 /**
  * Ingatlan kereső belépési pont és futtatási módválasztó.
- * Támogatja a parancssori kötegelt futtatást (--cli) és a modern Spring Boot Web Dashboardot (--web vagy alapértelmezett).
+ * Támogatja a parancssori kötegelt futtatást (--cli) és a headless Spring Boot REST API szervert (--web vagy alapértelmezett)
+ * a leválasztott modern React 19 SPA kiszolgálására.
  */
 public class Main {
 
