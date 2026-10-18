@@ -63,7 +63,10 @@ validate_agent_approval() {
     return 1
   fi
 
-  if echo "$match_line" | grep -qiE "(\[[^]]*\/[^]]*\]|1-sentence rationale|\[TBD\])"; then
+  local template_check_line
+  template_check_line=$(echo "$match_line" | sed -E 's/\[[[:space:]]*[nN]\/[aA][[:space:]]*\]//g')
+
+  if echo "$template_check_line" | grep -qiE "(\[[^]]*\/[^]]*\]|1-sentence rationale|\[TBD\])"; then
     MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ❌ ${display_name}: A jóváhagyási sor kitöltetlen sablonszöveget tartalmaz: '${match_line}'"
     return 1
   fi
