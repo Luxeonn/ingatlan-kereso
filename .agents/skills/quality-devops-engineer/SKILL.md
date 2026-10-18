@@ -23,9 +23,9 @@ Ez a szakértői skill felel a **szoftverminőségért**, a **tesztelési lefede
   - 2. stage: GraalVM native image builder (`ghcr.io/graalvm/native-image-community:21`) vagy standard JDK 21 build
   - 3. stage: Minimális Debian/Distroless runtime konténer nem-root felhasználóval
 - **GitHub Actions Workflows:**
-  - `ci.yml`: Párhuzamosított `frontend` és `backend` jobok komponens alapú útvonalszűréssel (`dorny/paths-filter`), Gradle `bootJar` és headless smoke teszttel.
-  - `pr-review.yml`: PR cím, ág-konvenciók és Thematic Agent Approval Gate (3 pillér) ellenőrzés.
-  - `docker-publish.yml`: Multi-arch konténer image fordítás és publikálás GHCR-be.
+  - `ci.yml`: Párhuzamosított `frontend` és `backend` jobok komponens alapú útvonalszűréssel (`dorny/paths-filter`), Gradle `bootJar`, headless smoke teszttel és kézi `workflow_dispatch` indítással.
+  - `pr-review.yml`: PR cím, ág-konvenciók és Thematic Agent Approval Gate (3 pillér) ellenőrzés automatikus és kézi `workflow_dispatch` futtatási támogatással.
+  - `docker-publish.yml`: Multi-arch konténer image fordítás és publikálás GHCR-be automatikus (main/develop) és kézi `workflow_dispatch` indítással, dinamikus `<version>-<branch>` vagy `<version>-<suffix>` tageléssel.
 - **Biztonság és Párhuzamosság:**
   - `cancel-in-progress: true` használata elavult futások megszakítására.
   - Minimális token jogosultságok (`contents: read`, `pull-requests: read`, `packages: write`).

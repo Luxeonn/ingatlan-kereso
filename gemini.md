@@ -195,4 +195,5 @@ ingatlan-kereso/
 > 14. **Clean Numeric Versioning & Docker Image Tagging:**
 >     - Release versioning strictly follows Semantic Versioning (`1.0.0`).
 >     - Automated GHCR container publishing on `main` emits clean numeric tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
+>     - Manual `workflow_dispatch` releases on any branch dynamically generate `<version>-<branch>` (or `<version>-<custom_suffix>`) tags.
 
