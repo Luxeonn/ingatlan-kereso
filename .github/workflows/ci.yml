@@ -71,6 +71,9 @@ jobs:
               - '.gitignore'
               - 'LICENSE'
               - 'docs/**'
+            automation:
+              - '.github/workflows/docker-publish.yml'
+              - '.github/workflows/pr-review.yml'
 
       - name: Evaluate Conservative Fallback
         id: fallback
@@ -78,7 +81,8 @@ jobs:
           FE="${{ steps.filter.outputs.frontend }}"
           BE="${{ steps.filter.outputs.backend }}"
           DOCS="${{ steps.filter.outputs.documentation }}"
-          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$DOCS" != "true" ]; then
+          AUTOMATION="${{ steps.filter.outputs.automation }}"
+          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$DOCS" != "true" ] && [ "$AUTOMATION" != "true" ]; then
             echo "⚠️ Unclassified file change detected. Triggering the conservative fallback and running all quality gates."
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
