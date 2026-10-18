@@ -61,7 +61,7 @@ log_pass() {
 }
 
 echo "=============================================================================="
-echo "      INGATLAN KERESO — OFFLINE DETERMINISTIC SKILLS & DIRECTIVES VALIDATOR   "
+echo "      PROPERTY SEARCH — OFFLINE DETERMINISTIC SKILLS & DIRECTIVES VALIDATOR   "
 echo "=============================================================================="
 echo "Working directory: $REPO_ROOT"
 echo ""
