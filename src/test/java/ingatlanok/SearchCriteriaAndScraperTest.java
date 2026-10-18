@@ -2,10 +2,10 @@ package ingatlanok;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.service.impl.DunaHause;
-import ingatlanok.service.impl.IngatlanCom;
-import ingatlanok.service.impl.JofogasIngatlan;
-import ingatlanok.service.impl.OtthonCentrum;
+import ingatlanok.scraper.DunaHouseScraper;
+import ingatlanok.scraper.IngatlanComScraper;
+import ingatlanok.scraper.JofogasScraper;
+import ingatlanok.scraper.OtthonCentrumScraper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,6 +20,10 @@ class SearchCriteriaAndScraperTest {
 
         assertEquals("Debrecen", criteria.getCity());
         assertEquals("lakas", criteria.getPropertyType());
+        assertEquals(70, criteria.getMinPriceMillion());
+        assertEquals(120, criteria.getMaxPriceMillion());
+        assertEquals(90, criteria.getMinArea());
+        assertEquals(200, criteria.getMaxArea());
         assertTrue(criteria.isPortalEnabled("dh"));
         assertTrue(criteria.isPortalEnabled("oc"));
         assertTrue(criteria.isPortalEnabled("jofogas"));
@@ -27,11 +31,47 @@ class SearchCriteriaAndScraperTest {
 
         criteria.setMinPriceMillion(30);
         criteria.setMaxPriceMillion(60);
+        criteria.setMinArea(80);
+        criteria.setMaxArea(150);
         criteria.setPropertyType("garazs");
+        criteria.setMinRooms(2);
 
         assertEquals(30, criteria.getMinPriceMillion());
         assertEquals(60, criteria.getMaxPriceMillion());
+        assertEquals(80, criteria.getMinArea());
+        assertEquals(150, criteria.getMaxArea());
         assertEquals("garazs", criteria.getPropertyType());
+        assertEquals(2, criteria.getMinRooms());
+
+        criteria.setPortalEnabled("custom", true);
+        assertTrue(criteria.isPortalEnabled("custom"));
+        criteria.setPortalEnabled("custom", false);
+        assertFalse(criteria.isPortalEnabled("custom"));
+
+        criteria.setPortals(null);
+        criteria.setPortalEnabled("dh", true);
+        assertTrue(criteria.isPortalEnabled("dh"));
+
+        criteria.setCity(null);
+        criteria.setCities(null);
+        assertEquals("Debrecen", criteria.getCity());
+
+        criteria.setCity("Szeged");
+        assertEquals("Szeged", criteria.getCity());
+
+        assertTrue(SearchCriteria.matchesCity(null, "Debrecen"));
+        assertTrue(SearchCriteria.matchesCity(new IngatlanItem(), null));
+        assertTrue(SearchCriteria.matchesCity(new IngatlanItem(), ""));
+
+        IngatlanItem item = new IngatlanItem();
+        item.setCity("Miskolc");
+        item.setUrl("https://test.hu/miskolc-lakas");
+        assertTrue(SearchCriteria.matchesCity(item, "Miskolc"));
+
+        item.setCity("Eger");
+        item.setUrl(null);
+        item.setTitle("Eladó lakás Eger belvárosában");
+        assertTrue(SearchCriteria.matchesCity(item, "Eger"));
     }
 
     @Test
@@ -42,7 +82,7 @@ class SearchCriteriaAndScraperTest {
         criteria.setMinPriceMillion(40);
         criteria.setMaxPriceMillion(80);
 
-        IngatlanCom ic = new IngatlanCom();
+        IngatlanComScraper ic = new IngatlanComScraper();
         assertDoesNotThrow(() -> {
             List<IngatlanItem> items = ic.search(criteria);
             assertNotNull(items);
@@ -63,17 +103,17 @@ class SearchCriteriaAndScraperTest {
         criteria.setMaxPriceMillion(50);
 
         assertDoesNotThrow(() -> {
-            List<IngatlanItem> dh = new DunaHause().search(criteria);
+            List<IngatlanItem> dh = new DunaHouseScraper().search(criteria);
             assertNotNull(dh);
         });
 
         assertDoesNotThrow(() -> {
-            List<IngatlanItem> oc = new OtthonCentrum().search(criteria);
+            List<IngatlanItem> oc = new OtthonCentrumScraper().search(criteria);
             assertNotNull(oc);
         });
 
         assertDoesNotThrow(() -> {
-            List<IngatlanItem> jf = new JofogasIngatlan().search(criteria);
+            List<IngatlanItem> jf = new JofogasScraper().search(criteria);
             assertNotNull(jf);
         });
     }

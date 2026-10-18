@@ -1,30 +1,170 @@
-# Compiled class file
+# ==============================================================================
+# Java, Gradle & Maven Build Artifacts
+# ==============================================================================
+target/
+build/
+.gradle/
 *.class
 
-# Log & data files
-*.log
-*.txt
-*.iml
-data/
-run.ps1
-run.bat
-!start-ui.bat
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-.idea/
-target/
-
-# Package Files #
+# Packaged binaries / archives
 *.jar
 *.war
 *.ear
+*.nar
 *.zip
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Gradle wrapper jar must NOT be ignored
+!gradle/wrapper/gradle-wrapper.jar
+
+# JaCoCo Code Coverage
+*.exec
+target/site/jacoco/
+
+# JVM crash logs and memory heap dumps
 hs_err_pid*
+replay_pid*
+*.hprof
+
+# ==============================================================================
+# Python Sidecar Module (tools/)
+# ==============================================================================
+# Bytecode & Caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution & PyInstaller Builds
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+
+# Sidecar executables
+*.exe
+tools/*.exe
+tools/scraper-sidecar.exe
+
+# ==============================================================================
+# Runtime Data, Databases & Logs
+# ==============================================================================
+# Persistent application storage
+data/
+logs/
+
+# Local databases (JSON, SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# General & runtime log files
+*.log
+*.txt
+!tools/requirements.txt
+!requirements*.txt
+
+# Launcher scripts
+run.bat
+run.ps1
+!scripts/
+
+# ==============================================================================
+# IDEs & Code Editors
+# ==============================================================================
+# JetBrains (IntelliJ IDEA)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+.mtj.tmp/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+
+# Editor temporary & swap files
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.temp
+
+# ==============================================================================
+# Operating System Artifacts
+# ==============================================================================
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+.directory
+
+# ==============================================================================
+# Secrets, Credentials & Local Config
+# ==============================================================================
+.env
+.env.*
+*.env
+!.env.example
+secrets/
+
+# ==============================================================================
+# AI Assistants & Antigravity Local Runtime State
+# ==============================================================================
+# Local agent session logs, transcripts, and scratch artifacts
+.gemini/antigravity/
+.gemini/brain/
+.gemini/cache/
+.gemini/*.log
+.gemini/*.jsonl
+.agents/brain/
+.agents/cache/
+temp_*.md
+
+# ==============================================================================
+# Modern Decoupled Frontend (frontend/)
+# ==============================================================================
+frontend/node_modules/
+frontend/dist/
+frontend/.eslintcache
+frontend/coverage/
+*.tsbuildinfo

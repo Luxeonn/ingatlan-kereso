@@ -1,0 +1,33 @@
+server:
+  port: ${SERVER_PORT:8080}
+  address: ${SERVER_HOST:127.0.0.1}
+
+spring:
+  application:
+    name: ingatlan-kereso
+  threads:
+    virtual:
+      enabled: true
+  web:
+    resources:
+      add-mappings: false
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+logging:
+  file:
+    name: logs/scraper.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    ingatlanok: DEBUG
+

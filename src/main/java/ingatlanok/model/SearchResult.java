@@ -1,14 +1,15 @@
 package ingatlanok.model;
 
+import ingatlanok.presentation.PortalStatusDto;
+import ingatlanok.scraper.PortalScrapeResult;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Keresési futtatási eredmény a webes felület felé.
- */
 public class SearchResult implements Serializable {
 
     private List<IngatlanItem> items = new ArrayList<>();
@@ -16,6 +17,10 @@ public class SearchResult implements Serializable {
     private int totalFound;
     private String executedAt;
     private Map<String, Integer> portalCounts = new HashMap<>();
+    private Map<String, Integer> cityCounts = new LinkedHashMap<>();
+    private List<String> newCitiesInitialized = new ArrayList<>();
+    private List<PortalScrapeResult> portalResults = new ArrayList<>();
+    private List<PortalStatusDto> portalStatuses = new ArrayList<>();
 
     public SearchResult() {
     }
@@ -58,5 +63,37 @@ public class SearchResult implements Serializable {
 
     public void setPortalCounts(Map<String, Integer> portalCounts) {
         this.portalCounts = portalCounts;
+    }
+
+    public Map<String, Integer> getCityCounts() {
+        return cityCounts;
+    }
+
+    public void setCityCounts(Map<String, Integer> cityCounts) {
+        this.cityCounts = cityCounts;
+    }
+
+    public List<String> getNewCitiesInitialized() {
+        return newCitiesInitialized;
+    }
+
+    public void setNewCitiesInitialized(List<String> newCitiesInitialized) {
+        this.newCitiesInitialized = newCitiesInitialized;
+    }
+
+    public List<PortalScrapeResult> getPortalResults() {
+        return portalResults;
+    }
+
+    public void setPortalResults(List<PortalScrapeResult> portalResults) {
+        this.portalResults = portalResults;
+    }
+
+    public List<PortalStatusDto> getPortalStatuses() {
+        return portalStatuses;
+    }
+
+    public void setPortalStatuses(List<PortalStatusDto> portalStatuses) {
+        this.portalStatuses = portalStatuses != null ? portalStatuses : new ArrayList<>();
     }
 }

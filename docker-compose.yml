@@ -1,0 +1,79 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: ingatlan-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ingatlandb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ingatlan-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ingatlandb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/luxeonn/ingatlan-kereso-backend:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ingatlan-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - NO_BROWSER=true
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-ingatlandb}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - backend_logs:/app/logs
+    networks:
+      - ingatlan-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/status || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/luxeonn/ingatlan-kereso-frontend:latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ingatlan-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${HOST_PORT:-8080}:80"
+    networks:
+      - ingatlan-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  ingatlan-network:
+    name: ingatlan-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: postgres_data
+  backend_logs:
+    name: backend_logs

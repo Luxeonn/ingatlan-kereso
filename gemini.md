@@ -1,186 +1,199 @@
-# Ingatlan Kereső - Projekt Dokumentáció és Kontextus (gemini.md)
+# Ingatlan Kereső - System Architecture & AI Workflow Directives (GEMINI.md)
 
-## 1. Projekt Áttekintés
-
-Az **ingatlan-kereso** egy Java alapú segédprogram, amelynek célja meghatározott ingatlanhirdetési portálok (Debrecen környéki eladó lakások) automatizált figyelése.
-A program periodikusan vagy igény szerint lekéri a keresési találati listákat, kiszűri a már korábban látott hirdetéseket, az új linkeket automatikusan megnyitja a felhasználó alapértelmezett böngészőjében, valamint rögzíti azokat egy helyi naplófájlban.
-
-* **Eredeti szerző:** Pusinszky Viktor (2017)
-* **Kezelt portálok:**
-  * Duna House (`dh.hu`) – *Működik (élő adatokkal)*
-  * Otthon Centrum (`oc.hu`) – *Működik (élő adatokkal)*
-  * Jófogás Ingatlan (`ingatlan.jofogas.hu`) – *Működik (élő adatokkal)*
-  * Ingatlan.com (`ingatlan.com`) – *Cloudflare bot-védelem alatt*
-  * Ingatlanbazár (`ingatlanbazar.hu`) – *Kliensoldali Angular SPA*
+This document establishes the technical system architecture, 4-layer component boundaries, persistence design, web scraping specifications, and mandatory AI development and version control guidelines for **ingatlan-kereso**.
 
 ---
 
-## 2. Technológiai Stack
+## 1. System Architecture & High-Level Flow
 
-* **Nyelv & Keretrendszer:** Java 21 LTS
-* **Build rendszer:** Apache Maven (`pom.xml`)
-  * `org.jsoup:jsoup:1.23.2` – HTML letöltés, DOM parszer és CSS szelektálás
-  * `commons-io:commons-io:2.22.0` – Fájlműveletek és I/O segédeszközök
-  * `org.codehaus.mojo:exec-maven-plugin:3.6.4` – Parancssori futtatás támogatása
-* **Rendszerszintű integráció:** Modern `java.awt.Desktop` böngészőhívás `ProcessBuilder` fallbackkel
+**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose).
 
----
-
-## 3. Könyvtárstruktúra és Komponensek
-
-```text
-ingatlan-kereso/
-├── pom.xml                                      # Maven konfiguráció és függőségek (Java 21, Gson, Jsoup)
-├── README.md                                    # Részletes felhasználói és fejlesztői dokumentáció
-├── gemini.md                                    # Rendszer- és architektúra leírás
-├── start-ui.bat                                 # Egykattintásos indító Windowsra
-├── start-ui.ps1                                 # PowerShell indító script
-├── data/                                        # Helyi perzisztens JSON adatbázis mappa (.gitignore)
-│   ├── ingatlanok_db.json                       # Hirdetés adatok, ár, alapterület, időpont
-│   └── last_config.json                         # Mentett keresési szűrők
-├── .gitignore
-├── LICENSE                                      # GPL licenc
-└── src/main/java/
-    ├── Main.java                                # Belépési pont (Web Dashboard & CLI fallback)
-    └── ingatlanok/
-        ├── helper/
-        │   └── IngatlanHelper.java              # Böngészőkezelés, fájlkezelés
-        ├── model/
-        │   ├── IngatlanItem.java                # Hirdetés adatmodell (ár, méret, szobák, link)
-        │   ├── SearchCriteria.java              # Keresési paraméterek (város, típus, portálok)
-        │   └── SearchResult.java                # Találati aggregáció modell
-        ├── persistence/
-        │   ├── IngatlanRepository.java          # Fájlalapú JSON adatbázis és beállításkezelő
-        │   └── IngatlanDataBaseMock.java        # Visszafelé kompatibilitási réteg
-        ├── service/
-        │   ├── Ingatlan.java                    # Scraper interfész (`search` és `getUrls`)
-        │   ├── IngatlanSearchService.java       # Központi keresési orchestrator
-        │   └── impl/
-        │       ├── IngatlanStart.java           # Jsoup bázisosztály, biztonságos letöltés
-        │       ├── DunaHause.java               # dh.hu scraper (élő találatok + metaadatok)
-        │       ├── OtthonCentrum.java           # oc.hu scraper (élő találatok + metaadatok)
-        │       ├── JofogasIngatlan.java         # jofogas.hu scraper (élő találatok + metaadatok)
-        │       ├── IngatlanCom.java             # ingatlan.com scraper (Cloudflare fallback)
-        │       └── IngatlanBazar.java           # ingatlanbazar.hu scraper (Angular SPA fallback)
-        └── web/
-            ├── WebServer.java                   # Beágyazott Java 21 REST API szerver
-            └── WebDashboardHtml.java            # Modern reszponzív SPA HTML/CSS/JS sablon
-```
-
----
-
-## 4. Működési Folyamat (Workflow)
+### Workflow Architecture
 
 ```mermaid
 flowchart TD
-    A[Start: Main.java] --> B[IngatlanHelper.startContent]
-    B --> C[(Fájl olvasása: elmentett linkek memóriába)]
-    C --> D[Portálok lekérdezése robusztus hibatűréssel]
-    D --> D1[DunaHause.getUrls: dh.hu]
-    D --> D2[OtthonCentrum.getUrls: oc.hu]
-    D --> D3[JofogasIngatlan.getUrls: jofogas.hu]
-    D --> D4[IngatlanCom.getUrls: ingatlan.com]
-    D --> D5[IngatlanBazar.getUrls: ingatlanbazar.hu]
-    D1 & D2 & D3 & D4 & D5 --> E{Új URL-ek szűrése}
-    E --> F[IngatlanHelper.openUrl: Megnyitás böngészőben - limitáltan]
-    E --> G[IngatlanHelper.saveIngatlanToFile: Új URL-ek mentése fájlba]
-    F & G --> H[Kész]
+    subgraph UI ["Frontend Layer (Browser SPA)"]
+        SPA["React 19 + TypeScript + Tailwind SPA"]
+        Event["Search / Filter Modification"]
+        SPA --> Event
+    end
+
+    subgraph Server ["Server Layer (Headless Spring Boot 4.1.0 / Java 21)"]
+        HTTP["Spring MVC REST Controllers (Port 8080)"]
+        VThread["Virtual Threads Dispatcher"]
+        Cors["GlobalCorsFilter & SpaWebMvcConfig (CORS & MVC Config)"]
+        HTTP --> VThread
+        HTTP --> Cors
+    end
+
+    subgraph Service ["Core & Scraper Layer"]
+        Orchestrator["IngatlanSearchService / SearchExecutionEngine"]
+        P1["DunaHousePortalEngine"]
+        P2["OtthonCentrumPortalEngine"]
+        P3["JofogasPortalEngine"]
+        P4["KoltozzbePortalEngine"]
+        P5["IngatlanBazarPortalEngine"]
+        P6["IngatlanComPortalEngine (Fallback)"]
+        
+        Orchestrator --> P1 & P2 & P3 & P4 & P5 & P6
+    end
+
+    subgraph Persistence ["Persistence Layer (Spring Data JPA & Storage Abstraction)"]
+        Storage["JpaIngatlanStorage (ListingStorage / ConfigStorage)"]
+        Repo["PropertyRepository / ConfigRepository / HistoryRepository"]
+        H2[("data/ingatlanok_jpa.mv.db (Embedded H2 / JPA)")]
+        
+        Storage --> Repo --> H2
+    end
+
+    Event -->|POST /api/search| HTTP
+    VThread --> Orchestrator
+    P1 & P2 & P3 & P4 & P5 & P6 -->|Parsed Listings| Storage
+    Storage -->|Deduplication & New Flag| Orchestrator
+    Orchestrator -->|SearchResult JSON| HTTP
+    HTTP -->|JSON Response| SPA
 ```
 
-1. **Adatbázis inicializálás:** `IngatlanHelper.startContent()` beolvassa a lokális fájlban tárolt korábbi URL-eket a `IngatlanDataBaseMock` in-memory halmazába (`Set<String>`).
-2. **Keresési eredmények letöltése:** A scraper osztályok (`IngatlanStart` leszármazottak) Jsoup segítségével letöltik a keresési URL-ek első oldalát a találatszám megállapításához, majd végiglapozzák a találatokat.
-3. **Duplikátum-szűrés:** A megtalált hirdetés-linkeket összeveti a memóriában lévő linkekkel.
-4. **Értesítés és Mentés:**
-   * Ha új link érkezett, a rendszer a Windows beépített `rundll32` parancsával közvetlenül megnyitja azt a böngészőben.
-   * Az új linkek listája hozzáfűzésre kerül a helyi fájlhoz.
+---
+
+## 2. Package Structure & Layer Responsibilities
+
+```text
+ingatlan-kereso/
+├── .github/
+│   ├── pull_request_template.md                 # PR checklist & Thematic Agent Gate template
+│   └── workflows/
+│       ├── ci.yml                               # Java 21, Checkstyle, JaCoCo, Playwright E2E
+│       ├── docker-publish.yml                   # Automated GHCR container publishing (1.0.0 tags)
+│       └── pr-review.yml                        # PR Guard (Conventional Commits, Branch, Thematic Gate)
+├── config/
+│   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
+├── scripts/
+│   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container runners
+├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
+├── settings.gradle.kts                          # Gradle root project settings
+├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
+├── Dockerfile                                   # Multi-stage Temurin JRE 21 runtime container
+├── docker-compose.yml                           # 3-tier production stack (Postgres, Backend, Nginx UI)
+├── README.md                                    # Comprehensive user and developer guide
+├── gemini.md                                    # Technical architecture & AI workflow directives
+├── data/
+│   └── ingatlanok_jpa.mv.db                     # Embedded H2 / JPA database
+├── frontend/                                    # Modern Decoupled React 19 SPA client
+│   ├── src/                                     # React 19, TypeScript, Zustand, TanStack Query
+│   ├── package.json                             # Frontend dependencies, Vitest, Playwright scripts
+│   ├── nginx.conf                               # Production SPA reverse proxy configuration
+│   ├── Dockerfile                               # Production Nginx frontend container
+│   └── vite.config.ts                           # Vite configuration with API proxy and Vitest
+└── src/main/java/ingatlanok/
+    ├── IngatlanApplication.java                 # Spring Boot application entry point (@SpringBootApplication)
+    ├── Main.java                                # Hybrid entry point (Spring Boot delegate & CLI mode)
+    ├── common/                                  # Shared cross-cutting utilities
+    │   ├── BrowserUtils.java                    # Desktop browser launcher with limits
+    │   ├── CityUtils.java                       # Hungarian city normalization and presets
+    │   ├── HttpFetcher.java                     # Jsoup HTTP client (User-Agent, headers, timeouts)
+    │   ├── PropertyParser.java                  # Price, floor area, and room regex parsing
+    │   └── SlugUtils.java                       # Diacritic removal and search slug builder
+    ├── core/                                    # Layer 2: Pure business logic engines
+    │   ├── PropertyFilterEngine.java            # Search criteria filtering (price, area, type)
+    │   ├── DeduplicationEngine.java             # O(1) deduplication and new listing detection
+    │   ├── MarketAnalyticsEngine.java           # Market metrics (average price, per m² price)
+    │   └── SearchExecutionEngine.java           # Parallel scraping coordinator (Virtual Threads, 15s timeout)
+    ├── model/                                   # Domain models and value objects
+    │   ├── IngatlanItem.java                    # Rich listing data model
+    │   ├── PortalSource.java                    # Portal metadata (id, badge color, direct link)
+    │   ├── PriceInfo.java                       # Structured price (raw, numeric HUF & Million HUF)
+    │   ├── PropertyDetails.java                 # Floor area m², room count, calculated price/m²
+    │   ├── SearchCriteria.java                  # Multi-city search criteria
+    │   └── SearchResult.java                    # Aggregated search results and metrics
+    ├── persistence/                             # Layer 4: Storage Abstraction & Spring Data JPA
+    │   ├── ListingStorage.java                  # Storage interface for listings
+    │   ├── ConfigStorage.java                   # Storage interface for configuration
+    │   ├── entity/                              # JPA Entities (PropertyEntity, PriceHistoryEntity, etc.)
+    │   ├── repository/                          # Spring Data JPA Repositories
+    │   ├── JpaIngatlanStorage.java              # Primary Spring Data JPA implementation
+    │   ├── InMemoryListingStorage.java          # In-memory storage fallback implementation
+    │   └── IngatlanRepository.java              # Thread-safe Singleton & IoC bridge facade
+    ├── portal/                                  # Layer 3: Pluggable portal engines (OCP)
+    │   ├── PortalEngine.java                    # Uniform portal engine interface
+    │   ├── PortalDescriptor.java                # Portal metadata record
+    │   ├── PortalEngineRegistry.java            # Dynamic portal provider registry
+    │   ├── dh/                                  # Duna House engine (DOM parsing)
+    │   ├── oc/                                  # Otthon Centrum engine (DOM + client hints)
+    │   ├── jofogas/                             # Jófogás engine (DOM parsing)
+    │   ├── koltozzbe/                           # Költözzbe engine (DOM & Schema.org JSON-LD)
+    │   ├── ingatlanbazar/                       # Ingatlanbazár engine (Internal REST API)
+    │   └── ingatlancom/                         # Ingatlan.com fallback engine (Cloudflare WAF)
+    ├── presentation/                            # Layer 1a: Presentation and DTO models
+    │   ├── DashboardPresentationService.java    # Presentation facade (KPIs, portal health)
+    │   ├── DashboardResponseDto.java            # Enriched client response payload
+    │   ├── MarketStatsDto.java                  # Market analytics KPIs
+    │   └── PortalStatusDto.java                 # Portal health status cards
+    ├── scraper/                                 # Portal scraping data models and resolvers
+    └── web/                                     # Layer 1b: Embedded Web Server & REST API
+        ├── RestApiController.java              # Spring MVC REST Controller (@RestController)
+        ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
+        └── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & MVC configuration)
+```
 
 ---
 
-## 5. Azonosított Technikai Adósságok és Kihívások
+## 3. Core Architectural Principles
 
-1. **Elavult HTML szelekció & Bot védelem (Web Scraping törékenység):**
-   * A weboldalak (különösen az ingatlan.com és az oc.hu) 2017 óta többször megújultak, modern frontend technológiákra (Next.js/React, SSR/CSR) és erős bot-védelemre (pl. Cloudflare, PerimeterX, Datadome) váltottak.
-   * A régi CSS osztályok (`span.results__number__count`, `div.listing__card`, stb.) jelenlegi formájukban nagy valószínűséggel nem működnek.
-2. **Bedrótozott konfigurációk:**
-   * A mentési fájlnév mereven kódolt (`2017_06_06.txt`).
-   * A keresési paraméterek (Debrecen, 9-11 mFt, 35+ m2) az osztályok forráskódjába vannak égetve ahelyett, hogy külső konfigurációból (pl. `application.properties`, JSON, CLI paraméterek) olvasná őket.
-3. **Platformfüggőség:**
-   * `rundll32 url.dll,FileProtocolHandler` kizárólag Windowson működik; érdemes a standard `java.awt.Desktop.getDesktop().browse(uri)` hívásra cserélni.
-4. **Függőségek és Java verzió:**
-   * A `pom.xml` nem rögzít Java fordítási verziót (`maven.compiler.source` / `target`).
-   * A Jsoup 1.10.3 (2017-es) és a Commons IO 2.5 elavultak, frissítésük javasolt.
-5. **Kivételkezelés:**
-   * Több helyen üres `catch (Exception e) {}` blokkok találhatók, ami megnehezíti a hibakeresést és a hálózati hibák detektálását.
+1. **Spring Boot 4.1.0 & GraalVM Native Image:** High-performance, cloud-native execution with Ahead-of-Time (AOT) compilation and sub-second startup.
+2. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`spring.threads.virtual.enabled=true`). Scraping I/O and REST requests never block carrier threads.
+3. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
+4. **Decoupled Persistence & Spring Data JPA:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is `JpaIngatlanStorage` on embedded H2, maintaining O(1) deduplication and fast queries without relational lock-in.
+5. **Modern Decoupled Frontend:** Autonomous React 19 + TypeScript + Vite SPA client with online Google Fonts CDN typography, served by Nginx in containerized environments with reverse proxy routing to the headless Spring Boot REST API.
+6. **Containerization & Clean Numeric Versioning:** Multi-stage Temurin JRE 21 Docker image and Docker Compose 3-tier architecture. Container images published to GHCR strictly follow clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
 
 ---
 
-## 6. Javasolt Fejlesztési Irányok (Roadmap)
+## 4. Web Scraping Specifications
 
-* [x] **Modernizáció és Függőségfrissítés (Elkészült):**
-  * Java 21 LTS beállítása a `pom.xml`-ben (`maven.compiler.source`/`target`).
-  * Jsoup frissítve `1.23.2`-re, Commons IO `2.22.0`-ra, Gson `2.11.0` integrálva, Exec Maven Plugin `3.6.4`-re.
-  * Modern böngészési metódus (`java.awt.Desktop`) bevezetése `ProcessBuilder` fallbackkel és megnyitási korlátozással.
-* [x] **Scraper réteg felülvizsgálata és működőképessé tétele (Elkészült):**
-  * **Duna House (`dh.hu`):** Frissítve modern DOM keresésre és metaadat-kinyerésre (ár, méret, szobák, cím).
-  * **Otthon Centrum (`oc.hu`):** Frissítve a legújabb keresési paraméterezésre és kártyaszelektorokra.
-  * **Jófogás Ingatlan (`jofogas.hu`):** Új scraper modul bevezetve élő hirdetésekkel és metaadat-kinyeréssel.
-  * **Robusztus hibakezelés:** Az Ingatlan.com (Cloudflare bot-védelem) és Ingatlanbazár (Angular SPA) esetén graceful fallback.
-* [x] **Modern Web Dashboard & REST API (Elkészült):**
-  * Beágyazott Java 21 `HttpServer` (Virtual Threads).
-  * Reszponzív SPA (Tailwind-ihlette sötét/világos mód, kártyás megjelenítés, azonnali gépelés közbeni gyorskereső).
-  * Egykattintásos indító Windowsra (`start-ui.bat`, `start-ui.ps1`).
-* [x] **Dinamikus Konfigurációs Réteg (Elkészült):**
-  * Keresési szűrők (település, lakás/ház, aktív portálok, böngészőfül megnyitási kapcsoló) a webes felületen.
-* [x] **Strukturált Adatperzisztencia (Elkészült):**
-  * Fájlalapú JSON adatbázis (`data/ingatlanok_db.json`), automatikus legacy txt import, duplikátumszűrés, előzmények megtekintése és törlése.
-* [ ] **Értesítési csatornák bővítése:**
-  * Opcionálisan Telegram bot, Discord webhook vagy e-mail értesítés küldése.
+| Portal | Domain | Method | Specifics & Challenge |
+| :--- | :--- | :--- | :--- |
+| **Duna House** | `dh.hu` | Live Jsoup DOM | Pattern: `/elado-ingatlan/<type>/<county>/<city>/<price>-mFt` |
+| **Otthon Centrum** | `oc.hu` | Live Jsoup DOM | Rich card parsing with Chrome 133 `Sec-Ch-Ua` headers |
+| **Jófogás Ingatlan** | `jofogas.hu` | Live Jsoup DOM | Query-based parsing with price and location regex cleaning |
+| **Költözzbe** | `koltozzbe.hu` | Live DOM & JSON-LD | Dual strategy: HTML cards and Schema.org JSON-LD |
+| **Ingatlanbazár** | `ingatlanbazar.hu` | Live Internal REST API | High-speed JSON endpoints (`/api/property-search`) with cached location codes |
+| **Ingatlan.com** | `ingatlan.com` | Graceful Fallback | Cloudflare WAF protected. Generates direct search link fallback without blocking |
 
 ---
 
-## 7. Munkafolyamat és Verziókezelési Szabályzat (Workflow Rule)
+## 5. AI Developer & Workflow Rules (Mandatory)
 
 > [!IMPORTANT]
-> **Kötelező GitHub PR és Verziókezelési Szabályzat az AI Asszisztens számára:**
+> **Strict Git, PR, and Pipeline Rules for AI Assistants:**
 >
-> 1. **Közvetlen `master`/`main` ágra commitolás és pusholás TILOS:**
->    - Minden feladatot új munkavégző ágon kell elvégezni.
->
-> 2. **Strukturált branch elnevezés (`feature/`, `fix/`, stb.):**
->    - Az ágak neve kötelezően kövesse a típus szerinti struktúrát és angol leírást:
->      - `feature/<rovid-angol-leiras>` – új funkció, felületi vagy logikai fejlesztés
->      - `fix/<rovid-angol-leiras>` – hibajavítás, rendellenesség elhárítása
->      - `docs/<rovid-angol-leiras>` – dokumentáció, szabályzat vagy README módosítása
->      - `refactor/<rovid-angol-leiras>` – kódstruktúra tisztítása, refaktorálás viselkedésváltozás nélkül
->      - `chore/<rovid-angol-leiras>` – build beállítások, függőségek vagy karbantartási feladatok
->
-> 3. **Mindig új commit a PR-ba:**
->    - Minden változtatáshoz külön, leíró üzenetű új commitot kell készíteni (`git commit -m "..."`).
->    - Tilos már pusholt commitokat felülírni (`--amend` tilos push után); minden módosítás vagy javítás új committal bővítse a branch történetét.
->
-> 4. **Angol nyelvű, beszédes PR elnevezés (Title):**
->    - A Pull Request neve **mindig kötelezően angol nyelvű** legyen, és pontosan mutassa be a feladat típusát és tartalmát Conventional Commits formátumban:
->      - Pl.: `feat: add stepper controls and portal counters to dashboard`
->      - Pl.: `fix: resolve timeout issue in jofogas scraper`
->      - Pl.: `docs: update workflow rules with branch structure and label requirements`
->
-> 5. **Kötelező GitHub Label (Címke) a PR-on:**
->    - A PR-t kötelező címkével ellátva létrehozni (`gh pr create --label "<label>"`).
->    - Használandó címkék:
->      - `enhancement` – új funkcionalitás vagy UI bővítés esetén
->      - `bug` – hibajavítás esetén
->      - `documentation` – leírások, dokumentáció és szabályzat esetén
->      - Ha a címke még nem létezik a repóban, a `gh label create` paranccsal azonnal létre kell hozni.
->
-> 6. **Beszédes, részletes magyar nyelvű összefoglaló (Summary / Description):**
->    - A PR törzse (`--body`) és a chat-válasz záró összefoglalója magyar nyelvű legyen.
->    - Az összefoglalónak kifejezetten **beszédesnek és részletesnek** kell lennie (nem 1 mondatos összegzés), hogy világosan érthető legyen:
->      - **Mi a cél és kontextus:** Miért készült a módosítás?
->      - **Részletes technikai változtatások:** Mely fájlok, komponensek és logikák változtak és hogyan?
->      - **Felhasználói és működési hatás:** Mit tapasztal a felhasználó, hogyan változik a működés?
->      - **Verifikáció és tesztelés:** Hogyan lett ellenőrizve a módosítás helyessége?
->
-> 7. **Közvetlen PR Link a válaszban:**
->    - A feladat befejezésekor a beszélgetésben **mindig kötelező közvetlen kattintható linket adni az elkészült GitHub Pull Request-re**.
-
+> 1. **Direct Pushes Prohibited:** Pushing directly to `main` or `develop` is strictly forbidden.
+> 2. **Git Worktrees for Issue Work:** When working on an issue, **always work inside a dedicated `git worktree`** to ensure clean isolation of working directories and branches:
+>    ```bash
+>    git worktree add -b <branch-name> ../worktrees/<branch-name> develop
+>    ```
+> 3. **Branch Naming Convention:** All branches must start from `develop` and follow the prefix format:
+>    `feature/<short-desc>`, `fix/<short-desc>`, `docs/<short-desc>`, `refactor/<short-desc>`, `chore/<short-desc>`.
+> 4. **Atomic Commits – No Squash During Development:**
+>    - NEVER combine unrelated changes or squash work in progress.
+>    - Commit each logical increment as a separate, discrete commit with a Conventional Commits message (`feat: ...`, `fix: ...`).
+> 5. **Pipeline Concurrency & Cancellation:**
+>    - Only the current, active pipeline run should execute.
+>    - Obsolete runs must be automatically canceled (`concurrency: cancel-in-progress: true`) or manually terminated via GitHub CLI (`gh run cancel <run-id>`).
+> 6. **English PR Titles:** The Pull Request title must be in English following Conventional Commits (e.g., `feat: implement market analytics dashboard`).
+> 7. **Mandatory PR Labels:** Apply appropriate labels (`enhancement`, `bug`, `documentation`) upon PR creation.
+> 8. **Descriptive Summary:** PR description must clearly explain Context & Goal, Technical Changes, and Verification steps.
+> 9. **Direct PR Link:** Always output a clickable GitHub PR link in the final conversation response.
+> 10. **Thematic Agent Approval Gate:**
+>     - Every PR requires sign-off from designated specialist agents (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`).
+>     - Each agent must provide exactly **one concise sentence explaining** why the domain is marked `[OK]`, `[NOK]`, or `[N/A]`.
+> 11. **ONLY MERGE WHEN ALL CHECKS ARE GREEN:**
+>     - Pull requests are strictly mergeable **ONLY IF 100% OF CI AND PR GUARD CHECKS PASS (GREEN)**.
+>     - If any check fails, immediately execute the **Fix Loop** (diagnose, commit fix, push, re-verify).
+> 12. **Never Auto-Merge:** The AI assistant must never run `gh pr merge` or merge branches. Merging is strictly reserved for the human repository owner.
+> 13. **Auto-Closing Linked Issues:** Always include official GitHub issue keywords (`Closes #<id>`, `Fixes #<id>`) in the PR description.
+> 14. **Clean Numeric Versioning & Docker Image Tagging:**
+>     - Release versioning strictly follows Semantic Versioning (`1.0.0`).
+>     - Automated GHCR container publishing on `main` emits clean numeric tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
+>     - Manual `workflow_dispatch` releases on any branch dynamically generate `<version>-<branch>` (or `<version>-<custom_suffix>`) tags.
 

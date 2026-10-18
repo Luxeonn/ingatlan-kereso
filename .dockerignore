@@ -1,0 +1,14 @@
+target/
+.git/
+.github/
+.idea/
+.agents/
+*.iml
+logs/
+data/
+*.bat
+*.ps1
+*.tmp
+frontend/node_modules/
+frontend/dist/
+**/node_modules/

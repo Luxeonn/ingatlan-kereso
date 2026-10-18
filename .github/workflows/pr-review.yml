@@ -1,0 +1,231 @@
+name: PR Review
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+      - develop
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull Request number to validate (optional, e.g. 182)"
+        required: false
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  guard:
+    name: Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolve Pull Request Context
+        id: pr-ctx
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          EVENT_NAME: ${{ github.event_name }}
+          RAW_PR_TITLE: ${{ github.event.pull_request.title }}
+          RAW_PR_BODY: ${{ github.event.pull_request.body }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          DELIM=$(openssl rand -hex 16)
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
+            echo "$RAW_PR_TITLE" >> "$GITHUB_OUTPUT"
+            echo "$DELIM" >> "$GITHUB_OUTPUT"
+            echo "head_ref=$PR_HEAD_REF" >> "$GITHUB_OUTPUT"
+            echo "base_ref=$PR_BASE_REF" >> "$GITHUB_OUTPUT"
+            echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
+            echo "$RAW_PR_BODY" >> "$GITHUB_OUTPUT"
+            echo "$DELIM" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "is_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Workflow triggered via $EVENT_NAME on ref $REF_NAME."
+            PR_JSON=""
+            if [ -n "$INPUT_PR_NUMBER" ]; then
+              echo "Fetching PR details for PR #${INPUT_PR_NUMBER}..."
+              PR_JSON=$(gh pr view "$INPUT_PR_NUMBER" --json title,headRefName,baseRefName,body,number 2>/dev/null || true)
+            else
+              echo "Searching for open PR associated with branch '${REF_NAME}'..."
+              PR_JSON=$(gh pr view "${REF_NAME}" --json title,headRefName,baseRefName,body,number 2>/dev/null || true)
+            fi
+
+            if [ -n "$PR_JSON" ]; then
+              PR_TITLE=$(echo "$PR_JSON" | jq -r '.title // ""')
+              PR_HEAD=$(echo "$PR_JSON" | jq -r '.headRefName // ""')
+              PR_BASE=$(echo "$PR_JSON" | jq -r '.baseRefName // ""')
+              PR_NUM=$(echo "$PR_JSON" | jq -r '.number // ""')
+
+              echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$PR_TITLE" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "head_ref=${PR_HEAD}" >> "$GITHUB_OUTPUT"
+              echo "base_ref=${PR_BASE:-develop}" >> "$GITHUB_OUTPUT"
+              echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$PR_JSON" | jq -r '.body // ""' >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "pr_number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+              echo "is_pr=true" >> "$GITHUB_OUTPUT"
+              echo "✅ Sikerült lekérni a PR #${PR_NUM} adatokat: '$PR_TITLE' ($PR_HEAD -> $PR_BASE)"
+            else
+              COMMIT_MSG=$(git log -1 --pretty=%s)
+              COMMIT_BODY=$(git log -1 --pretty=%b)
+              echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$COMMIT_MSG" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "head_ref=${REF_NAME}" >> "$GITHUB_OUTPUT"
+              echo "base_ref=develop" >> "$GITHUB_OUTPUT"
+              echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$COMMIT_BODY" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "pr_number=" >> "$GITHUB_OUTPUT"
+              echo "is_pr=false" >> "$GITHUB_OUTPUT"
+              echo "ℹ️ Nincs nyitott PR ehhez az ághoz. Ágszintű ellenőrzés a legutóbbi commit üzenettel: '$COMMIT_MSG'"
+            fi
+          fi
+
+      - name: Validate PR Title (Conventional Commits)
+        env:
+          TITLE: ${{ steps.pr-ctx.outputs.title }}
+        run: |
+          echo "Ellenőrzés alatt álló PR cím: '$TITLE'"
+          REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .+"
+          if [[ ! "$TITLE" =~ $REGEX ]]; then
+            echo "::error::A PR címe nem felel meg a Conventional Commits szabályzatnak! Helyes formátum: 'feat: leírás' vagy 'feat(modul): leírás'."
+            echo "Megengedett típusok: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+            exit 1
+          fi
+          echo "✅ PR cím érvényes."
+
+      - name: Validate Source Branch Name Convention
+        env:
+          BRANCH: ${{ steps.pr-ctx.outputs.head_ref }}
+        run: |
+          echo "Ellenőrzés alatt álló forráság: '$BRANCH'"
+          if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" ]]; then
+            echo "✅ Rendszerág összefésülés engedélyezve: $BRANCH"
+            exit 0
+          fi
+
+          if [[ "$BRANCH" =~ ^dependabot\/ ]]; then
+            echo "✅ Dependabot automatikus ág engedélyezve: $BRANCH"
+            exit 0
+          fi
+          
+          REGEX="^(feature|fix|hotfix|docs|refactor|test|chore|release)\/[a-zA-Z0-9._-]+$"
+          if [[ ! "$BRANCH" =~ $REGEX ]]; then
+            echo "::error::A forráság neve ('$BRANCH') nem követi a megengedett sémát! Követelmény: prefix/név (pl. feature/uj-funkcio, fix/hiba, docs/leiras)."
+            exit 1
+          fi
+          echo "✅ Forráság elnevezése megfelelő."
+
+      - name: Verify PR Description is not empty
+        env:
+          BODY: ${{ steps.pr-ctx.outputs.body }}
+          IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
+        run: |
+          if [ "$IS_PR" != "true" ]; then
+            echo "ℹ️ Kézi ágfuttatás (nincs kapcsolt PR): PR leírás ellenőrzése kihagyva."
+            exit 0
+          fi
+
+          if [ -z "$BODY" ] || [ ${#BODY} -lt 15 ]; then
+            echo "::warning::A Pull Request leírása túl rövid vagy hiányos! Kérjük, adj meg részletes összefoglalót a változtatásokról."
+          else
+            echo "✅ PR leírás kitöltve (${#BODY} karakter)."
+          fi
+
+          if echo "$BODY" | grep -qiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+"; then
+            LINKED_MATCH=$(echo "$BODY" | grep -oiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+" | head -n 1)
+            echo "🔗 Kapcsolódó issue automatikus lezárása észlelve: '$LINKED_MATCH' (merge-kor automatikusan zárul)."
+          else
+            echo "ℹ️ Nincs automatikusan lezáró kulcsszó ('Closes #<id>', 'Fixes #<id>') a leírásban. Ha a PR issue-t old meg, add meg a 'Closes #...' kulcsszót!"
+          fi
+
+      - name: Verify Thematic Agent Approval Gate
+        env:
+          BODY: ${{ steps.pr-ctx.outputs.body }}
+          BASE_REF: ${{ steps.pr-ctx.outputs.base_ref }}
+          ACTOR: ${{ github.actor }}
+          BRANCH: ${{ steps.pr-ctx.outputs.head_ref }}
+          IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
+        run: bash .github/scripts/verify-pr-gate.sh
+
+      - name: Report PR Compliance Summary
+        if: always()
+        env:
+          HEAD_REF: ${{ steps.pr-ctx.outputs.head_ref }}
+          BASE_REF: ${{ steps.pr-ctx.outputs.base_ref }}
+          IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
+          PR_NUM: ${{ steps.pr-ctx.outputs.pr_number }}
+          STATUS_SUCCESS: ${{ job.status == 'success' }}
+        run: |
+          echo "### 🛡️ PR Review (Guard) Eredmények" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS_SUCCESS" = "true" ]; then
+            echo "- **PR Cím & Branch Szabályzat:** ✅ Megfelelt (Conventional Commits & Prefix)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Thematic Agent Approval Gate:** ✅ Jóváhagyva (1-mondatos szakmai indoklással)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **PR Cím & Branch Szabályzat:** ❌ Nem felelt meg" >> $GITHUB_STEP_SUMMARY
+            echo "- **Thematic Agent Approval Gate:** ❌ Hiányos vagy elutasítva" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a CI és a PR Review is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ág:** \`${HEAD_REF}\` -> \`${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "$IS_PR" = "true" ]; then
+            echo "- **PR Szám:** #${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Mód:** Manuális ágfuttatás (workflow_dispatch)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  review:
+    name: Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/')) }}
+
+    steps:
+      - name: Verify AI Credentials Availability
+        id: credentials-check
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_KEY" ] || [ -n "$ANTHROPIC_KEY" ] || [ -n "$QODO_API_KEY" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+            echo "✅ AI Reviewer credentials detected."
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No AI Reviewer API key (OPENAI_KEY, ANTHROPIC_KEY, or QODO_API_KEY) found in secrets. Skipping automated review safely."
+          fi
+
+      - name: Execute Qodo PR-Agent
+        if: steps.credentials-check.outputs.has_key == 'true'
+        uses: Codium-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

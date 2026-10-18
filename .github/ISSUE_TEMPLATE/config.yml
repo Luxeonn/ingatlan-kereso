@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: '📖 Architektúra és Fejlesztési Szabályzat (GEMINI.md)'
+    url: 'https://github.com/Luxeonn/ingatlan-kereso/blob/main/gemini.md'
+    about: 'Ismerd meg a rendszer architektúráját, a munkafolyamati szabályokat és a minőségbiztosítási követelményeket.'
