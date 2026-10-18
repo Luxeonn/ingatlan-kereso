@@ -1,11 +1,13 @@
 ### 🛡️ Thematic Agent Approval Gate
 
 > [!IMPORTANT]
-> Section 5 of [GEMINI.md](file:///e:/github/ingatlan-kereso/gemini.md) and `.github/workflows/pr-guard.yml` mandate designated specialist approvals. Each reviewer must provide **exactly one concise sentence explaining** why the domain is marked **`[OK]`**, **`[NOK]`**, or **`[N/A]`**.
+> Section 5 of [GEMINI.md](../gemini.md) and `.github/workflows/pr-review.yml` mandate designated specialist approvals.
+> Each reviewer must check the box (`[x]`), provide a valid decision token (`[NO_FINDING]` / `[OK]`, `[NOT_APPLICABLE]` / `[N/A]`, or `[FINDING]` / `[NOK]`, `[NOT_VERIFIED]`), and write **exactly one concise sentence explaining** the technical rationale.
+> A PR can only be merged if 100% of touched domains are signed off with a positive token (`[NO_FINDING]` / `[OK]` or `[NOT_APPLICABLE]` / `[N/A]`).
 
-- [ ] Fullstack Architecture & UI (`fullstack-architect`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] Scraper & Security (`scraper-security-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
-- [ ] Quality & DevOps (`quality-devops-engineer`): [OK / NOK / N/A] – [1-sentence rationale]
+- [ ] Fullstack Architecture & UI (`fullstack-architect`): [NO_FINDING / NOT_APPLICABLE / FINDING / NOT_VERIFIED] – [1-sentence rationale]
+- [ ] Scraper & Security (`scraper-security-engineer`): [NO_FINDING / NOT_APPLICABLE / FINDING / NOT_VERIFIED] – [1-sentence rationale]
+- [ ] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING / NOT_APPLICABLE / FINDING / NOT_VERIFIED] – [1-sentence rationale]
 
 ---
 
@@ -39,9 +41,10 @@
 ## How to Validate
 
 <!-- Detail automated and manual verification steps:
-- [ ] Gradle test execution: ./gradlew check (clean pass, 0 errors)
+- [ ] Skills & instructions validation: bash scripts/validate-skills.sh
+- [ ] Gradle test & verification: ./gradlew check (clean pass, 0 errors)
 - [ ] Frontend test execution: cd frontend && npm test
-- [ ] Smoke test steps -->
+- [ ] Docker Compose smoke test: bash scripts/smoke-test-docker-compose.sh -->
 
 ---
 
@@ -51,5 +54,5 @@
 - [ ] Source branch follows naming convention (`feature/...`, `fix/...`, `docs/...`).
 - [ ] Source branch originates from `develop` and targets `develop`.
 - [ ] Discrete atomic commits used without squashing work-in-progress.
-- [ ] Appropriate GitHub label added (`enhancement`, `bug`, `documentation`).
-- [ ] 🟢 **ONLY MERGE WHEN ALL CHECKS ARE GREEN:** 100% of CI and PR Guard checks must pass.
+- [ ] Appropriate GitHub label added (`enhancement`, `bug`, `documentation`, `architecture`, `ci`).
+- [ ] 🟢 **ONLY MERGE WHEN ALL CHECKS ARE GREEN:** 100% of CI and PR Review (Guard) checks must pass.

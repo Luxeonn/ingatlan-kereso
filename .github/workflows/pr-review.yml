@@ -203,7 +203,14 @@ jobs:
     name: Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/')) }}
+    if: >-
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+       (startsWith(github.event.comment.body, '/review') ||
+        startsWith(github.event.comment.body, '/describe') ||
+        startsWith(github.event.comment.body, '/improve')))
 
     steps:
       - name: Verify AI Credentials Availability

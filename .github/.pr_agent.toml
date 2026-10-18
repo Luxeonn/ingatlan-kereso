@@ -8,13 +8,11 @@ git_provider = "github"
 verbosity_level = 1
 ignore_pr_title = ["\\[bot\\]", "chore\\(deps\\)", "Automatic Dependency Submission"]
 ignore_file_patterns = [
-    "src/main/resources/static/**",
     "frontend/dist/**",
     "frontend/package-lock.json",
     "data/**",
+    "*.mv.db",
     "*.db",
-    "*.db-wal",
-    "*.db-shm",
     "*.woff",
     "*.woff2",
     "*.gz"
@@ -44,7 +42,7 @@ extra_instructions = """
 Strictly evaluate the PR against the project's core guidelines:
 1. Java 21 Virtual Threads concurrency (Executors.newVirtualThreadPerTaskExecutor()). No carrier thread blocking.
 2. 0-Crash resilience: Portal scraper errors, network dropouts, or bot protection triggers must never crash the service.
-3. Decoupled Persistence: ListingStorage and ConfigStorage contracts must be respected with SQLite WAL mode.
+3. Decoupled Persistence: ListingStorage and ConfigStorage contracts must be respected via Spring Data JPA (embedded H2 for dev, PostgreSQL 17 for prod, in-memory H2 for tests). Refer to docs/architecture.md.
 4. Hermetic Tests: All tests must run 100% offline without live internet access.
 5. Modern Frontend: React 19 + TypeScript SPA components must be modular and type-safe.
 """

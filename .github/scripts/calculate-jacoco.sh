@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-CSV_FILE="${1:-target/site/jacoco/jacoco.csv}"
-
-if [ ! -f "$CSV_FILE" ]; then
-  CSV_FILE="build/reports/jacoco/test/jacocoTestReport.csv"
-fi
-
-if [ ! -f "$CSV_FILE" ]; then
-  echo "::warning::JaCoCo CSV jelentés nem található sem a target/site/jacoco/ sem a build/reports/... helyen!"
-  if [ -n "$GITHUB_OUTPUT" ]; then
-    echo "coverage_pct=N/A" >> "$GITHUB_OUTPUT"
-    echo "coverage_lines=0 / 0 sor" >> "$GITHUB_OUTPUT"
-    echo "coverage_status=fail" >> "$GITHUB_OUTPUT"
+if [ -n "${1:-}" ]; then
+  CSV_FILE="$1"
+  if [ ! -f "$CSV_FILE" ]; then
+    echo "::error::A megadott JaCoCo CSV jelentés nem található: $CSV_FILE"
+    if [ -n "$GITHUB_OUTPUT" ]; then
+      echo "coverage_pct=N/A" >> "$GITHUB_OUTPUT"
+      echo "coverage_lines=0 / 0 sor" >> "$GITHUB_OUTPUT"
+      echo "coverage_status=fail" >> "$GITHUB_OUTPUT"
+    fi
+    exit 1
   fi
-  exit 0
+else
+  CSV_FILE="target/site/jacoco/jacoco.csv"
+  if [ ! -f "$CSV_FILE" ]; then
+    CSV_FILE="build/reports/jacoco/test/jacocoTestReport.csv"
+  fi
+
+  if [ ! -f "$CSV_FILE" ]; then
+    echo "::error::JaCoCo CSV jelentés nem található sem a target/site/jacoco/ sem a build/reports/... helyen!"
+    if [ -n "$GITHUB_OUTPUT" ]; then
+      echo "coverage_pct=N/A" >> "$GITHUB_OUTPUT"
+      echo "coverage_lines=0 / 0 sor" >> "$GITHUB_OUTPUT"
+      echo "coverage_status=fail" >> "$GITHUB_OUTPUT"
+    fi
+    exit 1
+  fi
 fi
 
 LINE_MISSED=$(awk -F',' 'NR>1 {sum+=$8} END {print sum+0}' "$CSV_FILE")
@@ -22,13 +34,13 @@ LINE_COVERED=$(awk -F',' 'NR>1 {sum+=$9} END {print sum+0}' "$CSV_FILE")
 TOTAL_LINES=$((LINE_MISSED + LINE_COVERED))
 
 if [ "$TOTAL_LINES" -eq 0 ]; then
-  echo "::warning::JaCoCo CSV nem tartalmaz kódsorokat!"
+  echo "::error::JaCoCo CSV nem tartalmaz kódsorokat!"
   if [ -n "$GITHUB_OUTPUT" ]; then
     echo "coverage_pct=0.00%" >> "$GITHUB_OUTPUT"
     echo "coverage_lines=0 / 0 sor" >> "$GITHUB_OUTPUT"
     echo "coverage_status=fail" >> "$GITHUB_OUTPUT"
   fi
-  exit 0
+  exit 1
 fi
 
 COVERAGE_PCT=$(awk -v cov="$LINE_COVERED" -v tot="$TOTAL_LINES" 'BEGIN {printf "%.2f", (cov / tot) * 100}')
