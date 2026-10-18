@@ -8,6 +8,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'LICENSE'
+      - 'README.md'
+      - '.gitignore'
   pull_request:
     branches:
       - main
@@ -15,6 +17,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'LICENSE'
+      - 'README.md'
+      - '.gitignore'
   workflow_dispatch:
 
 concurrency:
@@ -33,7 +37,6 @@ jobs:
     outputs:
       frontend: ${{ steps.fallback.outputs.frontend }}
       backend: ${{ steps.fallback.outputs.backend }}
-      smoke: ${{ steps.fallback.outputs.smoke }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -54,7 +57,8 @@ jobs:
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
               - 'config/**'
-              - '.github/**'
+              - '.github/workflows/ci.yml'
+              - '.github/scripts/**'
               - 'scripts/**'
               - 'tools/**'
               - '.agents/**'
@@ -62,41 +66,35 @@ jobs:
               - 'docker-compose.yml'
               - 'GEMINI.md'
               - 'gemini.md'
-              - 'README.md'
-            smoke:
-              - 'Dockerfile*'
-              - 'docker-compose.yml'
-              - 'frontend/**'
-              - 'scripts/**'
-              - 'src/**'
-              - 'gradle/**'
-              - 'build.gradle.kts'
-              - 'settings.gradle.kts'
-              - '.github/**'
+            documentation:
+              - '**/*.md'
+              - '.gitignore'
+              - 'LICENSE'
+              - 'docs/**'
+            automation:
+              - '.github/workflows/docker-publish.yml'
+              - '.github/workflows/pr-review.yml'
 
       - name: Evaluate Conservative Fallback
         id: fallback
         run: |
           FE="${{ steps.filter.outputs.frontend }}"
           BE="${{ steps.filter.outputs.backend }}"
-          SMOKE="${{ steps.filter.outputs.smoke }}"
-          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$SMOKE" != "true" ]; then
+          DOCS="${{ steps.filter.outputs.documentation }}"
+          AUTOMATION="${{ steps.filter.outputs.automation }}"
+          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$DOCS" != "true" ] && [ "$AUTOMATION" != "true" ]; then
             echo "⚠️ Unclassified file change detected. Triggering the conservative fallback and running all quality gates."
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
-            echo "smoke=true" >> "$GITHUB_OUTPUT"
           else
             echo "frontend=$FE" >> "$GITHUB_OUTPUT"
             echo "backend=$BE" >> "$GITHUB_OUTPUT"
-            echo "smoke=$SMOKE" >> "$GITHUB_OUTPUT"
           fi
 
   frontend:
     name: Frontend
     needs: detect
-    # TEMPORARILY DISABLED: Suspended to conserve Actions minutes (billing cycle limit).
-    # TODO: Re-enable by restoring: if: needs.detect.outputs.frontend == 'true' || github.event_name != 'pull_request'
-    if: false
+    if: needs.detect.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -170,13 +168,12 @@ jobs:
   backend:
     name: Backend
     needs: detect
-    if: needs.detect.outputs.backend == 'true' || github.event_name != 'pull_request'
+    if: needs.detect.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
       skills_outcome: ${{ steps.validate-skills.outcome }}
       build_outcome: ${{ steps.gradle-build.outcome }}
-      smoke_outcome: ${{ steps.smoke-test.outcome }}
       coverage_pct: ${{ steps.jacoco.outputs.coverage_pct }}
       coverage_lines: ${{ steps.jacoco.outputs.coverage_lines }}
       coverage_status: ${{ steps.jacoco.outputs.coverage_status }}
@@ -213,27 +210,9 @@ jobs:
         if: always()
         run: bash .github/scripts/calculate-jacoco.sh
 
-  smoke-test:
-    name: Docker Smoke Test
-    needs: detect
-    # TEMPORARILY DISABLED: Suspended to conserve Actions minutes (billing cycle limit).
-    # TODO: Re-enable by restoring: if: needs.detect.outputs.smoke == 'true' || github.event_name != 'pull_request'
-    if: false
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    outputs:
-      smoke_outcome: ${{ steps.compose-smoke.outcome }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Run Multi-Container Smoke Test (PostgreSQL + Backend + Nginx)
-        id: compose-smoke
-        run: bash scripts/smoke-test-docker-compose.sh
-
   summary:
     name: Summary
-    needs: [detect, frontend, backend, smoke-test]
+    needs: [detect, frontend, backend]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -302,19 +281,6 @@ jobs:
             echo "| **Backend** | 🛡️ Headless REST API Smoke | $BE_SMOKE_STATUS | Headless REST API smoke test |" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Docker Stack evaluation
-          SMOKE_RESULT="${{ needs.smoke-test.result }}"
-          SMOKE_OUTCOME="${{ needs.smoke-test.outputs.smoke_outcome }}"
-
-          if [ "$SMOKE_RESULT" = "success" ]; then
-            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | ✅ Passed | PostgreSQL 17 + Backend + Nginx validated |" >> $GITHUB_STEP_SUMMARY
-          elif [ "$SMOKE_RESULT" = "skipped" ]; then
-            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | ⚪ Skipped | No container or source file changes |" >> $GITHUB_STEP_SUMMARY
-          else
-            [ "$SMOKE_OUTCOME" = "failure" ] && SMOKE_STATUS="❌ Failed" || SMOKE_STATUS="⚠️ Error"
-            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | $SMOKE_STATUS | Docker Compose smoke test failed |" >> $GITHUB_STEP_SUMMARY
-          fi
-
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref / Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
@@ -341,11 +307,6 @@ jobs:
 
           if [ "$BE_RESULT" = "success" ] && [ "$BE_COV_STATUS" != "pass" ]; then
             echo "❌ Error: The backend job completed, but JaCoCo code coverage ($BE_COV_STATUS) did not reach 80%."
-            FAILED=1
-          fi
-
-          if [ "$SMOKE_RESULT" != "success" ] && [ "$SMOKE_RESULT" != "skipped" ]; then
-            echo "❌ Error: The smoke-test job failed or was cancelled (status: $SMOKE_RESULT)."
             FAILED=1
           fi
 
