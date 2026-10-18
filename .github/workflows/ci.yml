@@ -125,7 +125,7 @@ jobs:
 
       - name: Cache Playwright Browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
@@ -189,7 +189,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Gradle with Build Cache
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
