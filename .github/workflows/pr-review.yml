@@ -1,13 +1,15 @@
 name: PR Review
 
 on:
-  pull_request:
-    types: [opened, edited, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-      - develop
-  issue_comment:
-    types: [created]
+  # TEMPORARILY DISABLED: pull_request and issue_comment triggers suspended to conserve Actions minutes.
+  # TODO: Re-enable by restoring:
+  #   pull_request:
+  #     types: [opened, edited, synchronize, reopened, ready_for_review]
+  #     branches:
+  #       - main
+  #       - develop
+  #   issue_comment:
+  #     types: [created]
   workflow_dispatch:
     inputs:
       pr_number:
