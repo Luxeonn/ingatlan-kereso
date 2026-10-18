@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # scripts/validate-skills.sh
-# Deterministic Offline Validation for AI Specialist Skills, Directives & PR Gate
+# Deterministic offline validation for AI specialist skills, directives, and PR gates.
 #
 # Enforces:
-#  1. YAML Frontmatter presence, name alignment, and non-empty description
-#  2. Mandatory 8 sections in all specialist skills (fullstack, scraper, quality)
+#  1. YAML frontmatter presence, matching skill names, and non-empty descriptions
+#  2. Eight mandatory English-language sections in all specialist skills
 #  3. Standard decision tokens (FINDING, NO_FINDING, NOT_APPLICABLE, NOT_VERIFIED)
-#  4. Valid relative markdown file paths (no broken links, no file:// URIs)
-#  5. Complete absence of banned words and obsolete tech claims
+#  4. Valid relative Markdown links (no broken links or file:// URIs)
+#  5. No banned words or obsolete technology claims
 #
-# Returns:
-#  0 on 100% compliance
-#  1 on any diagnostic violation (fail-closed)
+# Exit codes:
+#  0 when all checks pass
+#  1 when any diagnostic violation is found (fail closed)
 # ==============================================================================
 
 set -euo pipefail
 
-# Determine repository root
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
@@ -27,7 +26,7 @@ for arg in "$@"; do
     -v|--verbose) VERBOSE=true ;;
     -h|--help)
       echo "Usage: $0 [-v|--verbose] [-h|--help]"
-      echo "Validates AI specialist skills, markdown links, and obsolete patterns."
+      echo "Validates AI specialist skills, Markdown links, and obsolete patterns."
       exit 0
       ;;
   esac
@@ -68,9 +67,9 @@ echo "Working directory: $REPO_ROOT"
 echo ""
 
 # ------------------------------------------------------------------------------
-# 1. Frontmatter Validation
+# 1. Frontmatter validation
 # ------------------------------------------------------------------------------
-echo "--- [1/5] Validating YAML Frontmatter in Specialist Skills ---"
+echo "--- [1/5] Validating YAML frontmatter in specialist skills ---"
 
 SKILL_DIRS=(
   ".agents/skills/fullstack-architect"
@@ -93,75 +92,69 @@ for dir in "${SKILL_DIRS[@]}"; do
     continue
   fi
 
-  # Find line number of closing '---' (bounded within top 15 lines)
   closing_line=$(awk 'NR>1 && NR<=15 && /^---[[:space:]]*$/ {print NR; exit}' "$skill_file")
   if [ -z "$closing_line" ]; then
     log_fail "Frontmatter is not closed with a second '---'" "$skill_file" 1
     continue
   fi
 
-  # Extract name and description from frontmatter
   name_val=$(awk -v end_line="$closing_line" 'NR>1 && NR<end_line && /^name:[[:space:]]*/ {sub(/^name:[[:space:]]*/, ""); print; exit}' "$skill_file" | tr -d '\r')
   desc_val=$(awk -v end_line="$closing_line" 'NR>1 && NR<end_line && /^description:[[:space:]]*/ {sub(/^description:[[:space:]]*/, ""); print; exit}' "$skill_file" | tr -d '\r')
-
-  # Clean leading/trailing quotes if present
   name_val=$(echo "$name_val" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
 
   if [ "$name_val" != "$expected_name" ]; then
     log_fail "Frontmatter name mismatch: expected '$expected_name', found '$name_val'" "$skill_file" 2
   else
-    log_pass "Skill '$expected_name' has valid matching name property"
+    log_pass "Skill '$expected_name' has a matching name property"
   fi
 
   if [ -z "$desc_val" ]; then
     log_fail "Frontmatter description is missing or empty" "$skill_file" 3
   else
-    log_pass "Skill '$expected_name' has non-empty description"
+    log_pass "Skill '$expected_name' has a non-empty description"
   fi
 done
 
 # ------------------------------------------------------------------------------
-# 2. Mandatory 8 Sections Validation
+# 2. Mandatory English-language section validation
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [2/5] Validating Mandatory 8 Sections in Specialist Skills ---"
+echo "--- [2/5] Validating the eight mandatory English-language sections ---"
 
 MANDATORY_SECTIONS=(
-  "Purpose & Activation|Cél és [aA]ktiválás"
-  "Scope & Non-Goals|Hatókör és [nN]em-[cC]élok"
-  "Required Workflow|Kötelező [mM]unkafolyamat"
-  "Review Checklist|Felülvizsgálati [eE]llenőrzőlista"
-  "Evidence & Output|Bizonyítékok és [kK]imenet"
-  "Standard Decision Semantics|Döntési [sS]zemantika"
-  "Stop Conditions|Megállási [fF]eltételek"
-  "Completion Criteria|Befejezési [kK]ritériumok"
+  "Purpose & Activation"
+  "Scope & Non-Goals"
+  "Required Workflow"
+  "Review Checklist"
+  "Evidence & Output"
+  "Standard Decision Semantics"
+  "Stop Conditions"
+  "Completion Criteria"
 )
 
 for dir in "${SKILL_DIRS[@]}"; do
   skill_file="$dir/SKILL.md"
-  if [ ! -f "$skill_file" ]; then continue; fi
+  [ -f "$skill_file" ] || continue
 
-  for sec_pat in "${MANDATORY_SECTIONS[@]}"; do
-    sec_name="${sec_pat%%|*}"
-    if ! grep -qiE "^[#]+ +[0-9.]* *($sec_pat)" "$skill_file"; then
-      log_fail "Missing mandatory section: '$sec_name'" "$skill_file"
+  for section in "${MANDATORY_SECTIONS[@]}"; do
+    if ! grep -qiE "^[#]+ +[0-9.]* *${section//&/\\&}([[:space:]]*$|[[:space:]]*\\()" "$skill_file"; then
+      log_fail "Missing mandatory English section: '$section'" "$skill_file"
     else
-      log_pass "$dir contains section '$sec_name'"
+      log_pass "$dir contains section '$section'"
     fi
   done
 done
 
 # ------------------------------------------------------------------------------
-# 3. Decision Tokens Validation
+# 3. Decision-token validation
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [3/5] Validating Decision Tokens in Specialist Skills ---"
+echo "--- [3/5] Validating standard decision tokens ---"
 
 DECISION_TOKENS=("FINDING" "NO_FINDING" "NOT_APPLICABLE" "NOT_VERIFIED")
-
 for dir in "${SKILL_DIRS[@]}"; do
   skill_file="$dir/SKILL.md"
-  if [ ! -f "$skill_file" ]; then continue; fi
+  [ -f "$skill_file" ] || continue
 
   for token in "${DECISION_TOKENS[@]}"; do
     if ! grep -q "$token" "$skill_file"; then
@@ -173,10 +166,10 @@ for dir in "${SKILL_DIRS[@]}"; do
 done
 
 # ------------------------------------------------------------------------------
-# 4. Markdown Links & Relative File Path Validation
+# 4. Markdown links and relative file paths
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [4/5] Validating Markdown Relative Links & File Paths ---"
+echo "--- [4/5] Validating relative Markdown links and file paths ---"
 
 DOC_FILES=(
   "README.md"
@@ -187,61 +180,36 @@ DOC_FILES=(
 )
 
 for dir in "${SKILL_DIRS[@]}"; do
-  if [ -f "$dir/SKILL.md" ]; then
-    DOC_FILES+=("$dir/SKILL.md")
-  fi
+  [ -f "$dir/SKILL.md" ] && DOC_FILES+=("$dir/SKILL.md")
 done
-
-if [ -f "docs/architecture.md" ]; then
-  DOC_FILES+=("docs/architecture.md")
-fi
+[ -f "docs/architecture.md" ] && DOC_FILES+=("docs/architecture.md")
 
 for doc in "${DOC_FILES[@]}"; do
-  if [ ! -f "$doc" ]; then continue; fi
+  [ -f "$doc" ] || continue
   doc_dir="$(dirname "$doc")"
 
   while IFS= read -r line_info; do
-    if [ -z "$line_info" ]; then continue; fi
+    [ -n "$line_info" ] || continue
     line_num="${line_info%%:*}"
     link_match="${line_info#*:}"
+    target=$(echo "$link_match" | sed -E 's/.*\]\(([^)]+)\)/\1/' | tr -d '\r' | xargs)
 
-    # Extract target inside (...)
-    target=$(echo "$link_match" | sed -E 's/.*\]\(([^)]+)\)/\1/' | tr -d '\r')
-    target="$(echo "$target" | xargs)"
-
-    # Rule 1: Ban file:// local URIs
     if [[ "$target" =~ ^file:// ]]; then
       log_fail "Forbidden local URI scheme (file://): '$target'" "$doc" "$line_num"
       continue
     fi
-
-    # Rule 2: Ban absolute Windows drive letters
     if [[ "$target" =~ ^[a-zA-Z]: ]]; then
       log_fail "Forbidden absolute drive path: '$target'" "$doc" "$line_num"
       continue
     fi
-
-    # Rule 3: Skip external web URLs and email links
-    if [[ "$target" =~ ^https?:// ]] || [[ "$target" =~ ^mailto: ]]; then
+    if [[ "$target" =~ ^https?:// ]] || [[ "$target" =~ ^mailto: ]] || [[ "$target" =~ ^# ]]; then
       continue
     fi
 
-    # Rule 4: Skip in-page anchors
-    if [[ "$target" =~ ^# ]]; then
-      continue
-    fi
-
-    # Strip anchor fragment and query parameters
     clean_target=$(echo "$target" | sed -E 's/[#?].*//')
-    if [ -z "$clean_target" ]; then
-      continue
-    fi
-
-    # Candidate 1: relative to the document directory
+    [ -n "$clean_target" ] || continue
     cand1="$doc_dir/$clean_target"
-    # Candidate 2: relative to the repository root
     cand2="$clean_target"
-
     if [ ! -e "$cand1" ] && [ ! -e "$cand2" ]; then
       log_fail "Broken relative link target: '$target' (resolved as '$cand1' or '$cand2')" "$doc" "$line_num"
     else
@@ -251,48 +219,39 @@ for doc in "${DOC_FILES[@]}"; do
 done
 
 # ------------------------------------------------------------------------------
-# 5. Banned Words & Obsolete Claims Scanner
+# 5. Banned words and obsolete claims
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [5/5] Scanning for Banned Words and Obsolete Tech Claims ---"
+echo "--- [5/5] Scanning for banned words and obsolete technology claims ---"
 
-# 5a. file:// anywhere in markdown files
 while IFS= read -r match; do
-  if [ -n "$match" ]; then
-    f=$(echo "$match" | cut -d: -f1)
-    l=$(echo "$match" | cut -d: -f2)
-    log_fail "Banned token 'file://' found in markdown file" "$f" "$l"
-  fi
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Banned token 'file://' found in Markdown file" "$f" "$l"
 done < <(grep -rnI 'file://' README.md gemini.md GEMINI.md .github/ .agents/skills/ docs/ 2>/dev/null || true)
 
-# 5b. Non-existent workflow pr-guard.yml
 while IFS= read -r match; do
-  if [ -n "$match" ]; then
-    f=$(echo "$match" | cut -d: -f1)
-    l=$(echo "$match" | cut -d: -f2)
-    log_fail "Banned reference 'pr-guard.yml' (must use 'pr-review.yml')" "$f" "$l"
-  fi
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Banned reference 'pr-guard.yml' (use 'pr-review.yml')" "$f" "$l"
 done < <(grep -rnI 'pr-guard\.yml' README.md gemini.md GEMINI.md .github/ .agents/skills/ docs/ 2>/dev/null || true)
 
-# 5c. Obsolete class WebDashboardHtml
 while IFS= read -r match; do
-  if [ -n "$match" ]; then
-    f=$(echo "$match" | cut -d: -f1)
-    l=$(echo "$match" | cut -d: -f2)
-    log_fail "Banned reference 'WebDashboardHtml' (class decommissioned)" "$f" "$l"
-  fi
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Banned reference 'WebDashboardHtml' (class decommissioned)" "$f" "$l"
 done < <(grep -rnI 'WebDashboardHtml' README.md gemini.md GEMINI.md .github/ .agents/skills/ .gemini/ src/ 2>/dev/null || true)
 
-# 5d. Obsolete Maven commands (must use Gradle: ./gradlew)
 while IFS= read -r match; do
-  if [ -n "$match" ]; then
-    f=$(echo "$match" | cut -d: -f1)
-    l=$(echo "$match" | cut -d: -f2)
-    log_fail "Banned command 'mvn' (project uses Gradle: './gradlew')" "$f" "$l"
-  fi
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Banned command 'mvn' (use Gradle: './gradlew')" "$f" "$l"
 done < <(grep -rnI -E '(mvn[[:space:]]|mvn test|mvn-compile)' README.md gemini.md GEMINI.md .github/ .agents/skills/ .gemini/ docs/ 2>/dev/null || true)
 
-# 5e. Obsolete persistence engines (SQLite & Nitrite) in active configurations and prompts
 BANNED_PERSISTENCE_FILES=(
   ".agents/skills/fullstack-architect/SKILL.md"
   ".agents/skills/scraper-security-engineer/SKILL.md"
@@ -307,46 +266,31 @@ BANNED_PERSISTENCE_FILES=(
 )
 
 for target in "${BANNED_PERSISTENCE_FILES[@]}"; do
-  if [ -f "$target" ]; then
-    # Scan for sqlite (case-insensitive)
-    while IFS= read -r match; do
-      if [ -n "$match" ]; then
-        l=$(echo "$match" | cut -d: -f1)
-        content=$(echo "$match" | cut -d: -f2-)
-        # Allow historical references if line explicitly notes retirement/deprecation
-        if echo "$content" | grep -qiE "(retired|deprecated|historical|phased out|removed|legacy)"; then
-          continue
-        fi
-        log_fail "Banned term 'sqlite' found in active instruction" "$target" "$l"
-      fi
-    done < <(grep -n -i 'sqlite' "$target" || true)
+  [ -f "$target" ] || continue
+  while IFS= read -r match; do
+    [ -n "$match" ] || continue
+    l=$(echo "$match" | cut -d: -f1)
+    content=$(echo "$match" | cut -d: -f2-)
+    echo "$content" | grep -qiE "(retired|deprecated|historical|phased out|removed|legacy)" && continue
+    log_fail "Banned term 'sqlite' found in active instruction" "$target" "$l"
+  done < <(grep -n -i 'sqlite' "$target" || true)
 
-    # Scan for nitrite (case-insensitive)
-    while IFS= read -r match; do
-      if [ -n "$match" ]; then
-        l=$(echo "$match" | cut -d: -f1)
-        content=$(echo "$match" | cut -d: -f2-)
-        if echo "$content" | grep -qiE "(retired|deprecated|historical|phased out|removed|legacy)"; then
-          continue
-        fi
-        log_fail "Banned term 'nitrite' found in active instruction" "$target" "$l"
-      fi
-    done < <(grep -n -i 'nitrite' "$target" || true)
-  fi
+  while IFS= read -r match; do
+    [ -n "$match" ] || continue
+    l=$(echo "$match" | cut -d: -f1)
+    content=$(echo "$match" | cut -d: -f2-)
+    echo "$content" | grep -qiE "(retired|deprecated|historical|phased out|removed|legacy)" && continue
+    log_fail "Banned term 'nitrite' found in active instruction" "$target" "$l"
+  done < <(grep -n -i 'nitrite' "$target" || true)
 done
 
-# 5f. Verify that production Java source and Gradle build files have zero SQLite/Nitrite
 while IFS= read -r match; do
-  if [ -n "$match" ]; then
-    f=$(echo "$match" | cut -d: -f1)
-    l=$(echo "$match" | cut -d: -f2)
-    log_fail "Banned persistence keyword found in source code / build script" "$f" "$l"
-  fi
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Banned persistence keyword found in source code / build script" "$f" "$l"
 done < <(grep -rniI -E '(sqlite|nitrite)' src/main/ build.gradle.kts 2>/dev/null || true)
 
-# ------------------------------------------------------------------------------
-# Validation Summary & Exit Code
-# ------------------------------------------------------------------------------
 echo ""
 echo "=============================================================================="
 if [ "$ERRORS" -gt 0 ]; then
@@ -354,7 +298,7 @@ if [ "$ERRORS" -gt 0 ]; then
   echo "=============================================================================="
   exit 1
 else
-  echo "✅ VALIDATION PASSED: 100% of skills, instructions, and links are compliant."
+  echo "✅ VALIDATION PASSED: all skills, instructions, and links comply."
   echo "=============================================================================="
   exit 0
 fi
