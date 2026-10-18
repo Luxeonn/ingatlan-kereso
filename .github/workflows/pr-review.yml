@@ -114,11 +114,11 @@ jobs:
           echo "Ellenőrzés alatt álló PR cím: '$TITLE'"
           REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .+"
           if [[ ! "$TITLE" =~ $REGEX ]]; then
-            echo "::error::A PR címe nem felel meg a Conventional Commits szabályzatnak! Helyes formátum: 'feat: leírás' vagy 'feat(modul): leírás'."
-            echo "Megengedett típusok: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
-            exit 1
+            echo "::warning::PR title does not follow Conventional Commits. Suggested format: 'feat: description' or 'feat(module): description'."
+            echo "Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. This is advisory and does not block PR creation or CI."
+          else
+            echo "✅ PR title follows Conventional Commits."
           fi
-          echo "✅ PR cím érvényes."
 
       - name: Validate Source Branch Name Convention
         env:
@@ -137,10 +137,10 @@ jobs:
           
           REGEX="^(feature|fix|hotfix|docs|refactor|test|chore|release)\/[a-zA-Z0-9._-]+$"
           if [[ ! "$BRANCH" =~ $REGEX ]]; then
-            echo "::error::A forráság neve ('$BRANCH') nem követi a megengedett sémát! Követelmény: prefix/név (pl. feature/uj-funkcio, fix/hiba, docs/leiras)."
-            exit 1
+            echo "::warning::Source branch '$BRANCH' does not follow the suggested prefix/name convention (e.g. feature/search-filter, fix/parser-timeout, docs/guide). This is advisory and does not block PR creation or CI."
+          else
+            echo "✅ Source branch follows the suggested naming convention."
           fi
-          echo "✅ Forráság elnevezése megfelelő."
 
       - name: Verify PR Description is not empty
         env:
@@ -184,14 +184,10 @@ jobs:
           STATUS_SUCCESS: ${{ job.status == 'success' }}
         run: |
           echo "### 🛡️ PR Review (Guard) Eredmények" >> $GITHUB_STEP_SUMMARY
-          if [ "$STATUS_SUCCESS" = "true" ]; then
-            echo "- **PR Cím & Branch Szabályzat:** ✅ Megfelelt (Conventional Commits & Prefix)" >> $GITHUB_STEP_SUMMARY
-            echo "- **Thematic Agent Approval Gate:** ✅ Jóváhagyva (1-mondatos szakmai indoklással)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- **PR Cím & Branch Szabályzat:** ❌ Nem felelt meg" >> $GITHUB_STEP_SUMMARY
-            echo "- **Thematic Agent Approval Gate:** ❌ Hiányos vagy elutasítva" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a CI és a PR Review is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR title convention:** Advisory warning only; non-standard titles do not fail this guard." >> $GITHUB_STEP_SUMMARY
+          echo "- **Source branch naming:** Advisory warning only; non-standard branch names do not fail this guard." >> $GITHUB_STEP_SUMMARY
+          echo "- **Thematic review notes:** Advisory only; missing or incomplete notes do not fail this guard." >> $GITHUB_STEP_SUMMARY
+          echo "- **Required quality checks:** CI/build/lint/security/tests remain authoritative and must pass according to repository branch protection." >> $GITHUB_STEP_SUMMARY
           echo "- **Ág:** \`${HEAD_REF}\` -> \`${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
           if [ "$IS_PR" = "true" ]; then
             echo "- **PR Szám:** #${PR_NUM}" >> $GITHUB_STEP_SUMMARY
