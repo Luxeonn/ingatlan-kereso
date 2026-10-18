@@ -23,7 +23,7 @@ class PropertyTypeUrlAndParsingTest {
     private final IngatlanComScraper icScraper = new IngatlanComScraper();
 
     @ParameterizedTest
-    @ValueSource(strings = {"lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"})
+    @ValueSource(strings = {"lakas", "haz", "telek"})
     void testAllPropertyTypesUrlGenerationDunaHouse(String type) {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Hajdúszoboszló");
@@ -39,18 +39,14 @@ class PropertyTypeUrlAndParsingTest {
 
         String expectedTypeSlug = switch (type) {
             case "haz" -> "haz";
-            case "garazs" -> "garazs";
             case "telek" -> "telek";
-            case "nyaralo" -> "nyaralo";
-            case "iroda" -> "iroda";
-            case "osszes" -> "lakas-haz";
             default -> "lakas";
         };
         assertTrue(url.contains("/" + expectedTypeSlug + "/"), "DH URL-nek tartalmaznia kell a típust (" + expectedTypeSlug + "): " + url);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"})
+    @ValueSource(strings = {"lakas", "haz", "telek"})
     void testAllPropertyTypesUrlGenerationOtthonCentrum(String type) {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Hajdúszoboszló");
@@ -63,18 +59,14 @@ class PropertyTypeUrlAndParsingTest {
 
         String expectedType = switch (type) {
             case "haz" -> "haz";
-            case "nyaralo" -> "nyaralo";
             case "telek" -> "telek";
-            case "garazs" -> "garazs";
-            case "iroda" -> "uzleticelu";
-            case "osszes" -> "lakas";
             default -> "lakas";
         };
         assertTrue(url.contains("/" + expectedType + "/"), "OC URL-nek tartalmaznia kell a típust (" + expectedType + "): " + url);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"})
+    @ValueSource(strings = {"lakas", "haz", "telek"})
     void testAllPropertyTypesUrlGenerationJofogas(String type) {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Hajdúszoboszló");
@@ -90,18 +82,14 @@ class PropertyTypeUrlAndParsingTest {
 
         String expectedTypeWord = switch (type) {
             case "haz" -> "haz";
-            case "garazs" -> "garazs";
             case "telek" -> "telek";
-            case "nyaralo" -> "nyaralo";
-            case "iroda" -> "iroda";
-            case "osszes" -> "ingatlan";
             default -> "lakas";
         };
         assertTrue(url.contains(expectedTypeWord), "Jófogás URL-nek tartalmaznia kell a típusszót (" + expectedTypeWord + "): " + url);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"})
+    @ValueSource(strings = {"lakas", "haz", "telek"})
     void testAllPropertyTypesUrlGenerationIngatlanCom(String type) {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setCity("Hajdúszoboszló");
@@ -114,6 +102,12 @@ class PropertyTypeUrlAndParsingTest {
         assertTrue(url.startsWith("https://ingatlan.com/lista/elado+"), "Ingatlan.com URL prefix hibás: " + url);
         assertTrue(url.contains("+hajduszoboszlo"), "Ingatlan.com URL-nek tartalmaznia kell a várost: " + url);
         assertTrue(url.contains("+100-120-mFt"), "Ingatlan.com URL-nek tartalmaznia kell az ársávot: " + url);
+        String expectedTypeSlug = switch (type) {
+            case "haz" -> "haz";
+            case "telek" -> "telek";
+            default -> "lakas";
+        };
+        assertTrue(url.contains("+" + expectedTypeSlug + "+"), "Ingatlan.com URL-nek tartalmaznia kell a típust (" + expectedTypeSlug + "): " + url);
     }
 
     @Test

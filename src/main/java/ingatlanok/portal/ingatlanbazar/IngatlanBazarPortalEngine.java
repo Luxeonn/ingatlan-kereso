@@ -24,7 +24,7 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
             "#7c3aed",
             "https://www.ingatlanbazar.hu",
             true,
-            List.of("lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"),
+            List.of("lakas", "haz", "telek"),
             true
     );
 

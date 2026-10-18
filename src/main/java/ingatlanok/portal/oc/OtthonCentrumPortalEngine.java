@@ -25,7 +25,7 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
             "#ea580c",
             "https://www.oc.hu",
             true,
-            List.of("lakas", "haz", "nyaralo", "telek", "garazs", "iroda", "osszes"),
+            List.of("lakas", "haz", "telek"),
             true
     );
 

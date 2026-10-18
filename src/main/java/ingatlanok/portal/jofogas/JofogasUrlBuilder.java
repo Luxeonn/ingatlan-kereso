@@ -20,11 +20,7 @@ public class JofogasUrlBuilder {
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         String typeWord = switch (rawType) {
             case "haz" -> "haz";
-            case "garazs" -> "garazs";
             case "telek" -> "telek";
-            case "nyaralo" -> "nyaralo";
-            case "iroda" -> "iroda";
-            case "osszes" -> "ingatlan";
             default -> "lakas";
         };
 

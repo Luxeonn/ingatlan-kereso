@@ -26,11 +26,7 @@ public class DunaHouseUrlBuilder {
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         String typeSlug = switch (rawType) {
             case "haz" -> "haz";
-            case "garazs" -> "garazs";
             case "telek" -> "telek";
-            case "nyaralo" -> "nyaralo";
-            case "iroda" -> "iroda";
-            case "osszes" -> "lakas-haz";
             default -> "lakas";
         };
 

@@ -33,14 +33,14 @@ class SearchCriteriaAndScraperTest {
         criteria.setMaxPriceMillion(60);
         criteria.setMinArea(80);
         criteria.setMaxArea(150);
-        criteria.setPropertyType("garazs");
+        criteria.setPropertyType("telek");
         criteria.setMinRooms(2);
 
         assertEquals(30, criteria.getMinPriceMillion());
         assertEquals(60, criteria.getMaxPriceMillion());
         assertEquals(80, criteria.getMinArea());
         assertEquals(150, criteria.getMaxArea());
-        assertEquals("garazs", criteria.getPropertyType());
+        assertEquals("telek", criteria.getPropertyType());
         assertEquals(2, criteria.getMinRooms());
 
         criteria.setPortalEnabled("custom", true);

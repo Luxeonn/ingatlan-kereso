@@ -23,11 +23,7 @@ public class OtthonCentrumUrlBuilder {
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         String typeSlug = switch (rawType) {
             case "haz" -> "haz";
-            case "nyaralo" -> "nyaralo";
             case "telek" -> "telek";
-            case "garazs" -> "garazs";
-            case "iroda" -> "uzleticelu";
-            case "osszes" -> "lakas";
             default -> "lakas";
         };
 

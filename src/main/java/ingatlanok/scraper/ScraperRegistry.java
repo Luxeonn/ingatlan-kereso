@@ -42,7 +42,7 @@ public class ScraperRegistry {
                                 "#3b82f6",
                                 "",
                                 true,
-                                List.of("lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"),
+                                List.of("lakas", "haz", "telek"),
                                 true
                         );
                     }
