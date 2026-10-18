@@ -20,7 +20,7 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 [Layer 3: Pluggable Portal Engines] (Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, Ingatlan.com)
              │
              ▼
-[Layer 4: Decoupled Persistence] (ListingStorage, ConfigStorage, SqliteListingStorage with WAL mode)
+[Layer 4: Decoupled Persistence] (ListingStorage, ConfigStorage, JpaIngatlanStorage: Embedded H2 dev / PostgreSQL 17 prod)
 ```
 
 1. **No Layer Inversion:** Never import Layer 1 (Presentation/Web) into Layer 2, 3, or 4.
@@ -33,7 +33,7 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 1. **Virtual Threads First:** Use Java 21 lightweight virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`).
 2. **Never Block Carrier Threads:** Avoid synchronized blocks around long I/O operations. Use concurrent data structures (`ConcurrentHashMap`, `ReentrantReadWriteLock`).
-3. **SQLite Concurrency (WAL Mode):** SQLite runs in WAL mode (`journal_mode=WAL`, `busy_timeout=15000`). Read transactions never block write transactions. Connection pooling is managed via HikariCP.
+3. **Decoupled JPA Persistence (Dual-Mode):** Primary persistence relies on Spring Data JPA through `JpaIngatlanStorage`. Development/CLI runs on embedded H2 (`jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1`), while production runs on PostgreSQL 17 in Docker Compose. Ephemeral in-memory H2 (`jdbc:h2:mem:testdb`) is used for hermetic tests. Storage abstraction contracts (`ListingStorage`, `ConfigStorage`) isolate business logic from database vendors.
 
 ---
 
@@ -47,7 +47,7 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 ## 4. Frontend & UI Integrity (React 19 + TypeScript + Vite)
 
-1. **Self-Contained Bundles:** Zero external CDN dependencies. All fonts, styles, scripts, and icons must be packaged into `src/main/resources/static/`.
+1. **Decoupled Frontend Serving & Typography:** The React 19 SPA client is completely decoupled from the Spring Boot backend (`src/main/resources/static/` is not used; `spring.web.resources.add-mappings: false` is enforced). Production SPA static assets are served directly by Nginx (reverse-proxying `/api` to Spring Boot), and local development runs via Vite proxy (port 5173). Typography uses Google Fonts CDN (Plus Jakarta Sans) loaded online in `frontend/index.html`.
 2. **Type Safety & Linting:** Strictly enforce `tsc --noEmit` and `eslint .`. Avoid `any` types and unsafe type assertions.
 3. **State Management:** Use Zustand for client UI and filter state, and TanStack Query for server state caching and synchronization.
 
@@ -66,4 +66,4 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 1. **Conventional Commits:** PR titles and commits must follow `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `chore: ...`.
 2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop`. Branch naming follows `feature/<name>`, `fix/<name>`, `refactor/<name>`.
-3. **Thematic Agent Approval Gate:** Every PR requires approval across architectural, security, database, frontend, workflow, and reliability domains.
+3. **Thematic Agent Approval Gate:** Every PR requires formal sign-off from designated specialist personas (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`) using standardized decision semantics (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, `[NOT_VERIFIED]`) and a mandatory 1-sentence rationale. See `docs/architecture.md` for the authoritative architectural specification.

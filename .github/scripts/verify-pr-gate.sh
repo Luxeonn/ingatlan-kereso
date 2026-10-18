@@ -28,7 +28,7 @@ echo "----------------------------------------"
 MISSING_APPROVALS=""
 
 # 1. Fullstack Architecture & UI (fullstack-architect)
-if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(core|presentation|web|persistence|model)/|Main\.java|frontend/|WebDashboardHtml\.java|static/"; then
+if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(core|presentation|web|persistence|model)/|Main\.java|frontend/|build\.gradle\.kts|settings\.gradle\.kts|docs/architecture\.md"; then
   echo "-> Érintett téma: Fullstack Architektúra, Perzisztencia vagy UI (fullstack-architect szükséges)"
   if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(fullstack-architect|Fullstack Architect)"; then
     MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🏛️ Fullstack Architect Agent (\`fullstack-architect\`): Rendszerarchitektúra, Spring Data JPA perzisztencia, React 19 UI vagy REST szerződés jóváhagyása szükséges."
@@ -44,7 +44,7 @@ if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(portal|scraper|co
 fi
 
 # 3. Minőségbiztosítás, Tesztelés & DevOps/CI (quality-devops-engineer)
-if echo "$CHANGED_FILES" | grep -qE "\.github/|Dockerfile|docker-compose|src/test/|frontend/.*test|pom\.xml|package\.json"; then
+if echo "$CHANGED_FILES" | grep -qE "\.github/|Dockerfile|docker-compose|src/test/|frontend/.*test|package\.json"; then
   echo "-> Érintett téma: Minőségbiztosítás, DevOps vagy CI/CD (quality-devops-engineer szükséges)"
   if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(quality-devops-engineer|Quality & DevOps)"; then
     MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ⚙️ Quality & DevOps Specialist (\`quality-devops-engineer\`): Tesztlefedettség, determinista tesztek, Docker vagy CI/CD pipeline jóváhagyása szükséges."

@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA / H2 persistence, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose).
+**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA persistence (embedded H2 for dev/CLI, PostgreSQL 17 for production), a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose). Authoritative architecture reference: [docs/architecture.md](docs/architecture.md).
 
 ### Workflow Architecture
 
@@ -130,10 +130,14 @@ ingatlan-kereso/
     │   ├── MarketStatsDto.java                  # Market analytics KPIs
     │   └── PortalStatusDto.java                 # Portal health status cards
     ├── scraper/                                 # Portal scraping data models and resolvers
+    ├── config/                                  # Layer 1b: Application & Web MVC Configuration
+    │   ├── CoreEngineConfig.java                # Core bean definitions
+    │   ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
+    │   ├── GraalVmRuntimeHints.java             # GraalVM AOT reflection hints
+    │   └── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & headless MVC configuration)
     └── web/                                     # Layer 1b: Embedded Web Server & REST API
         ├── RestApiController.java              # Spring MVC REST Controller (@RestController)
-        ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
-        └── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & MVC configuration)
+        └── GlobalExceptionHandler.java          # Structured JSON REST Exception Handler (@RestControllerAdvice)
 ```
 
 ---
@@ -143,7 +147,7 @@ ingatlan-kereso/
 1. **Spring Boot 4.1.0 & GraalVM Native Image:** High-performance, cloud-native execution with Ahead-of-Time (AOT) compilation and sub-second startup.
 2. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`spring.threads.virtual.enabled=true`). Scraping I/O and REST requests never block carrier threads.
 3. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
-4. **Decoupled Persistence & Spring Data JPA:** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is `JpaIngatlanStorage` on embedded H2, maintaining O(1) deduplication and fast queries without relational lock-in.
+4. **Decoupled Persistence & Spring Data JPA (Dual-Mode):** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is `JpaIngatlanStorage` utilizing Spring Data JPA with embedded H2 (`data/ingatlanok_jpa.mv.db`) for dev/CLI, PostgreSQL 17 for production Docker Compose, and in-memory H2 for hermetic tests, maintaining O(1) deduplication and fast queries without relational lock-in.
 5. **Modern Decoupled Frontend:** Autonomous React 19 + TypeScript + Vite SPA client with online Google Fonts CDN typography, served by Nginx in containerized environments with reverse proxy routing to the headless Spring Boot REST API.
 6. **Containerization & Clean Numeric Versioning:** Multi-stage Temurin JRE 21 Docker image and Docker Compose 3-tier architecture. Container images published to GHCR strictly follow clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
 
@@ -186,7 +190,7 @@ ingatlan-kereso/
 > 9. **Direct PR Link:** Always output a clickable GitHub PR link in the final conversation response.
 > 10. **Thematic Agent Approval Gate:**
 >     - Every PR requires sign-off from designated specialist agents (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`).
->     - Each agent must provide exactly **one concise sentence explaining** why the domain is marked `[OK]`, `[NOK]`, or `[N/A]`.
+>     - Each agent must provide the standard status token (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, or `[NOT_VERIFIED]`; shorthand `[OK]`, `[NOK]`, `[N/A]` also supported) and exactly **one concise sentence explaining** the rationale. Refer to [docs/architecture.md](docs/architecture.md) for domain specifications.
 > 11. **ONLY MERGE WHEN ALL CHECKS ARE GREEN:**
 >     - Pull requests are strictly mergeable **ONLY IF 100% OF CI AND PR GUARD CHECKS PASS (GREEN)**.
 >     - If any check fails, immediately execute the **Fix Loop** (diagnose, commit fix, push, re-verify).
