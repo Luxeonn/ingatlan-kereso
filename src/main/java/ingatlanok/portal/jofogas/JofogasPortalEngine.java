@@ -25,7 +25,7 @@ public class JofogasPortalEngine implements PortalEngine {
             "#059669",
             "https://ingatlan.jofogas.hu",
             true,
-            List.of("lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"),
+            List.of("lakas", "haz", "telek"),
             true
     );
 

@@ -79,6 +79,22 @@ class IngatlanBazarScraperTest {
     }
 
     @Test
+    void testBuildSearchAndApiUrlTelek() {
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setCity("Debrecen");
+        criteria.setPropertyType("telek");
+        criteria.setMinPriceMillion(10);
+        criteria.setMaxPriceMillion(30);
+
+        String url = scraper.buildSearchUrl(criteria);
+        assertTrue(url.contains("ingatlan-Debrecen-Elado-Telek"));
+        assertTrue(url.contains("property__2=5"));
+
+        String apiUrl = scraper.buildApiSearchUrl(criteria, 1);
+        assertTrue(apiUrl.contains("property__2=5"));
+    }
+
+    @Test
     void testParseItemsFromJson() {
         String mockJson = """
                 {

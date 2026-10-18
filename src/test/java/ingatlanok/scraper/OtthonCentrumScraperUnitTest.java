@@ -31,15 +31,10 @@ class OtthonCentrumScraperUnitTest {
         String bpUrl = scraper.buildSearchUrl(budapestCriteria);
         assertEquals("https://www.oc.hu/elado/lakas/budapest", bpUrl);
 
-        SearchCriteria officeCriteria = new SearchCriteria();
-        officeCriteria.setCity("Debrecen");
-        officeCriteria.setPropertyType("iroda");
-        assertEquals("https://www.oc.hu/elado/uzleticelu/debrecen", scraper.buildSearchUrl(officeCriteria));
-
-        SearchCriteria garageCriteria = new SearchCriteria();
-        garageCriteria.setCity("Szeged");
-        garageCriteria.setPropertyType("garazs");
-        assertEquals("https://www.oc.hu/elado/garazs/szeged", scraper.buildSearchUrl(garageCriteria));
+        SearchCriteria telekCriteria = new SearchCriteria();
+        telekCriteria.setCity("Debrecen");
+        telekCriteria.setPropertyType("telek");
+        assertEquals("https://www.oc.hu/elado/telek/debrecen", scraper.buildSearchUrl(telekCriteria));
     }
 
     @Test

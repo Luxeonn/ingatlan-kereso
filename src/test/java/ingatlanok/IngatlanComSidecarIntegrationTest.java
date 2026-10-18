@@ -146,11 +146,11 @@ public class IngatlanComSidecarIntegrationTest {
 
         SearchCriteria c2 = new SearchCriteria();
         c2.setCity("Budapest");
-        c2.setPropertyType("garazs");
+        c2.setPropertyType("telek");
         c2.setMinPriceMillion(5);
         c2.setMaxPriceMillion(null);
 
         String url2 = scraper.buildSearchUrl(c2);
-        assertEquals("https://ingatlan.com/lista/elado+garazs+budapest+5-mFt-tol", url2);
+        assertEquals("https://ingatlan.com/lista/elado+telek+budapest+5-mFt-tol", url2);
     }
 }

@@ -9,11 +9,7 @@ interface PropertyTypeTabsProps {
 const TYPES = [
   { id: 'lakas', label: 'Lakás' },
   { id: 'haz', label: 'Ház' },
-  { id: 'garazs', label: 'Garázs' },
   { id: 'telek', label: 'Telek' },
-  { id: 'nyaralo', label: 'Nyaraló' },
-  { id: 'iroda', label: 'Iroda' },
-  { id: 'osszes', label: 'Összes típus' },
 ]
 
 export const PropertyTypeTabs: FC<PropertyTypeTabsProps> = ({ value, onChange }) => {

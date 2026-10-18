@@ -25,11 +25,7 @@ public class IngatlanBazarQueryBuilder {
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         String typeSlug = switch (rawType) {
             case "haz" -> "Haz";
-            case "garazs" -> "Garazs";
             case "telek" -> "Telek";
-            case "nyaralo" -> "Nyaralo";
-            case "iroda" -> "Iroda";
-            case "osszes" -> "Lakas-es-Haz";
             default -> "Lakas";
         };
 
@@ -46,8 +42,8 @@ public class IngatlanBazarQueryBuilder {
 
         if ("haz".equals(rawType)) {
             query.append("property__2=2&");
-        } else if ("osszes".equals(rawType)) {
-            query.append("property__2=3_2&");
+        } else if ("telek".equals(rawType)) {
+            query.append("property__2=5&");
         } else {
             query.append("property__2=3&");
         }
@@ -74,10 +70,6 @@ public class IngatlanBazarQueryBuilder {
         String rawType = criteria.getPropertyType() != null ? criteria.getPropertyType().toLowerCase().trim() : "lakas";
         if ("haz".equals(rawType)) {
             sb.append("&property__2=2");
-        } else if ("osszes".equals(rawType)) {
-            sb.append("&property__2=3_2");
-        } else if ("garazs".equals(rawType)) {
-            sb.append("&property__2=4");
         } else if ("telek".equals(rawType)) {
             sb.append("&property__2=5");
         } else {

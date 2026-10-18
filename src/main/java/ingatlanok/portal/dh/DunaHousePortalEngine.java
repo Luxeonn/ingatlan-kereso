@@ -25,7 +25,7 @@ public class DunaHousePortalEngine implements PortalEngine {
             "#1d4ed8",
             "https://dh.hu",
             true,
-            List.of("lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"),
+            List.of("lakas", "haz", "telek"),
             true
     );
 

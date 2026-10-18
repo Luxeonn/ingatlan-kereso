@@ -30,7 +30,7 @@ public class IngatlanComPortalEngine implements PortalEngine {
             "#0284c7",
             "https://ingatlan.com",
             true,
-            List.of("lakas", "haz", "garazs", "telek", "nyaralo", "iroda", "osszes"),
+            List.of("lakas", "haz", "telek"),
             false
     );
 
