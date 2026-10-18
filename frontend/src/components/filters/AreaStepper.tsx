@@ -14,9 +14,9 @@ export const AreaStepper: FC<AreaStepperProps> = ({
   label,
   value,
   onChange,
-  min = 10,
+  min = 1,
   max = 1000,
-  step = 10,
+  step = 1,
 }) => {
   const handleDecrement = () => {
     onChange(Math.max(min, value - step))

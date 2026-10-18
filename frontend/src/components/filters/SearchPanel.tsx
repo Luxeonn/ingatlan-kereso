@@ -89,32 +89,32 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
               value={criteria.minPriceMillion}
               onChange={setMinPriceMillion}
               min={0}
-              max={criteria.maxPriceMillion - 5}
-              step={5}
+              max={criteria.maxPriceMillion - 1}
+              step={1}
             />
             <PriceStepper
               label="Maximális ár"
               value={criteria.maxPriceMillion}
               onChange={setMaxPriceMillion}
-              min={criteria.minPriceMillion + 5}
+              min={criteria.minPriceMillion + 1}
               max={1000}
-              step={5}
+              step={1}
             />
             <AreaStepper
               label="Minimális alapterület"
               value={criteria.minArea}
               onChange={setMinArea}
-              min={10}
-              max={criteria.maxArea - 10}
-              step={10}
+              min={1}
+              max={criteria.maxArea - 1}
+              step={1}
             />
             <AreaStepper
               label="Maximális alapterület"
               value={criteria.maxArea}
               onChange={setMaxArea}
-              min={criteria.minArea + 10}
+              min={criteria.minArea + 1}
               max={1000}
-              step={10}
+              step={1}
             />
           </div>
 
