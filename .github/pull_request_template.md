@@ -1,58 +1,34 @@
-### 🛡️ Thematic Agent Approval Gate
-
-> [!IMPORTANT]
-> Section 5 of [GEMINI.md](../gemini.md) and `.github/workflows/pr-review.yml` mandate designated specialist approvals.
-> Each reviewer must check the box (`[x]`), provide a valid decision token (`[NO_FINDING]` / `[OK]`, `[NOT_APPLICABLE]` / `[N/A]`, or `[FINDING]` / `[NOK]`, `[NOT_VERIFIED]`), and write **exactly one concise sentence explaining** the technical rationale.
-> A PR can only be merged if 100% of touched domains are signed off with a positive token (`[NO_FINDING]` / `[OK]` or `[NOT_APPLICABLE]` / `[N/A]`).
-
-- [ ] Fullstack Architecture & UI (`fullstack-architect`): [NO_FINDING / NOT_APPLICABLE / FINDING / NOT_VERIFIED] – [1-sentence rationale]
-- [ ] Scraper & Security (`scraper-security-engineer`): [NO_FINDING / NOT_APPLICABLE / FINDING / NOT_VERIFIED] – [1-sentence rationale]
-- [ ] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING / NOT_APPLICABLE / FINDING / NOT_VERIFIED] – [1-sentence rationale]
-
----
-
 ## Context & Goal
 
-<!-- Provide a concise summary of why this change was made and what problem it solves. -->
-
----
+<!-- Briefly explain what changed and why. Plain free-form text is accepted. -->
 
 ## Detailed Technical Changes
 
-<!-- Detail changes at the component and file level:
-1. Which classes, modules, and interfaces were modified and why?
-2. What design patterns or algorithms were introduced? -->
-
----
+<!-- Optional: list the main files, modules, or behavior affected. -->
 
 ## Related Issues
 
-<!-- Use official auto-closing keywords (e.g., Closes #123, Fixes #456). -->
-- Closes #
-
----
+<!-- Optional: Closes #123 / Fixes #456 -->
 
 ## User & Operational Impact
 
-<!-- What does the end user or operations team observe after this change? -->
-
----
+<!-- Optional: describe any user-visible or operational impact. -->
 
 ## How to Validate
 
-<!-- Detail automated and manual verification steps:
-- [ ] Skills & instructions validation: bash scripts/validate-skills.sh
-- [ ] Gradle test & verification: ./gradlew check (clean pass, 0 errors)
-- [ ] Frontend test execution: cd frontend && npm test
-- [ ] Docker Compose smoke test: bash scripts/smoke-test-docker-compose.sh -->
+<!-- Optional: list checks you ran, e.g. ./gradlew check or bash scripts/validate-skills.sh. -->
 
----
+## Optional Thematic Review Notes
+
+<!-- These notes help reviewers but are advisory. You may omit this section or leave it incomplete.
+     CI/build/test/security checks, not PR-description formatting, determine technical pass/fail. -->
+
+- [ ] Fullstack Architecture & UI (fullstack-architect): [optional finding or rationale]
+- [ ] Scraper & Security (scraper-security-engineer): [optional finding or rationale]
+- [ ] Quality & DevOps (quality-devops-engineer): [optional finding or rationale]
 
 ## Pre-Submission Checklist
 
-- [ ] PR title strictly follows Conventional Commits (`feat: ...`, `fix: ...`, `docs: ...`).
-- [ ] Source branch follows naming convention (`feature/...`, `fix/...`, `docs/...`).
-- [ ] Source branch originates from `develop` and targets `develop`.
-- [ ] Discrete atomic commits used without squashing work-in-progress.
-- [ ] Appropriate GitHub label added (`enhancement`, `bug`, `documentation`, `architecture`, `ci`).
-- [ ] 🟢 **ONLY MERGE WHEN ALL CHECKS ARE GREEN:** 100% of CI and PR Review (Guard) checks must pass.
+- [ ] PR title follows Conventional Commits where practical (e.g. docs: clarify setup).
+- [ ] Source branch uses a descriptive name (e.g. feature/search-filter, fix/parser-timeout, docs/guide).
+- [ ] Target branch is appropriate (normally develop).

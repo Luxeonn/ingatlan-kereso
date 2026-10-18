@@ -1,168 +1,187 @@
 ---
 name: scraper-security-engineer
-description: Web scraping robusztussági, adatkinyerési és alkalmazásbiztonsági (AppSec) mérnök. Használd ezt a skillt portál scraper motorok (Jsoup DOM, JSON-LD, belső REST API-k) fejlesztéséhez és karbantartásához, Cloudflare/WAF bot-védelem detektálásához és kezeléséhez, valamint a Spring Boot 4.1.0 beágyazott webszerver és REST API hardeninghez (CORS szűrők, CSP, localhost kötés, headless API védelem), bemenet-validációhoz, XSS/SSRF és injekciós sebezhetőségek elhárításához.
+description: Web scraping reliability, data extraction, and application security (AppSec) engineer. Use this skill to develop and maintain portal scraper engines (Jsoup DOM, JSON-LD, internal REST APIs), detect and handle Cloudflare/WAF bot protection, harden the Spring Boot 4.1.0 embedded web server and REST API (CORS filters, CSP, localhost binding, and headless API safeguards), validate inputs, and remediate XSS, SSRF, and injection vulnerabilities.
 ---
 
 # Scraper & Security Specialist
 
-Ez a szakértői skill felel a **külső web scraping motorok stabilitásáért (0-Crash Resilience)** és a **rendszer alkalmazásszintű biztonságáért (AppSec & Server Hardening)**.
+This specialist skill owns **external web-scraper reliability (zero-crash resilience)** and **application security (AppSec and server hardening)**.
 
 ---
 
-## 1. Purpose & Activation (Cél és Aktiválás)
+## 1. Purpose & Activation
 
-### Elsődleges Küldetés (Primary Mission)
-Biztosítani az ingatlan aggregátor portálmotorjainak üzembiztos adatkinyerését bármely külső DOM változás, hálózati timeout vagy WAF/bot-védelem esetén, megakadályozva a szerver összeomlását; valamint garantálni az alkalmazás teljes körű védelmét SSRF, CORS visszaélések, injection és jogosulatlan hálózati hozzáférések ellen.
+### Primary Mission
 
-### Aktiválási Feltételek (Activation Triggers)
-A skill aktiválása kötelező minden olyan feladatban, PR-ban vagy kódelemzésben, amely érinti az alábbi területeket:
-- **Portálmotorok és kinyerési logika**: `src/main/java/ingatlanok/portal/**`
-- **Scraper adatmodellek és segédeszközök**: `src/main/java/ingatlanok/scraper/**`, `src/main/java/ingatlanok/common/HttpFetcher.java`, `src/main/java/ingatlanok/common/PropertyParser.java`
-- **Hálózati és biztonsági szűrők**: `src/main/java/ingatlanok/web/GlobalCorsFilter.java`, `src/main/java/ingatlanok/web/SpaWebMvcConfig.java`
-- **Böngésző- és CLI kisegítők**: `src/main/java/ingatlanok/common/BrowserUtils.java`, `src/main/java/ingatlanok/common/SidecarCliExecutor.java`
-- **PR Címkék**: `scraper`, `security`, `portal`, `bug`
+Keep property-portal scraping reliable despite external DOM changes, network timeouts, and WAF/bot protection, while preventing scraper failures from crashing the service. Maintain strong AppSec controls across the Spring Boot REST API, request validation, and server configuration.
 
----
+### Activation Triggers
 
-## 2. Scope & Non-Goals (Hatókör és Nem-célok)
+Activate this skill for any task, pull request, or code review affecting any of the following:
 
-### Közvetlen Hatáskör (In-Scope Responsibilities)
-1. **6 Portálmotor és Kinyerési Stratégiák (`PortalEngine`)**:
-   - Duna House (`dh.hu`): Jsoup DOM elemzés és URL slug generálás.
-   - Otthon Centrum (`oc.hu`): Jsoup kártyaelemzés modern `Sec-Ch-Ua` kliensfejlécekkel.
-   - Jófogás (`jofogas.hu`): Jsoup DOM kinyerés ár- és település-regex tisztítással.
-   - Költözzbe (`koltozzbe.hu`): Hibrid DOM és Schema.org JSON-LD kinyerés.
-   - Ingatlanbazár (`ingatlanbazar.hu`): Belső JSON REST API (`/api/property-search`) fogyasztás településkódokkal.
-   - Ingatlan.com (`ingatlan.com`): Elegáns fallback motor. Cloudflare védelem felismerése és közvetlen keresési link biztosítása blokkolás nélkül.
-2. **0-Crash Elv és Hibatűrés**:
-   - Egyetlen portál hibája sem állíthatja meg a hívó szálat vagy a párhuzamos aggregációt.
-   - Strukturált státuszok visszaadása: `SUCCESS`, `EMPTY`, `BOT_PROTECTED`, `FAILED`.
-   - Szigorú 15 másodperces connect és read timeout minden hálózati hívásnál.
-3. **AppSec & Szerver Hardening**:
-   - Alapértelmezett `127.0.0.1` localhost kötés lokális és CLI futtatásnál.
-   - `GlobalCorsFilter` (`@Order(Ordered.HIGHEST_PRECEDENCE)`) szigorú origin ellenőrzéssel. Wildcard (`*`) hitelesítő adatokkal szigorúan tiltott.
-   - Biztonsági fejlécek: `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`.
-   - SSRF védelem: Kimenő hívások kizárólag az előre definiált, fehérlistázott portál domainek felé engedélyezettek.
-   - Bemenet-validáció és sanitization: Keresési feltételek (ár, méret, szobaszám, település) fertőtlenítése, injekciók megelőzése.
-
-### Kifejezett Nem-célok (Explicit Non-Goals)
-- **Frontend felülettervezés és KPI komponensek**: A React felület kialakítása és az állapotkezelés a `fullstack-architect` hatásköre.
-- **CI/CD pipeline-ok, Dockerfile optimalizálás és lefedettségi kapuk**: A GitHub Actions munkafolyamatok és a JaCoCo ellenőrzések a `quality-devops-engineer` hatásköre.
+- **Portal engines and shared scraping utilities**: `src/main/java/ingatlanok/portal/**`, `src/main/java/ingatlanok/scraper/**`, `src/main/java/ingatlanok/common/HttpFetcher.java`
+- **Web server and API security**: `src/main/java/ingatlanok/web/**`, `src/main/java/ingatlanok/config/GlobalCorsFilter.java`, `src/main/java/ingatlanok/config/SpaWebMvcConfig.java`
+- **Input parsing and validation**: `src/main/java/ingatlanok/common/PropertyParser.java`, search criteria and URL-building code
+- **Outbound network boundaries**: HTTP clients, request headers, timeouts, allowed domains, redirect handling
+- **Security-related configuration and dependencies**: `build.gradle.kts`, `application.yml`, Docker and environment configuration
+- **PR labels**: `security`, `scraping`, `backend`
 
 ---
 
-## 3. Required Workflow (Kötelező Munkafolyamat)
+## 2. Scope & Non-Goals
 
-A specialistának minden felülvizsgálat során a következő 4 fázisú folyamatot kell végrehajtania:
+### In-Scope Responsibilities
+
+1. **Resilient portal scraping**:
+   - Handle network failures, timeouts, rate limiting, changed HTML, missing fields, and bot-protection pages without crashing the application.
+   - Return an explicit portal status such as `BOT_PROTECTED` or `FAILED`, including a direct search link where available.
+   - Keep one slow or stalled portal from indefinitely blocking `SearchExecutionEngine`.
+2. **Network requests and timeouts**:
+   - Route HTTP requests through the centralized `HttpFetcher`.
+   - Enforce a 15-second (15,000 ms) connect/read timeout; infinite waits are prohibited.
+   - Use realistic browser headers where required, including `User-Agent`, `Sec-Ch-Ua`, and `Accept-Language: hu-HU`.
+3. **SSRF prevention and domain allowlisting**:
+   - Restrict scraper requests to the six approved domains: `dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, and `ingatlan.com`.
+   - Prevent fetching arbitrary URLs supplied by untrusted user input.
+4. **Input validation and injection prevention**:
+   - Validate and normalize search criteria (city, price, floor area, and room count).
+   - Protect regex parsing (`PropertyParser`) against ReDoS.
+   - Avoid unparameterized SQL/HQL and string-concatenated database queries.
+5. **Spring Boot server hardening and CORS**:
+   - Bind to `127.0.0.1` by default in local environments where appropriate.
+   - Configure `GlobalCorsFilter` to accept only approved origins; never combine wildcard `*` with `allowCredentials=true`.
+   - Keep security headers active, including `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
+
+### Explicit Non-Goals
+
+- **Core business logic and persistence architecture** belong to `fullstack-architect`.
+- **CI/CD pipelines, container release workflows, and quality gates** belong to `quality-devops-engineer`.
+
+---
+
+## 3. Required Workflow
+
+For every review, the specialist must follow this four-phase workflow:
 
 ```
 ┌─────────────────────────────────┐
-│ 1. Érintett Motorok & Hálózat   │ ➔ Portál azonosítás, kimenő hívások felmérése
+│ 1. Engines & Network Audit      │ ➔ Portal scope and outbound request inventory
 └─────────────────────────────────┘
                 │
                 ▼
 ┌─────────────────────────────────┐
-│ 2. 0-Crash & Biztonsági Audit   │ ➔ Exception handling, timeout, SSRF, CORS, injection
+│ 2. Resilience & Security Audit  │ ➔ Exceptions, timeouts, SSRF, CORS, injection
 └─────────────────────────────────┘
                 │
                 ▼
 ┌─────────────────────────────────┐
-│ 3. Offline Minta & Szimuláció   │ ➔ Jsoup DOM parser teszt offline HTML mintákkal
+│ 3. Offline Fixture Verification │ ➔ Jsoup parser tests against offline HTML fixtures
 └─────────────────────────────────┘
                 │
                 ▼
 ┌─────────────────────────────────┐
-│ 4. Szintézis & Döntéshozatal    │ ➔ Thematic Gate státusz (NO_FINDING / FINDING)
+│ 4. Synthesis & Decision         │ ➔ Thematic gate status (NO_FINDING / FINDING)
 └─────────────────────────────────┘
 ```
 
-1. **1. fázis: Érintett Motorok és Hálózati Hívások Felmérése**:
-   - Határozd meg, mely portálmotorok vagy közös hálózati segédosztályok (`HttpFetcher`) módosultak.
-   - Ellenőrizd a cél URL-ek felépítését és a domain-fehérlista érvényességét.
-2. **2. fázis: 0-Crash és Biztonsági Audit**:
-   - Győződj meg róla, hogy minden külső hívás `try-catch` blokkba van zárva, és hiba esetén strukturált `PortalScrapeResult` objektumot ad vissza.
-   - Ellenőrizd, hogy a timeout pontosan 15 másodpercre van korlátozva (`HttpFetcher.DEFAULT_TIMEOUT_MS = 15000`).
-   - Vizsgáld meg a CORS, CSP és bemenet-validációs szabályok sértetlenségét.
-3. **3. fázis: Offline Minta és Szimulációs Ellenőrzés**:
-   - Ellenőrizd a parser működését a meglévő determinista offline egységtesztekkel (`src/test/java/ingatlanok/portal/**`). Élő hálózati scraping tilos az egységtesztek alatt!
-   - Győződj meg róla, hogy a parser robusztusan kezeli az üres, hiányos vagy megváltozott HTML struktúrákat.
-4. **4. fázis: Szintézis és Döntéshozatal**:
-   - Döntési token meghatározása (`NO_FINDING`, `FINDING`, `NOT_APPLICABLE`, `NOT_VERIFIED`).
-   - Pontosan 1 mondatos szakmai indoklás megfogalmazása a PR Gate számára.
+1. **Phase 1: Identify engines and network calls**
+   - Identify the affected portal engines or shared networking utilities (`HttpFetcher`).
+   - Trace URL construction, redirects, request headers, timeout configuration, and response handling.
+2. **Phase 2: Resilience and security review**
+   - Verify that expected network, parsing, and bot-protection failures are handled without terminating the search or server.
+   - Check SSRF protections, the allowed-domain list, request validation, CORS behavior, and security headers.
+   - Confirm that a slow engine cannot indefinitely block the parallel search coordinator.
+3. **Phase 3: Offline fixture and simulation checks**
+   - Verify parser behavior using deterministic offline unit tests (`src/test/java/ingatlanok/portal/**`). Unit tests must never perform live scraping.
+   - Confirm robust handling of empty, incomplete, or changed HTML structures.
+4. **Phase 4: Synthesis and decision**
+   - Determine the decision token (`NO_FINDING`, `FINDING`, `NOT_APPLICABLE`, or `NOT_VERIFIED`).
+   - Provide exactly one concise, professional rationale sentence for the PR gate.
 
 ---
 
-## 4. Review Checklist (Felülvizsgálati Ellenőrzőlista)
+## 4. Review Checklist
 
-### A. 0-Crash Garancia és Kivételkezelés
-- [ ] Egyetlen scraper metódus sem dob kezeletlen kivételt (pl. `SocketTimeoutException`, `HttpStatusException`, `NullPointerException`).
-- [ ] Hálózati vagy elemzési hiba esetén a motor `BOT_PROTECTED` vagy `FAILED` státuszú eredményt ad vissza, kiegészítve a közvetlen keresőlinkkel.
-- [ ] A párhuzamos aggregátor (`SearchExecutionEngine`) egyetlen motor lassulása vagy elakadása miatt sem fagy be.
+### A. Zero-Crash Resilience and Exception Handling
 
-### B. Hálózati Hívások és Időkorlátok
-- [ ] Minden HTTP kérés a központosított `HttpFetcher`-en keresztül fut le.
-- [ ] A connect és read timeoutok szigorúan 15 másodpercre (15000 ms) vannak korlátozva; végtelen várakozás tilos.
-- [ ] A kérések valósághű böngésző fejléceket (`User-Agent`, `Sec-Ch-Ua`, `Accept-Language: hu-HU`) használnak.
+- [ ] No scraper method allows an expected external network or parsing exception to escape without appropriate handling.
+- [ ] On network or parsing failure, the engine returns a `BOT_PROTECTED` or `FAILED` result and includes a direct search link where possible.
+- [ ] A slow or stalled engine cannot freeze the parallel aggregator (`SearchExecutionEngine`).
 
-### C. SSRF Védelem és Domain Fehérlistázás
-- [ ] A scraper motorok kizárólag a 6 engedélyezett domainre indítanak hálózati kérést (`dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, `ingatlan.com`).
-- [ ] Felhasználói bemenetből származó tetszőleges URL lekérése (SSRF) szigorúan megakadályozott.
+### B. Network Requests and Timeouts
 
-### D. Bemenet-validáció és Injekció Védelem
-- [ ] Keresési feltételek (település, árak, négyzetméter, szobaszám) validáltak és tisztítottak.
-- [ ] Regex elemzések (`PropertyParser`) védettek a ReDoS (túlzott visszalépéses regex) támadások ellen.
-- [ ] Nincsenek nyers SQL vagy H2 string összefűzések, amelyek injection sebezhetőséget okozhatnának.
+- [ ] Every HTTP request goes through the centralized `HttpFetcher`.
+- [ ] Connect and read timeouts are limited to 15 seconds (15,000 ms); infinite waits are prohibited.
+- [ ] Requests use realistic browser headers where required (`User-Agent`, `Sec-Ch-Ua`, and `Accept-Language: hu-HU`).
 
-### E. Spring Boot Szerver Hardening & CORS
-- [ ] Alapértelmezett `127.0.0.1` localhost címhez kötés lokális környezetben.
-- [ ] A `GlobalCorsFilter` kizárólag engedélyezett origin-eket fogad el; wildcard `*` hitelesítő adatokkal (`allowCredentials=true`) tilos.
-- [ ] A biztonsági fejlécek (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`) aktívak.
+### C. SSRF Prevention and Domain Allowlisting
+
+- [ ] Scraper engines send requests only to the six approved domains (`dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, `ingatlan.com`).
+- [ ] Fetching arbitrary URLs derived from user input is prevented.
+
+### D. Input Validation and Injection Prevention
+
+- [ ] Search criteria (city, prices, floor area, and room count) are validated and normalized.
+- [ ] Regex parsing in `PropertyParser` is protected against ReDoS.
+- [ ] No raw SQL or H2 string concatenation introduces injection risk.
+
+### E. Spring Boot Server Hardening and CORS
+
+- [ ] Local development binds to `127.0.0.1` by default where appropriate.
+- [ ] `GlobalCorsFilter` accepts only approved origins; wildcard `*` is never combined with credentials (`allowCredentials=true`).
+- [ ] Security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`) remain enabled.
 
 ---
 
-## 5. Evidence & Output (Bizonyítékok és Kimenet)
+## 5. Evidence & Output
 
-A felülvizsgálat során a szakértő köteles az alábbi kézzelfogható bizonyítékokat rögzíteni:
-- **0-Crash és Timeout Igazolás**: Forráskódbeli hivatkozás a 15 másodperces timeoutra és a try-catch blokkokra.
-- **SSRF és Domain Whitelist Igazolás**: Az érintett motor URL-építési logikájának igazolása.
-- **Offline Parser Teszteredmény**: Az érintett portál offline tesztjeinek kimenete (`./gradlew test --tests "*PortalEngineTest*"`).
+The specialist must record the following concrete evidence during review:
 
-### Jóváhagyási Formátum (Thematic Agent Approval Gate Output)
-A Pull Request leírásának Thematic Gate blokkjába illesztendő szöveg:
+- **Zero-crash and timeout evidence**: Cite source locations for timeout enforcement and exception handling.
+- **SSRF and domain-allowlist evidence**: Verify URL-construction and validation logic in the affected engines.
+- **Offline parser-test results**: Record results for affected portal tests, for example `./gradlew test --tests "*PortalEngineTest*"`.
+
+### Thematic Agent Approval Gate Output
+
+Use the following text in the Pull Request's Thematic Gate block:
+
 ```markdown
-- [x] Scraper & Security (`scraper-security-engineer`): [NO_FINDING / NOT_APPLICABLE] – [Pontosan 1 tömör összefoglaló mondat a scraper 0-crash hibatűréséről és az AppSec hardeningről]
+- [x] Scraper & Security (`scraper-security-engineer`): [NO_FINDING / NOT_APPLICABLE] - [One concise sentence describing scraper resilience and AppSec hardening]
 ```
-*Megjegyzés: `FINDING` státusz esetén az `[x]` helyett `[ ]` marad, a státusz `[FINDING]`, és a PR leírásában vagy kommentben részletes hibajelentést kell csatolni.*
+
+*Note: For `FINDING`, leave the checkbox unchecked (`[ ]`), set the status to `[FINDING]`, and attach a detailed report in the PR description or a comment.*
 
 ---
 
-## 6. Standard Decision Semantics (Döntési Szemantika)
+## 6. Standard Decision Semantics
 
-- **`FINDING`**: Kezeletlen hálózati kivétel, hiányzó timeout, SSRF kockázat, hibás CORS beállítás, vagy bot-védelem esetén bekövetkező szerverösszeomlás észlelésekor.
-  - *Kötelező formátum*: `FINDING: [Súlyosság: CRITICAL/MAJOR/MINOR] - [Fájl:Sor] - [Leírás és javítási útmutató]`
-- **`NO_FINDING`**: A módosított scraperek maradéktalanul teljesítik a 0-crash elvet, a timeoutok és domain korlátozások aktívak, a biztonsági szűrők sértetlenek.
-- **`NOT_APPLICABLE`**: A módosítás kizárólag frontend stílusokat, adatbázis entitásokat vagy CI scripteket érint, és nem érinti a scraper réteget, hálózati hívásokat vagy szerverbiztonságot.
-- **`NOT_VERIFIED`**: A scraper tesztek vagy a biztonsági audit nem futtatható le. Fail-closed védelemként a PR nem hagyható jóvá!
-
----
-
-## 7. Stop Conditions (Megállási Feltételek)
-
-A szakértő azonnal MEGÁLL, elutasítja a jóváhagyást, és `FINDING` státuszt állít ki az alábbi feltételek bármelyike esetén:
-1. **0-Crash Sérülés**: Kezeletlen kivétel (Unhandled Exception), amely a párhuzamos aggregátor szál leállását eredményezheti.
-2. **Hiányzó vagy Végtelen Timeout**: Olyan hálózati hívás jelenléte, amely nem specifikálja a szigorú 15 másodperces connect/read timeoutot.
-3. **SSRF Kockázat**: Felhasználótól érkező ellenőrizetlen URL lekérése engedélyezett domain fehérlista nélkül.
-4. **Megengedő CORS Wildcard**: `Access-Control-Allow-Origin: *` használata bekapcsolt hitelesítő adatokkal vagy preflight szűrés nélkül.
-5. **Hardkódolt Szenzitív Adatok**: API kulcsok, jelszavak vagy privát tokenek forráskódban való elhelyezése.
-6. **SQL / H2 Injection Kockázat**: Paraméterezetlen, összefűzött SQL/HQL lekérdezések használata.
+- **`FINDING`**: Use when an unhandled network exception, missing timeout, SSRF risk, invalid CORS configuration, or server crash during bot protection is identified.
+  - *Required format*: `FINDING: [Severity: CRITICAL/MAJOR/MINOR] - [File:Line] - [Description and remediation guidance]`
+- **`NO_FINDING`**: The modified scrapers follow zero-crash resilience, timeout and domain restrictions are active, and security filters remain intact.
+- **`NOT_APPLICABLE`**: The change only affects frontend styling, database entities, or CI scripts and does not touch scraping, network requests, or server security.
+- **`NOT_VERIFIED`**: Scraper tests or the security audit cannot be run. As a fail-closed safeguard, the PR must not be approved.
 
 ---
 
-## 8. Completion Criteria (Befejezési Kritériumok)
+## 7. Stop Conditions
 
-A `scraper-security-engineer` jóváhagyása (`NO_FINDING`) kizárólag akkor adható meg, ha az alábbi kritériumok MINDENGYIKE teljesül:
-1. Minden érintett portálmotor rendelkezik offline egységteszttel, amely hálózati kapcsolat nélkül sikeresen lefut.
-2. A külső hívások kivételkezelése garantálja a 0-crash működést.
-3. A kimenő kérések a 6 fehérlistázott portál domainre korlátozódnak, 15 másodperces időkorláttal.
-4. A szerver hardening (localhost binding, GlobalCorsFilter, biztonsági fejlécek) sértetlen.
-5. A PR Gate blokkban pontosan egy mondatos, szakmai, nem sablon indoklás szerepel.
+The specialist must stop immediately and reject approval with a `FINDING` status if any of the following conditions occurs:
+
+1. **Zero-crash violation**: An unhandled exception can terminate a parallel aggregation thread or abort the search.
+2. **Missing or infinite timeout**: A network request does not set the required 15-second connect/read timeouts.
+3. **SSRF risk**: An unvalidated URL from user input can be fetched without the approved domain allowlist.
+4. **Permissive CORS wildcard**: `Access-Control-Allow-Origin: *` is used with credentials or without proper preflight filtering.
+5. **Hard-coded secrets**: API keys, passwords, or private tokens are committed to source code.
+6. **SQL/H2 injection risk**: SQL/HQL queries are assembled by concatenating untrusted values instead of using parameters.
+
+---
+
+## 8. Completion Criteria
+
+Approval (`NO_FINDING`) from `scraper-security-engineer` may be granted only when ALL of the following criteria are met:
+
+1. Each affected portal engine has an offline unit test that passes without network access.
+2. External calls are handled so expected failures do not crash the service.
+3. Outbound requests are restricted to the six approved portal domains and enforce a 15-second timeout.
+4. Server hardening (localhost binding, `GlobalCorsFilter`, and security headers) remains intact.
+5. The PR Gate block contains exactly one professional, non-generic rationale sentence.
