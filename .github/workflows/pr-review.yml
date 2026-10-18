@@ -8,6 +8,12 @@ on:
       - develop
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull Request number to validate (optional, e.g. 182)"
+        required: false
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
@@ -23,7 +29,7 @@ jobs:
     name: Guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -31,9 +37,79 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve Pull Request Context
+        id: pr-ctx
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          EVENT_NAME: ${{ github.event_name }}
+          RAW_PR_TITLE: ${{ github.event.pull_request.title }}
+          RAW_PR_BODY: ${{ github.event.pull_request.body }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          DELIM=$(openssl rand -hex 16)
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
+            echo "$RAW_PR_TITLE" >> "$GITHUB_OUTPUT"
+            echo "$DELIM" >> "$GITHUB_OUTPUT"
+            echo "head_ref=$PR_HEAD_REF" >> "$GITHUB_OUTPUT"
+            echo "base_ref=$PR_BASE_REF" >> "$GITHUB_OUTPUT"
+            echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
+            echo "$RAW_PR_BODY" >> "$GITHUB_OUTPUT"
+            echo "$DELIM" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "is_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Workflow triggered via $EVENT_NAME on ref $REF_NAME."
+            PR_JSON=""
+            if [ -n "$INPUT_PR_NUMBER" ]; then
+              echo "Fetching PR details for PR #${INPUT_PR_NUMBER}..."
+              PR_JSON=$(gh pr view "$INPUT_PR_NUMBER" --json title,headRefName,baseRefName,body,number 2>/dev/null || true)
+            else
+              echo "Searching for open PR associated with branch '${REF_NAME}'..."
+              PR_JSON=$(gh pr view "${REF_NAME}" --json title,headRefName,baseRefName,body,number 2>/dev/null || true)
+            fi
+
+            if [ -n "$PR_JSON" ]; then
+              PR_TITLE=$(echo "$PR_JSON" | jq -r '.title // ""')
+              PR_HEAD=$(echo "$PR_JSON" | jq -r '.headRefName // ""')
+              PR_BASE=$(echo "$PR_JSON" | jq -r '.baseRefName // ""')
+              PR_NUM=$(echo "$PR_JSON" | jq -r '.number // ""')
+
+              echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$PR_TITLE" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "head_ref=${PR_HEAD}" >> "$GITHUB_OUTPUT"
+              echo "base_ref=${PR_BASE:-develop}" >> "$GITHUB_OUTPUT"
+              echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$PR_JSON" | jq -r '.body // ""' >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "pr_number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+              echo "is_pr=true" >> "$GITHUB_OUTPUT"
+              echo "✅ Sikerült lekérni a PR #${PR_NUM} adatokat: '$PR_TITLE' ($PR_HEAD -> $PR_BASE)"
+            else
+              COMMIT_MSG=$(git log -1 --pretty=%s)
+              COMMIT_BODY=$(git log -1 --pretty=%b)
+              echo "title<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$COMMIT_MSG" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "head_ref=${REF_NAME}" >> "$GITHUB_OUTPUT"
+              echo "base_ref=develop" >> "$GITHUB_OUTPUT"
+              echo "body<<$DELIM" >> "$GITHUB_OUTPUT"
+              echo "$COMMIT_BODY" >> "$GITHUB_OUTPUT"
+              echo "$DELIM" >> "$GITHUB_OUTPUT"
+              echo "pr_number=" >> "$GITHUB_OUTPUT"
+              echo "is_pr=false" >> "$GITHUB_OUTPUT"
+              echo "ℹ️ Nincs nyitott PR ehhez az ághoz. Ágszintű ellenőrzés a legutóbbi commit üzenettel: '$COMMIT_MSG'"
+            fi
+          fi
+
       - name: Validate PR Title (Conventional Commits)
         env:
-          TITLE: ${{ github.event.pull_request.title }}
+          TITLE: ${{ steps.pr-ctx.outputs.title }}
         run: |
           echo "Ellenőrzés alatt álló PR cím: '$TITLE'"
           REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .+"
@@ -46,7 +122,7 @@ jobs:
 
       - name: Validate Source Branch Name Convention
         env:
-          BRANCH: ${{ github.head_ref }}
+          BRANCH: ${{ steps.pr-ctx.outputs.head_ref }}
         run: |
           echo "Ellenőrzés alatt álló forráság: '$BRANCH'"
           if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" ]]; then
@@ -68,8 +144,14 @@ jobs:
 
       - name: Verify PR Description is not empty
         env:
-          BODY: ${{ github.event.pull_request.body }}
+          BODY: ${{ steps.pr-ctx.outputs.body }}
+          IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
         run: |
+          if [ "$IS_PR" != "true" ]; then
+            echo "ℹ️ Kézi ágfuttatás (nincs kapcsolt PR): PR leírás ellenőrzése kihagyva."
+            exit 0
+          fi
+
           if [ -z "$BODY" ] || [ ${#BODY} -lt 15 ]; then
             echo "::warning::A Pull Request leírása túl rövid vagy hiányos! Kérjük, adj meg részletes összefoglalót a változtatásokról."
           else
@@ -85,67 +167,37 @@ jobs:
 
       - name: Verify Thematic Agent Approval Gate
         env:
-          BODY: ${{ github.event.pull_request.body }}
-          BASE_REF: ${{ github.base_ref }}
+          BODY: ${{ steps.pr-ctx.outputs.body }}
+          BASE_REF: ${{ steps.pr-ctx.outputs.base_ref }}
           ACTOR: ${{ github.actor }}
-          BRANCH: ${{ github.head_ref }}
-        run: |
-          echo "=== 🛡️ Thematic Agent Approval Gate Ellenőrzése ==="
-
-          if [[ "$ACTOR" == "dependabot[bot]" || "$ACTOR" == "dependabot" || "$BRANCH" =~ ^dependabot\/ ]]; then
-            echo "🤖 Dependabot automatikus függőségfrissítés észlelve ($BRANCH / $ACTOR)."
-            echo "✅ Thematic Agent Approval Gate: Dependabot bot által nyitott frissítés automatikusan jóváhagyva."
-            exit 0
-          fi
-          
-          CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" || true)
-          echo "Módosított fájlok:"
-          echo "$CHANGED_FILES"
-          echo "----------------------------------------"
-
-          MISSING_APPROVALS=""
-
-          # 1. Fullstack Architecture & UI (fullstack-architect)
-          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(core|presentation|web|persistence|model)/|Main\.java|frontend/|WebDashboardHtml\.java|static/"; then
-            echo "-> Érintett téma: Fullstack Architektúra, Perzisztencia vagy UI (fullstack-architect szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(fullstack-architect|Fullstack Architect)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🏛️ Fullstack Architect Agent (\`fullstack-architect\`): Rendszerarchitektúra, Spring Data JPA perzisztencia, React 19 UI vagy REST szerződés jóváhagyása szükséges."
-            fi
-          fi
-
-          # 2. Scraper Motorok & Alkalmazásbiztonság (scraper-security-engineer)
-          if echo "$CHANGED_FILES" | grep -qE "src/main/java/ingatlanok/(portal|scraper|common)/|SidecarCliExecutor\.java|BrowserUtils\.java|HttpFetcher\.java"; then
-            echo "-> Érintett téma: Scraper Motorok és Alkalmazásbiztonság (scraper-security-engineer szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(scraper-security-engineer|Scraper & Security)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - 🛡️ Scraper & Security Specialist (\`scraper-security-engineer\`): Scraper megbízhatóság, WAF/bot védelem vagy AppSec hardening jóváhagyása szükséges."
-            fi
-          fi
-
-          # 3. Minőségbiztosítás, Tesztelés & DevOps/CI (quality-devops-engineer)
-          if echo "$CHANGED_FILES" | grep -qE "\.github/|Dockerfile|docker-compose|src/test/|frontend/.*test|pom\.xml|package\.json"; then
-            echo "-> Érintett téma: Minőségbiztosítás, DevOps vagy CI/CD (quality-devops-engineer szükséges)"
-            if ! echo "$BODY" | grep -qiE "\[x\][[:space:]]*.*(quality-devops-engineer|Quality & DevOps)"; then
-              MISSING_APPROVALS="${MISSING_APPROVALS}\n  - ⚙️ Quality & DevOps Specialist (\`quality-devops-engineer\`): Tesztlefedettség, determinista tesztek, Docker vagy CI/CD pipeline jóváhagyása szükséges."
-            fi
-          fi
-
-          if [ -n "$MISSING_APPROVALS" ]; then
-            echo "::error::Hiányzó Tematikus Agent Jóváhagyás(ok)! A PR nem engedélyezett a megfelelő szakértői ágens igazolása nélkül:${MISSING_APPROVALS}"
-            echo ""
-            echo "Kérjük, add hozzá a jóváhagyást a PR leírásának 'Thematic Agent Approval Gate' blokkjához!"
-            exit 1
-          fi
-
-          echo "✅ Minden érintett szakterület rendelkezik a kijelölt Agent jóváhagyásával."
+          BRANCH: ${{ steps.pr-ctx.outputs.head_ref }}
+          IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
+        run: bash .github/scripts/verify-pr-gate.sh
 
       - name: Report PR Compliance Summary
         if: always()
+        env:
+          HEAD_REF: ${{ steps.pr-ctx.outputs.head_ref }}
+          BASE_REF: ${{ steps.pr-ctx.outputs.base_ref }}
+          IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
+          PR_NUM: ${{ steps.pr-ctx.outputs.pr_number }}
+          STATUS_SUCCESS: ${{ job.status == 'success' }}
         run: |
           echo "### 🛡️ PR Review (Guard) Eredmények" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR Cím & Branch Szabályzat:** ${{ job.status == 'success' && '✅ Megfelelt (Conventional Commits & Prefix)' || '❌ Nem felelt meg' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Thematic Agent Approval Gate:** ${{ job.status == 'success' && '✅ Jóváhagyva (1-mondatos szakmai indoklással)' || '❌ Hiányos vagy elutasítva' }}" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS_SUCCESS" = "true" ]; then
+            echo "- **PR Cím & Branch Szabályzat:** ✅ Megfelelt (Conventional Commits & Prefix)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Thematic Agent Approval Gate:** ✅ Jóváhagyva (1-mondatos szakmai indoklással)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **PR Cím & Branch Szabályzat:** ❌ Nem felelt meg" >> $GITHUB_STEP_SUMMARY
+            echo "- **Thematic Agent Approval Gate:** ❌ Hiányos vagy elutasítva" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a CI és a PR Review is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
-          echo "- **Ág:** \`${{ github.head_ref }}\` -> \`${{ github.base_ref }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ág:** \`${HEAD_REF}\` -> \`${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "$IS_PR" = "true" ]; then
+            echo "- **PR Szám:** #${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Mód:** Manuális ágfuttatás (workflow_dispatch)" >> $GITHUB_STEP_SUMMARY
+          fi
 
   review:
     name: Review

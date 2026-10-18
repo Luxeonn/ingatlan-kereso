@@ -63,18 +63,3 @@ export interface StatusResponse {
   lastRunTime?: string
   trackedCities?: Record<string, number>
 }
-
-export interface LogEntry {
-  timestamp?: string
-  level?: string
-  loggerName?: string
-  message?: string
-  throwable?: string
-}
-
-export interface LogsResponse {
-  logs: LogEntry[]
-  rawLogs: string[]
-  logFilePath?: string
-  level?: string
-}

@@ -46,12 +46,11 @@ ingatlan-kereso/
 ├── .github/
 │   ├── pull_request_template.md                 # PR checklist & Thematic Agent Gate template
 │   └── workflows/
-│       ├── ci.yml                               # Java 21, Checkstyle, SpotBugs, JaCoCo, Playwright E2E
+│       ├── ci.yml                               # Java 21, Checkstyle, JaCoCo, Playwright E2E
 │       ├── docker-publish.yml                   # Automated GHCR release workflow (clean 1.0.0 tags)
 │       └── pr-review.yml                        # PR Review Guard (Conventional Commits & Thematic Gate)
 ├── config/
-│   ├── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
-│   └── spotbugs/spotbugs-exclude.xml            # SpotBugs 4.9.2 filter
+│   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 ├── scripts/
 │   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container launchers
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
@@ -95,7 +94,7 @@ Start the headless Spring Boot backend:
 ```bash
 ./gradlew bootRun
 ```
-The REST API is active at **http://localhost:8080/api/status** and Actuator health at **http://localhost:8080/actuator/health**.
+The REST API is active at **http://localhost:8080/api/status**.
 
 In a separate terminal, launch the modern React 19 SPA client:
 ```bash
@@ -139,6 +138,7 @@ Once started, access the Web Dashboard at **http://localhost:8080** and the REST
 > Published production images are automatically hosted on GitHub Container Registry (GHCR):
 > * Backend: `ghcr.io/luxeonn/ingatlan-kereso-backend:1.0.0`
 > * Frontend: `ghcr.io/luxeonn/ingatlan-kereso-frontend:1.0.0`
+> * **Manual Releases (`workflow_dispatch`):** Release workflows can be triggered manually for any branch via `gh workflow run docker-publish.yml --ref <branch> -f custom_tag_suffix=<suffix>`, dynamically generating `<version>-<branch>` (or `<version>-<suffix>`) tags.
 
 ### 3. Local Development Build
 ```bash
@@ -163,7 +163,7 @@ java -jar build/libs/ingatlan-1.0.0.jar
 ## ⚙️ Configuration & Storage
 
 * **`data/ingatlanok_jpa.mv.db`:** Primary embedded H2 database with unique B-Tree index on `url` for O(1) deduplication.
-* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, JPA, Actuator, Virtual Threads).
+* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, JPA, Virtual Threads).
 
 ---
 

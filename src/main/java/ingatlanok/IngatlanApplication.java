@@ -1,6 +1,8 @@
 package ingatlanok;
 
 import ingatlanok.common.BrowserUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -14,6 +16,8 @@ import java.util.Arrays;
  */
 @SpringBootApplication
 public class IngatlanApplication {
+
+    private static final Logger log = LoggerFactory.getLogger(IngatlanApplication.class);
 
     private final Environment environment;
 
@@ -37,11 +41,7 @@ public class IngatlanApplication {
         String displayHost = ("0.0.0.0".equals(host) || "::".equals(host)) ? "localhost" : host;
         String url = "http://" + displayHost + ":" + port;
 
-        System.out.println("\n==================================================");
-        System.out.println("  Ingatlan Kereső (Spring Boot 4.1.0) Aktív!");
-        System.out.println("  Headless REST API: " + url + "/api/status");
-        System.out.println("  Actuator Health: " + url + "/actuator/health");
-        System.out.println("==================================================\n");
+        log.info("Ingatlan Kereső (Spring Boot 4.1.0) Aktív! Headless REST API: {}/api/status", url);
 
         boolean openBrowser = Boolean.getBoolean("open.browser")
                 || "true".equalsIgnoreCase(System.getenv("OPEN_BROWSER"));
@@ -49,7 +49,7 @@ public class IngatlanApplication {
         if (openBrowser && !java.awt.GraphicsEnvironment.isHeadless() && !"0.0.0.0".equals(host)) {
             Thread.ofVirtual().start(() -> {
                 if (!BrowserUtils.openUrl(url + "/api/status")) {
-                    System.out.println("Nyisd meg manuálisan a böngésződben: " + url + "/api/status");
+                    log.warn("Nyisd meg manuálisan a böngésződben: {}/api/status", url);
                 }
             });
         }

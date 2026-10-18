@@ -1,6 +1,6 @@
 ---
 name: scraper-security-engineer
-description: Web scraping robusztussági, adatkinyerési és alkalmazásbiztonsági (AppSec) mérnök. Használd ezt a skillt portál scraper motorok (Jsoup DOM, JSON-LD, belső REST API-k) fejlesztéséhez és karbantartásához, Cloudflare/WAF bot-védelem detektálásához és kezeléséhez, valamint a Spring Boot 4.1.0 beágyazott webszerver és REST API hardeninghez (CORS szűrők, CSP, localhost kötés, Actuator biztonság), bemenet-validációhoz, XSS/SSRF és injekciós sebezhetőségek elhárításához.
+description: Web scraping robusztussági, adatkinyerési és alkalmazásbiztonsági (AppSec) mérnök. Használd ezt a skillt portál scraper motorok (Jsoup DOM, JSON-LD, belső REST API-k) fejlesztéséhez és karbantartásához, Cloudflare/WAF bot-védelem detektálásához és kezeléséhez, valamint a Spring Boot 4.1.0 beágyazott webszerver és REST API hardeninghez (CORS szűrők, CSP, localhost kötés, headless API védelem), bemenet-validációhoz, XSS/SSRF és injekciós sebezhetőségek elhárításához.
 ---
 
 # Scraper & Security Specialist

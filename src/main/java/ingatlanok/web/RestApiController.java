@@ -1,6 +1,5 @@
 package ingatlanok.web;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
 import ingatlanok.dto.ListingDto;
@@ -14,6 +13,8 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ import java.util.*;
 @RequestMapping("/api")
 public class RestApiController {
 
-    private static final AppLogger LOGGER = AppLogger.getLogger(RestApiController.class);
+    private static final Logger log = LoggerFactory.getLogger(RestApiController.class);
 
     private final ListingStorage listingStorage;
     private final DashboardPresentationService dashboardPresentationService;
@@ -216,22 +217,5 @@ public class RestApiController {
             listingStorage.clearHistory();
             return ResponseEntity.ok(Map.of("success", true, "clearedAll", true));
         }
-    }
-
-    @GetMapping("/logs")
-    public ResponseEntity<Map<String, Object>> getLogs(@RequestParam(value = "limit", defaultValue = "100") int limit,
-                                                       @RequestParam(value = "level", required = false) String levelFilter) {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("logs", AppLogger.getRecentLogEntries(limit, levelFilter));
-        data.put("rawLogs", AppLogger.getRecentLogs(limit));
-        data.put("logFilePath", AppLogger.getLogFilePath() != null ? AppLogger.getLogFilePath().toString() : "");
-        data.put("level", AppLogger.getGlobalLevel().name());
-        return ResponseEntity.ok(data);
-    }
-
-    @PostMapping("/logs/clear")
-    public ResponseEntity<Map<String, Object>> clearLogs() {
-        AppLogger.clearRecentLogs();
-        return ResponseEntity.ok(Map.of("success", true, "message", "Naplók sikeresen kiürítve"));
     }
 }

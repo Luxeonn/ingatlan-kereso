@@ -14,7 +14,7 @@ Ez a szakértői skill felel a **szoftverminőségért**, a **tesztelési lefede
 - **Spring Boot tesztelés:** `@SpringBootTest`, `@AutoConfigureMockMvc` és `MockMvc` használata a REST végpontok szerződés- és hibatesztjeihez.
 - **Mockolási stratégiák:** Valós portál HTML minták mockolása Jsoup segítségével; API válaszok és tárolók szimulációja.
 - **Kódlefedettség (JaCoCo):** Minimum 80%-os kódlefedettség fenntartása a core és perzisztencia rétegekben (`jacocoTestReport`, `jacocoTestCoverageVerification`).
-- **Statikus analízis:** Checkstyle és SpotBugs szabályok betartása; AOT által generált források kizárása a hibás riasztások elkerülésére.
+- **Statikus analízis:** Checkstyle szabályok betartása; AOT által generált források kizárása a hibás riasztások elkerülésére.
 - **Automatizált hibajavítási ciklus (Fix Loop):** Bukó tesztek vagy lint hibák esetén azonnali diagnózis és javítás.
 
 ### B. DevOps, Konténerizáció & Munkafolyamatok (CI/CD)
@@ -23,9 +23,9 @@ Ez a szakértői skill felel a **szoftverminőségért**, a **tesztelési lefede
   - 2. stage: GraalVM native image builder (`ghcr.io/graalvm/native-image-community:21`) vagy standard JDK 21 build
   - 3. stage: Minimális Debian/Distroless runtime konténer nem-root felhasználóval
 - **GitHub Actions Workflows:**
-  - `ci.yml`: Párhuzamosított `frontend` és `backend` jobok komponens alapú útvonalszűréssel (`dorny/paths-filter`), Gradle `bootJar` és headless smoke teszttel.
-  - `pr-review.yml`: PR cím, ág-konvenciók és Thematic Agent Approval Gate (3 pillér) ellenőrzés.
-  - `docker-publish.yml`: Multi-arch konténer image fordítás és publikálás GHCR-be.
+  - `ci.yml`: Párhuzamosított `frontend` és `backend` jobok komponens alapú útvonalszűréssel (`dorny/paths-filter`), Gradle `bootJar`, headless smoke teszttel és kézi `workflow_dispatch` indítással.
+  - `pr-review.yml`: PR cím, ág-konvenciók és Thematic Agent Approval Gate (3 pillér) ellenőrzés automatikus és kézi `workflow_dispatch` futtatási támogatással.
+  - `docker-publish.yml`: Multi-arch konténer image fordítás és publikálás GHCR-be automatikus (main/develop) és kézi `workflow_dispatch` indítással, dinamikus `<version>-<branch>` vagy `<version>-<suffix>` tageléssel.
 - **Biztonság és Párhuzamosság:**
   - `cancel-in-progress: true` használata elavult futások megszakítására.
   - Minimális token jogosultságok (`contents: read`, `pull-requests: read`, `packages: write`).
@@ -35,6 +35,6 @@ Ez a szakértői skill felel a **szoftverminőségért**, a **tesztelési lefede
 A PR-ok jóváhagyásakor (`quality-devops-engineer`) vizsgálandó szempontok:
 - [ ] Minden új vagy módosított funkció rendelkezik determinista JUnit / MockMvc / Vitest teszttel.
 - [ ] A JaCoCo kódlefedettség nem csökken a megengedett szint alá.
-- [ ] A Checkstyle és SpotBugs elemzések 0 hibával futnak le.
+- [ ] A Checkstyle elemzés 0 hibával fut le.
 - [ ] A Dockerfile és workflow szintaxis tiszta, hatékony, párhuzamosított és biztonságos.
 - [ ] A pipeline zöld és nem tartalmaz felesleges vagy blokkoló lépéseket.

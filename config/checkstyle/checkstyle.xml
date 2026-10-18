@@ -42,5 +42,17 @@
         <module name="TypeName"/>
         <module name="MethodName"/>
         <module name="StaticVariableName"/>
+
+        <!-- Prohibit direct console logging & stack traces -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="System\.(out|err)\.print"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Direct standard output logging (System.out/System.err) is forbidden. Use SLF4J / Spring Logger instead."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="\.printStackTrace\(\)"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="printStackTrace() is forbidden. Use SLF4J log.error(..., e) instead."/>
+        </module>
     </module>
 </module>

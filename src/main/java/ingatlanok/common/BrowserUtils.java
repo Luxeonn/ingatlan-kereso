@@ -1,10 +1,15 @@
 package ingatlanok.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.awt.Desktop;
 import java.net.URI;
 import java.util.*;
 
 public final class BrowserUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(BrowserUtils.class);
 
     private BrowserUtils() {
 
@@ -16,7 +21,7 @@ public final class BrowserUtils {
         }
         String trimmed = url.trim();
         if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-            System.err.println("Biztonsági figyelmeztetés: Csak http:// vagy https:// hivatkozás nyitható meg: " + trimmed);
+            log.warn("Biztonsági figyelmeztetés: Csak http:// vagy https:// hivatkozás nyitható meg: {}", trimmed);
             return false;
         }
         try {
@@ -35,7 +40,7 @@ public final class BrowserUtils {
                 return true;
             }
         } catch (Exception e) {
-            System.err.println("Nem sikerült megnyitni a böngészőben: " + trimmed + " (" + e.getMessage() + ")");
+            log.error("Nem sikerült megnyitni a böngészőben: {} ({})", trimmed, e.getMessage(), e);
             return false;
         }
     }
@@ -56,7 +61,7 @@ public final class BrowserUtils {
         }
 
         if (urlList.size() > maxToOpen) {
-            System.out.println("Megjegyzés: Az első " + maxToOpen + " új link került megnyitásra a böngészőben, a többi elérhető a felületen.");
+            log.info("Megjegyzés: Az első {} új link került megnyitásra a böngészőben, a többi elérhető a felületen.", maxToOpen);
         }
 
         return opened;

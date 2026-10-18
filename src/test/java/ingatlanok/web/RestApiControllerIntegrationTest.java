@@ -128,19 +128,6 @@ class RestApiControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/logs és POST /api/logs/clear - Naplózás ellenőrzése")
-    void testLogsEndpoints() throws Exception {
-        mockMvc.perform(get("/api/logs?limit=50&level=INFO"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.logs").isArray())
-                .andExpect(jsonPath("$.level").exists());
-
-        mockMvc.perform(post("/api/logs/clear"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
     @DisplayName("GET /api/properties/price-history - Hiányzó paraméter esetén 400 Bad Request")
     void testGetPriceHistory_MissingParams_ReturnsBadRequest() throws Exception {
         mockMvc.perform(get("/api/properties/price-history"))
@@ -319,14 +306,14 @@ class RestApiControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/logs hibás típussal - GlobalExceptionHandler 400 Bad Request JSON választ ad")
-    void testGetLogs_InvalidLimitParam_TriggersGlobalExceptionHandler() throws Exception {
-        mockMvc.perform(get("/api/logs?limit=not-a-number"))
+    @DisplayName("GET /api/history hibás limit típussal - GlobalExceptionHandler 400 Bad Request JSON választ ad")
+    void testGetHistory_InvalidLimitParam_TriggersGlobalExceptionHandler() throws Exception {
+        mockMvc.perform(get("/api/history?limit=not-a-number"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("limit")))
-                .andExpect(jsonPath("$.path").value("/api/logs"))
+                .andExpect(jsonPath("$.path").value("/api/history"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
@@ -393,5 +380,15 @@ class RestApiControllerIntegrationTest {
                 .andExpect(jsonPath("$.status").value(406))
                 .andExpect(jsonPath("$.error").value("Not Acceptable"))
                 .andExpect(jsonPath("$.path").value("/api/status"));
+    }
+
+    @Test
+    @DisplayName("GET /actuator és /actuator/health - Actuator modul kivezetve, 404 Not Found")
+    void testActuatorEndpointsNotExposed() throws Exception {
+        mockMvc.perform(get("/actuator"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isNotFound());
     }
 }

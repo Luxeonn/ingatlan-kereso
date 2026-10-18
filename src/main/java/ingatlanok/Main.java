@@ -4,6 +4,8 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.service.IngatlanSearchService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 
 import java.util.Arrays;
@@ -13,6 +15,8 @@ import java.util.Arrays;
  * Támogatja a parancssori kötegelt futtatást (--cli) és a modern Spring Boot Web Dashboardot (--web vagy alapértelmezett).
  */
 public class Main {
+
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
         if (isCliRequested(args)) {
@@ -58,9 +62,9 @@ public class Main {
      * Parancssori (CLI) kötegelt keresési mód futtatása.
      */
     public static void runCliMode() {
-        System.out.println("==================================================");
-        System.out.println("  Ingatlan Kereső - Parancssori Keresés (CLI Mód)");
-        System.out.println("==================================================");
+        log.info("==================================================");
+        log.info("  Ingatlan Kereső - Parancssori Keresés (CLI Mód)");
+        log.info("==================================================");
 
         IngatlanRepository.getInstance();
         SearchCriteria criteria = IngatlanRepository.getInstance().getLastCriteria();
@@ -68,11 +72,11 @@ public class Main {
 
         SearchResult result = IngatlanSearchService.getInstance().executeSearch(criteria);
 
-        System.out.println("\n==================================================");
-        System.out.println("Lefutva: " + result.getExecutedAt());
-        System.out.println("Összesített találat: " + result.getTotalFound());
-        System.out.println("ÚJ hirdetések száma: " + result.getNewCount());
-        System.out.println("==================================================");
-        System.out.println("Folyamat sikeresen befejeződött.");
+        log.info("==================================================");
+        log.info("Lefutva: {}", result.getExecutedAt());
+        log.info("Összesített találat: {}", result.getTotalFound());
+        log.info("ÚJ hirdetések száma: {}", result.getNewCount());
+        log.info("==================================================");
+        log.info("Folyamat sikeresen befejeződött.");
     }
 }

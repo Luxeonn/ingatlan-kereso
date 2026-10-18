@@ -103,16 +103,6 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
               trackedCities: {},
             }),
           })
-        } else if (url.includes('/api/logs')) {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              logs: [],
-              rawLogs: [],
-              level: 'INFO',
-            }),
-          })
         } else {
           await route.fulfill({
             status: 200,
@@ -150,17 +140,6 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     const closeDiagBtn = page.getByRole('button', { name: /Bezárás/i }).first()
     await closeDiagBtn.click()
     await expect(page.getByText('Portál Diagnosztika & Állapotjelentés')).not.toBeVisible()
-
-    // Test Log Viewer Modal
-    const logBtn = page.getByRole('button', { name: /Napló/i })
-    await expect(logBtn).toBeVisible()
-    await logBtn.click()
-    await expect(page.getByText('Rendszernapló (System Log Viewer)')).toBeVisible()
-
-    // Close Log Modal
-    const closeLogBtn = page.getByRole('button', { name: /Bezárás/i }).first()
-    await closeLogBtn.click()
-    await expect(page.getByText('Rendszernapló (System Log Viewer)')).not.toBeVisible()
   })
 
   test('2. Filter Panel, Steppers, Type Tabs and Portal Toggles interact cleanly', async ({ page }) => {
