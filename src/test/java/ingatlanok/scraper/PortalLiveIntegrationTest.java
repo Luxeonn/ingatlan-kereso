@@ -3,12 +3,14 @@ package ingatlanok.scraper;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("live")
 class PortalLiveIntegrationTest {
 
     private SearchCriteria createCriteria(String city, String type, int minPrice, int maxPrice) {

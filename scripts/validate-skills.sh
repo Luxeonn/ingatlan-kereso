@@ -93,8 +93,8 @@ for dir in "${SKILL_DIRS[@]}"; do
     continue
   fi
 
-  # Find line number of closing '---'
-  closing_line=$(awk 'NR>1 && /^---[[:space:]]*$/ {print NR; exit}' "$skill_file")
+  # Find line number of closing '---' (bounded within top 15 lines)
+  closing_line=$(awk 'NR>1 && NR<=15 && /^---[[:space:]]*$/ {print NR; exit}' "$skill_file")
   if [ -z "$closing_line" ]; then
     log_fail "Frontmatter is not closed with a second '---'" "$skill_file" 1
     continue
@@ -290,7 +290,7 @@ while IFS= read -r match; do
     l=$(echo "$match" | cut -d: -f2)
     log_fail "Banned command 'mvn' (project uses Gradle: './gradlew')" "$f" "$l"
   fi
-done < <(grep -rnI -E '(mvn |mvn\t|mvn test|mvn-compile)' README.md gemini.md GEMINI.md .github/ .agents/skills/ .gemini/ docs/ 2>/dev/null || true)
+done < <(grep -rnI -E '(mvn[[:space:]]|mvn test|mvn-compile)' README.md gemini.md GEMINI.md .github/ .agents/skills/ .gemini/ docs/ 2>/dev/null || true)
 
 # 5e. Obsolete persistence engines (SQLite & Nitrite) in active configurations and prompts
 BANNED_PERSISTENCE_FILES=(
