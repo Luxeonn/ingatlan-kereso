@@ -94,7 +94,9 @@ jobs:
   frontend:
     name: Frontend
     needs: detect
-    if: needs.detect.outputs.frontend == 'true' || github.event_name != 'pull_request'
+    # TEMPORARILY DISABLED: Suspended to conserve Actions minutes (billing cycle limit).
+    # TODO: Re-enable by restoring: if: needs.detect.outputs.frontend == 'true' || github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -214,7 +216,9 @@ jobs:
   smoke-test:
     name: Docker Smoke Test
     needs: detect
-    if: needs.detect.outputs.smoke == 'true' || github.event_name != 'pull_request'
+    # TEMPORARILY DISABLED: Suspended to conserve Actions minutes (billing cycle limit).
+    # TODO: Re-enable by restoring: if: needs.detect.outputs.smoke == 'true' || github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
