@@ -83,4 +83,32 @@ class PropertyFilterEngineTest {
         assertEquals("http://discounted", result.matchingItems().get(0).getUrl());
         assertEquals(2, result.filteredByDiscountCount());
     }
+
+    @Test
+    @DisplayName("Szűrés tetszőleges (nem 5/10-zel osztható) egyedi ár- és négyzetméter értékekre")
+    void testArbitraryPriceAndAreaBounds() {
+        PropertyFilterEngine filterEngine = new PropertyFilterEngine();
+
+        SearchCriteria criteria = new SearchCriteria();
+        criteria.setMinPriceMillion(73);
+        criteria.setMaxPriceMillion(107);
+        criteria.setMinArea(63);
+        criteria.setMaxArea(77);
+
+        IngatlanItem match = new IngatlanItem("1", "dh", "http://match", "Pont jó", "73 M Ft", "Debrecen", "Debrecen", "63 m²", "2026-10-18", false);
+        IngatlanItem matchUpper = new IngatlanItem("2", "dh", "http://matchUpper", "Pont jó felső", "107 M Ft", "Debrecen", "Debrecen", "77 m²", "2026-10-18", false);
+        IngatlanItem belowPrice = new IngatlanItem("3", "dh", "http://belowPrice", "Alatta ár", "72.9 M Ft", "Debrecen", "Debrecen", "70 m²", "2026-10-18", false);
+        IngatlanItem abovePrice = new IngatlanItem("4", "dh", "http://abovePrice", "Felette ár", "107.1 M Ft", "Debrecen", "Debrecen", "70 m²", "2026-10-18", false);
+        IngatlanItem belowArea = new IngatlanItem("5", "dh", "http://belowArea", "Alatta terület", "90 M Ft", "Debrecen", "Debrecen", "62 m²", "2026-10-18", false);
+        IngatlanItem aboveArea = new IngatlanItem("6", "dh", "http://aboveArea", "Felette terület", "90 M Ft", "Debrecen", "Debrecen", "78 m²", "2026-10-18", false);
+
+        List<IngatlanItem> items = List.of(match, matchUpper, belowPrice, abovePrice, belowArea, aboveArea);
+        PropertyFilterEngine.FilterResult result = filterEngine.filter(items, criteria, "Debrecen");
+
+        assertEquals(2, result.matchingItems().size());
+        assertTrue(result.matchingItems().stream().anyMatch(i -> "http://match".equals(i.getUrl())));
+        assertTrue(result.matchingItems().stream().anyMatch(i -> "http://matchUpper".equals(i.getUrl())));
+        assertEquals(2, result.filteredByPriceCount());
+        assertEquals(2, result.filteredByAreaCount());
+    }
 }
