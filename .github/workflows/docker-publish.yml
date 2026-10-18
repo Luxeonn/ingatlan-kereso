@@ -1,22 +1,19 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - develop
-      - main
-    tags:
-      - 'v*'
-      - '[0-9]+.*'
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
-      custom_tag_suffix:
-        description: "Opcionális egyedi tag utótag (alapértelmezetten a branch neve)"
+      custom_tag:
+        description: 'Custom tag suffix (optional)'
         required: false
-        default: ""
+        default: ''
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -30,6 +27,7 @@ jobs:
   publish:
     name: Publish (${{ matrix.component }})
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success') }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -47,6 +45,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Extract project version from build.gradle.kts
         id: pom-version
@@ -59,8 +59,9 @@ jobs:
         id: dynamic-tag
         run: |
           VERSION="${{ steps.pom-version.outputs.version }}"
-          INPUT_SUFFIX="${{ inputs.custom_tag_suffix }}"
-          RAW_SUFFIX="${INPUT_SUFFIX:-${{ github.ref_name }}}"
+          INPUT_SUFFIX="${{ inputs.custom_tag }}"
+          TARGET_BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          RAW_SUFFIX="${INPUT_SUFFIX:-$TARGET_BRANCH}"
           SANITIZED_SUFFIX=$(echo "$RAW_SUFFIX" | sed -E 's/[^a-zA-Z0-9._-]+/-/g' | sed -E 's/^-+|-+$//g' | tr '[:upper:]' '[:lower:]')
           if [ -z "$SANITIZED_SUFFIX" ]; then
             SANITIZED_SUFFIX="manual"
@@ -70,6 +71,15 @@ jobs:
           echo "tag=${DYNAMIC_TAG}" >> "$GITHUB_OUTPUT"
           echo "Resolved dynamic Docker tag: ${DYNAMIC_TAG}"
 
+      - name: Resolve Commit SHA
+        id: resolve-sha
+        run: |
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          SHORT_SHA=$(echo "$COMMIT_SHA" | cut -c1-7)
+          echo "sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "Resolved commit SHA: ${COMMIT_SHA} (short: ${SHORT_SHA})"
+
       - name: Extract Docker metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v6
@@ -78,19 +88,19 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            # develop ágon push esetén: kizárólag latest (vagy kézi indításkor ha nincs egyedi suffix megadva)
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/develop' && (github.event_name == 'push' || inputs.custom_tag_suffix == '') }}
+            # develop ágon: kizárólag latest (vagy kézi indításkor ha develop az ág és nincs egyedi tag megadva)
+            type=raw,value=latest,enable=${{ (github.event.workflow_run.head_branch == 'develop' || github.ref == 'refs/heads/develop') && (github.event_name == 'workflow_run' || inputs.custom_tag == '') }}
 
             # Git tag esetén (pl. 1.0.0):
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/0.') }}
 
-            # main ágra érkező push: fix verziószám a build.gradle.kts-ből és commit SHA (v előtag nélkül)
-            type=raw,value=${{ steps.pom-version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-            type=sha,prefix=${{ steps.pom-version.outputs.version }}-,enable=${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+            # main ág: fix verziószám a build.gradle.kts-ből és commit SHA (v előtag nélkül)
+            type=raw,value=${{ steps.pom-version.outputs.version }},enable=${{ (github.event.workflow_run.head_branch == 'main' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_run' }}
+            type=raw,value=${{ steps.pom-version.outputs.version }}-${{ steps.resolve-sha.outputs.short_sha }},enable=${{ (github.event.workflow_run.head_branch == 'main' || github.ref == 'refs/heads/main') && github.event_name == 'workflow_run' }}
 
-            # workflow_dispatch kézi indítás bármely ágra: dinamikus <version>-<branch> vagy <version>-<custom_tag_suffix>
+            # workflow_dispatch kézi indítás bármely ágra: dinamikus <version>-<branch> vagy <version>-<custom_tag>
             type=raw,value=${{ steps.dynamic-tag.outputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Set up Docker Buildx
@@ -120,12 +130,12 @@ jobs:
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
-          REF_NAME: ${{ github.ref_name }}
+          REF_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
           EVENT_NAME: ${{ github.event_name }}
           ACTOR: ${{ github.actor }}
           COMPONENT: ${{ matrix.component }}
           IMAGE_NAME: ${{ matrix.image }}
-          CUSTOM_SUFFIX: ${{ inputs.custom_tag_suffix }}
+          CUSTOM_TAG: ${{ inputs.custom_tag }}
           DYNAMIC_TAG: ${{ steps.dynamic-tag.outputs.tag }}
         run: |
           echo "### 🐳 Docker Image Build & Publish Eredmények (${COMPONENT})" >> "$GITHUB_STEP_SUMMARY"
@@ -138,8 +148,8 @@ jobs:
           echo "| **Esemény / Ág** | \`$EVENT_NAME\` / \`$REF_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "| **Dinamikus Tag** | \`$DYNAMIC_TAG\` |" >> "$GITHUB_STEP_SUMMARY"
-            if [ -n "$CUSTOM_SUFFIX" ]; then
-              echo "| **Egyedi Utótag (Input)** | \`$CUSTOM_SUFFIX\` |" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$CUSTOM_TAG" ]; then
+              echo "| **Egyedi Utótag (Input)** | \`$CUSTOM_TAG\` |" >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
           echo "| **Indító felhasználó** | \`$ACTOR\` |" >> "$GITHUB_STEP_SUMMARY"

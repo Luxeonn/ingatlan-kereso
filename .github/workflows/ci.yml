@@ -33,6 +33,7 @@ jobs:
     outputs:
       frontend: ${{ steps.fallback.outputs.frontend }}
       backend: ${{ steps.fallback.outputs.backend }}
+      smoke: ${{ steps.fallback.outputs.smoke }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -62,19 +63,32 @@ jobs:
               - 'GEMINI.md'
               - 'gemini.md'
               - 'README.md'
+            smoke:
+              - 'Dockerfile*'
+              - 'docker-compose.yml'
+              - 'frontend/**'
+              - 'scripts/**'
+              - 'src/**'
+              - 'gradle/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - '.github/**'
 
       - name: Evaluate Conservative Fallback
         id: fallback
         run: |
           FE="${{ steps.filter.outputs.frontend }}"
           BE="${{ steps.filter.outputs.backend }}"
-          if [ "$FE" != "true" ] && [ "$BE" != "true" ]; then
-            echo "⚠️ Unclassified file change detected! Triggering conservative fallback (running backend & frontend quality gates)."
+          SMOKE="${{ steps.filter.outputs.smoke }}"
+          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$SMOKE" != "true" ]; then
+            echo "⚠️ Unclassified file change detected! Triggering conservative fallback (running all quality gates)."
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "smoke=true" >> "$GITHUB_OUTPUT"
           else
             echo "frontend=$FE" >> "$GITHUB_OUTPUT"
             echo "backend=$BE" >> "$GITHUB_OUTPUT"
+            echo "smoke=$SMOKE" >> "$GITHUB_OUTPUT"
           fi
 
   frontend:
@@ -197,9 +211,25 @@ jobs:
         if: always()
         run: bash .github/scripts/calculate-jacoco.sh
 
+  smoke-test:
+    name: Docker Smoke Test
+    needs: detect
+    if: needs.detect.outputs.smoke == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      smoke_outcome: ${{ steps.compose-smoke.outcome }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Multi-Container Smoke Test (PostgreSQL + Backend + Nginx)
+        id: compose-smoke
+        run: bash scripts/smoke-test-docker-compose.sh
+
   summary:
     name: Summary
-    needs: [detect, frontend, backend]
+    needs: [detect, frontend, backend, smoke-test]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -268,6 +298,19 @@ jobs:
             echo "| **Backend** | 🛡️ Headless REST API Smoke | $BE_SMOKE_STATUS | Headless REST API smoke teszt |" >> $GITHUB_STEP_SUMMARY
           fi
 
+          # Docker Stack kiértékelés
+          SMOKE_RESULT="${{ needs.smoke-test.result }}"
+          SMOKE_OUTCOME="${{ needs.smoke-test.outputs.smoke_outcome }}"
+
+          if [ "$SMOKE_RESULT" = "success" ]; then
+            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | ✅ Sikeres | PostgreSQL 17 + Backend + Nginx validálva |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$SMOKE_RESULT" = "skipped" ]; then
+            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | ⚪ Átugorva | Konténer- és forrásfájlok nem módosultak |" >> $GITHUB_STEP_SUMMARY
+          else
+            [ "$SMOKE_OUTCOME" = "failure" ] && SMOKE_STATUS="❌ Sikertelen" || SMOKE_STATUS="⚠️ Hiba"
+            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | $SMOKE_STATUS | Docker Compose smoke teszt elbukott |" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
@@ -294,6 +337,11 @@ jobs:
 
           if [ "$BE_RESULT" = "success" ] && [ "$BE_COV_STATUS" != "pass" ]; then
             echo "❌ Hiba: A backend job lefutott, de a JaCoCo kódlefedettség ($BE_COV_STATUS) nem érte el a 80%-ot!"
+            FAILED=1
+          fi
+
+          if [ "$SMOKE_RESULT" != "success" ] && [ "$SMOKE_RESULT" != "skipped" ]; then
+            echo "❌ Hiba: A smoke-test job nem sikerült vagy megszakadt (állapot: $SMOKE_RESULT)!"
             FAILED=1
           fi
 
