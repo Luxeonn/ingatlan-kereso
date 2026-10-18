@@ -89,7 +89,7 @@ jobs:
               echo "$DELIM" >> "$GITHUB_OUTPUT"
               echo "pr_number=${PR_NUM}" >> "$GITHUB_OUTPUT"
               echo "is_pr=true" >> "$GITHUB_OUTPUT"
-              echo "✅ Sikerült lekérni a PR #${PR_NUM} adatokat: '$PR_TITLE' ($PR_HEAD -> $PR_BASE)"
+              echo "✅ Successfully fetched PR #${PR_NUM} adatokat: '$PR_TITLE' ($PR_HEAD -> $PR_BASE)"
             else
               COMMIT_MSG=$(git log -1 --pretty=%s)
               COMMIT_BODY=$(git log -1 --pretty=%b)
@@ -103,7 +103,7 @@ jobs:
               echo "$DELIM" >> "$GITHUB_OUTPUT"
               echo "pr_number=" >> "$GITHUB_OUTPUT"
               echo "is_pr=false" >> "$GITHUB_OUTPUT"
-              echo "ℹ️ Nincs nyitott PR ehhez az ághoz. Ágszintű ellenőrzés a legutóbbi commit üzenettel: '$COMMIT_MSG'"
+              echo "ℹ️ No open PR is associated with this branch. Validating the latest commit message instead: '$COMMIT_MSG'"
             fi
           fi
 
@@ -111,36 +111,36 @@ jobs:
         env:
           TITLE: ${{ steps.pr-ctx.outputs.title }}
         run: |
-          echo "Ellenőrzés alatt álló PR cím: '$TITLE'"
+          echo "PR title under validation: '$TITLE'"
           REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .+"
           if [[ ! "$TITLE" =~ $REGEX ]]; then
-            echo "::error::A PR címe nem felel meg a Conventional Commits szabályzatnak! Helyes formátum: 'feat: leírás' vagy 'feat(modul): leírás'."
-            echo "Megengedett típusok: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
-            exit 1
+            echo "::warning::PR title does not follow Conventional Commits. Suggested format: 'feat: description' or 'feat(module): description'."
+            echo "Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. This is advisory and does not block PR creation or CI."
+          else
+            echo "✅ PR title follows Conventional Commits."
           fi
-          echo "✅ PR cím érvényes."
 
       - name: Validate Source Branch Name Convention
         env:
           BRANCH: ${{ steps.pr-ctx.outputs.head_ref }}
         run: |
-          echo "Ellenőrzés alatt álló forráság: '$BRANCH'"
+          echo "Source branch under validation: '$BRANCH'"
           if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" ]]; then
-            echo "✅ Rendszerág összefésülés engedélyezve: $BRANCH"
+            echo "✅ Protected integration branch allowed: $BRANCH"
             exit 0
           fi
 
           if [[ "$BRANCH" =~ ^dependabot\/ ]]; then
-            echo "✅ Dependabot automatikus ág engedélyezve: $BRANCH"
+            echo "✅ Dependabot automation branch allowed: $BRANCH"
             exit 0
           fi
           
           REGEX="^(feature|fix|hotfix|docs|refactor|test|chore|release)\/[a-zA-Z0-9._-]+$"
           if [[ ! "$BRANCH" =~ $REGEX ]]; then
-            echo "::error::A forráság neve ('$BRANCH') nem követi a megengedett sémát! Követelmény: prefix/név (pl. feature/uj-funkcio, fix/hiba, docs/leiras)."
-            exit 1
+            echo "::warning::Source branch '$BRANCH' does not follow the suggested prefix/name convention (e.g. feature/search-filter, fix/parser-timeout, docs/guide). This is advisory and does not block PR creation or CI."
+          else
+            echo "✅ Source branch follows the suggested naming convention."
           fi
-          echo "✅ Forráság elnevezése megfelelő."
 
       - name: Verify PR Description is not empty
         env:
@@ -148,21 +148,21 @@ jobs:
           IS_PR: ${{ steps.pr-ctx.outputs.is_pr }}
         run: |
           if [ "$IS_PR" != "true" ]; then
-            echo "ℹ️ Kézi ágfuttatás (nincs kapcsolt PR): PR leírás ellenőrzése kihagyva."
+            echo "ℹ️ Manual branch run (no associated PR): skipping PR description checks."
             exit 0
           fi
 
           if [ -z "$BODY" ] || [ ${#BODY} -lt 15 ]; then
-            echo "::warning::A Pull Request leírása túl rövid vagy hiányos! Kérjük, adj meg részletes összefoglalót a változtatásokról."
+            echo "::warning::The pull request description is short or incomplete. Consider adding a more detailed summary of the changes."
           else
-            echo "✅ PR leírás kitöltve (${#BODY} karakter)."
+            echo "✅ PR description provided (${#BODY} karakter)."
           fi
 
           if echo "$BODY" | grep -qiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+"; then
             LINKED_MATCH=$(echo "$BODY" | grep -oiE "(closes|fixes|resolves)[[:space:]]+#[0-9]+" | head -n 1)
-            echo "🔗 Kapcsolódó issue automatikus lezárása észlelve: '$LINKED_MATCH' (merge-kor automatikusan zárul)."
+            echo "🔗 Automatic issue-closing keyword detected: '$LINKED_MATCH' (will close the issue automatically when merged)."
           else
-            echo "ℹ️ Nincs automatikusan lezáró kulcsszó ('Closes #<id>', 'Fixes #<id>') a leírásban. Ha a PR issue-t old meg, add meg a 'Closes #...' kulcsszót!"
+            echo "ℹ️ No automatic closing keyword ('Closes #<id>', 'Fixes #<id>') found in the description. If this PR resolves an issue, consider adding 'Closes #...'."
           fi
 
       - name: Verify Thematic Agent Approval Gate
@@ -183,27 +183,30 @@ jobs:
           PR_NUM: ${{ steps.pr-ctx.outputs.pr_number }}
           STATUS_SUCCESS: ${{ job.status == 'success' }}
         run: |
-          echo "### 🛡️ PR Review (Guard) Eredmények" >> $GITHUB_STEP_SUMMARY
-          if [ "$STATUS_SUCCESS" = "true" ]; then
-            echo "- **PR Cím & Branch Szabályzat:** ✅ Megfelelt (Conventional Commits & Prefix)" >> $GITHUB_STEP_SUMMARY
-            echo "- **Thematic Agent Approval Gate:** ✅ Jóváhagyva (1-mondatos szakmai indoklással)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- **PR Cím & Branch Szabályzat:** ❌ Nem felelt meg" >> $GITHUB_STEP_SUMMARY
-            echo "- **Thematic Agent Approval Gate:** ❌ Hiányos vagy elutasítva" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "- **PR Merge Követelmény:** 🟢 Szigorúan CSAK AKKOR mergelhető, ha a CI és a PR Review is 100%-ban zöld!" >> $GITHUB_STEP_SUMMARY
-          echo "- **Ág:** \`${HEAD_REF}\` -> \`${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🛡️ PR Review Guard Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR title convention:** Advisory warning only; non-standard titles do not fail this guard." >> $GITHUB_STEP_SUMMARY
+          echo "- **Source branch naming:** Advisory warning only; non-standard branch names do not fail this guard." >> $GITHUB_STEP_SUMMARY
+          echo "- **Thematic review notes:** Advisory only; missing or incomplete notes do not fail this guard." >> $GITHUB_STEP_SUMMARY
+          echo "- **Required quality checks:** CI/build/lint/security/tests remain authoritative and must pass according to repository branch protection." >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** \`${HEAD_REF}\` -> \`${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
           if [ "$IS_PR" = "true" ]; then
-            echo "- **PR Szám:** #${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+            echo "- **PR Number:** #${PR_NUM}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Mód:** Manuális ágfuttatás (workflow_dispatch)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Mode:** Manual workflow run (workflow_dispatch)" >> $GITHUB_STEP_SUMMARY
           fi
 
   review:
     name: Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/')) }}
+    if: >-
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+       (startsWith(github.event.comment.body, '/review') ||
+        startsWith(github.event.comment.body, '/describe') ||
+        startsWith(github.event.comment.body, '/improve')))
 
     steps:
       - name: Verify AI Credentials Availability

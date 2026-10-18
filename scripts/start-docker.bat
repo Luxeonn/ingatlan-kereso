@@ -59,7 +59,7 @@ if !ATTEMPTS! GTR 30 (
     goto OPEN_BROWSER
 )
 
-curl.exe -s -f http://localhost:8080/ >nul 2>&1
+curl.exe -s -f http://localhost:8080/api/status >nul 2>&1
 if errorlevel 1 (
     ping 127.0.0.1 -n 2 >nul
     goto WAIT_LOOP

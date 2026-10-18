@@ -6,19 +6,15 @@ on:
       - main
       - develop
     paths-ignore:
-      - '**.md'
       - 'docs/**'
       - 'LICENSE'
-      - '.github/pull_request_template.md'
   pull_request:
     branches:
       - main
       - develop
     paths-ignore:
-      - '**.md'
       - 'docs/**'
       - 'LICENSE'
-      - '.github/pull_request_template.md'
   workflow_dispatch:
 
 concurrency:
@@ -35,8 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.fallback.outputs.frontend }}
+      backend: ${{ steps.fallback.outputs.backend }}
+      smoke: ${{ steps.fallback.outputs.smoke }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -49,14 +46,50 @@ jobs:
             frontend:
               - 'frontend/**'
               - '.github/workflows/ci.yml'
+              - 'Dockerfile'
+              - 'docker-compose.yml'
             backend:
               - 'src/**'
               - 'gradle/**'
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
               - 'config/**'
-              - '.github/workflows/ci.yml'
-              - '.github/scripts/**'
+              - '.github/**'
+              - 'scripts/**'
+              - 'tools/**'
+              - '.agents/**'
+              - 'Dockerfile*'
+              - 'docker-compose.yml'
+              - 'GEMINI.md'
+              - 'gemini.md'
+              - 'README.md'
+            smoke:
+              - 'Dockerfile*'
+              - 'docker-compose.yml'
+              - 'frontend/**'
+              - 'scripts/**'
+              - 'src/**'
+              - 'gradle/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - '.github/**'
+
+      - name: Evaluate Conservative Fallback
+        id: fallback
+        run: |
+          FE="${{ steps.filter.outputs.frontend }}"
+          BE="${{ steps.filter.outputs.backend }}"
+          SMOKE="${{ steps.filter.outputs.smoke }}"
+          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$SMOKE" != "true" ]; then
+            echo "⚠️ Unclassified file change detected. Triggering the conservative fallback and running all quality gates."
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "smoke=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=$FE" >> "$GITHUB_OUTPUT"
+            echo "backend=$BE" >> "$GITHUB_OUTPUT"
+            echo "smoke=$SMOKE" >> "$GITHUB_OUTPUT"
+          fi
 
   frontend:
     name: Frontend
@@ -81,14 +114,14 @@ jobs:
       - name: Install, Lint and Test Frontend SPA (React 19, TypeScript, Vitest, ESLint)
         id: frontend-build
         run: |
-          echo "=== ⚛️ Frontend SPA Quality Gates Indítása ==="
+          echo "=== ⚛️ Starting Frontend SPA Quality Gates ==="
           cd frontend
           npm ci
           npm run lint
           npm run typecheck
           npm run test
           npm run build
-          echo "✅ Frontend SPA sikeresen lintelve, tesztelve és lefordítva."
+          echo "✅ Frontend SPA linting, tests, and build completed successfully."
 
       - name: Cache Playwright Browsers
         id: playwright-cache
@@ -112,10 +145,10 @@ jobs:
       - name: Run Playwright E2E UI Action & Endpoint Smoke Tests (Vite Preview)
         id: playwright-e2e
         run: |
-          echo "=== 🎭 Playwright E2E UI Action & Smoke Tesztek Futtatása (Vite Preview) ==="
+          echo "=== 🎭 Running Playwright E2E UI Action and Smoke Tests (Vite Preview) ==="
           cd frontend
           npm run test:e2e
-          echo "✅ Minden UI gomb, beviteli mező, fül, szűrő és hálózati akció hibátlanul lefutott."
+          echo "✅ All UI buttons, input fields, tabs, filters, and network actions completed successfully."
 
       - name: Upload Playwright Report
         if: always()
@@ -139,6 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
+      skills_outcome: ${{ steps.validate-skills.outcome }}
       build_outcome: ${{ steps.gradle-build.outcome }}
       smoke_outcome: ${{ steps.smoke-test.outcome }}
       coverage_pct: ${{ steps.jacoco.outputs.coverage_pct }}
@@ -160,6 +194,10 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
 
+      - name: Validate AI Specialist Skills & Directives (Offline Deterministic)
+        id: validate-skills
+        run: bash scripts/validate-skills.sh -v
+
       - name: Compile, Lint (Checkstyle), GraalVM AOT and Test with Gradle & JaCoCo
         id: gradle-build
         run: ./gradlew check processAot bootJar --build-cache
@@ -173,43 +211,60 @@ jobs:
         if: always()
         run: bash .github/scripts/calculate-jacoco.sh
 
+  smoke-test:
+    name: Docker Smoke Test
+    needs: detect
+    if: needs.detect.outputs.smoke == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      smoke_outcome: ${{ steps.compose-smoke.outcome }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Multi-Container Smoke Test (PostgreSQL + Backend + Nginx)
+        id: compose-smoke
+        run: bash scripts/smoke-test-docker-compose.sh
+
   summary:
     name: Summary
-    needs: [detect, frontend, backend]
+    needs: [detect, frontend, backend, smoke-test]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Generate Unified CI/CD Pipeline Summary
         run: |
-          echo "### 📊 Ingatlan Kereső — CI/CD Minőségi Kapuk Összegzése" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Property Search — CI/CD Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Terület | Minőségi Kapu | Állapot | Részletek |" >> $GITHUB_STEP_SUMMARY
+          echo "| Area | Quality Gate | Status | Details |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
 
-          # Frontend kiértékelés
+          # Frontend evaluation
           FE_RESULT="${{ needs.frontend.result }}"
           FE_LINT="${{ needs.frontend.outputs.lint_outcome }}"
           FE_E2E="${{ needs.frontend.outputs.e2e_outcome }}"
 
           if [ "$FE_RESULT" = "success" ]; then
-            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ✅ Sikeres | React 19 típusellenőrzés & linter megfelelt |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🧪 Vitest Egységtesztek | ✅ Sikeres | Komponens és állapotkezelő tesztek lefutottak |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🎭 Playwright E2E UI | ✅ Sikeres | Chromium böngésző UI akciók validálva |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ✅ Passed | React 19 type checking and linting passed |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🧪 Vitest Unit Tests | ✅ Passed | Component and state-management tests completed |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🎭 Playwright E2E UI | ✅ Passed | Chromium browser UI actions validated |" >> $GITHUB_STEP_SUMMARY
           elif [ "$FE_RESULT" = "skipped" ]; then
-            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ⚪ Átugorva | Frontend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🧪 Vitest Egységtesztek | ⚪ Átugorva | Frontend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🎭 Playwright E2E UI | ⚪ Átugorva | Frontend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ⚪ Skipped | No frontend source changes |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🧪 Vitest Unit Tests | ⚪ Skipped | No frontend source changes |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🎭 Playwright E2E UI | ⚪ Skipped | No frontend source changes |" >> $GITHUB_STEP_SUMMARY
           else
-            [ "$FE_LINT" = "failure" ] && FE_LINT_STATUS="❌ Sikertelen" || FE_LINT_STATUS="⚠️ Hiba"
-            [ "$FE_E2E" = "failure" ] && FE_E2E_STATUS="❌ Sikertelen" || FE_E2E_STATUS="⚠️ Hiba"
-            echo "| **Frontend** | ⚛️ ESLint & TypeScript | $FE_LINT_STATUS | Ellenőrizd a Frontend job naplóját |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🧪 Vitest Egységtesztek | $FE_LINT_STATUS | Ellenőrizd a Frontend job naplóját |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🎭 Playwright E2E UI | $FE_E2E_STATUS | Ellenőrizd a Playwright riportot |" >> $GITHUB_STEP_SUMMARY
+            [ "$FE_LINT" = "failure" ] && FE_LINT_STATUS="❌ Failed" || FE_LINT_STATUS="⚠️ Error"
+            [ "$FE_E2E" = "failure" ] && FE_E2E_STATUS="❌ Failed" || FE_E2E_STATUS="⚠️ Error"
+            echo "| **Frontend** | ⚛️ ESLint & TypeScript | $FE_LINT_STATUS | Check the Frontend job log |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🧪 Vitest Unit Tests | $FE_LINT_STATUS | Check the Frontend job log |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Frontend** | 🎭 Playwright E2E UI | $FE_E2E_STATUS | Check the Playwright report |" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Backend kiértékelés
+          # Backend evaluation
           BE_RESULT="${{ needs.backend.result }}"
+          BE_SKILLS="${{ needs.backend.outputs.skills_outcome }}"
           BE_BUILD="${{ needs.backend.outputs.build_outcome }}"
           BE_SMOKE="${{ needs.backend.outputs.smoke_outcome }}"
           BE_COV="${{ needs.backend.outputs.coverage_pct }}"
@@ -217,42 +272,86 @@ jobs:
           BE_COV_STATUS="${{ needs.backend.outputs.coverage_status }}"
 
           if [ "$BE_RESULT" = "success" ]; then
-            echo "| **Backend** | ☕ Java & Gradle Build | ✅ Sikeres | Java 21 LTS + Spring Boot 4.1.0 + GraalVM AOT |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🔍 Checkstyle Kódminőség | ✅ 0 Hiba | Checkstyle 10.21.4 ellenőrzés megfelelt |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 📈 Kódlefedettség (JaCoCo) | ✅ ${BE_COV:-N/A} | Cél: 80%+ (${BE_COV_LINES:-ismeretlen}) |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🛡️ Headless REST API Smoke | ✅ Garantált | Zero-SyntaxError & REST szerződések validálva |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🤖 AI Skills & Directives | ✅ Valid | 100% deterministic offline validation |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | ☕ Java & Gradle Build | ✅ Passed | Java 21 LTS + Spring Boot 4.1.0 + GraalVM AOT |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🔍 Checkstyle Code Quality | ✅ 0 Errors | Checkstyle 10.21.4 validation passed |" >> $GITHUB_STEP_SUMMARY
+            if [ "$BE_COV_STATUS" = "pass" ]; then
+              echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ✅ ${BE_COV:-N/A} | Target: 80%+ (${BE_COV_LINES:-unknown}) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ❌ ${BE_COV:-N/A} | Target: 80%+ (${BE_COV_LINES:-unknown}) |" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "| **Backend** | 🛡️ Headless REST API Smoke | ✅ Passed | Zero syntax errors and REST contracts validated |" >> $GITHUB_STEP_SUMMARY
           elif [ "$BE_RESULT" = "skipped" ]; then
-            echo "| **Backend** | ☕ Java & Gradle Build | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🔍 Checkstyle Kódminőség | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 📈 Kódlefedettség (JaCoCo) | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🛡️ Headless REST API Smoke | ⚪ Átugorva | Backend forrás nem módosult |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🤖 AI Skills & Directives | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | ☕ Java & Gradle Build | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🔍 Checkstyle Code Quality | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🛡️ Headless REST API Smoke | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
           else
-            [ "$BE_BUILD" = "failure" ] && BE_BUILD_STATUS="❌ Sikertelen" || BE_BUILD_STATUS="⚠️ Hiba"
-            [ "$BE_SMOKE" = "failure" ] && BE_SMOKE_STATUS="❌ Sikertelen" || BE_SMOKE_STATUS="⚠️ Hiba"
-            echo "| **Backend** | ☕ Java & Gradle Build | $BE_BUILD_STATUS | Fordítási, Checkstyle vagy teszthiba |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🔍 Checkstyle Kódminőség | $BE_BUILD_STATUS | Checkstyle ellenőrzés állapota |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 📈 Kódlefedettség (JaCoCo) | ${BE_COV:-N/A} | ${BE_COV_LINES:-N/A} |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🛡️ Headless REST API Smoke | $BE_SMOKE_STATUS | Headless REST API smoke teszt |" >> $GITHUB_STEP_SUMMARY
+            [ "$BE_SKILLS" = "failure" ] && BE_SKILLS_STATUS="❌ Failed" || BE_SKILLS_STATUS="⚠️ Error"
+            [ "$BE_BUILD" = "failure" ] && BE_BUILD_STATUS="❌ Failed" || BE_BUILD_STATUS="⚠️ Error"
+            [ "$BE_SMOKE" = "failure" ] && BE_SMOKE_STATUS="❌ Failed" || BE_SMOKE_STATUS="⚠️ Error"
+            echo "| **Backend** | 🤖 AI Skills & Directives | $BE_SKILLS_STATUS | validate-skills.sh validation status |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | ☕ Java & Gradle Build | $BE_BUILD_STATUS | Compilation, Checkstyle, or test failure |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🔍 Checkstyle Code Quality | $BE_BUILD_STATUS | Checkstyle validation status |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ❌ ${BE_COV:-N/A} | ${BE_COV_LINES:-N/A} |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backend** | 🛡️ Headless REST API Smoke | $BE_SMOKE_STATUS | Headless REST API smoke test |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Docker Stack evaluation
+          SMOKE_RESULT="${{ needs.smoke-test.result }}"
+          SMOKE_OUTCOME="${{ needs.smoke-test.outputs.smoke_outcome }}"
+
+          if [ "$SMOKE_RESULT" = "success" ]; then
+            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | ✅ Passed | PostgreSQL 17 + Backend + Nginx validated |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$SMOKE_RESULT" = "skipped" ]; then
+            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | ⚪ Skipped | No container or source file changes |" >> $GITHUB_STEP_SUMMARY
+          else
+            [ "$SMOKE_OUTCOME" = "failure" ] && SMOKE_STATUS="❌ Failed" || SMOKE_STATUS="⚠️ Error"
+            echo "| **Docker Stack** | 🐳 Multi-Container Smoke | $SMOKE_STATUS | Docker Compose smoke test failed |" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Ref / Ág:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ref / Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Kiváltó Esemény:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggering Event:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
 
-          # Összesített hibavizsgálat
+          # Aggregate failure check (fail-closed)
           FAILED=0
-          if [ "${{ needs.detect.result }}" = "failure" ] || [ "$FE_RESULT" = "failure" ] || [ "$BE_RESULT" = "failure" ]; then
+          DETECT_RESULT="${{ needs.detect.result }}"
+
+          if [ "$DETECT_RESULT" != "success" ]; then
+            echo "❌ Error: The detect job failed or was cancelled (status: $DETECT_RESULT)."
+            FAILED=1
+          fi
+
+          if [ "$FE_RESULT" != "success" ] && [ "$FE_RESULT" != "skipped" ]; then
+            echo "❌ Error: The frontend job failed or was cancelled (status: $FE_RESULT)."
+            FAILED=1
+          fi
+
+          if [ "$BE_RESULT" != "success" ] && [ "$BE_RESULT" != "skipped" ]; then
+            echo "❌ Error: The backend job failed or was cancelled (status: $BE_RESULT)."
+            FAILED=1
+          fi
+
+          if [ "$BE_RESULT" = "success" ] && [ "$BE_COV_STATUS" != "pass" ]; then
+            echo "❌ Error: The backend job completed, but JaCoCo code coverage ($BE_COV_STATUS) did not reach 80%."
+            FAILED=1
+          fi
+
+          if [ "$SMOKE_RESULT" != "success" ] && [ "$SMOKE_RESULT" != "skipped" ]; then
+            echo "❌ Error: The smoke-test job failed or was cancelled (status: $SMOKE_RESULT)."
             FAILED=1
           fi
 
           if [ $FAILED -ne 0 ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
-            echo "> **Egy vagy több minőségi kapu nem teljesült!** Kérjük, javítsd a fenti hibákat a merge engedélyezéséhez." >> $GITHUB_STEP_SUMMARY
+            echo "> **One or more quality gates failed or were cancelled.** Fix the issues above before merging." >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
-            echo "> **Minden minőségi kapu sikeresen teljesült!** A változtatások megfelelnek a szigorú minőségi követelményeknek." >> $GITHUB_STEP_SUMMARY
+            echo "> **All quality gates passed.** The changes meet the required quality standards." >> $GITHUB_STEP_SUMMARY
           fi

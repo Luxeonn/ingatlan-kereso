@@ -10,7 +10,7 @@
 [![Docker Image](https://img.shields.io/badge/GHCR-1.0.0-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/Luxeonn/ingatlan-kereso/pkgs/container/ingatlan-kereso-backend)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 
-High-performance real estate monitoring and scraping application built with Java 21 LTS, Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support, Virtual Threads, Spring Data JPA / H2 persistence, and a decoupled modern React 19 SPA dashboard.
+High-performance real estate monitoring and scraping application built with Java 21 LTS, Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support, Virtual Threads, Spring Data JPA persistence (Embedded H2 / PostgreSQL 17), and a decoupled modern React 19 SPA dashboard. Full architectural specification: [docs/architecture.md](docs/architecture.md).
 
 ---
 
@@ -21,7 +21,7 @@ High-performance real estate monitoring and scraping application built with Java
 * **Unified Multi-City Search:** Monitor multiple cities or predefined regional clusters (e.g., Budapest & Agglomeration, Debrecen area, University cities).
 * **0-Crash Resilience:** Graceful degradation on anti-bot protected or dynamic single-page portals.
 * **Modern Decoupled React 19 SPA:** Fast frontend with TailwindCSS, dark/light themes, instant filtering, and responsive listing cards.
-* **Embedded Spring Data JPA & H2 Storage:** High-performance ACID storage with unique B-Tree indexes for O(1) deduplication and full backward-compatible storage abstractions.
+* **Dual-Mode Spring Data JPA Persistence:** High-performance ACID storage with unique B-Tree indexes for O(1) deduplication, using embedded H2 for zero-config local run and PostgreSQL 17 for containerized production.
 * **GraalVM Native Image Ready:** Sub-second startup and minimal memory footprint with Ahead-of-Time (AOT) compilation.
 
 ---
@@ -40,6 +40,8 @@ High-performance real estate monitoring and scraping application built with Java
 ---
 
 ## 🏗 Architecture & Project Structure
+
+> For detailed 4-layer design, REST endpoint catalog, dual-mode persistence, and AppSec hardening, see the authoritative reference: **[docs/architecture.md](docs/architecture.md)**.
 
 ```text
 ingatlan-kereso/
@@ -162,8 +164,10 @@ java -jar build/libs/ingatlan-1.0.0.jar
 
 ## ⚙️ Configuration & Storage
 
-* **`data/ingatlanok_jpa.mv.db`:** Primary embedded H2 database with unique B-Tree index on `url` for O(1) deduplication.
-* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, JPA, Virtual Threads).
+* **Development & CLI Persistence:** Embedded H2 database (`data/ingatlanok_jpa.mv.db`) with unique B-Tree index on `url` for O(1) deduplication.
+* **Production Persistence:** Containerized PostgreSQL 17 Alpine stack (`docker-compose.yml`) via `SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/ingatlandb`.
+* **Testing Persistence:** Ephemeral in-memory H2 database (`jdbc:h2:mem:testdb`) with zero disk footprint.
+* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, headless REST settings, JPA dialect, Virtual Threads).
 
 ---
 

@@ -35,7 +35,7 @@ echo ""
 echo "[3/4] Várakozás a rendszer (PostgreSQL -> Backend -> Nginx Frontend) feléledésére..."
 READY=0
 for i in $(seq 1 30); do
-    if curl -s -f http://localhost:8080/ >/dev/null 2>&1; then
+    if curl -s -f http://localhost:8080/api/status >/dev/null 2>&1; then
         READY=1
         echo "✅ A rendszer elérhető ($i. másodpercben)."
         break
