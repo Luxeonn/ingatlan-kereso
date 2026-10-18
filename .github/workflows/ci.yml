@@ -8,6 +8,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'LICENSE'
+      - 'README.md'
+      - '.gitignore'
   pull_request:
     branches:
       - main
@@ -15,6 +17,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'LICENSE'
+      - 'README.md'
+      - '.gitignore'
   workflow_dispatch:
 
 concurrency:
@@ -62,7 +66,6 @@ jobs:
               - 'docker-compose.yml'
               - 'GEMINI.md'
               - 'gemini.md'
-              - 'README.md'
             smoke:
               - 'Dockerfile*'
               - 'docker-compose.yml'
@@ -73,6 +76,11 @@ jobs:
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
               - '.github/**'
+            documentation:
+              - '**/*.md'
+              - '.gitignore'
+              - 'LICENSE'
+              - 'docs/**'
 
       - name: Evaluate Conservative Fallback
         id: fallback
@@ -80,7 +88,8 @@ jobs:
           FE="${{ steps.filter.outputs.frontend }}"
           BE="${{ steps.filter.outputs.backend }}"
           SMOKE="${{ steps.filter.outputs.smoke }}"
-          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$SMOKE" != "true" ]; then
+          DOCS="${{ steps.filter.outputs.documentation }}"
+          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$SMOKE" != "true" ] && [ "$DOCS" != "true" ]; then
             echo "⚠️ Unclassified file change detected. Triggering the conservative fallback and running all quality gates."
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
@@ -94,9 +103,7 @@ jobs:
   frontend:
     name: Frontend
     needs: detect
-    # TEMPORARILY DISABLED: Suspended to conserve Actions minutes (billing cycle limit).
-    # TODO: Re-enable by restoring: if: needs.detect.outputs.frontend == 'true' || github.event_name != 'pull_request'
-    if: false
+    if: needs.detect.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -170,7 +177,7 @@ jobs:
   backend:
     name: Backend
     needs: detect
-    if: needs.detect.outputs.backend == 'true' || github.event_name != 'pull_request'
+    if: needs.detect.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -216,9 +223,7 @@ jobs:
   smoke-test:
     name: Docker Smoke Test
     needs: detect
-    # TEMPORARILY DISABLED: Suspended to conserve Actions minutes (billing cycle limit).
-    # TODO: Re-enable by restoring: if: needs.detect.outputs.smoke == 'true' || github.event_name != 'pull_request'
-    if: false
+    if: needs.detect.outputs.smoke == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
