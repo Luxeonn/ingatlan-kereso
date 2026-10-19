@@ -66,20 +66,14 @@ dependencies {
         implementation("org.apache.httpcomponents.core5:httpcore5:5.4.3")
         implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
     }
-
-    // Spring Boot Starter & Core Modules (Spring Framework 7.0.9)
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
-
-    // Scraping & Utilities
     implementation("org.jsoup:jsoup:$jsoupVersion")
     implementation("commons-io:commons-io:$commonsIoVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
     implementation("com.google.code.gson:gson:$gsonVersion")
-
-    // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -144,10 +138,6 @@ configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
         force("org.codehaus.plexus:plexus-utils:3.6.1")
         force("commons-beanutils:commons-beanutils:1.11.0")
     }
-}
-
-tasks.checkstyleTest {
-    enabled = false
 }
 
 tasks.matching { it.name.startsWith("checkstyleAot") }.configureEach {
