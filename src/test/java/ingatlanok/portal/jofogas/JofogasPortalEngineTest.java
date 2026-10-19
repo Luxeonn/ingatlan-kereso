@@ -1,0 +1,146 @@
+package ingatlanok.portal.jofogas;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.List;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.SearchCriteria;
+import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.scraper.PortalScrapeStatus;
+
+class JofogasPortalEngineTest {
+
+  @Test
+  @DisplayName("Hivatalos Jófogás URL generálás: Hajdúszoboszló eladó ház szűrőkkel")
+  void testBuildSearchUrlHajduszoboszloHaz() {
+    JofogasUrlBuilder urlBuilder = new JofogasUrlBuilder();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
+
+    String url = urlBuilder.buildSearchUrl(criteria);
+
+    assertEquals(
+        "https://ingatlan.jofogas.hu/hajdu-bihar/hajduszoboszlo/haz?max_price=100000000&max_size=200&min_price=80000000&min_size=90&st=s",
+        url);
+  }
+
+  @Test
+  @DisplayName("Jófogás URL generálás Budapest esetén dedikált útvonalat használ")
+  void testBuildSearchUrlBudapest() {
+    JofogasUrlBuilder urlBuilder = new JofogasUrlBuilder();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Budapest");
+    criteria.setPropertyType("lakas");
+    criteria.setMinPriceMillion(null);
+    criteria.setMaxPriceMillion(null);
+    criteria.setMinArea(null);
+    criteria.setMaxArea(null);
+
+    String url = urlBuilder.buildSearchUrl(criteria);
+
+    assertEquals("https://ingatlan.jofogas.hu/budapest/lakas?st=s", url);
+  }
+
+  @Test
+  @DisplayName("Jófogás URL generálás alapértelmezett megye és város hozzárendeléssel")
+  void testBuildSearchUrlDebrecenDefaults() {
+    JofogasUrlBuilder urlBuilder = new JofogasUrlBuilder();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("telek");
+    criteria.setMinPriceMillion(null);
+    criteria.setMaxPriceMillion(null);
+    criteria.setMinArea(null);
+    criteria.setMaxArea(null);
+
+    String url = urlBuilder.buildSearchUrl(criteria);
+
+    assertEquals("https://ingatlan.jofogas.hu/hajdu-bihar/debrecen/telek?st=s", url);
+  }
+
+  @Test
+  @DisplayName("Offline Jófogás fixture feldolgozása és találatok ellenőrzése")
+  void testParseItemsHajduszoboszloFixture() throws Exception {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
+
+    Document doc;
+    try (InputStream is =
+        getClass().getClassLoader().getResourceAsStream("fixtures/jofogas_hajduszoboszlo.html")) {
+      assertNotNull(is, "A teszt fixture nem található!");
+      String html = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      doc = Jsoup.parse(html, JofogasUrlBuilder.BASE_URL);
+    }
+
+    JofogasParser parser = new JofogasParser();
+    List<IngatlanItem> items =
+        parser.parseItems(doc, criteria, "2026-10-19 12:00:00", new HashSet<>());
+
+    assertTrue(items.size() >= 9, "A Jófogás Hajdúszoboszló fixture-ből legalább 9 találatot kell találni");
+    assertEquals(11, items.size(), "A mintafájlból pontosan a 11 releváns hirdetést kell feldolgozni");
+
+    for (IngatlanItem item : items) {
+      assertNotNull(item.getId());
+      assertNotNull(item.getTitle());
+      assertFalse(item.getTitle().isBlank());
+      assertNotNull(item.getPriceInfo());
+      assertTrue(item.getPriceInfo().getAmountHuf() >= 80_000_000L);
+      assertTrue(item.getPriceInfo().getAmountHuf() <= 100_000_000L);
+      assertNotNull(item.getDetailsInfo());
+      assertTrue(item.getDetailsInfo().getAreaSquareMeters() >= 90.0);
+      assertTrue(item.getDetailsInfo().getAreaSquareMeters() <= 200.0);
+      assertTrue(item.getUrl().contains("ingatlan.jofogas.hu"));
+    }
+  }
+
+  @Test
+  @DisplayName("JofogasPortalEngine determinisztikus mock dokumentummal")
+  void testEngineScrapeWithMockFetcher() {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
+
+    String html =
+        "<html><body>"
+            + "<a href=\"https://ingatlan.jofogas.hu/hajdu_bihar/Hajduszoboszlo_haz_12345678.htm\">"
+            + "  Hajdúszoboszló eladó családi ház 95 M Ft 150 m2 4 szoba"
+            + "</a>"
+            + "</body></html>";
+    Document doc = Jsoup.parse(html, JofogasUrlBuilder.BASE_URL);
+
+    JofogasPortalEngine engine = new JofogasPortalEngine();
+    PortalScrapeResult result = engine.scrape(criteria, url -> doc);
+
+    assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
+    assertEquals("jofogas", result.getPortalId());
+    assertEquals(1, result.getItems().size());
+    assertEquals("12345678", result.getItems().get(0).getId());
+    assertEquals(95_000_000L, result.getItems().get(0).getPriceInfo().getAmountHuf());
+  }
+}
