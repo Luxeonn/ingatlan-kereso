@@ -39,7 +39,7 @@ public class IngatlanApplication {
     String displayHost = ("0.0.0.0".equals(host) || "::".equals(host)) ? "localhost" : host;
     String url = "http://" + displayHost + ":" + port;
 
-    LOGGER.info("Ingatlan Kereső (Spring Boot 4.1.0) Aktív! Headless REST API: {}/api/status", url);
+    LOGGER.info("Ingatlan Kereső (Spring Boot 4.1.1) Aktív! Headless REST API: {}/api/status", url);
 
     boolean openBrowser =
         Boolean.getBoolean("open.browser")

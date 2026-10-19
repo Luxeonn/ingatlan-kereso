@@ -5,7 +5,7 @@ JAR_PATH="${1:-build/libs/ingatlan-1.0.0.jar}"
 PORT="${SERVER_PORT:-8099}"
 HOST="${SERVER_HOST:-127.0.0.1}"
 
-echo "=== 🚀 Headless REST API Runtime Smoke Teszt Indítása (Spring Boot 4.1.0) ==="
+echo "=== 🚀 Headless REST API Runtime Smoke Teszt Indítása (Spring Boot 4.1.1) ==="
 
 if [ ! -f "$JAR_PATH" ]; then
   echo "::error::A buildelt JAR fájl nem található: $JAR_PATH"

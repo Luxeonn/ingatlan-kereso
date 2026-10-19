@@ -1,6 +1,6 @@
 # Ingatlan Kereső
 
-A real estate search and monitoring app for Hungarian property portals. The Java 21 / Spring Boot backend collects and deduplicates listings; a React and TypeScript frontend provides search, filters, and market summaries.
+A real estate search and monitoring app for Hungarian property portals. The Java 25 / Spring Boot backend collects and deduplicates listings; a React and TypeScript frontend provides search, filters, and market summaries.
 
 ## Supported portals
 
@@ -8,7 +8,7 @@ Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, and Ingatlan
 
 ## Run locally
 
-Requirements: JDK 21, Node.js 22, and npm.
+Requirements: JDK 25, Node.js 22, and npm.
 
 Start the backend from the repository root:
 

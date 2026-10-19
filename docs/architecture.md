@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0  
 **Status**: Authoritative Reference Specification  
-**Tech Stack Baseline**: Java 21 LTS, Spring Boot 4.1.0 (Spring Framework 7.0.9), Spring Data JPA, Hibernate, Embedded H2 / PostgreSQL 17, React 19, TypeScript 5.9, Tailwind CSS v4, Vite 8.3, Nginx, Docker Compose.
+**Tech Stack Baseline**: Java 25 LTS, Spring Boot 4.1.1, Spring Data JPA, Hibernate, Embedded H2 / PostgreSQL 17, React 19, TypeScript 5.9, Tailwind CSS v4, Vite 8.3, Nginx, Docker Compose.
 
 ---
 
@@ -25,11 +25,11 @@ flowchart TD
         ProdProxy["Nginx Reverse Proxy :80/:8080\n(Production Docker Stack)"]
     end
 
-    subgraph Server ["Server Layer (Headless Spring Boot 4.1.0 / Java 21)"]
+    subgraph Server ["Server Layer (Headless Spring Boot 4.1.1 / Java 25)"]
         REST["RestApiController (/api/*)"]
         Cors["GlobalCorsFilter & SpaWebMvcConfig (CORS & Preflight)"]
         ExHandler["GlobalExceptionHandler (@RestControllerAdvice)"]
-        VThread["Java 21 Virtual Threads Dispatcher\n(Executors.newVirtualThreadPerTaskExecutor)"]
+        VThread["Java 25 Virtual Threads Dispatcher\n(Executors.newVirtualThreadPerTaskExecutor)"]
         
         REST --> Cors
         REST --> ExHandler
@@ -97,7 +97,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
 [Layer 1: Presentation & Web]
     │  - presentation: DashboardPresentationService, DTOs (ListingDto, DashboardResponseDto, MarketStatsDto, PortalStatusDto)
     │  - web: RestApiController, GlobalExceptionHandler
-    │  - config: GlobalCorsFilter, SpaWebMvcConfig, CoreEngineConfig, GraalVmRuntimeHints
+    │  - config: GlobalCorsFilter, SpaWebMvcConfig, CoreEngineConfig
     ▼
 [Layer 2: Core Domain & Business Logic]
     │  - core: SearchExecutionEngine, ParallelPortalScrapeExecutor, SearchResultAggregator,
@@ -126,7 +126,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
 
 ---
 
-## 3. Backend Architecture (Java 21 LTS & Spring Boot 4.1.0)
+## 3. Backend Architecture (Java 25 LTS & Spring Boot 4.1.1)
 
 ### 3.1 Pure Headless REST API
 Spring Boot operates in 100% headless mode. Monolithic static asset serving is disabled in `application.yml`:
@@ -158,7 +158,7 @@ The backend exclusively processes and emits JSON. The browser client is served i
 | `/api/items/viewed` | `POST` | `{"url": "..."}` | `{"success": true, "marked": bool}` | Marks a single listing as viewed. |
 | `/api/history/clear` | `POST` | `city` (optional body/query) | `{"success": true}` | Clears history for a specific city or entire database. |
 
-### 3.3 Concurrency Model: Java 21 Virtual Threads
+### 3.3 Concurrency Model: Java 25 Virtual Threads
 High-throughput parallel I/O is achieved without carrier thread saturation:
 - Spring Boot web container uses Virtual Threads: `spring.threads.virtual.enabled=true`.
 - Parallel scraping runs via `Executors.newVirtualThreadPerTaskExecutor()` in `ParallelPortalScrapeExecutor`.
@@ -281,20 +281,18 @@ Typography is standardized on **Plus Jakarta Sans**, loaded via Google Fonts CDN
 
 ---
 
-## 8. GraalVM Native Image Readiness & AOT Compilation
+## 8. Standard JVM Runtime
 
-- **Spring Boot 4 Ahead-Of-Time (AOT)**: Fully supported via the `org.graalvm.buildtools.native` Gradle plugin (0.10.6).
-- **Reflection & Resource Registration (`GraalVmRuntimeHints`)**: Implements `RuntimeHintsRegistrar` to declare reflection hints for all domain models, DTOs, and scrape results (`IngatlanItem`, `SearchCriteria`, `DashboardResponseDto`, etc.), ensuring full reflection compatibility in native binaries.
-- **Native Compilation**: Compilable via `./gradlew nativeCompile` to produce a standalone native binary in `build/native/nativeCompile/ingatlan-kereso` with sub-100ms startup times and minimal memory footprint.
+The backend runs as a standard JVM application packaged as an executable Spring Boot JAR.
 
 ---
 
 ## 9. Containerization & Production Deployment Topography
 
 ### 9.1 Multi-Stage Hardened Dockerfile
-Backend containerization uses Eclipse Temurin JRE 21 with non-root security context:
-- Stage 1 (`builder`): Compiles fat JAR using `eclipse-temurin:21-jdk-jammy` and `./gradlew bootJar -x test`.
-- Stage 2 (`runtime`): Uses `eclipse-temurin:21-jre-jammy`, creates system user `appuser` (UID 10001, GID 10001), installs `curl` for container healthchecks, and executes `app.jar` as non-root.
+Backend containerization uses Eclipse Temurin JRE 25 with non-root security context:
+- Stage 1 (`builder`): Compiles fat JAR using `eclipse-temurin:25-jdk-alpine` and `./gradlew bootJar -x test`.
+- Stage 2 (`runtime`): Uses `eclipse-temurin:25-jre-alpine`, creates system user `appuser` (UID 10001, GID 10001), installs `curl` for container healthchecks, and executes `app.jar` as non-root.
 
 ### 9.2 Production 3-Tier Docker Compose Stack
 ```text
@@ -313,8 +311,8 @@ Backend containerization uses Eclipse Temurin JRE 21 with non-root security cont
 │                             │                               │
 │                             ▼                               │
 │   ┌─────────────────────────────────────────────────────┐   │
-│   │  Backend Service: Headless Spring Boot 4.1.0 (8080) │   │
-│   │  - Temurin JRE 21, UID 10001 non-root              │   │
+│   │  Backend Service: Headless Spring Boot 4.1.1 (8080) │   │
+│   │  - Temurin JRE 25, UID 10001 non-root              │   │
 │   │  - Virtual Threads, REST API (/api/*)              │   │
 │   │  - Healthcheck: curl -f http://localhost:8080/api/status│
 │   └─────────────────────────┬───────────────────────────┘   │
@@ -373,7 +371,7 @@ Specialist decision tokens are used in manual reviews; they are not a required P
 | :--- | :--- | :--- | :--- |
 | **SQLite (WAL mode)** | SQLite via JDBC with WAL mode and HikariCP | **Spring Data JPA on Embedded H2 (dev) / PostgreSQL 17 (prod)** | Eliminated native C-library dependencies, aligned SQL semantics between dev and prod, enabled native JPA repositories. |
 | **Nitrite NoSQL DB** | Nitrite document store (`data/ingatlanok_nosql.db`) | **Completely Removed** | Eliminated file locking bugs in parallel tests and lack of transactional relational safety. |
-| **Maven (`mvn`, `pom.xml`)** | Mentioned in legacy commands and scripts | **Gradle 8.12+ Kotlin DSL (`build.gradle.kts`)** | Single unified build tool with GraalVM Native Image plugin and fast incremental builds. |
+| **Maven (`mvn`, `pom.xml`)** | Mentioned in legacy commands and scripts | **Gradle 9.7.1 Kotlin DSL (`build.gradle.kts`)** | Single unified build tool with fast incremental builds. |
 | **Monolithic Static Bundle** | HTML/JS packaged in `src/main/resources/static/` | **Autonomous React 19 SPA served via Vite (dev) or Nginx (prod)** | True decoupling of frontend and backend. Enables independent scaling, caching, and modern web development workflow. |
 | **`WebDashboardHtml.java`** | Monolithic Java class generating inline HTML | **Completely Removed** | Replaced entirely by modern React 19 + TypeScript + Tailwind SPA. |
 | **Zero CDN Rule** | "Zero external CDN dependencies" rule in old instructions | **Online Google Fonts CDN allowed for typography** | High-performance font delivery (Plus Jakarta Sans) without bloating repository assets. |

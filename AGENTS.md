@@ -2,7 +2,7 @@
 
 ## Project Structure & Modules
 
-The backend is a Java 21 Spring Boot application. Production code lives in `src/main/java/ingatlanok/`, with business logic in `core/`, domain types in `model/`, persistence in `persistence/`, portal integrations in `portal/`, and HTTP endpoints in `web/`. Backend tests and fixtures are under `src/test/`. The React 19, TypeScript, and Vite frontend is in `frontend/src/`; unit tests are in `frontend/src/test/` and browser tests in `frontend/e2e/`. `openapi/api-spec.yaml` is the API contract; regenerate frontend API types with `npm run generate-api` from `frontend/`. See `docs/architecture.md` for layer boundaries.
+The backend is a Java 25 Spring Boot application. Production code lives in `src/main/java/ingatlanok/`, with business logic in `core/`, domain types in `model/`, persistence in `persistence/`, portal integrations in `portal/`, and HTTP endpoints in `web/`. Backend tests and fixtures are under `src/test/`. The React 19, TypeScript, and Vite frontend is in `frontend/src/`; unit tests are in `frontend/src/test/` and browser tests in `frontend/e2e/`. `openapi/api-spec.yaml` is the API contract; regenerate frontend API types with `npm run generate-api` from `frontend/`. See `docs/architecture.md` for layer boundaries.
 
 ## Build, Test, and Development
 
