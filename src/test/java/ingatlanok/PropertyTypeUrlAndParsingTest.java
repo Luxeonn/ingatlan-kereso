@@ -87,15 +87,6 @@ class PropertyTypeUrlAndParsingTest {
 
     String url = jfScraper.buildSearchUrl(criteria);
     assertNotNull(url);
-    assertTrue(
-        url.startsWith("https://ingatlan.jofogas.hu/magyarorszag/ingatlan?q="),
-        "Jófogás URL prefix hibás: " + url);
-    assertTrue(
-        url.contains("min_price=100000000"),
-        "Jófogás URL-nek tartalmaznia kell a min árat: " + url);
-    assertTrue(
-        url.contains("max_price=120000000"),
-        "Jófogás URL-nek tartalmaznia kell a max árat: " + url);
 
     String expectedTypeWord =
         switch (type) {
@@ -104,8 +95,17 @@ class PropertyTypeUrlAndParsingTest {
           default -> "lakas";
         };
     assertTrue(
-        url.contains(expectedTypeWord),
-        "Jófogás URL-nek tartalmaznia kell a típusszót (" + expectedTypeWord + "): " + url);
+        url.startsWith("https://ingatlan.jofogas.hu/hajdu-bihar/hajduszoboszlo/" + expectedTypeWord),
+        "Jófogás strukturált URL prefix hibás: " + url);
+    assertTrue(
+        url.contains("min_price=100000000"),
+        "Jófogás URL-nek tartalmaznia kell a min árat: " + url);
+    assertTrue(
+        url.contains("max_price=120000000"),
+        "Jófogás URL-nek tartalmaznia kell a max árat: " + url);
+    assertTrue(
+        url.contains("st=s"),
+        "Jófogás URL-nek tartalmaznia kell az eladó szűrőt (st=s): " + url);
   }
 
   @ParameterizedTest

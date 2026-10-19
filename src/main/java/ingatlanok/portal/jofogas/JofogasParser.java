@@ -58,7 +58,14 @@ public class JofogasParser {
       PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
       PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
       String city = criteria != null ? criteria.getCity() : "Debrecen";
-      String title = cleanTitle(cardText, city, id);
+      String title = null;
+      Element heading = a.selectFirst("h1, h2, h3, h4, h5");
+      if (heading != null && !heading.text().isBlank()) {
+        title = heading.text().trim();
+      }
+      if (title == null || title.isBlank()) {
+        title = cleanTitle(cardText, city, id);
+      }
 
       IngatlanItem item =
           new IngatlanItem(
@@ -83,9 +90,10 @@ public class JofogasParser {
 
   public String cleanTitle(String text, String defaultCity, String id) {
     if (text != null) {
-      int mFtIndex = text.indexOf("M Ft");
+      String sanitized = text.replaceAll("<[^>]*>", "").trim();
+      int mFtIndex = sanitized.indexOf("M Ft");
       if (mFtIndex > 0) {
-        String prefix = text.substring(0, mFtIndex).replaceAll("\\d+[,.]?\\d*\\s*$", "").trim();
+        String prefix = sanitized.substring(0, mFtIndex).replaceAll("\\d+[,.]?\\d*\\s*$", "").trim();
         if (prefix.length() > 5) {
           return prefix;
         }

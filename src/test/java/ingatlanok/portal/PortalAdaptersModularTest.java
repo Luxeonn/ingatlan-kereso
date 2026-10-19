@@ -102,8 +102,9 @@ class PortalAdaptersModularTest {
     criteria.setMinPriceMillion(30);
 
     String url = urlBuilder.buildSearchUrl(criteria);
-    assertTrue(url.contains("q=Debrecen+elado+lakas"));
+    assertTrue(url.contains("/hajdu-bihar/debrecen/lakas"));
     assertTrue(url.contains("min_price=30000000"));
+    assertTrue(url.contains("st=s"));
 
     String html =
         "<html><body>"

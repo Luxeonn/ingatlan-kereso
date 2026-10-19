@@ -47,9 +47,10 @@ class HajduszoboszloIssue19Test {
 
     JofogasScraper jf = new JofogasScraper();
     String jfUrl = jf.buildSearchUrl(criteria);
+    assertTrue(jfUrl.contains("/hajdu-bihar/hajduszoboszlo/haz"));
     assertTrue(jfUrl.contains("min_price=100000000"));
     assertTrue(jfUrl.contains("max_price=120000000"));
-    assertTrue(jfUrl.contains("Hajd%C3%BAszoboszl%C3%B3+elado+haz"));
+    assertTrue(jfUrl.contains("st=s"));
   }
 
   @Test
