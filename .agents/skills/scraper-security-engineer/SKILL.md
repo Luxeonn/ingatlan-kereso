@@ -1,6 +1,6 @@
 ---
 name: scraper-security-engineer
-description: Web scraping reliability, data extraction, and application security (AppSec) engineer. Use this skill to develop and maintain portal scraper engines (Jsoup DOM, JSON-LD, internal REST APIs), detect and handle Cloudflare/WAF bot protection, harden the Spring Boot 4.1.0 embedded web server and REST API (CORS filters, CSP, localhost binding, and headless API safeguards), validate inputs, and remediate XSS, SSRF, and injection vulnerabilities.
+description: Web scraping reliability, data extraction, and application security (AppSec) engineer. Use this skill to develop and maintain portal scraper engines (Jsoup DOM, JSON-LD, internal REST APIs), detect and handle Cloudflare/WAF bot protection, harden the Spring Boot 4.1.1 embedded web server and REST API (CORS filters, CSP, localhost binding, and headless API safeguards), validate inputs, and remediate XSS, SSRF, and injection vulnerabilities.
 ---
 
 # Scraper & Security Specialist

@@ -60,7 +60,7 @@ We follow coordinated vulnerability disclosure practices and commit to the follo
 
 **ingatlan-kereso** is designed with defense-in-depth security principles across its 4-layer architecture:
 
-### 1. Network & Server Hardening (Spring Boot 4.1.0 / Java 21)
+### 1. Network & Server Hardening (Spring Boot 4.1.1 / Java 25)
 - **Localhost Binding by Default:** The embedded server listens on `127.0.0.1` (`server.address=${SERVER_HOST:127.0.0.1}`) by default to prevent unintentional exposure to local area networks or public interfaces.
 - **Strict CORS Policy (`GlobalCorsFilter`):** Only whitelisted origins (`http://localhost:*`, `http://127.0.0.1:*`) are permitted. Unauthorized preflight `OPTIONS` requests receive an immediate `403 Forbidden`.
 - **Security HTTP Headers:** Every response is secured with:

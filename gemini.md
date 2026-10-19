@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 21 LTS with Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support (AOT), Virtual Threads, Spring Data JPA persistence (embedded H2 for dev/CLI, PostgreSQL 17 for production), a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose). Authoritative architecture reference: [docs/architecture.md](docs/architecture.md).
+**ingatlan-kereso** is built on Java 25 LTS with Spring Boot 4.1.1, Virtual Threads, Spring Data JPA persistence (embedded H2 for dev/CLI, PostgreSQL 17 for production), a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served independently via Vite (dev) or Nginx reverse proxy (Docker Compose). Authoritative architecture reference: [docs/architecture.md](docs/architecture.md).
 
 ### Workflow Architecture
 
@@ -18,7 +18,7 @@ flowchart TD
         SPA --> Event
     end
 
-    subgraph Server ["Server Layer (Headless Spring Boot 4.1.0 / Java 21)"]
+    subgraph Server ["Server Layer (Headless Spring Boot 4.1.1 / Java 25)"]
         HTTP["Spring MVC REST Controllers (Port 8080)"]
         VThread["Virtual Threads Dispatcher"]
         Cors["GlobalCorsFilter & SpaWebMvcConfig (CORS & MVC Config)"]
@@ -73,10 +73,10 @@ ingatlan-kereso/
 │   ├── start-docker.bat                         # Windows launcher (local build or GHCR latest)
 │   ├── smoke-test-docker-compose.sh             # Manual Compose integration smoke test
 │   └── validate-skills.sh                       # Offline specialist-skill validation used by CI
-├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
+├── build.gradle.kts                             # Gradle Kotlin DSL (Java 25, Spring Boot 4.1.1, 1.0.0)
 ├── settings.gradle.kts                          # Gradle root project settings
 ├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
-├── Dockerfile                                   # Multi-stage Temurin JRE 21 runtime container
+├── Dockerfile                                   # Multi-stage Temurin JRE 25 runtime container
 ├── docker-compose.yml                           # 3-tier production stack (Postgres, Backend, Nginx UI)
 ├── README.md                                    # Comprehensive user and developer guide
 ├── gemini.md                                    # Technical architecture & AI workflow directives
@@ -136,7 +136,6 @@ ingatlan-kereso/
     ├── config/                                  # Layer 1b: Application & Web MVC Configuration
     │   ├── CoreEngineConfig.java                # Core bean definitions
     │   ├── GlobalCorsFilter.java                # Global CORS & Preflight Filter (@Order HIGHEST)
-    │   ├── GraalVmRuntimeHints.java             # GraalVM AOT reflection hints
     │   └── SpaWebMvcConfig.java                 # Spring WebMvcConfigurer (CORS & headless MVC configuration)
     └── web/                                     # Layer 1b: Embedded Web Server & REST API
         ├── RestApiController.java              # Spring MVC REST Controller (@RestController)
@@ -147,12 +146,12 @@ ingatlan-kereso/
 
 ## 3. Core Architectural Principles
 
-1. **Spring Boot 4.1.0 & GraalVM Native Image:** High-performance, cloud-native execution with Ahead-of-Time (AOT) compilation and sub-second startup.
-2. **Java 21 Virtual Threads:** High concurrency with lightweight virtual threads (`spring.threads.virtual.enabled=true`). Scraping I/O and REST requests never block carrier threads.
+1. **Spring Boot 4.1.1 on the JVM:** Headless REST service packaged as an executable Spring Boot JAR.
+2. **Java 25 Virtual Threads:** High concurrency with lightweight virtual threads (`spring.threads.virtual.enabled=true`). Scraping I/O and REST requests never block carrier threads.
 3. **0-Crash Resilience:** Network failures, DOM alterations, or bot protection triggers on one portal never crash the server. Portal engines handle exceptions gracefully and return structured status cards (`BOT_PROTECTED`, `ERROR`).
 4. **Decoupled Persistence & Spring Data JPA (Dual-Mode):** Storage logic is hidden behind `ListingStorage` and `ConfigStorage`. The primary implementation is `JpaIngatlanStorage` utilizing Spring Data JPA with embedded H2 (`data/ingatlanok_jpa.mv.db`) for dev/CLI, PostgreSQL 17 for production Docker Compose, and in-memory H2 for hermetic tests, maintaining O(1) deduplication and fast queries without relational lock-in.
 5. **Modern Decoupled Frontend:** Autonomous React 19 + TypeScript + Vite SPA client with online Google Fonts CDN typography, served by Nginx in containerized environments with reverse proxy routing to the headless Spring Boot REST API.
-6. **Containerization & Clean Numeric Versioning:** Multi-stage Temurin JRE 21 Docker image and Docker Compose 3-tier architecture. Container images published to GHCR strictly follow clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
+6. **Containerization & Clean Numeric Versioning:** Multi-stage Temurin JRE 25 Docker image and Docker Compose 3-tier architecture. Container images published to GHCR strictly follow clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
 
 ---
 
@@ -202,4 +201,3 @@ ingatlan-kereso/
 > 14. **Manual Releases & Images:**
 >     - The `Release` workflow is manually started from `main` or `develop`, uses the version in `build.gradle.kts`, and creates `vX.Y.Z` Git/GitHub releases with versioned and commit-SHA GHCR images.
 >     - The `Images` workflow is manually started from `develop` and publishes only the backend and frontend `latest` images.
-

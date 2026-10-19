@@ -5,7 +5,7 @@
 #
 # Components verified:
 #   1. db: PostgreSQL 17 Alpine (service health, connectivity, schema)
-#   2. backend: Spring Boot 4.1.0 on Temurin JRE 21 (REST API, /api/status UP)
+#   2. backend: Spring Boot 4.1.1 on Temurin JRE 25 (REST API, /api/status UP)
 #   3. frontend: Nginx 1.27 Alpine (SPA serving, /api/ reverse proxy)
 #   4. Database Persistence: Read/write roundtrip via /api/config and /api/status
 #
@@ -111,7 +111,7 @@ while true; do
         BE_RESP=$(curl -s -f -m 3 "${BASE_URL}/api/status" 2>/dev/null || true)
         if echo "$BE_RESP" | grep -q '"status":"UP"'; then
             BACKEND_HEALTHY=1
-            echo "  ✅ [${ELAPSED}s] backend (Spring Boot 4.1.0): /api/status returned status=UP."
+            echo "  ✅ [${ELAPSED}s] backend (Spring Boot 4.1.1): /api/status returned status=UP."
         fi
     fi
 

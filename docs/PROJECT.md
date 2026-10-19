@@ -3,7 +3,7 @@
 ## Architecture
 - **Target Repository**: `Luxeonn/ingatlan-kereso`
 - **Working Branch**: `refactor/srp-decomposition-god-classes` (isolated git worktree)
-- **Baseline Framework**: Java 21 LTS, Spring Boot 4.1.0, Spring Framework 7.0.8, Virtual Threads, Spring Data JPA / H2, React 19 SPA
+- **Baseline Framework**: Java 25 LTS, Spring Boot 4.1.1, Spring Framework 7.0.8, Virtual Threads, Spring Data JPA / H2, React 19 SPA
 - **Target Layered Architecture & Unidirectional Dependencies**:
   - `web` (REST controllers, CORS filter, SPA configuration)
     └──> `presentation` (DTOs, presentation facades, KPI formatters)

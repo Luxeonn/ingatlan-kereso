@@ -1,6 +1,6 @@
 # GitHub Copilot & AI Code Review Instructions for Ingatlan Kereső
 
-This repository is **ingatlan-kereso**, a high-performance Hungarian real estate aggregator built on Java 21 LTS with Spring Boot 4.1.0, Spring Data JPA / H2, Virtual Threads, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend.
+This repository is **ingatlan-kereso**, a high-performance Hungarian real estate aggregator built on Java 25 LTS with Spring Boot 4.1.1, Spring Data JPA / H2, Virtual Threads, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend.
 
 When generating code, reviewing Pull Requests, or proposing refactors, strictly adhere to the following architectural directives and coding standards:
 
@@ -29,9 +29,9 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 ---
 
-## 2. Concurrency & Performance (Java 21 LTS)
+## 2. Concurrency & Performance (Java 25 LTS)
 
-1. **Virtual Threads First:** Use Java 21 lightweight virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`).
+1. **Virtual Threads First:** Use Java 25 lightweight virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`).
 2. **Never Block Carrier Threads:** Avoid synchronized blocks around long I/O operations. Use concurrent data structures (`ConcurrentHashMap`, `ReentrantReadWriteLock`).
 3. **Decoupled JPA Persistence (Dual-Mode):** Primary persistence relies on Spring Data JPA through `JpaIngatlanStorage`. Development/CLI runs on embedded H2 (`jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1`), while production runs on PostgreSQL 17 in Docker Compose. Ephemeral in-memory H2 (`jdbc:h2:mem:testdb`) is used for hermetic tests. Storage abstraction contracts (`ListingStorage`, `ConfigStorage`) isolate business logic from database vendors.
 
