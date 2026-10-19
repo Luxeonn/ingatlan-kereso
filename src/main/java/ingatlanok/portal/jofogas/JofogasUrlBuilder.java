@@ -1,8 +1,12 @@
 package ingatlanok.portal.jofogas;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
+import ingatlanok.common.CityUtils;
+import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
 public class JofogasUrlBuilder {
@@ -14,29 +18,55 @@ public class JofogasUrlBuilder {
       criteria = new SearchCriteria();
     }
 
+    String citySlug = SlugUtils.toSlug(criteria.getCity());
+    if (citySlug.isEmpty()) {
+      citySlug = "debrecen";
+    }
+
+    String locationSegment;
+    if (citySlug.equals("budapest")) {
+      locationSegment = "budapest";
+    } else {
+      Optional<String> countySlug = CityUtils.getCountySlug(criteria.getCity());
+      if (countySlug.isPresent() && !countySlug.get().equals(citySlug)) {
+        locationSegment = countySlug.get() + "/" + citySlug;
+      } else if (countySlug.isPresent()) {
+        locationSegment = countySlug.get();
+      } else {
+        locationSegment = citySlug;
+      }
+    }
+
     String rawType =
         criteria.getPropertyType() != null
             ? criteria.getPropertyType().toLowerCase().trim()
             : "lakas";
-    String typeWord =
+    String typeSlug =
         switch (rawType) {
           case "haz" -> "haz";
           case "telek" -> "telek";
           default -> "lakas";
         };
 
-    String query = criteria.getCity() + " elado " + typeWord;
-    String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-    StringBuilder urlBuilder =
-        new StringBuilder(BASE_URL).append("/magyarorszag/ingatlan?q=").append(encodedQuery);
+    List<String> queryParams = new ArrayList<>();
+    queryParams.add("st=s");
 
     if (criteria.getMinPriceMillion() != null) {
-      urlBuilder.append("&min_price=").append(criteria.getMinPriceMillion() * 1_000_000L);
+      queryParams.add("min_price=" + (criteria.getMinPriceMillion() * 1_000_000L));
     }
     if (criteria.getMaxPriceMillion() != null) {
-      urlBuilder.append("&max_price=").append(criteria.getMaxPriceMillion() * 1_000_000L);
+      queryParams.add("max_price=" + (criteria.getMaxPriceMillion() * 1_000_000L));
+    }
+    if (criteria.getMinArea() != null) {
+      queryParams.add("min_size=" + criteria.getMinArea());
+    }
+    if (criteria.getMaxArea() != null) {
+      queryParams.add("max_size=" + criteria.getMaxArea());
     }
 
-    return urlBuilder.toString();
+    Collections.sort(queryParams);
+
+    String route = "/" + locationSegment + "/" + typeSlug;
+    return BASE_URL + route + "?" + String.join("&", queryParams);
   }
 }
