@@ -35,10 +35,10 @@ public class KoltozzbeUrlBuilder {
     List<String> params = new ArrayList<>();
 
     if (criteria.getMinPriceMillion() != null) {
-      params.add("p1=" + criteria.getMinPriceMillion());
+      params.add("p1=" + criteria.getMinPriceMillion() * 1_000_000L);
     }
     if (criteria.getMaxPriceMillion() != null) {
-      params.add("p2=" + criteria.getMaxPriceMillion());
+      params.add("p2=" + criteria.getMaxPriceMillion() * 1_000_000L);
     }
     if (criteria.getMinArea() != null) {
       params.add("a1=" + criteria.getMinArea());
