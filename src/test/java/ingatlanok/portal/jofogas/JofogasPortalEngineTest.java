@@ -3,6 +3,7 @@ package ingatlanok.portal.jofogas;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.InputStream;
@@ -142,5 +143,44 @@ class JofogasPortalEngineTest {
     assertEquals(1, result.getItems().size());
     assertEquals("12345678", result.getItems().get(0).getId());
     assertEquals(95_000_000L, result.getItems().get(0).getPriceInfo().getAmountHuf());
+  }
+
+  @Test
+  @DisplayName("Null keresési feltételek esetén kivételt dob")
+  void testBuildSearchUrlRejectsNullCriteria() {
+    JofogasUrlBuilder urlBuilder = new JofogasUrlBuilder();
+    assertThrows(IllegalArgumentException.class, () -> urlBuilder.buildSearchUrl(null));
+  }
+
+  @Test
+  @DisplayName("Null vagy üres város esetén kivételt dob és nem állít be hamis várost")
+  void testBuildSearchUrlRejectsBlankCity() {
+    JofogasUrlBuilder urlBuilder = new JofogasUrlBuilder();
+    SearchCriteria nullCityCriteria =
+        new SearchCriteria() {
+          @Override
+          public String getCity() {
+            return null;
+          }
+        };
+    assertThrows(IllegalArgumentException.class, () -> urlBuilder.buildSearchUrl(nullCityCriteria));
+
+    SearchCriteria blankCityCriteria =
+        new SearchCriteria() {
+          @Override
+          public String getCity() {
+            return "   ";
+          }
+        };
+    assertThrows(IllegalArgumentException.class, () -> urlBuilder.buildSearchUrl(blankCityCriteria));
+  }
+
+  @Test
+  @DisplayName("Engine scrape null criteria esetén hibát ad vissza összeomlás nélkül")
+  void testEngineScrapeNullCriteriaReturnsFailure() {
+    JofogasPortalEngine engine = new JofogasPortalEngine();
+    PortalScrapeResult result = engine.scrape(null, url -> null);
+
+    assertEquals(PortalScrapeStatus.FAILED, result.getStatus());
   }
 }

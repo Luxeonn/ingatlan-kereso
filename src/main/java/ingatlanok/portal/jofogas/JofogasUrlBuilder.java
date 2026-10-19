@@ -15,12 +15,15 @@ public class JofogasUrlBuilder {
 
   public String buildSearchUrl(SearchCriteria criteria) {
     if (criteria == null) {
-      criteria = new SearchCriteria();
+      throw new IllegalArgumentException("SearchCriteria must not be null");
+    }
+    if (criteria.getCity() == null || criteria.getCity().isBlank()) {
+      throw new IllegalArgumentException("City must not be null or blank");
     }
 
     String citySlug = SlugUtils.toSlug(criteria.getCity());
     if (citySlug.isEmpty()) {
-      citySlug = "debrecen";
+      throw new IllegalArgumentException("Invalid city name: " + criteria.getCity());
     }
 
     String locationSegment;

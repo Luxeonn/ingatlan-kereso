@@ -54,14 +54,10 @@ public class JofogasPortalEngine implements PortalEngine {
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
     long startTime = System.currentTimeMillis();
-    if (criteria == null) {
-      criteria = new SearchCriteria();
-    }
-
-    String searchUrl = urlBuilder.buildSearchUrl(criteria);
-    LOGGER.info("Jófogás Ingatlan keresés indítása: {}", searchUrl);
-
     try {
+      String searchUrl = urlBuilder.buildSearchUrl(criteria);
+      LOGGER.info("Jófogás Ingatlan keresés indítása: {}", searchUrl);
+
       Document document = documentFetcher.apply(searchUrl);
       if (document == null) {
         long elapsed = System.currentTimeMillis() - startTime;
