@@ -69,7 +69,9 @@ ingatlan-kereso/
 ├── config/
 │   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 ├── scripts/
-│   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container runners
+│   ├── start-docker.bat                         # Windows launcher (local build or GHCR latest)
+│   ├── smoke-test-docker-compose.sh             # Manual Compose integration smoke test
+│   └── validate-skills.sh                       # Offline specialist-skill validation used by CI
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
 ├── settings.gradle.kts                          # Gradle root project settings
 ├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
