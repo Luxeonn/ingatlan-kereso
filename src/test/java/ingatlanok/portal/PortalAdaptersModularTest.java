@@ -167,9 +167,17 @@ class PortalAdaptersModularTest {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCity("Debrecen");
     criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
 
     String url = urlBuilder.buildSearchUrl(criteria);
     assertTrue(url.contains("/elado-haz-debrecen"));
+    assertTrue(url.contains("p1=80000000"));
+    assertTrue(url.contains("p2=100000000"));
+    assertTrue(url.contains("a1=90"));
+    assertTrue(url.contains("a2=200"));
 
     String html =
         "<html><body><div class=\"listing-card\" data-lid=\"112233\">  <a"
