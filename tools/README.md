@@ -1,6 +1,6 @@
 # Scraper Sidecar – Python CLI Segédmodul
 
-On-demand CLI segédmodul a Java alkalmazás számára, amely a bot-védett ingatlanportálok (elsősorban Ingatlan.com Cloudflare WAF) tartalmát képes kinyerni.
+On-demand CLI segédmodul a Java alkalmazás számára, amely az Ingatlan.com hirdetéseit próbálja kinyerni.
 
 ## Telepítés (Fejlesztői környezetben)
 
@@ -50,7 +50,7 @@ A kimenet mindig **JSON** formátumban érkezik a `stdout`-ra:
 
 | Paraméter | Kötelező | Alapértelmezett | Leírás |
 |:---|:---|:---|:---|
-| `--portal` | ✅ | – | Portál azonosító: `ingatlancom` \| `ingatlanbazar` |
+| `--portal` | ✅ | – | Portál azonosító: `ingatlancom` |
 | `--city` | ✅ | – | Város neve (ékezetmentesítve is elfogadja) |
 | `--type` | ❌ | `lakas` | `lakas` \| `haz` \| `telek` \| `garazs` \| `nyaralo` \| `iroda` \| `osszes` |
 | `--min-price` | ❌ | – | Minimum ár millió Ft-ban |
@@ -63,8 +63,7 @@ tools/
 ├── sidecar.py              # Fő CLI belépési pont (argparse → router)
 ├── models.py               # Pydantic JSON kimeneti séma
 ├── scrapers/
-│   ├── ingatlancom.py      # curl_cffi Chrome TLS impersonation (Cloudflare bypass)
-│   └── ingatlanbazar.py    # Playwright placeholder (jelenleg a Java REST API kezeli)
+│   └── ingatlancom.py      # curl_cffi Chrome TLS impersonation
 ├── requirements.txt        # Python függőségek
 └── README.md               # Ez a fájl
 ```
