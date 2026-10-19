@@ -18,17 +18,8 @@
 
 <!-- Optional: list checks you ran, e.g. ./gradlew check or bash scripts/validate-skills.sh. -->
 
-## Optional Thematic Review Notes
-
-<!-- These notes help reviewers but are advisory. You may omit this section or leave it incomplete.
-     CI/build/test/security checks, not PR-description formatting, determine technical pass/fail. -->
-
-- [ ] Fullstack Architecture & UI (fullstack-architect): [optional finding or rationale]
-- [ ] Scraper & Security (scraper-security-engineer): [optional finding or rationale]
-- [ ] Quality & DevOps (quality-devops-engineer): [optional finding or rationale]
-
 ## Pre-Submission Checklist
 
-- [ ] PR title follows Conventional Commits where practical (e.g. docs: clarify setup).
+- [ ] PR title follows Conventional Commits (e.g. docs: clarify setup).
 - [ ] Source branch uses a descriptive name (e.g. feature/search-filter, fix/parser-timeout, docs/guide).
 - [ ] Target branch is appropriate (normally develop).

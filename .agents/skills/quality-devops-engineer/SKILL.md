@@ -19,8 +19,8 @@ Ensure every code change is covered by deterministic, network-independent tests;
 
 Activate this skill for any task, pull request, or code review affecting any of the following:
 
-- **CI/CD workflows and actions**: `.github/workflows/**` (`ci.yml`, `pr-review.yml`, `docker-publish.yml`)
-- **PR template and verification scripts**: `.github/pull_request_template.md`, `.github/scripts/**` (`verify-pr-gate.sh`, `calculate-jacoco.sh`)
+- **CI/CD workflows and actions**: `.github/workflows/**` (`ci.yml`, `pr-build.yml`, `release.yml`, `images.yml`)
+- **PR template and verification scripts**: `.github/pull_request_template.md`, `.github/scripts/**` (`calculate-jacoco.sh`)
 - **Containerization configuration**: `Dockerfile*`, `docker-compose.yml`, `frontend/Dockerfile`, `frontend/nginx.conf`
 - **Automation and runtime scripts**: `scripts/**` (`validate-skills.sh`, `smoke-test-docker-compose.sh`, `start-docker.*`)
 - **Backend and frontend test files**: `src/test/**`, `frontend/**/__tests__/**`, `frontend/e2e/**`
@@ -47,12 +47,13 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Multi-stage Temurin JRE 21 runtime container; run as non-root (`appuser:appuser`, UID 10001), use declared volumes (`/app/data`, `/app/logs`), and enforce a health check (`curl -f http://localhost:8080/api/status`).
    - Docker Compose three-tier architecture: chain health dependencies (`service_healthy`) for `db` (PostgreSQL 17), `backend`, and `frontend` (Nginx SPA).
    - Maintain smoke-test automation in `scripts/smoke-test-docker-compose.sh`.
-   - Clean numeric SemVer: Docker tags and release versions must strictly use `1.0.0` format without a `v` prefix.
+   - Use numeric SemVer versions from `build.gradle.kts`; Git and GitHub release tags use the `vX.Y.Z` prefix, while release image tags use `X.Y.Z` and `sha-<commit>`.
 4. **CI/CD pipeline reliability (eliminating false-green results)**:
    - Comprehensive path filtering (`dorny/paths-filter`) must ensure Docker, Gradle, scripts, configuration, and AI directive changes cannot bypass CI.
-   - Fail-closed summary job (`ci-summary`): any required job failure or omission must fail the pipeline.
-   - PR gate verification (`verify-pr-gate.sh`): fail closed on diff errors and validate statuses and rationales.
-   - Publish Docker images only after CI succeeds, using `workflow_run`.
+   - Minimal fail-closed gate: any required job failure, cancellation, or unexpected skip fails the workflow without producing a verbose summary report.
+   - Require a Conventional Commit PR title.
+   - Run the shared CI checks on the selected commit before manual release or `develop` image publication.
+   - Keep release tags and GHCR write permissions scoped to the publishing jobs.
 
 ### Explicit Non-Goals
 
@@ -90,14 +91,14 @@ For every review, the specialist must follow this four-phase workflow:
    - Inspect the changed file list.
    - Identify whether the change affects workflows (`.github/workflows/`), Docker, scripts, or test files.
 2. **Phase 2: Pipeline and quality audit**
-   - Check path filters, required job dependencies, the summary gate, JaCoCo thresholds, Checkstyle, and Docker security configuration.
+   - Check path filters, required job dependencies, the minimal fail-closed gate, JaCoCo thresholds, Checkstyle, and Docker security configuration.
 3. **Phase 3: Deterministic local verification**
    - Run `./gradlew check` and the repository's skill validator.
    - Run relevant coverage scripts and Docker smoke tests when affected and available.
    - Verify that standard unit tests do not require live external network access.
 4. **Phase 4: Synthesis and decision**
    - Determine the decision token (`NO_FINDING`, `FINDING`, `NOT_APPLICABLE`, or `NOT_VERIFIED`).
-   - Provide exactly one concise, professional rationale sentence for the PR gate.
+   - Record a concise rationale for the review decision.
 
 ---
 
@@ -126,8 +127,8 @@ For every review, the specialist must follow this four-phase workflow:
 ### D. CI/CD Reliability
 
 - [ ] Path filters include build files, scripts, tests, Docker, configuration, and AI instruction changes.
-- [ ] The summary job fails if any required job fails or is skipped unexpectedly.
-- [ ] PR gate validation fails closed for malformed diffs, missing status tokens, or empty rationales.
+- [ ] The minimal CI gate fails if any required job fails or is skipped unexpectedly.
+- [ ] The PR build workflow blocks titles that do not follow Conventional Commits.
 - [ ] Docker publishing is gated on successful CI results.
 
 ---
@@ -140,15 +141,9 @@ The specialist must record the following concrete evidence during review:
 - **Coverage evidence**: JaCoCo report and the result of `calculate-jacoco.sh`.
 - **CI/CD and container evidence**: Workflow status, path-filter behavior, health checks, and Docker runtime user.
 
-### Thematic Agent Approval Gate Output
+### Review Output
 
-Use the following text in the Pull Request's Thematic Gate block:
-
-```markdown
-- [x] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING / NOT_APPLICABLE] - [One concise sentence summarizing test, coverage, container, and CI quality]
-```
-
-*Note: For `FINDING`, leave the checkbox unchecked (`[ ]`), set the status to `[FINDING]`, and attach a detailed report in the PR description or a comment.*
+Summarize the concrete test, coverage, container, and CI evidence in the review. The PR description does not require thematic approval notes.
 
 ---
 
@@ -172,7 +167,7 @@ The specialist must stop immediately and reject approval with a `FINDING` status
 4. **Checkstyle violation**: Any formatting or convention violation remains when `maxWarnings = 0`.
 5. **Root container**: The Docker runtime stage does not run as `appuser` with UID 10001.
 6. **Unverified Docker publishing**: Docker images are built or published without successful CI confirmation.
-7. **PR gate bypass**: The Thematic Approval Gate contains an empty rationale or an unsupported status token.
+7. **PR title bypass**: The required PR build check accepts a title that does not follow Conventional Commits.
 
 ---
 
@@ -184,5 +179,5 @@ Approval (`NO_FINDING`) from `quality-devops-engineer` may be granted only when 
 2. JaCoCo coverage is at least 80%, and `calculate-jacoco.sh` exits successfully.
 3. The offline `validate-skills.sh` validator reports zero errors.
 4. Docker and Compose configuration meets container-security and health-check requirements.
-5. CI/CD path filters and summary statuses prevent false-green results.
-6. The PR Gate block contains exactly one professional, non-generic rationale sentence.
+5. CI/CD path filters and the minimal gate prevent false-green results.
+6. The PR build workflow requires a valid Conventional Commit title.

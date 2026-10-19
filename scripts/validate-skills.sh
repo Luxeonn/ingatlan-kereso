@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # scripts/validate-skills.sh
-# Deterministic offline validation for AI specialist skills, directives, and PR gates.
+# Deterministic offline validation for AI specialist skills and directives.
 #
 # Enforces:
 #  1. YAML frontmatter presence, matching skill names, and non-empty descriptions
@@ -235,8 +235,8 @@ while IFS= read -r match; do
   [ -n "$match" ] || continue
   f=$(echo "$match" | cut -d: -f1)
   l=$(echo "$match" | cut -d: -f2)
-  log_fail "Banned reference 'pr-guard.yml' (use 'pr-review.yml')" "$f" "$l"
-done < <(grep -rnI 'pr-guard\.yml' README.md gemini.md GEMINI.md .github/ .agents/skills/ docs/ 2>/dev/null || true)
+  log_fail "Obsolete workflow reference 'pr-review.yml' (use 'pr-build.yml')" "$f" "$l"
+done < <(grep -rnI 'pr-review\.yml' README.md gemini.md GEMINI.md .github/ .agents/skills/ docs/ 2>/dev/null || true)
 
 while IFS= read -r match; do
   [ -n "$match" ] || continue

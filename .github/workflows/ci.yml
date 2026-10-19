@@ -1,25 +1,21 @@
-name: CI
+name: CI Build
 
 on:
   push:
     branches:
       - main
       - develop
-    paths-ignore:
-      - 'docs/**'
-      - 'LICENSE'
-      - 'README.md'
-      - '.gitignore'
   pull_request:
     branches:
       - main
       - develop
-    paths-ignore:
-      - 'docs/**'
-      - 'LICENSE'
-      - 'README.md'
-      - '.gitignore'
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      run_all:
+        description: Run both component suites regardless of changed paths
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,38 +23,42 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   detect:
-    name: Detect
+    name: Detect changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      frontend: ${{ steps.fallback.outputs.frontend }}
-      backend: ${{ steps.fallback.outputs.backend }}
+      frontend: ${{ steps.result.outputs.frontend }}
+      backend: ${{ steps.result.outputs.backend }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        if: inputs.run_all != true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Path Filter (Detect Changed Components)
+      - name: Detect changed components
+        if: inputs.run_all != true
         id: filter
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
           filters: |
             frontend:
               - 'frontend/**'
-              - '.github/workflows/ci.yml'
+              - 'openapi/**'
               - 'Dockerfile'
               - 'docker-compose.yml'
+              - '.github/**'
             backend:
               - 'src/**'
               - 'gradle/**'
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
               - 'config/**'
-              - '.github/workflows/ci.yml'
-              - '.github/scripts/**'
+              - '.github/**'
               - 'scripts/**'
               - 'tools/**'
               - '.agents/**'
@@ -71,24 +71,28 @@ jobs:
               - '.gitignore'
               - 'LICENSE'
               - 'docs/**'
-            automation:
-              - '.github/workflows/docker-publish.yml'
-              - '.github/workflows/pr-review.yml'
 
-      - name: Evaluate Conservative Fallback
-        id: fallback
+      - name: Select full or changed-component validation
+        id: result
+        env:
+          RUN_ALL: ${{ inputs.run_all }}
+          FRONTEND_CHANGED: ${{ steps.filter.outputs.frontend }}
+          BACKEND_CHANGED: ${{ steps.filter.outputs.backend }}
+          DOCS_CHANGED: ${{ steps.filter.outputs.documentation }}
         run: |
-          FE="${{ steps.filter.outputs.frontend }}"
-          BE="${{ steps.filter.outputs.backend }}"
-          DOCS="${{ steps.filter.outputs.documentation }}"
-          AUTOMATION="${{ steps.filter.outputs.automation }}"
-          if [ "$FE" != "true" ] && [ "$BE" != "true" ] && [ "$DOCS" != "true" ] && [ "$AUTOMATION" != "true" ]; then
-            echo "⚠️ Unclassified file change detected. Triggering the conservative fallback and running all quality gates."
+          if [ "$RUN_ALL" = "true" ]; then
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
+          elif [ "$FRONTEND_CHANGED" = "true" ] || [ "$BACKEND_CHANGED" = "true" ]; then
+            echo "frontend=$FRONTEND_CHANGED" >> "$GITHUB_OUTPUT"
+            echo "backend=$BACKEND_CHANGED" >> "$GITHUB_OUTPUT"
+          elif [ "$DOCS_CHANGED" = "true" ]; then
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+            echo "backend=false" >> "$GITHUB_OUTPUT"
           else
-            echo "frontend=$FE" >> "$GITHUB_OUTPUT"
-            echo "backend=$BE" >> "$GITHUB_OUTPUT"
+            echo "Unclassified changes detected; running both component suites."
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true" >> "$GITHUB_OUTPUT"
           fi
 
   frontend:
@@ -96,227 +100,133 @@ jobs:
     needs: detect
     if: needs.detect.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      lint_outcome: ${{ steps.frontend-build.outcome }}
-      e2e_outcome: ${{ steps.playwright-e2e.outcome }}
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Set up Node.js 22 (JavaScript Validator Engine)
-        uses: actions/setup-node@v7
+      - name: Set up Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install, Lint and Test Frontend SPA (React 19, TypeScript, Vitest, ESLint)
-        id: frontend-build
+      - name: Lint, typecheck, test and build
+        working-directory: frontend
         run: |
-          echo "=== ⚛️ Starting Frontend SPA Quality Gates ==="
-          cd frontend
           npm ci
           npm run lint
           npm run typecheck
           npm run test
           npm run build
-          echo "✅ Frontend SPA linting, tests, and build completed successfully."
 
-      - name: Cache Playwright Browsers
+      - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
 
-      - name: Install Playwright Browsers and Dependencies
+      - name: Install Playwright browsers and OS dependencies
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          cd frontend
-          npx playwright install --with-deps chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
 
-      - name: Install Playwright OS Dependencies (Cache Hit)
+      - name: Install Playwright OS dependencies (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: |
-          cd frontend
-          npx playwright install-deps chromium
+        working-directory: frontend
+        run: npx playwright install-deps chromium
 
-      - name: Run Playwright E2E UI Action & Endpoint Smoke Tests (Vite Preview)
-        id: playwright-e2e
-        run: |
-          echo "=== 🎭 Running Playwright E2E UI Action and Smoke Tests (Vite Preview) ==="
-          cd frontend
-          npm run test:e2e
-          echo "✅ All UI buttons, input fields, tabs, filters, and network actions completed successfully."
+      - name: Run Playwright E2E
+        working-directory: frontend
+        run: npm run test:e2e
 
-      - name: Upload Playwright Report
+      - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: playwright-report-frontend
+          name: playwright-report
           path: frontend/playwright-report/
+          if-no-files-found: ignore
           retention-days: 7
-
-      - name: Upload Built SPA Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: frontend-dist
-          path: frontend/dist/
-          retention-days: 1
 
   backend:
     name: Backend
     needs: detect
     if: needs.detect.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    outputs:
-      skills_outcome: ${{ steps.validate-skills.outcome }}
-      build_outcome: ${{ steps.gradle-build.outcome }}
-      coverage_pct: ${{ steps.jacoco.outputs.coverage_pct }}
-      coverage_lines: ${{ steps.jacoco.outputs.coverage_lines }}
-      coverage_status: ${{ steps.jacoco.outputs.coverage_status }}
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Set up JDK 21 (Eclipse Temurin)
-        uses: actions/setup-java@v6
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
 
-      - name: Set up Gradle with Build Cache
-        uses: gradle/actions/setup-gradle@v6
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        with:
+          dependency-graph: disabled
+          add-job-summary: never
 
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v6
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
 
-      - name: Validate AI Specialist Skills & Directives (Offline Deterministic)
-        id: validate-skills
+      - name: Validate repository skills
         run: bash scripts/validate-skills.sh -v
 
-      - name: Compile, Lint (Checkstyle), GraalVM AOT and Test with Gradle & JaCoCo
-        id: gradle-build
-        run: ./gradlew checkstyleMain checkstyleTest check processAot bootJar --build-cache
+      - name: Check and package backend
+        run: ./gradlew check bootJar --build-cache
 
-      - name: Headless REST API Runtime Smoke Test
-        id: smoke-test
+      - name: Headless REST API smoke test
         run: bash .github/scripts/run-smoke-test.sh
 
-      - name: Calculate JaCoCo Code Coverage
-        id: jacoco
+      - name: Calculate JaCoCo coverage
         if: always()
         run: bash .github/scripts/calculate-jacoco.sh
 
-  summary:
-    name: Summary
+  gate:
+    name: CI Build
     needs: [detect, frontend, backend]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     steps:
-      - name: Generate Unified CI/CD Pipeline Summary
+      - name: Check required job results
+        env:
+          DETECT_RESULT: ${{ needs.detect.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          FRONTEND_REQUIRED: ${{ needs.detect.outputs.frontend }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          BACKEND_REQUIRED: ${{ needs.detect.outputs.backend }}
         run: |
-          echo "### 📊 Property Search — CI/CD Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Area | Quality Gate | Status | Details |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-
-          # Frontend evaluation
-          FE_RESULT="${{ needs.frontend.result }}"
-          FE_LINT="${{ needs.frontend.outputs.lint_outcome }}"
-          FE_E2E="${{ needs.frontend.outputs.e2e_outcome }}"
-
-          if [ "$FE_RESULT" = "success" ]; then
-            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ✅ Passed | React 19 type checking and linting passed |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🧪 Vitest Unit Tests | ✅ Passed | Component and state-management tests completed |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🎭 Playwright E2E UI | ✅ Passed | Chromium browser UI actions validated |" >> $GITHUB_STEP_SUMMARY
-          elif [ "$FE_RESULT" = "skipped" ]; then
-            echo "| **Frontend** | ⚛️ ESLint & TypeScript | ⚪ Skipped | No frontend source changes |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🧪 Vitest Unit Tests | ⚪ Skipped | No frontend source changes |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🎭 Playwright E2E UI | ⚪ Skipped | No frontend source changes |" >> $GITHUB_STEP_SUMMARY
-          else
-            [ "$FE_LINT" = "failure" ] && FE_LINT_STATUS="❌ Failed" || FE_LINT_STATUS="⚠️ Error"
-            [ "$FE_E2E" = "failure" ] && FE_E2E_STATUS="❌ Failed" || FE_E2E_STATUS="⚠️ Error"
-            echo "| **Frontend** | ⚛️ ESLint & TypeScript | $FE_LINT_STATUS | Check the Frontend job log |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🧪 Vitest Unit Tests | $FE_LINT_STATUS | Check the Frontend job log |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Frontend** | 🎭 Playwright E2E UI | $FE_E2E_STATUS | Check the Playwright report |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Backend evaluation
-          BE_RESULT="${{ needs.backend.result }}"
-          BE_SKILLS="${{ needs.backend.outputs.skills_outcome }}"
-          BE_BUILD="${{ needs.backend.outputs.build_outcome }}"
-          BE_SMOKE="${{ needs.backend.outputs.smoke_outcome }}"
-          BE_COV="${{ needs.backend.outputs.coverage_pct }}"
-          BE_COV_LINES="${{ needs.backend.outputs.coverage_lines }}"
-          BE_COV_STATUS="${{ needs.backend.outputs.coverage_status }}"
-
-          if [ "$BE_RESULT" = "success" ]; then
-            echo "| **Backend** | 🤖 AI Skills & Directives | ✅ Valid | 100% deterministic offline validation |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | ☕ Java & Gradle Build | ✅ Passed | Java 21 LTS + Spring Boot 4.1.0 + GraalVM AOT |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🔍 Checkstyle Code Quality | ✅ 0 Errors | Checkstyle 10.21.4 validation passed |" >> $GITHUB_STEP_SUMMARY
-            if [ "$BE_COV_STATUS" = "pass" ]; then
-              echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ✅ ${BE_COV:-N/A} | Target: 80%+ (${BE_COV_LINES:-unknown}) |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ❌ ${BE_COV:-N/A} | Target: 80%+ (${BE_COV_LINES:-unknown}) |" >> $GITHUB_STEP_SUMMARY
-            fi
-            echo "| **Backend** | 🛡️ Headless REST API Smoke | ✅ Passed | Zero syntax errors and REST contracts validated |" >> $GITHUB_STEP_SUMMARY
-          elif [ "$BE_RESULT" = "skipped" ]; then
-            echo "| **Backend** | 🤖 AI Skills & Directives | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | ☕ Java & Gradle Build | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🔍 Checkstyle Code Quality | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🛡️ Headless REST API Smoke | ⚪ Skipped | No backend source changes |" >> $GITHUB_STEP_SUMMARY
-          else
-            [ "$BE_SKILLS" = "failure" ] && BE_SKILLS_STATUS="❌ Failed" || BE_SKILLS_STATUS="⚠️ Error"
-            [ "$BE_BUILD" = "failure" ] && BE_BUILD_STATUS="❌ Failed" || BE_BUILD_STATUS="⚠️ Error"
-            [ "$BE_SMOKE" = "failure" ] && BE_SMOKE_STATUS="❌ Failed" || BE_SMOKE_STATUS="⚠️ Error"
-            echo "| **Backend** | 🤖 AI Skills & Directives | $BE_SKILLS_STATUS | validate-skills.sh validation status |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | ☕ Java & Gradle Build | $BE_BUILD_STATUS | Compilation, Checkstyle, or test failure |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🔍 Checkstyle Code Quality | $BE_BUILD_STATUS | Checkstyle validation status |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 📈 Code Coverage (JaCoCo) | ❌ ${BE_COV:-N/A} | ${BE_COV_LINES:-N/A} |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backend** | 🛡️ Headless REST API Smoke | $BE_SMOKE_STATUS | Headless REST API smoke test |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Ref / Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggering Event:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-
-          # Aggregate failure check (fail-closed)
-          FAILED=0
-          DETECT_RESULT="${{ needs.detect.result }}"
+          failed=0
 
           if [ "$DETECT_RESULT" != "success" ]; then
-            echo "❌ Error: The detect job failed or was cancelled (status: $DETECT_RESULT)."
-            FAILED=1
+            echo "Change detection did not succeed: $DETECT_RESULT"
+            failed=1
           fi
 
-          if [ "$FE_RESULT" != "success" ] && [ "$FE_RESULT" != "skipped" ]; then
-            echo "❌ Error: The frontend job failed or was cancelled (status: $FE_RESULT)."
-            FAILED=1
+          if [ "$FRONTEND_REQUIRED" = "true" ] && [ "$FRONTEND_RESULT" != "success" ]; then
+            echo "Frontend was required but finished with: $FRONTEND_RESULT"
+            failed=1
+          elif [ "$FRONTEND_REQUIRED" != "true" ] && [ "$FRONTEND_RESULT" != "skipped" ]; then
+            echo "Frontend was not expected to run but finished with: $FRONTEND_RESULT"
+            failed=1
           fi
 
-          if [ "$BE_RESULT" != "success" ] && [ "$BE_RESULT" != "skipped" ]; then
-            echo "❌ Error: The backend job failed or was cancelled (status: $BE_RESULT)."
-            FAILED=1
+          if [ "$BACKEND_REQUIRED" = "true" ] && [ "$BACKEND_RESULT" != "success" ]; then
+            echo "Backend was required but finished with: $BACKEND_RESULT"
+            failed=1
+          elif [ "$BACKEND_REQUIRED" != "true" ] && [ "$BACKEND_RESULT" != "skipped" ]; then
+            echo "Backend was not expected to run but finished with: $BACKEND_RESULT"
+            failed=1
           fi
 
-          if [ "$BE_RESULT" = "success" ] && [ "$BE_COV_STATUS" != "pass" ]; then
-            echo "❌ Error: The backend job completed, but JaCoCo code coverage ($BE_COV_STATUS) did not reach 80%."
-            FAILED=1
-          fi
-
-          if [ $FAILED -ne 0 ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
-            echo "> **One or more quality gates failed or were cancelled.** Fix the issues above before merging." >> $GITHUB_STEP_SUMMARY
+          if [ "$failed" -ne 0 ]; then
             exit 1
-          else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
-            echo "> **All quality gates passed.** The changes meet the required quality standards." >> $GITHUB_STEP_SUMMARY
           fi

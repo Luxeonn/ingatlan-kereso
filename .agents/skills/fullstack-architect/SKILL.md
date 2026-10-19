@@ -50,7 +50,7 @@ Activate this skill for any task, pull request, or code review affecting any of 
 ### Explicit Non-Goals
 
 - **Web scraping and portal-specific DOM analysis**: Internal portal-engine logic, Jsoup selectors, and Cloudflare WAF handling belong to `scraper-security-engineer`.
-- **CI/CD workflows, container hardening, and JaCoCo calculations**: GitHub Actions (`ci.yml`, `pr-review.yml`), multi-stage Dockerfile optimization, and coverage gates belong to `quality-devops-engineer`.
+- **CI/CD workflows, container hardening, and JaCoCo calculations**: GitHub Actions (`ci.yml`, `pr-build.yml`, `release.yml`, `images.yml`), multi-stage Dockerfile optimization, and coverage gates belong to `quality-devops-engineer`.
 
 ---
 
