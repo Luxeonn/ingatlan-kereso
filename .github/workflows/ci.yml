@@ -12,7 +12,7 @@ on:
   workflow_call:
     inputs:
       run_all:
-        description: Run both component suites regardless of changed paths
+        description: Run all component suites regardless of changed paths
         required: false
         type: boolean
         default: false
@@ -35,6 +35,8 @@ jobs:
     outputs:
       frontend: ${{ steps.result.outputs.frontend }}
       backend: ${{ steps.result.outputs.backend }}
+      openapi: ${{ steps.result.outputs.openapi }}
+      container: ${{ steps.result.outputs.container }}
     steps:
       - name: Checkout repository
         if: inputs.run_all != true
@@ -66,6 +68,17 @@ jobs:
               - 'docker-compose.yml'
               - 'GEMINI.md'
               - 'gemini.md'
+            openapi:
+              - 'openapi/**'
+              - 'src/main/java/ingatlanok/web/**'
+              - 'src/main/java/ingatlanok/dto/**'
+              - 'src/main/java/ingatlanok/model/**'
+              - 'src/main/java/ingatlanok/presentation/**'
+              - 'frontend/src/types/generated-api.ts'
+            container:
+              - 'Dockerfile*'
+              - 'docker-compose.yml'
+              - 'build.gradle.kts'
             documentation:
               - '**/*.md'
               - '.gitignore'
@@ -78,22 +91,71 @@ jobs:
           RUN_ALL: ${{ inputs.run_all }}
           FRONTEND_CHANGED: ${{ steps.filter.outputs.frontend }}
           BACKEND_CHANGED: ${{ steps.filter.outputs.backend }}
+          OPENAPI_CHANGED: ${{ steps.filter.outputs.openapi }}
+          CONTAINER_CHANGED: ${{ steps.filter.outputs.container }}
           DOCS_CHANGED: ${{ steps.filter.outputs.documentation }}
         run: |
           if [ "$RUN_ALL" = "true" ]; then
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "openapi=true" >> "$GITHUB_OUTPUT"
+            echo "container=true" >> "$GITHUB_OUTPUT"
           elif [ "$FRONTEND_CHANGED" = "true" ] || [ "$BACKEND_CHANGED" = "true" ]; then
             echo "frontend=$FRONTEND_CHANGED" >> "$GITHUB_OUTPUT"
             echo "backend=$BACKEND_CHANGED" >> "$GITHUB_OUTPUT"
+            echo "openapi=$OPENAPI_CHANGED" >> "$GITHUB_OUTPUT"
+            echo "container=$CONTAINER_CHANGED" >> "$GITHUB_OUTPUT"
           elif [ "$DOCS_CHANGED" = "true" ]; then
             echo "frontend=false" >> "$GITHUB_OUTPUT"
             echo "backend=false" >> "$GITHUB_OUTPUT"
+            echo "openapi=false" >> "$GITHUB_OUTPUT"
+            echo "container=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Unclassified changes detected; running both component suites."
+            echo "Unclassified changes detected; running all component suites."
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "openapi=true" >> "$GITHUB_OUTPUT"
+            echo "container=true" >> "$GITHUB_OUTPUT"
           fi
+
+  gitleaks:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks secret detection
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  openapi-drift:
+    name: OpenAPI contract drift check
+    needs: detect
+    if: needs.detect.outputs.openapi == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Verify API typegen freshness
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run generate-api
+          git diff --exit-code src/types/generated-api.ts || (echo "ERROR: generated-api.ts is outdated. Run 'npm run generate-api' in frontend!" && exit 1)
 
   frontend:
     name: Frontend
@@ -189,9 +251,32 @@ jobs:
         if: always()
         run: bash .github/scripts/calculate-jacoco.sh
 
+  trivy:
+    name: Container scan (Trivy)
+    needs: detect
+    if: needs.detect.outputs.container == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build backend container image
+        run: docker build -t ingatlan-backend:scan -f Dockerfile .
+
+      - name: Run Trivy vulnerability scanner on container image
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # 0.29.0
+        with:
+          image-ref: 'ingatlan-backend:scan'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
   gate:
     name: CI Build
-    needs: [detect, frontend, backend]
+    needs: [detect, gitleaks, openapi-drift, frontend, backend, trivy]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -199,15 +284,33 @@ jobs:
       - name: Check required job results
         env:
           DETECT_RESULT: ${{ needs.detect.result }}
+          GITLEAKS_RESULT: ${{ needs.gitleaks.result }}
+          OPENAPI_RESULT: ${{ needs.openapi-drift.result }}
+          OPENAPI_REQUIRED: ${{ needs.detect.outputs.openapi }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
           FRONTEND_REQUIRED: ${{ needs.detect.outputs.frontend }}
           BACKEND_RESULT: ${{ needs.backend.result }}
           BACKEND_REQUIRED: ${{ needs.detect.outputs.backend }}
+          TRIVY_RESULT: ${{ needs.trivy.result }}
+          TRIVY_REQUIRED: ${{ needs.detect.outputs.container }}
         run: |
           failed=0
 
           if [ "$DETECT_RESULT" != "success" ]; then
             echo "Change detection did not succeed: $DETECT_RESULT"
+            failed=1
+          fi
+
+          if [ "$GITLEAKS_RESULT" != "success" ]; then
+            echo "Gitleaks secret scan did not succeed: $GITLEAKS_RESULT"
+            failed=1
+          fi
+
+          if [ "$OPENAPI_REQUIRED" = "true" ] && [ "$OPENAPI_RESULT" != "success" ]; then
+            echo "OpenAPI drift check was required but finished with: $OPENAPI_RESULT"
+            failed=1
+          elif [ "$OPENAPI_REQUIRED" != "true" ] && [ "$OPENAPI_RESULT" != "skipped" ]; then
+            echo "OpenAPI drift check was not expected to run but finished with: $OPENAPI_RESULT"
             failed=1
           fi
 
@@ -224,6 +327,14 @@ jobs:
             failed=1
           elif [ "$BACKEND_REQUIRED" != "true" ] && [ "$BACKEND_RESULT" != "skipped" ]; then
             echo "Backend was not expected to run but finished with: $BACKEND_RESULT"
+            failed=1
+          fi
+
+          if [ "$TRIVY_REQUIRED" = "true" ] && [ "$TRIVY_RESULT" != "success" ]; then
+            echo "Trivy container scan was required but finished with: $TRIVY_RESULT"
+            failed=1
+          elif [ "$TRIVY_REQUIRED" != "true" ] && [ "$TRIVY_RESULT" != "skipped" ]; then
+            echo "Trivy container scan was not expected to run but finished with: $TRIVY_RESULT"
             failed=1
           fi
 
