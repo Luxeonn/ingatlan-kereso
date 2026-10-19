@@ -19,8 +19,9 @@ RUN sed -i 's/\r$//' gradlew && ./gradlew bootJar --no-daemon -x test
 # Stage 2: Minimal hardened runtime with Temurin JRE 25
 FROM eclipse-temurin:25-jre-alpine
 
-# Install curl for HEALTHCHECK and ca-certificates
-RUN apk add --no-cache curl ca-certificates
+# Upgrade packages to apply latest security patches (e.g. libexpat) and install curl/ca-certificates
+RUN apk upgrade --no-cache && \
+    apk add --no-cache curl ca-certificates
 
 # Create non-root system user (UID 10001) for container security
 RUN addgroup -S -g 10001 appuser && \
