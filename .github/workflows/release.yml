@@ -1,0 +1,216 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Validate release branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require main or develop
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" != "branch" ] || { [ "$BRANCH" != "main" ] && [ "$BRANCH" != "develop" ]; }; then
+            echo "Release must be started from the main or develop branch."
+            exit 1
+          fi
+
+  verify:
+    name: Verify selected branch
+    needs: guard
+    uses: ./.github/workflows/ci.yml
+    with:
+      run_all: true
+    permissions:
+      contents: read
+      pull-requests: read
+
+  prepare:
+    name: Resolve release version
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      should_release: ${{ steps.release.outputs.should_release }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      short_sha: ${{ steps.release.outputs.short_sha }}
+      repository_lower: ${{ steps.release.outputs.repository_lower }}
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Compare project version with latest branch release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+
+          VERSION=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' build.gradle.kts | head -n 1)
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "build.gradle.kts must declare a numeric X.Y.Z release version."
+            exit 1
+          fi
+
+          LATEST_TAG=""
+          while IFS= read -r CANDIDATE_TAG; do
+            if [[ "$CANDIDATE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              LATEST_TAG="$CANDIDATE_TAG"
+            fi
+          done < <(git tag --merged "$GITHUB_SHA" --list 'v*' | sort -V)
+
+          TAG="v${VERSION}"
+          SHORT_SHA="$(git rev-parse --short=7 "$GITHUB_SHA")"
+          REPOSITORY_LOWER="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          SHOULD_RELEASE=true
+
+          if [ -n "$LATEST_TAG" ]; then
+            LATEST_VERSION="${LATEST_TAG#v}"
+            if [ "$VERSION" = "$LATEST_VERSION" ]; then
+              SHOULD_RELEASE=false
+            elif [ "$(printf '%s\n' "$LATEST_VERSION" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
+              echo "Version $VERSION is older than the latest release $LATEST_TAG on $BRANCH."
+              exit 1
+            fi
+          fi
+
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              if [ "$SHOULD_RELEASE" = "true" ]; then
+                echo "Tag $TAG already points to a different commit."
+                exit 1
+              fi
+            elif gh release view "$TAG" >/dev/null 2>&1; then
+              SHOULD_RELEASE=false
+            else
+              echo "Resuming incomplete publication for $TAG."
+              SHOULD_RELEASE=true
+            fi
+          fi
+
+          echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "repository_lower=$REPOSITORY_LOWER" >> "$GITHUB_OUTPUT"
+
+  create-tag:
+    name: Create release tag
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Create or verify release tag
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              echo "Tag $TAG already points to a different commit."
+              exit 1
+            fi
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" "$GITHUB_SHA" -m "Release $TAG"
+            git push origin "refs/tags/$TAG"
+          fi
+
+  publish:
+    name: Publish release image (${{ matrix.component }})
+    needs: [prepare, create-tag]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: backend
+            context: .
+            dockerfile: Dockerfile
+          - component: frontend
+            context: ./frontend
+            dockerfile: frontend/Dockerfile
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push release image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ needs.prepare.outputs.repository_lower }}-${{ matrix.component }}:${{ needs.prepare.outputs.version }}
+            ghcr.io/${{ needs.prepare.outputs.repository_lower }}-${{ matrix.component }}:sha-${{ needs.prepare.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [prepare, publish]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Create release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release create "$TAG" --generate-notes --verify-tag

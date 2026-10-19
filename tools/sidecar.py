@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from models import SidecarResponse
 
 
-SUPPORTED_PORTALS = ["ingatlancom", "ingatlanbazar"]
+SUPPORTED_PORTALS = ["ingatlancom"]
 SUPPORTED_TYPES = ["lakas", "haz", "telek", "garazs", "nyaralo", "iroda", "osszes"]
 
 
@@ -73,18 +73,7 @@ def main() -> None:
     response: SidecarResponse
 
     try:
-        if args.portal == "ingatlancom":
-            from scrapers.ingatlancom import scrape
-        elif args.portal == "ingatlanbazar":
-            from scrapers.ingatlanbazar import scrape
-        else:
-            response = SidecarResponse(
-                portalId=args.portal,
-                status="FAILED",
-                errorMessage=f"Unsupported portal: {args.portal}",
-            )
-            _output(response)
-            return
+        from scrapers.ingatlancom import scrape
 
         response = scrape(
             city=args.city,
