@@ -199,7 +199,7 @@ jobs:
 
       - name: Compile, Lint (Checkstyle), GraalVM AOT and Test with Gradle & JaCoCo
         id: gradle-build
-        run: ./gradlew check processAot bootJar --build-cache
+        run: ./gradlew checkstyleMain checkstyleTest check processAot bootJar --build-cache
 
       - name: Headless REST API Runtime Smoke Test
         id: smoke-test

@@ -146,10 +146,6 @@ configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     }
 }
 
-tasks.checkstyleTest {
-    enabled = false
-}
-
 tasks.matching { it.name.startsWith("checkstyleAot") }.configureEach {
     enabled = false
 }

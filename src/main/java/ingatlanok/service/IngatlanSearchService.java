@@ -4,28 +4,26 @@ import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 
-/**
- * Szolgáltatás koordinátor, amely a moduláris {@link SearchExecutionEngine} felé delegál.
- */
+/** Szolgáltatás koordinátor, amely a moduláris {@link SearchExecutionEngine} felé delegál. */
 public class IngatlanSearchService {
 
-    private static final IngatlanSearchService INSTANCE = new IngatlanSearchService();
+  private static final IngatlanSearchService INSTANCE = new IngatlanSearchService();
 
-    private final SearchExecutionEngine searchEngine;
+  private final SearchExecutionEngine searchEngine;
 
-    private IngatlanSearchService() {
-        this(SearchExecutionEngine.getInstance());
-    }
+  private IngatlanSearchService() {
+    this(SearchExecutionEngine.getInstance());
+  }
 
-    public IngatlanSearchService(SearchExecutionEngine searchEngine) {
-        this.searchEngine = searchEngine != null ? searchEngine : SearchExecutionEngine.getInstance();
-    }
+  public IngatlanSearchService(SearchExecutionEngine searchEngine) {
+    this.searchEngine = searchEngine != null ? searchEngine : SearchExecutionEngine.getInstance();
+  }
 
-    public static IngatlanSearchService getInstance() {
-        return INSTANCE;
-    }
+  public static IngatlanSearchService getInstance() {
+    return INSTANCE;
+  }
 
-    public SearchResult executeSearch(SearchCriteria criteria) {
-        return searchEngine.executeSearch(criteria);
-    }
+  public SearchResult executeSearch(SearchCriteria criteria) {
+    return searchEngine.executeSearch(criteria);
+  }
 }
