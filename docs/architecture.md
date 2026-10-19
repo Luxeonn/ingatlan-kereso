@@ -354,7 +354,7 @@ Backend containerization uses Eclipse Temurin JRE 21 with non-root security cont
 To eliminate conflicting instructions and ensure strict separation of concerns, AI code generation and PR reviews are governed by 3 specialist personas defined in `.agents/skills/`:
 1. `fullstack-architect`: System architecture, headless REST contract, Virtual Threads concurrency, Spring Data JPA persistence, React 19 UI integrity.
 2. `scraper-security-engineer`: Portal scrapers, DOM/JSON-LD parsing, Cloudflare/WAF anti-bot resilience, 0-crash error handling, AppSec (CORS, CSP, localhost binding, SSRF, input sanitization).
-3. `quality-devops-engineer`: Offline hermetic test suites, JaCoCo coverage thresholds, Checkstyle, Dockerfile and Docker Compose hardening, CI/CD pipelines (`ci.yml`, `pr-review.yml`, `docker-publish.yml`), PR Guard verification.
+3. `quality-devops-engineer`: Offline hermetic test suites, JaCoCo coverage thresholds, Checkstyle, Dockerfile and Docker Compose hardening, and the `CI Build`, `PR build`, `Release`, and `Images` workflows.
 
 ### 11.2 Standard Decision Semantics
 Specialist reviews emit standardized decision tokens:
@@ -363,7 +363,7 @@ Specialist reviews emit standardized decision tokens:
 - `NOT_APPLICABLE`: Scope of changes does not touch this domain.
 - `NOT_VERIFIED`: Domain is touched or relevant, but could not be verified. Gate must fail-closed.
 
-Shorthand tokens `[OK]`, `[NOK]`, `[N/A]` are accepted by the PR gate parser as aliases for `[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`.
+Specialist decision tokens are used in manual reviews; they are not a required PR description gate.
 
 ---
 

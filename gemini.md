@@ -61,11 +61,12 @@ flowchart TD
 ```text
 ingatlan-kereso/
 ├── .github/
-│   ├── pull_request_template.md                 # PR checklist & Thematic Agent Gate template
+│   ├── pull_request_template.md                 # PR checklist
 │   └── workflows/
-│       ├── ci.yml                               # Java 21, Checkstyle, JaCoCo, Playwright E2E
-│       ├── docker-publish.yml                   # Automated GHCR container publishing (1.0.0 tags)
-│       └── pr-review.yml                        # PR Guard (Conventional Commits, Branch, Thematic Gate)
+│       ├── ci.yml                               # CI Build: backend, frontend, and minimal result gate
+│       ├── pr-build.yml                         # Required Conventional Commit PR title check
+│       ├── release.yml                          # Manual versioned release and GHCR publication
+│       └── images.yml                           # Manual develop-only latest image publication
 ├── config/
 │   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 ├── scripts/
@@ -198,8 +199,7 @@ ingatlan-kereso/
 >     - If any check fails, immediately execute the **Fix Loop** (diagnose, commit fix, push, re-verify).
 > 12. **Never Auto-Merge:** The AI assistant must never run `gh pr merge` or merge branches. Merging is strictly reserved for the human repository owner.
 > 13. **Auto-Closing Linked Issues:** Always include official GitHub issue keywords (`Closes #<id>`, `Fixes #<id>`) in the PR description.
-> 14. **Clean Numeric Versioning & Docker Image Tagging:**
->     - Release versioning strictly follows Semantic Versioning (`1.0.0`).
->     - Automated GHCR container publishing on `main` emits clean numeric tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
->     - Manual `workflow_dispatch` releases on any branch dynamically generate `<version>-<branch>` (or `<version>-<custom_suffix>`) tags.
+> 14. **Manual Releases & Images:**
+>     - The `Release` workflow is manually started from `main` or `develop`, uses the version in `build.gradle.kts`, and creates `vX.Y.Z` Git/GitHub releases with versioned and commit-SHA GHCR images.
+>     - The `Images` workflow is manually started from `develop` and publishes only the backend and frontend `latest` images.
 
