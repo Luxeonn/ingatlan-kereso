@@ -10,7 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-/** Hirdetés státuszváltozási naplóbejegyzés JPA entitás. */
 @Entity
 @Table(
     name = "status_log",

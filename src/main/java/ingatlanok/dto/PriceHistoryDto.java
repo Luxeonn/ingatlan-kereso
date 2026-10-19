@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 import ingatlanok.model.PriceHistoryEntry;
 
-/** Típusbiztos ártörténet DTO (Record). */
 public record PriceHistoryDto(
     int id,
     String propertyId,

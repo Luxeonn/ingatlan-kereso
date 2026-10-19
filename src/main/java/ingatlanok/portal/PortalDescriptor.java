@@ -2,10 +2,6 @@ package ingatlanok.portal;
 
 import java.util.List;
 
-/**
- * Portál metaadat rekord (azonosító, név, szín, kezdőoldal, támogatott típusok, mentett
- * hirdetésszám).
- */
 public record PortalDescriptor(
     String id,
     String name,

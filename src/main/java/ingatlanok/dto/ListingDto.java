@@ -4,9 +4,6 @@ import java.io.Serializable;
 
 import ingatlanok.model.IngatlanItem;
 
-/**
- * Típusbiztos hirdetés DTO (Java 21 Record), amely az adatbázis és a webes réteg között közvetít.
- */
 public record ListingDto(
     String id,
     String portal,

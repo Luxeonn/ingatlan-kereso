@@ -16,10 +16,6 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/**
- * Párhuzamos portál-adatkinyerést végző motor Java 21 Virtual Threads alapon, szigorú
- * időkorlátokkal és 0-Crash hibatűréssel.
- */
 public class ParallelPortalScrapeExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(ParallelPortalScrapeExecutor.class);

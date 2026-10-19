@@ -101,7 +101,7 @@ class JpaIngatlanStorageTest {
 
     List<IngatlanItem> items = storage.getItemsByCity("Szeged");
     assertEquals(2, items.size());
-    assertEquals("https://dh.hu/2", items.get(0).getUrl()); // latest first
+    assertEquals("https://dh.hu/2", items.get(0).getUrl());
     assertEquals("https://dh.hu/1", items.get(1).getUrl());
   }
 
@@ -198,7 +198,6 @@ class JpaIngatlanStorageTest {
     assertTrue(storage.markAsViewed(url));
     assertTrue(storage.isViewed(url));
 
-    // Re-saving with viewed = false must NOT overwrite viewed = true
     IngatlanItem updated =
         createItem(
             "dh_v",
@@ -243,7 +242,6 @@ class JpaIngatlanStorageTest {
     assertEquals(1, history1.size());
     assertEquals(60_000_000L, history1.get(0).priceAmount());
 
-    // Price drop by 6M (-10%)
     IngatlanItem dropped =
         createItem(
             "dh_pd",

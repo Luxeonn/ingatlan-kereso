@@ -247,7 +247,6 @@ class RestApiControllerIntegrationTest {
       "CORS és biztonsági fejlécek - Localhost, IPv6 loopback és 0.0.0.0 engedélyezett, külső"
           + " origin tiltott")
   void testCorsAndSecurityHeaders() throws Exception {
-    // Localhost origin kérés
     mockMvc
         .perform(get("/api/status").header("Origin", "http://localhost:3000"))
         .andExpect(status().isOk())
@@ -266,7 +265,6 @@ class RestApiControllerIntegrationTest {
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .string("X-Frame-Options", "DENY"));
 
-    // IPv6 loopback origin kérés ([::1])
     mockMvc
         .perform(get("/api/status").header("Origin", "http://[::1]:8080"))
         .andExpect(status().isOk())
@@ -274,7 +272,6 @@ class RestApiControllerIntegrationTest {
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .string("Access-Control-Allow-Origin", "http://[::1]:8080"));
 
-    // Konténer wildcard origin kérés (0.0.0.0)
     mockMvc
         .perform(get("/api/status").header("Origin", "http://0.0.0.0:8080"))
         .andExpect(status().isOk())
@@ -282,7 +279,6 @@ class RestApiControllerIntegrationTest {
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .string("Access-Control-Allow-Origin", "http://0.0.0.0:8080"));
 
-    // HTTPS dev kliens origin kérés
     mockMvc
         .perform(get("/api/status").header("Origin", "https://localhost:5173"))
         .andExpect(status().isOk())
@@ -290,7 +286,6 @@ class RestApiControllerIntegrationTest {
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .string("Access-Control-Allow-Origin", "https://localhost:5173"));
 
-    // Preflight OPTIONS kérés engedélyezett IPv4 loopback originről
     mockMvc
         .perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
@@ -302,7 +297,6 @@ class RestApiControllerIntegrationTest {
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .string("Access-Control-Allow-Origin", "http://127.0.0.1:8080"));
 
-    // Preflight OPTIONS kérés engedélyezett IPv6 loopback originről ([::1])
     mockMvc
         .perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
@@ -314,7 +308,6 @@ class RestApiControllerIntegrationTest {
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .string("Access-Control-Allow-Origin", "http://[::1]:8080"));
 
-    // Preflight OPTIONS kérés engedélyezett 0.0.0.0 originről
     mockMvc
         .perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
@@ -326,7 +319,6 @@ class RestApiControllerIntegrationTest {
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .string("Access-Control-Allow-Origin", "http://0.0.0.0:8080"));
 
-    // Preflight OPTIONS kérés nem engedélyezett külső originről -> 403 Forbidden
     mockMvc
         .perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
@@ -335,7 +327,6 @@ class RestApiControllerIntegrationTest {
                 .header("Access-Control-Request-Method", "POST"))
         .andExpect(status().isForbidden());
 
-    // Preflight OPTIONS kérés nem megbízható IPv6 külső címről -> 403 Forbidden
     mockMvc
         .perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(

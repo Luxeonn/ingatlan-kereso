@@ -25,7 +25,6 @@ import ingatlanok.scraper.PortalScrapeResult;
 import ingatlanok.scraper.SidecarResponse;
 import ingatlanok.scraper.SidecarResponse.SidecarItem;
 
-/** GraalVM Native Image Ahead-Of-Time (AOT) reflection és resource regisztráció. */
 @Configuration
 @ImportRuntimeHints(GraalVmRuntimeHints.AppRuntimeHintsRegistrar.class)
 public class GraalVmRuntimeHints {
@@ -66,7 +65,6 @@ public class GraalVmRuntimeHints {
                 MemberCategory.DECLARED_FIELDS);
       }
 
-      // Konfigurációk és erőforrások elérhetősége a natív binárisban
       hints.resources().registerPattern("application.yml");
     }
   }

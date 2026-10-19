@@ -10,7 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-/** Ingatlanhirdetés perzisztens JPA entitás (H2 adatbázis). */
 @Entity
 @Table(
     name = "properties",

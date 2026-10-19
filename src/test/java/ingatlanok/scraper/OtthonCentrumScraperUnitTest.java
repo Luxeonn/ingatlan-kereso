@@ -50,7 +50,7 @@ class OtthonCentrumScraperUnitTest {
 <!DOCTYPE html>
 <html>
 <body>
-    <!-- Autocomplete dropdown hidden template that previously broke scraping -->
+
     <div class="location-option-no-result d-none">
         <div class="option">Nincs találat</div>
     </div>

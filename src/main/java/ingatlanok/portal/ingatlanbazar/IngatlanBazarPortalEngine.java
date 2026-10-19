@@ -15,7 +15,6 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/** Ingatlanbazár REST API portál motor a moduláris Clean Architecture architektúrában. */
 public class IngatlanBazarPortalEngine implements PortalEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarPortalEngine.class);

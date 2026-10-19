@@ -7,7 +7,6 @@ import java.util.Map;
 
 import ingatlanok.common.SlugUtils;
 
-/** Előre definiált magyarországi kiemelt települések listája és metaadatai. */
 public final class CityPresets {
 
   private CityPresets() {}

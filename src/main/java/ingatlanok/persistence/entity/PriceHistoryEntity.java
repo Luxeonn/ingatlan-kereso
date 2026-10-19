@@ -10,7 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-/** Idősoros árváltozási rekord JPA entitás. */
 @Entity
 @Table(
     name = "price_history",

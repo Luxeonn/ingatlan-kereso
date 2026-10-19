@@ -7,10 +7,6 @@ import java.util.Optional;
 import ingatlanok.common.city.CityPresets;
 import ingatlanok.common.city.CountyDirectory;
 
-/**
- * Településekkel, megyékkel és lokációkkal kapcsolatos segédfüggvények homlokzata (Facade). Delegál
- * a specializált {@link CityPresets} és {@link CountyDirectory} komponensekhez.
- */
 public final class CityUtils {
 
   private CityUtils() {}

@@ -2,10 +2,6 @@ package ingatlanok.scraper;
 
 import java.util.Optional;
 
-/**
- * Backward compatibility facade for IngatlanBazarLocationResolver. Delegates to {@link
- * ingatlanok.portal.ingatlanbazar.IngatlanBazarLocationResolver}.
- */
 public final class IngatlanBazarLocationResolver {
 
   private IngatlanBazarLocationResolver() {}

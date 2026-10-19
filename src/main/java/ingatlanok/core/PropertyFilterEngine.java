@@ -9,7 +9,6 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
-/** Ingatlanhirdetések keresési kritériumok szerinti szűréséért felelős motor. */
 public class PropertyFilterEngine {
 
   public record FilterResult(

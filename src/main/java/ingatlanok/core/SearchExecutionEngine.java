@@ -16,10 +16,6 @@ import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/**
- * Párhuzamos keresésvezérlő és folyamatorchestrator motor. Delegál a moduláris {@link
- * ParallelPortalScrapeExecutor} és {@link SearchResultAggregator} motoroknak.
- */
 public class SearchExecutionEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SearchExecutionEngine.class);

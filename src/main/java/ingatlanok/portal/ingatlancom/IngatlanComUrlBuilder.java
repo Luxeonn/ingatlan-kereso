@@ -3,7 +3,6 @@ package ingatlanok.portal.ingatlancom;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
-/** Ingatlan.com keresési URL összeállító komponens. */
 public class IngatlanComUrlBuilder {
 
   public static final String BASE_URL = "https://ingatlan.com";

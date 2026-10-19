@@ -15,10 +15,6 @@ import ingatlanok.portal.jofogas.JofogasPortalEngine;
 import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 
-/**
- * Dinamikus Provider Factory és nyilvántartás az elérhető portál motorokhoz. Biztosítja a plug &
- * play portálregisztrációt és a /api/portals végpont kiszolgálását.
- */
 public class PortalEngineRegistry {
 
   private static final PortalEngineRegistry INSTANCE = new PortalEngineRegistry();

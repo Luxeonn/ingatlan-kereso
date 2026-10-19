@@ -2,7 +2,6 @@ package ingatlanok.model;
 
 import java.io.Serializable;
 
-/** Idősoros árváltozási rekord (Price History Entry). */
 public record PriceHistoryEntry(
     int id,
     String propertyId,

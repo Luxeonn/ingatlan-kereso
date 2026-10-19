@@ -7,10 +7,6 @@ import java.util.Optional;
 
 import ingatlanok.common.SlugUtils;
 
-/**
- * Megyék és települések közötti leképezések, keresési kiegészítések és földrajzi lokációs
- * segédfüggvények.
- */
 public final class CountyDirectory {
 
   private static final Map<String, String> CITY_COUNTY_SLUG_MAP = new LinkedHashMap<>();

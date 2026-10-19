@@ -20,7 +20,6 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
-/** Otthon Centrum kártya és DOM feldolgozó komponens. */
 public class OtthonCentrumParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlanok/([A-Za-z0-9]+)");

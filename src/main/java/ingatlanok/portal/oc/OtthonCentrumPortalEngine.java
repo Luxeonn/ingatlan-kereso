@@ -16,7 +16,6 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/** Otthon Centrum portál motor a moduláris Clean Architecture architektúrában. */
 public class OtthonCentrumPortalEngine implements PortalEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(OtthonCentrumPortalEngine.class);

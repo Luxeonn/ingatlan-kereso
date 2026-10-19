@@ -14,11 +14,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/**
- * Globális CORS és biztonsági szűrő, amely minden kérésre (beleértve a közvetlen OPTIONS preflight
- * hívásokat is) biztonságos keretek között garantálja az Access-Control és biztonsági fejlécek
- * jelenlétét.
- */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalCorsFilter implements Filter {

@@ -15,7 +15,6 @@ import ingatlanok.dto.ListingDto;
 import ingatlanok.dto.ListingFilterDto;
 import ingatlanok.model.IngatlanItem;
 
-/** Állapotmentes szűrési és rendezési szolgáltatás ingatlanhirdetések memóriabeli listájához. */
 @Component
 public class ListingFilterService {
 

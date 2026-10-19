@@ -15,10 +15,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Szabványos alkalmazás-szintű naplózó homlokzat, amely az SLF4J és a fájl perzisztencia réteget
- * kezeli.
- */
 public class AppLogger {
 
   public enum LogLevel {

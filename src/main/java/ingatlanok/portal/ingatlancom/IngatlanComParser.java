@@ -17,7 +17,6 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
-/** Ingatlan.com DOM és hirdetéskártya parsing komponens. */
 public class IngatlanComParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/(\\d+)");

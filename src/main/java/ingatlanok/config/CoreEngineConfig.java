@@ -16,7 +16,6 @@ import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
 
-/** Spring IoC konfiguráció a core motorokhoz és service rétegekhez. */
 @Configuration
 public class CoreEngineConfig {
 

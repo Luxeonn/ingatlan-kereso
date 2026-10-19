@@ -8,7 +8,6 @@ import java.util.Map;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.presentation.MarketStatsDto;
 
-/** Piaci KPI-k és statisztikák számításáért felelős üzleti motor. */
 public class MarketAnalyticsEngine {
 
   public MarketStatsDto calculateMarketStats(List<IngatlanItem> items) {

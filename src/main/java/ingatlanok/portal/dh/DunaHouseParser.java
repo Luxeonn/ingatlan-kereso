@@ -17,7 +17,6 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
-/** Duna House HTML dokumentum és hirdetéskártya feldolgozó komponens. */
 public class DunaHouseParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/([A-Za-z0-9\\-]+)");

@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 import ingatlanok.model.PropertyDetails;
 
-/** Típusbiztos ingatlan-részletek DTO (Record) (alapterület, szobaszám, fajlagos m² ár). */
 public record PropertyDetailsDto(
     String details, Double areaSquareMeters, Double roomCount, Long pricePerSquareMeter)
     implements Serializable {

@@ -21,10 +21,6 @@ import ingatlanok.scraper.PortalScrapeResult;
 import ingatlanok.scraper.SidecarCliExecutor;
 import ingatlanok.scraper.SidecarResponse;
 
-/**
- * Ingatlan.com portál motor a moduláris Clean Architecture architektúrában. Támogatja a hibrid
- * Sidecar végrehajtást és a Cloudflare WAF bot-védelem graceful fallback kezelését.
- */
 public class IngatlanComPortalEngine implements PortalEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComPortalEngine.class);

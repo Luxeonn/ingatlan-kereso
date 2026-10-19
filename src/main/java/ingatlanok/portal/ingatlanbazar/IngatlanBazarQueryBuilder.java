@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import ingatlanok.model.SearchCriteria;
 
-/** Ingatlanbazár keresési URL és REST API lekérdezés összeállító komponens. */
 public class IngatlanBazarQueryBuilder {
 
   public static final String BASE_URL = "https://www.ingatlanbazar.hu";

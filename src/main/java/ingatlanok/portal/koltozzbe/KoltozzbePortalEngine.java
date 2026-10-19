@@ -17,7 +17,6 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/** Költözzbe.hu portál motor a moduláris Clean Architecture architektúrában. */
 public class KoltozzbePortalEngine implements PortalEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbePortalEngine.class);

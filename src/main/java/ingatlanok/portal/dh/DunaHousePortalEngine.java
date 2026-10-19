@@ -17,7 +17,6 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/** Duna House portál motor a moduláris Clean Architecture architektúrában. */
 public class DunaHousePortalEngine implements PortalEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(DunaHousePortalEngine.class);

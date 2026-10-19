@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 import ingatlanok.model.PriceInfo;
 
-/** Típusbiztos ár DTO (Record) az adatbázis és a web/UI réteg közötti adatátvitelhez. */
 public record PriceInfoDto(String rawText, Long amountHuf, Double amountMillion)
     implements Serializable {
 

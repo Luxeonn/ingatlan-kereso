@@ -3,10 +3,6 @@ package ingatlanok.dto;
 import java.io.Serializable;
 import java.util.List;
 
-/**
- * Keresési és szűrési paramétereket reprezentáló DTO (Record) a dinamikus Jdbi
- * lekérdezés-építéshez.
- */
 public record ListingFilterDto(
     List<String> cities,
     List<String> portals,

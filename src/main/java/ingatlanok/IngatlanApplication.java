@@ -12,10 +12,6 @@ import org.springframework.core.env.Environment;
 
 import ingatlanok.common.BrowserUtils;
 
-/**
- * Spring Boot 4.1.0 (Spring Framework 7.0.9) fő alkalmazásbelépési pont a headless REST API
- * szerverhez GraalVM Native Image támogatással. A frontend SPA Nginx vagy Vite mögül, önállóan fut.
- */
 @SpringBootApplication
 public class IngatlanApplication {
 

@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 
 import ingatlanok.model.SearchCriteria;
 
-/** Jófogás Ingatlan keresési URL összeállító komponens. */
 public class JofogasUrlBuilder {
 
   public static final String BASE_URL = "https://ingatlan.jofogas.hu";

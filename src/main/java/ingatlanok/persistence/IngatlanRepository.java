@@ -8,10 +8,6 @@ import java.util.Set;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 
-/**
- * Singleton Facade az Ingatlanhirdetés és Konfiguráció perzisztenciához. Delegál a moduláris {@link
- * ListingStorage} és {@link ConfigStorage} implementációkhoz.
- */
 public class IngatlanRepository implements ListingStorage, ConfigStorage {
 
   private static final IngatlanRepository INSTANCE = new IngatlanRepository();

@@ -19,7 +19,6 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
-/** Ingatlanbazár JSON REST API válasz feldolgozó komponens. */
 public class IngatlanBazarJsonParser {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarJsonParser.class);

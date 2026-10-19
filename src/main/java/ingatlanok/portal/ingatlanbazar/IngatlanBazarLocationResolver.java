@@ -15,7 +15,6 @@ import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.common.SlugUtils;
 
-/** Ingatlanbazár településazonosító feloldó gyorsítótárral. */
 public final class IngatlanBazarLocationResolver {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarLocationResolver.class);

@@ -8,7 +8,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
-/** Konfigurációs kulcs-érték tároló JPA entitás. */
 @Entity
 @Table(name = "app_config")
 public class ConfigEntity implements Serializable {

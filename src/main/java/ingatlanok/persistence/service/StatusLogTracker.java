@@ -2,7 +2,6 @@ package ingatlanok.persistence.service;
 
 import org.springframework.stereotype.Component;
 
-/** Szolgáltatás a hirdetések státuszváltozásainak és naplóbejegyzéseinek értékeléséhez. */
 @Component
 public class StatusLogTracker {
 

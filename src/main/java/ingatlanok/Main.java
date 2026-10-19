@@ -11,11 +11,6 @@ import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.service.IngatlanSearchService;
 
-/**
- * Ingatlan kereső belépési pont és futtatási módválasztó. Támogatja a parancssori kötegelt
- * futtatást (--cli) és a headless Spring Boot REST API szervert (--web vagy alapértelmezett) a
- * leválasztott modern React 19 SPA kiszolgálására.
- */
 public class Main {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -30,12 +25,6 @@ public class Main {
     }
   }
 
-  /**
-   * Megvizsgálja, hogy a parancssori (CLI) kötegelt mód futtatását kérték-e.
-   *
-   * @param args parancssori argumentumok
-   * @return true, ha a --cli kapcsoló vagy a cli rendszerjellemző be van állítva
-   */
   public static boolean isCliRequested(String[] args) {
     if (args != null) {
       for (String arg : args) {
@@ -47,13 +36,6 @@ public class Main {
     return Boolean.getBoolean("cli");
   }
 
-  /**
-   * Kiszűri a futtató kapcsolókat (--web, --cli), hogy ne szennyezzék a Spring környezeti
-   * beállításait.
-   *
-   * @param args az eredeti argumentum tömb
-   * @return szűrt argumentum tömb a Spring Boot számára
-   */
   public static String[] filterLauncherArgs(String[] args) {
     if (args == null) {
       return new String[0];
@@ -63,7 +45,6 @@ public class Main {
         .toArray(String[]::new);
   }
 
-  /** Parancssori (CLI) kötegelt keresési mód futtatása. */
   public static void runCliMode() {
     LOGGER.info("==================================================");
     LOGGER.info("  Ingatlan Kereső - Parancssori Keresés (CLI Mód)");

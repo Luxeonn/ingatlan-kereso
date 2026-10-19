@@ -65,10 +65,6 @@ public class PersistenceConcurrencyStressTest {
     return item;
   }
 
-  // =========================================================================
-  // 1. Concurrent Read/Write Operations against JpaIngatlanStorage
-  // =========================================================================
-
   @Test
   @DisplayName(
       "Challenge 1: Concurrent read/write stress on JpaIngatlanStorage with 16 parallel threads")
@@ -87,7 +83,7 @@ public class PersistenceConcurrencyStressTest {
       executor.submit(
           () -> {
             try {
-              startLatch.await(); // Thundering herd start
+              startLatch.await();
               for (int i = 0; i < operationsPerThread; i++) {
                 String uniqueUrl = "https://jpa-stress.hu/" + threadId + "/" + i;
                 IngatlanItem item =
@@ -104,23 +100,19 @@ public class PersistenceConcurrencyStressTest {
                         2.0,
                         "2026-03-01 10:00:00");
 
-                // Concurrent write
                 jpaStorage.saveAll(List.of(item));
                 writeSuccesses.incrementAndGet();
 
-                // Concurrent read
                 List<IngatlanItem> items = jpaStorage.getItemsByCity(item.getCity());
                 assertNotNull(items);
                 assertTrue(jpaStorage.containsUrl(uniqueUrl));
                 readSuccesses.incrementAndGet();
 
-                // Concurrent update: mark viewed
                 if (i % 5 == 0) {
                   jpaStorage.markAsViewed(uniqueUrl);
                   assertTrue(jpaStorage.isViewed(uniqueUrl));
                 }
 
-                // Concurrent filter query
                 List<ListingDto> filtered =
                     jpaStorage.findByCriteria(
                         new ListingFilterDto(

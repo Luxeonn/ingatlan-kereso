@@ -1,6 +1,5 @@
 package ingatlanok.scraper;
 
-
 public enum PortalScrapeStatus {
   SUCCESS,
   EMPTY,

@@ -22,7 +22,6 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
-/** Költözzbe DOM és Schema.org JSON-LD feldolgozó komponens. */
 public class KoltozzbeParser {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbeParser.class);

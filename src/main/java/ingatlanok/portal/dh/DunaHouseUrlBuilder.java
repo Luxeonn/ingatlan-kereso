@@ -6,7 +6,6 @@ import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
-/** Duna House keresési URL előállító komponens. */
 public class DunaHouseUrlBuilder {
 
   public static final String BASE_URL = "https://dh.hu";

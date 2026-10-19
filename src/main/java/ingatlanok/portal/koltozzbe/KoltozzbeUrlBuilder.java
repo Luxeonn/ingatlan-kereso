@@ -6,7 +6,6 @@ import java.util.List;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
-/** Költözzbe.hu keresési URL előállító komponens. */
 public class KoltozzbeUrlBuilder {
 
   public static final String BASE_URL = "https://koltozzbe.hu";

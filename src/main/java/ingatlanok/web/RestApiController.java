@@ -33,9 +33,6 @@ import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
 
-/**
- * Spring Web REST Controller, amely kiváltja a korábbi com.sun.net.httpserver manuális kezelőket.
- */
 @RestController
 @RequestMapping("/api")
 public class RestApiController {

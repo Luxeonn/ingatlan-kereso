@@ -189,8 +189,8 @@ class ListingFilterServiceTest {
                 "PRICE_ASC",
                 null,
                 null));
-    assertEquals("jofogas_303", priceAsc.get(0).id()); // 20M
-    assertEquals("oc_202", priceAsc.get(2).id()); // 80M
+    assertEquals("jofogas_303", priceAsc.get(0).id());
+    assertEquals("oc_202", priceAsc.get(2).id());
 
     List<ListingDto> priceDesc =
         filterService.filter(
@@ -209,8 +209,8 @@ class ListingFilterServiceTest {
                 "PRICE_DESC",
                 null,
                 null));
-    assertEquals("oc_202", priceDesc.get(0).id()); // 80M
-    assertEquals("jofogas_303", priceDesc.get(2).id()); // 20M
+    assertEquals("oc_202", priceDesc.get(0).id());
+    assertEquals("jofogas_303", priceDesc.get(2).id());
 
     List<ListingDto> areaAsc =
         filterService.filter(
@@ -229,8 +229,8 @@ class ListingFilterServiceTest {
                 "AREA_ASC",
                 null,
                 null));
-    assertEquals("jofogas_303", areaAsc.get(0).id()); // 30m2
-    assertEquals("oc_202", areaAsc.get(2).id()); // 120m2
+    assertEquals("jofogas_303", areaAsc.get(0).id());
+    assertEquals("oc_202", areaAsc.get(2).id());
 
     List<ListingDto> areaDesc =
         filterService.filter(
@@ -249,8 +249,8 @@ class ListingFilterServiceTest {
                 "AREA_DESC",
                 null,
                 null));
-    assertEquals("oc_202", areaDesc.get(0).id()); // 120m2
-    assertEquals("jofogas_303", areaDesc.get(2).id()); // 30m2
+    assertEquals("oc_202", areaDesc.get(0).id());
+    assertEquals("jofogas_303", areaDesc.get(2).id());
 
     List<ListingDto> discDesc =
         filterService.filter(
@@ -269,7 +269,7 @@ class ListingFilterServiceTest {
                 "DISCOUNT_DESC",
                 null,
                 null));
-    assertEquals("dh_101", discDesc.get(0).id()); // -2M
+    assertEquals("dh_101", discDesc.get(0).id());
 
     List<ListingDto> discovDesc =
         filterService.filter(
@@ -288,7 +288,7 @@ class ListingFilterServiceTest {
                 "DISCOVERED_DESC",
                 null,
                 null));
-    assertEquals("jofogas_303", discovDesc.get(0).id()); // 2026-03-03
+    assertEquals("jofogas_303", discovDesc.get(0).id());
   }
 
   @Test
@@ -300,7 +300,7 @@ class ListingFilterServiceTest {
             null, null, null, null, null, null, null, null, false, false, "PRICE_ASC", 1, 1);
     List<ListingDto> result = filterService.filter(items, filter);
     assertEquals(1, result.size());
-    assertEquals("dh_101", result.get(0).id()); // 2nd lowest price (50M)
+    assertEquals("dh_101", result.get(0).id());
   }
 
   @Test
@@ -310,6 +310,6 @@ class ListingFilterServiceTest {
         filterService.filterItems(List.of(item1, item2), ListingFilterDto.all());
     assertEquals(2, result.size());
     assertEquals(
-        item2, result.get(0)); // default discoveredAt desc: item2 (03-02) before item1 (03-01)
+        item2, result.get(0));
   }
 }

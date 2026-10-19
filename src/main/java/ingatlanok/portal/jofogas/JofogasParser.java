@@ -17,7 +17,6 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
-/** Jófogás HTML dokumentum és link lista feldolgozó komponens. */
 public class JofogasParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("_(\\d+)\\.htm");

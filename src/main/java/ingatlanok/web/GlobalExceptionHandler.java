@@ -14,10 +14,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import ingatlanok.common.AppLogger;
 
-/**
- * Global exception handler providing consistent, structured JSON responses across all REST
- * endpoints instead of HTML whitelabel error pages.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

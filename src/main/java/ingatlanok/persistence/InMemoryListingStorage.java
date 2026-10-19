@@ -15,7 +15,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 
-/** Könnyűsúlyú, szálbiztos memóriabeli tároló a tesztekhez és standalone futtatáshoz. */
 public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
 
   private final Map<String, List<IngatlanItem>> cityItems = new ConcurrentHashMap<>();

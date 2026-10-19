@@ -4,7 +4,6 @@ import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 
-/** Szolgáltatás koordinátor, amely a moduláris {@link SearchExecutionEngine} felé delegál. */
 public class IngatlanSearchService {
 
   private static final IngatlanSearchService INSTANCE = new IngatlanSearchService();

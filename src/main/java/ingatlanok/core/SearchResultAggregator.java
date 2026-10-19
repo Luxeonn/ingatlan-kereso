@@ -16,7 +16,6 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.ConfigStorage;
 
-/** Keresési eredmények aggregálásáért, rendezéséért és formázásáért felelős segédmotor. */
 public class SearchResultAggregator {
 
   public SearchResult aggregate(

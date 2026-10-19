@@ -3,7 +3,6 @@ package ingatlanok.portal.oc;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
-/** Otthon Centrum keresési URL összeállító komponens. */
 public class OtthonCentrumUrlBuilder {
 
   public static final String BASE_URL = "https://www.oc.hu";

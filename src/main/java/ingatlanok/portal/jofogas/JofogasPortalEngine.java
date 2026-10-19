@@ -16,7 +16,6 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/** Jófogás Ingatlan portál motor a moduláris Clean Architecture architektúrában. */
 public class JofogasPortalEngine implements PortalEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(JofogasPortalEngine.class);

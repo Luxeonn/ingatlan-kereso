@@ -307,8 +307,8 @@ class PersistenceStressAndBoundaryTest {
               null,
               null);
       List<ListingDto> ascSorted = filterService.filter(sampleItems, lowerCaseSort);
-      assertEquals("item_3", ascSorted.get(0).id()); // 35M lowest
-      assertEquals("item_2", ascSorted.get(2).id()); // 95M highest
+      assertEquals("item_3", ascSorted.get(0).id());
+      assertEquals("item_2", ascSorted.get(2).id());
 
       IngatlanItem noPriceItem = new IngatlanItem();
       noPriceItem.setId("no_price");
@@ -681,7 +681,6 @@ class PersistenceStressAndBoundaryTest {
       PriceHistoryTracker tracker = new PriceHistoryTracker();
       Random rng = new Random(42);
 
-      // Temporarily disable synchronous file I/O to benchmark pure computation throughput
       AppLogger.setFileLoggingEnabled(false);
       AppLogger.setConsoleLoggingEnabled(false);
       try {

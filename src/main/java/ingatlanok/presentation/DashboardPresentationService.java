@@ -10,7 +10,6 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.scraper.PortalScrapeResult;
 
-/** Prezentációs Facade a Core keresőmotor és analitika felé. */
 public class DashboardPresentationService {
 
   private static final DashboardPresentationService INSTANCE = new DashboardPresentationService();

@@ -37,7 +37,6 @@ import ingatlanok.persistence.service.PriceHistoryTracker.PriceDeltaCalculation;
 import ingatlanok.persistence.service.StatusLogTracker;
 import ingatlanok.persistence.service.StatusLogTracker.StatusDecision;
 
-/** Spring Data JPA és beágyazott H2 ListingStorage és ConfigStorage koordinátor. */
 @Service
 @Primary
 @Transactional

@@ -20,9 +20,6 @@ import ingatlanok.model.SearchCriteria;
 @DisplayName("Adversarial Scraper Stress & Dynamic Dispatch Test")
 class AdversarialScraperStressTest {
 
-  // =========================================================================
-  // 1. DYNAMIC DISPATCH INTERCEPTION VERIFICATION
-  // =========================================================================
   @Nested
   @DisplayName("Dynamic Dispatch Interception Tests")
   class DynamicDispatchTests {
@@ -156,9 +153,6 @@ class AdversarialScraperStressTest {
     }
   }
 
-  // =========================================================================
-  // 2. NULL AND MALFORMED SEARCH CRITERIA RESILIENCE
-  // =========================================================================
   @Nested
   @DisplayName("Null & Malformed Criteria Stress Tests")
   class NullAndMalformedCriteriaTests {
@@ -287,9 +281,6 @@ class AdversarialScraperStressTest {
     }
   }
 
-  // =========================================================================
-  // 3. MALFORMED HTML & DOM CORRUPTION RESILIENCE
-  // =========================================================================
   @Nested
   @DisplayName("Malformed HTML & Extreme DOM Tests")
   class MalformedHtmlTests {
@@ -395,7 +386,7 @@ class AdversarialScraperStressTest {
 </head>
 <body>
   <div class="listing-card">
-    <!-- missing linkElem -->
+
   </div>
 </body>
 </html>
@@ -432,9 +423,6 @@ class AdversarialScraperStressTest {
     }
   }
 
-  // =========================================================================
-  // 4. MALFORMED JSON STRESS FOR INGATLANBAZAR
-  // =========================================================================
   @Nested
   @DisplayName("IngatlanBazar Malformed JSON Stress Tests")
   class IngatlanBazarMalformedJsonTests {
@@ -477,9 +465,6 @@ class AdversarialScraperStressTest {
     }
   }
 
-  // =========================================================================
-  // 5. NETWORK / EXCEPTION RESILIENCE (0-CRASH PRINCIPLE)
-  // =========================================================================
   @Nested
   @DisplayName("Exception & Network Failure Resilience (0-Crash)")
   class ZeroCrashNetworkExceptionTests {

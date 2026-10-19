@@ -35,7 +35,6 @@ public class ScraperRegistry {
       String key = scraper.getPortalId().toLowerCase(Locale.ROOT);
       scrapers.put(key, scraper);
 
-      // Ha a PortalEngineRegistry-ben még nem létezik, regisztráljuk adapteren keresztül
       if (PortalEngineRegistry.getInstance().getEngine(key).isEmpty()) {
         PortalEngineRegistry.getInstance()
             .register(

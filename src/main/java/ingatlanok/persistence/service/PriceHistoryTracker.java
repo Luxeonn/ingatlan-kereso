@@ -4,9 +4,6 @@ import org.springframework.stereotype.Component;
 
 import ingatlanok.common.AppLogger;
 
-/**
- * Szolgáltatás az árváltozások kiszámításához, százalékos kerekítéshez és státusz-meghatározáshoz.
- */
 @Component
 public class PriceHistoryTracker {
 

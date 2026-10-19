@@ -18,7 +18,6 @@ import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.entity.StatusLogEntity;
 
-/** Kétirányú entitás-modell leképező komponens JPA entitások és domain modellek között. */
 @Component
 public class JpaEntityMapper {
 

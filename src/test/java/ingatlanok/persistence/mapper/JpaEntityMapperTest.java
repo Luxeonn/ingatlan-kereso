@@ -142,7 +142,7 @@ class JpaEntityMapperTest {
     item.setUrl("https://dh.hu/1");
     item.setPortal("Duna House");
     item.setCity("Debrecen");
-    item.setViewed(false); // Incoming says not viewed, but existing was viewed
+    item.setViewed(false);
 
     PropertyEntity updated =
         mapper.toEntity(
