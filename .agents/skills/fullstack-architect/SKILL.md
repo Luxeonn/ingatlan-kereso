@@ -1,6 +1,6 @@
 ---
 name: fullstack-architect
-description: Full-stack software architecture and product engineering specialist. Use this skill for the Java 21 backend (Spring Boot 4.1.0, Spring Framework 7.0.9, virtual threads, and a headless Spring MVC REST API), persistence (Spring Data JPA, Hibernate, embedded H2, and PostgreSQL 17), and the modern React 19 + TypeScript + Tailwind SPA frontend, including UI/UX micro-interactions and type-safe UI integrity.
+description: Full-stack software architecture and product engineering specialist. Use this skill for the Java 25 backend (Spring Boot 4.1.1, Spring Framework 7.0.9, virtual threads, and a headless Spring MVC REST API), persistence (Spring Data JPA, Hibernate, embedded H2, and PostgreSQL 17), and the modern React 19 + TypeScript + Tailwind SPA frontend, including UI/UX micro-interactions and type-safe UI integrity.
 ---
 
 # Fullstack Architect Specialist
@@ -36,7 +36,7 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - `presentation/`: DTO models, KPI aggregation, and aggregated market statistics.
    - `core/`: Filtering engine (`PropertyFilterEngine`), O(1) deduplication (`DeduplicationEngine`), aggregation, and parallel query coordination (`SearchExecutionEngine`, `MarketAnalyticsEngine`).
    - `persistence/`: Storage abstractions (`ListingStorage`, `ConfigStorage`), Spring Data JPA entities (`PropertyEntity`, `PriceHistoryEntity`, `ConfigEntity`), repositories (`PropertyRepository`), and the `JpaIngatlanStorage` implementation.
-2. **Concurrency model (Java 21 LTS)**:
+2. **Concurrency model (Java 25 LTS)**:
    - Virtual threads (`spring.threads.virtual.enabled=true`, `Executors.newVirtualThreadPerTaskExecutor()`). Avoid blocking carrier threads.
 3. **Persistence strategy (dual-mode JPA)**:
    - Embedded file-based H2 storage (`jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1`) in CLI/development mode.

@@ -1,6 +1,6 @@
 ---
 name: quality-devops-engineer
-description: Quality assurance, testing, containerization, and CI/CD automation engineer. Use this skill to design comprehensive test strategies; maintain deterministic offline JUnit 5 unit and integration tests, MockMvc and WireMock simulations, JaCoCo coverage checks (80%+), multi-stage Temurin JRE 21 and GraalVM Native Image containers, and GitHub Actions workflows and pull-request quality gates.
+description: Quality assurance, testing, containerization, and CI/CD automation engineer. Use this skill to design comprehensive test strategies; maintain deterministic offline JUnit 5 unit and integration tests, MockMvc and WireMock simulations, JaCoCo coverage checks (80%+), multi-stage Temurin JRE 25 Alpine containers, and GitHub Actions workflows and pull-request quality gates.
 ---
 
 # Quality & DevOps Specialist
