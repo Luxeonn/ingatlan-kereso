@@ -7,8 +7,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
@@ -24,8 +24,22 @@ import ingatlanok.core.resilience.PortalRateLimiter;
 public final class HttpFetcher {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
-  private static final Set<String> APPROVED_HOSTS =
-      Set.of("dh.hu", "oc.hu", "jofogas.hu", "koltozzbe.hu", "ingatlanbazar.hu", "ingatlan.com");
+  private static final List<String> APPROVED_PREFIXES =
+      List.of(
+          "https://dh.hu/",
+          "https://www.dh.hu/",
+          "https://oc.hu/",
+          "https://www.oc.hu/",
+          "https://jofogas.hu/",
+          "https://www.jofogas.hu/",
+          "https://ingatlan.jofogas.hu/",
+          "https://koltozzbe.hu/",
+          "https://www.koltozzbe.hu/",
+          "https://ingatlanbazar.hu/",
+          "https://www.ingatlanbazar.hu/",
+          "https://ingatlan.com/",
+          "https://www.ingatlan.com/");
+
   private static final HttpClient CLIENT =
       HttpClient.newBuilder()
           .version(HttpClient.Version.HTTP_2)
@@ -68,58 +82,37 @@ public final class HttpFetcher {
     if (targetUrl == null || targetUrl.isBlank() || timeoutMs <= 0) {
       return null;
     }
-    URI uri;
-    try {
-      uri = URI.create(targetUrl);
-    } catch (IllegalArgumentException exception) {
-      LOGGER.warn("Érvénytelen külső URL: {}", targetUrl);
-      return null;
-    }
+    String currentUrl = targetUrl.trim();
     for (int redirects = 0; redirects <= 5; redirects++) {
+      if (!isApprovedUrl(currentUrl)) {
+        LOGGER.warn("A portál URL nem engedélyezett: {}", currentUrl);
+        return null;
+      }
+      URI uri;
+      try {
+        uri = URI.create(currentUrl);
+      } catch (IllegalArgumentException exception) {
+        LOGGER.warn("Érvénytelen külső URL: {}", currentUrl);
+        return null;
+      }
       String host = uri.getHost();
       if (host == null) {
-        LOGGER.warn("Érvénytelen külső URL (hiányzó host): {}", uri);
+        LOGGER.warn("Érvénytelen külső URL (hiányzó host): {}", currentUrl);
         return null;
       }
       String normalizedHost = host.toLowerCase(Locale.ROOT);
-      String approvedHost = getApprovedHost(normalizedHost);
-      if (approvedHost == null) {
-        LOGGER.warn("A portál domainje nem engedélyezett: {}", normalizedHost);
-        return null;
-      }
-      boolean testMode =
-          Boolean.getBoolean("app.test-mode")
-              && (approvedHost.equals("127.0.0.1") || approvedHost.equals("localhost"));
-      if (!testMode && !"https".equalsIgnoreCase(uri.getScheme())) {
-        LOGGER.warn("A portál protokollja nem engedélyezett: {}", uri.getScheme());
-        return null;
-      }
-
-      String scheme = testMode ? uri.getScheme().toLowerCase(Locale.ROOT) : "https";
-      int port = uri.getPort();
-      String rawPath = uri.getRawPath() == null || uri.getRawPath().isBlank() ? "/" : uri.getRawPath();
-      String rawQuery = uri.getRawQuery();
-      URI safeUri =
-          URI.create(
-              scheme
-                  + "://"
-                  + approvedHost
-                  + (port > 0 ? ":" + port : "")
-                  + rawPath
-                  + (rawQuery != null && !rawQuery.isBlank() ? "?" + rawQuery : ""));
-
-      String circuitKey = approvedHost + ":" + (port > 0 ? port : 443);
-      if (testMode) {
-        circuitKey += rawPath;
+      String circuitKey = normalizedHost + ":" + (uri.getPort() > 0 ? uri.getPort() : 443);
+      if (Boolean.getBoolean("app.test-mode")) {
+        circuitKey += uri.getPath();
       }
       if (!CIRCUIT_BREAKER.allowRequest(circuitKey)) {
-        LOGGER.warn("A(z) {} portál circuit breakere nyitva van", approvedHost);
+        LOGGER.warn("A(z) {} portál circuit breakere nyitva van", normalizedHost);
         return null;
       }
       try {
-        RATE_LIMITER.acquire(approvedHost);
+        RATE_LIMITER.acquire(normalizedHost);
         HttpRequest request =
-            HttpRequest.newBuilder(safeUri)
+            HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofMillis(Math.min(timeoutMs, DEFAULT_TIMEOUT_MS)))
                 .header("User-Agent", DEFAULT_USER_AGENT)
                 .header("Accept", accept)
@@ -140,17 +133,12 @@ public final class HttpFetcher {
             CIRCUIT_BREAKER.recordFailure(circuitKey);
             return null;
           }
-          URI resolved = safeUri.resolve(location);
-          if (resolved.getHost() == null) {
-            CIRCUIT_BREAKER.recordFailure(circuitKey);
-            return null;
-          }
-          uri = resolved;
+          currentUrl = uri.resolve(location).toASCIIString();
           continue;
         }
         if (status < 200 || status >= 300) {
           CIRCUIT_BREAKER.recordFailure(circuitKey);
-          LOGGER.warn("HTTP státuszkód hiba [{}] -> URL: {}", status, safeUri);
+          LOGGER.warn("HTTP státuszkód hiba [{}] -> URL: {}", status, currentUrl);
           return null;
         }
         CIRCUIT_BREAKER.recordSuccess(circuitKey);
@@ -161,30 +149,27 @@ public final class HttpFetcher {
         return null;
       } catch (IOException | RuntimeException exception) {
         CIRCUIT_BREAKER.recordFailure(circuitKey);
-        LOGGER.warn("Hálózati hiba a portál lekérésekor [{}]: {}", safeUri, exception.getMessage());
+        LOGGER.warn("Hálózati hiba a portál lekérésekor [{}]: {}", currentUrl, exception.getMessage());
         return null;
       }
     }
     return null;
   }
 
-  private static String getApprovedHost(String host) {
-    if (host == null || host.isBlank()) {
-      return null;
+  private static boolean isApprovedUrl(String url) {
+    if (url == null || url.isBlank()) {
+      return false;
     }
     if (Boolean.getBoolean("app.test-mode")
-        && (host.equals("127.0.0.1") || host.equals("localhost"))) {
-      return host;
+        && (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:"))) {
+      return true;
     }
-    if (APPROVED_HOSTS.contains(host)) {
-      return host;
-    }
-    for (String domain : APPROVED_HOSTS) {
-      if (host.endsWith("." + domain)) {
-        return host;
+    for (String prefix : APPROVED_PREFIXES) {
+      if (url.startsWith(prefix) || url.equals(prefix.substring(0, prefix.length() - 1))) {
+        return true;
       }
     }
-    return null;
+    return false;
   }
 
   private static String decode(byte[] body, String encoding) throws IOException {
