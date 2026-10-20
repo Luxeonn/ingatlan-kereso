@@ -6,19 +6,27 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.core.env.Environment;
 
 import ingatlanok.common.JsonSupport;
+import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.core.resilience.PortalCircuitBreaker;
 import ingatlanok.core.resilience.PortalRateLimiter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
+import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchResult;
+import ingatlanok.persistence.ConfigStorage;
 import ingatlanok.persistence.OffsetPageRequest;
 
 class ArchitectureConsolidationTest {
@@ -42,6 +50,22 @@ class ArchitectureConsolidationTest {
   }
 
   @Test
+  void cliRunnerExecutesSearchWithSavedCriteria() throws Exception {
+    SearchExecutionEngine engine = mock(SearchExecutionEngine.class);
+    ConfigStorage configStorage = mock(ConfigStorage.class);
+    SearchCriteria criteria = new SearchCriteria();
+    SearchResult result = new SearchResult();
+    result.setTotalFound(1);
+    result.setNewCount(1);
+    when(configStorage.getLastCriteria()).thenReturn(criteria);
+    when(engine.executeSearch(criteria)).thenReturn(result);
+
+    new CliSearchRunner(engine, configStorage).run(new DefaultApplicationArguments("--cli"));
+
+    verify(engine).executeSearch(criteria);
+  }
+
+  @Test
   void circuitBreakerOpensAfterThreeFailuresAndClosesOnSuccess() {
     PortalCircuitBreaker breaker = new PortalCircuitBreaker();
     String portal = "breaker-test";
@@ -57,6 +81,26 @@ class ArchitectureConsolidationTest {
   }
 
   @Test
+  void circuitBreakerAllowsOnlyOneHalfOpenProbe() throws ReflectiveOperationException {
+    PortalCircuitBreaker breaker = new PortalCircuitBreaker();
+    String portal = "half-open-test";
+    breaker.recordFailure(portal);
+    breaker.recordFailure(portal);
+    breaker.recordFailure(portal);
+
+    Field statesField = PortalCircuitBreaker.class.getDeclaredField("states");
+    statesField.setAccessible(true);
+    Map<?, ?> states = (Map<?, ?>) statesField.get(breaker);
+    Object state = states.get(portal);
+    Field openedAtField = state.getClass().getDeclaredField("openedAt");
+    openedAtField.setAccessible(true);
+    openedAtField.setLong(state, System.currentTimeMillis() - 61_000);
+
+    assertTrue(breaker.allowRequest(portal));
+    assertFalse(breaker.allowRequest(portal));
+  }
+
+  @Test
   void rateLimiterAcceptsConfiguredAndInvalidRates() throws InterruptedException {
     PortalRateLimiter limiter = new PortalRateLimiter();
     System.setProperty("scraper.rate.test.portal", "20");
@@ -67,6 +111,7 @@ class ArchitectureConsolidationTest {
       limiter.acquire("invalid.portal");
       limiter.acquire("wait.portal");
       limiter.acquire("wait.portal");
+      limiter.acquire("jofogas.hu");
     } finally {
       System.clearProperty("scraper.rate.test.portal");
       System.clearProperty("scraper.rate.invalid.portal");
