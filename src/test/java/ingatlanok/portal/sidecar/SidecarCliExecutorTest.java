@@ -34,10 +34,19 @@ class SidecarCliExecutorUnitTest {
   }
 
   @Test
-  @DisplayName("SidecarCliExecutor custom executable configuration")
+  @DisplayName("SidecarCliExecutor custom executable configuration and argument building")
   void testCustomExecutable() {
     SidecarCliExecutor.setCustomExecutable("test-fake-sidecar");
     assertTrue(SidecarCliExecutor.isAvailable());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(50);
+    criteria.setMaxPriceMillion(100);
+
+    Optional<SidecarResponse> res = SidecarCliExecutor.execute("ingatlancom", criteria);
+    assertTrue(res.isEmpty());
 
     SidecarCliExecutor.resetCustomExecutable();
   }
