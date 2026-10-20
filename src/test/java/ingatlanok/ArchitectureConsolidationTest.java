@@ -13,7 +13,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.env.Environment;
 
-import ingatlanok.IngatlanApplication;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.core.resilience.PortalCircuitBreaker;
 import ingatlanok.core.resilience.PortalRateLimiter;
