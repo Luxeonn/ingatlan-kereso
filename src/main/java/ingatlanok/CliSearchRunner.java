@@ -12,7 +12,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.ConfigStorage;
 
 @Component
-@ConditionalOnProperty(name = "cli", havingValue = "true")
+@ConditionalOnProperty(name = "cli")
 public class CliSearchRunner implements ApplicationRunner {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CliSearchRunner.class);

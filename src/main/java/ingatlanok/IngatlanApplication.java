@@ -25,6 +25,9 @@ public class IngatlanApplication {
 
   public static void main(String[] args) {
     boolean isCli = java.util.Arrays.asList(args).contains("--cli") || Boolean.getBoolean("cli");
+    if (isCli) {
+      System.setProperty("cli", "true");
+    }
     SpringApplication application = new SpringApplication(IngatlanApplication.class);
     if (isCli) {
       application.setWebApplicationType(WebApplicationType.NONE);
