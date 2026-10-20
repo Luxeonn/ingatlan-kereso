@@ -4,13 +4,13 @@ buildscript {
     }
     configurations.classpath {
         resolutionStrategy {
-            force("org.apache.httpcomponents.client5:httpclient5:5.6.3")
-            force("org.apache.httpcomponents.core5:httpcore5:5.4.3")
-            force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
+            force("org.apache.httpcomponents.client5:httpclient5:5.6.5")
+            force("org.apache.httpcomponents.core5:httpcore5:5.4.4")
+            force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
             force("org.apache.commons:commons-lang3:3.21.0")
             force("org.springframework:spring-core:7.0.9")
-            force("tools.jackson.core:jackson-core:3.1.7")
-            force("tools.jackson.core:jackson-databind:3.1.7")
+            force("tools.jackson.core:jackson-core:3.2.3")
+            force("tools.jackson.core:jackson-databind:3.2.3")
         }
     }
 }
@@ -49,18 +49,18 @@ application {
 val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
-val caffeineVersion = "3.2.3"
+val caffeineVersion = "3.3.1"
 
 dependencies {
     constraints {
         implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.27")
-        implementation("tools.jackson.core:jackson-core:3.1.7")
-        implementation("tools.jackson.core:jackson-databind:3.1.7")
+        implementation("tools.jackson.core:jackson-core:3.2.3")
+        implementation("tools.jackson.core:jackson-databind:3.2.3")
         implementation("org.postgresql:postgresql:42.7.14")
         implementation("org.apache.logging.log4j:log4j-api:2.26.1")
-        implementation("org.apache.httpcomponents.client5:httpclient5:5.6.3")
-        implementation("org.apache.httpcomponents.core5:httpcore5:5.4.3")
-        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
+        implementation("org.apache.httpcomponents.client5:httpclient5:5.6.5")
+        implementation("org.apache.httpcomponents.core5:httpcore5:5.4.4")
+        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
     }
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -112,7 +112,7 @@ checkstyle {
 
 configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     resolutionStrategy {
-        force("org.codehaus.plexus:plexus-utils:3.6.1")
+        force("org.codehaus.plexus:plexus-utils:4.1.0")
         force("commons-beanutils:commons-beanutils:1.11.0")
     }
 }
