@@ -339,7 +339,7 @@ Backend containerization uses Eclipse Temurin JRE 25 with non-root security cont
 
 ## 10. Quality Assurance & Hermetic Verification
 
-1. **100% Offline Hermetic Testing**: Automated unit and integration tests run entirely offline (`./gradlew test`). Live network scraping is forbidden in standard test cycles. Live portal tests are tagged with `@Tag("live")` and isolated in dedicated tasks (`./gradlew liveTest`).
+1. **100% Offline Hermetic Testing**: Automated unit and integration tests run entirely offline (`./gradlew test`). Live network scraping is forbidden in standard test cycles.
 2. **JaCoCo Quality Gate**: Instruction and line coverage must exceed 80% across core, persistence, and domain packages. Missing coverage reports or coverage under 80% fails the CI pipeline.
 3. **Checkstyle Static Analysis**: Checkstyle 10.21.4 verifies compliance with `config/checkstyle/checkstyle.xml` (0 warnings permitted).
 4. **Frontend Verification**: TypeScript compilation (`npm run typecheck`), ESLint (`npm run lint`), and Vitest unit tests (`npm test`) run in CI.

@@ -62,7 +62,7 @@ npm run build
 npm run test:e2e
 ```
 
-The backend uses JUnit 5 and Checkstyle; frontend unit tests use Vitest and browser tests use Playwright. Portal tests tagged `live` require network access and can be run with `./gradlew liveTest`.
+The backend uses JUnit 5 and Checkstyle; frontend unit tests use Vitest and browser tests use Playwright.
 
 ## Project resources
 
