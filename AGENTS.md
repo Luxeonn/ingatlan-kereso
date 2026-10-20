@@ -26,6 +26,14 @@ Add JUnit 5 tests under the matching `src/test/java` package and Vitest tests in
 
 Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, or `docs/`; target `develop` by default. PRs must use concise, high-signal Hungarian descriptions adhering strictly to the template's 4 core sections (Context/Goal, Key changes, Verification, and Thematic Agent Approval Gate with 1-sentence rationales), link related issues with closing keywords (`Closes #<id>`), and strictly enforce clean UTF-8 encoding (`gh pr create --body-file ...`) without BOM to prevent mojibake. All required CI checks must pass before merge.
 
+## Issue Creation & Tracking Guidelines
+
+When creating GitHub issues (manually or via `gh issue create`), always use the formal templates located in `.github/ISSUE_TEMPLATE/` as the single source of truth:
+- **Bugs:** Follow `.github/ISSUE_TEMPLATE/bug_report.yml` (`fix: <description>` title, `bug` label, problem description, expected vs actual behavior, reproduction steps, affected component, environment, logs).
+- **Features / Enhancements:** Follow `.github/ISSUE_TEMPLATE/feature_request.yml` (`feat: <description>` title, `enhancement` label, user need / problem, proposed solution, affected specialist component / agent, alternatives).
+- For automated/CLI creation, generate markdown adhering directly to the YAML schema's required sections to ensure uniform structure and high signal across all issues.
+
+
 ## Efficient Issue Implementation & CI Validation
 
 - Before a broad change, turn every issue acceptance criterion into a checklist and map it to the affected code, API contract, tests, and CI/security gates. Inspect the relevant workflow files and existing validation scripts before implementation so requirements such as Checkstyle, JaCoCo, OpenAPI generation, and CodeQL are known up front.
