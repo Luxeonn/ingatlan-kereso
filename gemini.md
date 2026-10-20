@@ -188,7 +188,9 @@ ingatlan-kereso/
 >    - Obsolete runs must be automatically canceled (`concurrency: cancel-in-progress: true`) or manually terminated via GitHub CLI (`gh run cancel <run-id>`).
 > 6. **English PR Titles:** The Pull Request title must be in English following Conventional Commits (e.g., `feat: implement market analytics dashboard`).
 > 7. **Mandatory PR Labels:** Apply appropriate labels (`enhancement`, `bug`, `documentation`) upon PR creation.
-> 8. **Descriptive Summary:** PR description must clearly explain Context & Goal, Technical Changes, and Verification steps.
+> 8. **Tömör, Magyar PR Leírás és UTF-8 Kódolás:**
+>    - A Pull Request leírás kötelezően **magyar nyelvű, lényegretörő és tömör**, sallangmentes, kizárólag a 4 kötelező szekciót tartalmazza: **🎯 Miért készült?**, **🛠️ Mit módosít / Mit javít?**, **🧪 Tesztelés és Ellenőrzés**, **🛡️ Thematic Agent Approval Gate**, valamint a lezáró kulcsszót (`Closes #<id>` / `Fixes #<id>`).
+>    - A PR leírásokat és script hívásokat garantáltan tiszta UTF-8 kódolással kell létrehozni/frissíteni (`gh pr create --body-file ...`, UTF-8 BOM nélkül), megelőzve az ékezetes karakterek szétesését (mojibake).
 > 9. **Direct PR Link:** Always output a clickable GitHub PR link in the final conversation response.
 > 10. **Thematic Agent Approval Gate:**
 >     - Every PR requires sign-off from designated specialist agents (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`).
