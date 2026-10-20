@@ -45,6 +45,9 @@ updates:
       frontend-dependencies:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # =========================================================================
   # CI / WORKFLOW: GitHub Actions version updates (.github/workflows)
