@@ -3,9 +3,9 @@ export function formatPriceMillion(million?: number | null): string {
   return `${Number(million.toFixed(1))} M Ft`
 }
 
-export function formatPriceFt(amountFt?: number | null): string {
-  if (amountFt == null || isNaN(amountFt)) return 'Ár a hirdetésben'
-  return new Intl.NumberFormat('hu-HU').format(amountFt) + ' Ft'
+export function formatPriceFt(amountHuf?: number | null): string {
+  if (amountHuf == null || isNaN(amountHuf)) return 'Ár a hirdetésben'
+  return new Intl.NumberFormat('hu-HU').format(amountHuf) + ' Ft'
 }
 
 export function formatPricePerSqm(ftPerM2?: number | null): string {

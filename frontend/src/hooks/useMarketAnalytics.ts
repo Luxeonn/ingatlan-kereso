@@ -164,7 +164,7 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
         prices.push(pMillion)
       }
 
-      const sqPrice = item.detailsInfo?.pricePerSqmFt
+      const sqPrice = item.detailsInfo?.pricePerSquareMeter
       if (sqPrice != null && sqPrice > 0) {
         sqmPrices.push(sqPrice)
       }
@@ -246,13 +246,13 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
         const binMaxFt = binMaxK * 1000
 
         const inBin = items.filter((it) => {
-          const val = it.detailsInfo?.pricePerSqmFt
+          const val = it.detailsInfo?.pricePerSquareMeter
           if (val == null) return false
           return i === numBins - 1 ? val >= binMinFt && val <= binMaxFt : val >= binMinFt && val < binMaxFt
         })
 
         if (inBin.length > 0 || (binMinFt <= maxPricePerSqm && binMaxFt >= minPricePerSqm)) {
-          const sum = inBin.reduce((acc, it) => acc + (it.detailsInfo?.pricePerSqmFt || 0), 0)
+          const sum = inBin.reduce((acc, it) => acc + (it.detailsInfo?.pricePerSquareMeter || 0), 0)
           sqmPriceBins.push({
             rangeLabel: `${binMinK} - ${binMaxK} eFt/m²`,
             min: binMinFt,
@@ -272,7 +272,7 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
 
     cityMap.forEach((cityItems, city) => {
       const cPrices = cityItems.map((it) => it.priceInfo?.amountMillion).filter((p): p is number => p != null && p > 0)
-      const cSqm = cityItems.map((it) => it.detailsInfo?.pricePerSqmFt).filter((s): s is number => s != null && s > 0)
+      const cSqm = cityItems.map((it) => it.detailsInfo?.pricePerSquareMeter).filter((s): s is number => s != null && s > 0)
 
       const cAvgPrice = cPrices.length > 0 ? Math.round((cPrices.reduce((a, b) => a + b, 0) / cPrices.length) * 10) / 10 : 0
       const cMedianPrice = Math.round(calculateMedian(cPrices) * 10) / 10
@@ -301,9 +301,9 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
     const belowMarketDeals: BargainItem[] = []
 
     items.forEach((item) => {
-      const area = item.detailsInfo?.floorAreaSqm
+      const area = item.detailsInfo?.areaSquareMeters
       const price = item.priceInfo?.amountMillion
-      const sqmPrice = item.detailsInfo?.pricePerSqmFt || (area && price ? Math.round((price * 1_000_000) / area) : 0)
+      const sqmPrice = item.detailsInfo?.pricePerSquareMeter || (area && price ? Math.round((price * 1_000_000) / area) : 0)
 
       if (area && area > 0 && price && price > 0) {
         const city = item.city || item.location || 'Ismeretlen'

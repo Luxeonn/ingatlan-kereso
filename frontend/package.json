@@ -9,18 +9,21 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "generate-api": "openapi-typescript ../openapi/api-spec.yaml -o src/types/generated-api.ts",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.67.1",
+    "@tanstack/react-query": "^5.104.4",
+    "@tanstack/react-virtual": "^3.14.21",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.16.0",
+    "lucide-react": "^1.59.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-is": "^19.0.0",
-    "recharts": "^2.15.1",
+    "recharts": "^3.10.1",
     "tailwind-merge": "^3.0.2",
+    "zod": "^4.6.7",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -34,16 +37,17 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^6.1.2",
     "autoprefixer": "^10.4.21",
-    "eslint": "^10.12.0",
+    "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "jsdom": "^30.1.2",
+    "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4",
     "vite-plugin-compression2": "^2.5.3",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   }
 }

@@ -1,5 +1,7 @@
-# Stage 1: Build Headless Spring Boot JAR (Java 21 LTS)
-FROM eclipse-temurin:21-jdk-jammy AS builder
+# Stage 1: Build Headless Spring Boot JAR (Java 25 LTS)
+FROM eclipse-temurin:25-jdk-alpine AS builder
+
+ARG APP_VERSION=1.0.0
 
 WORKDIR /build
 
@@ -14,19 +16,18 @@ RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew dependencies --no-
 COPY src ./src
 
 # Build headless Spring Boot fat JAR without running tests
-RUN sed -i 's/\r$//' gradlew && ./gradlew bootJar --no-daemon -x test
+RUN sed -i 's/\r$//' gradlew && ./gradlew -PreleaseVersion="$APP_VERSION" bootJar --no-daemon -x test
 
-# Stage 2: Minimal hardened runtime with Temurin JRE 21
-FROM eclipse-temurin:21-jre-jammy
+# Stage 2: Minimal hardened runtime with Temurin JRE 25
+FROM eclipse-temurin:25-jre-alpine
 
-# Install curl for HEALTHCHECK and ca-certificates
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+# Upgrade packages to apply latest security patches (e.g. libexpat) and install curl/ca-certificates
+RUN apk upgrade --no-cache && \
+    apk add --no-cache curl ca-certificates
 
 # Create non-root system user (UID 10001) for container security
-RUN groupadd -g 10001 appuser && \
-    useradd -u 10001 -g appuser -s /bin/sh -d /app appuser
+RUN addgroup -S -g 10001 appuser && \
+    adduser -S -u 10001 -G appuser -h /app -s /sbin/nologin appuser
 
 WORKDIR /app
 
@@ -35,7 +36,7 @@ RUN mkdir -p /app/data /app/logs && \
     chown -R appuser:appuser /app
 
 # Copy executable Spring Boot jar from builder stage
-COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-1.0.0.jar /app/app.jar
+COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-*.jar /app/app.jar
 
 USER appuser:appuser
 
@@ -45,8 +46,8 @@ ENV SERVER_HOST=0.0.0.0 \
     NO_BROWSER=true \
     JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
-# Declarative volumes for zero-config persistence
-VOLUME ["/app/data", "/app/logs"]
+# Keep logs available as a mount point; Compose assigns the named backend_logs volume.
+VOLUME ["/app/logs"]
 
 EXPOSE 8080
 

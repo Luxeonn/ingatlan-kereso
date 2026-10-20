@@ -1,35 +1,42 @@
 export interface PriceInfo {
   rawText?: string
-  amountFt?: number
+  amountHuf?: number
   amountMillion?: number
 }
 
 export interface PropertyDetails {
   rawText?: string
-  floorAreaSqm?: number
+  areaSquareMeters?: number
   roomCount?: number
-  pricePerSqmFt?: number
+  pricePerSquareMeter?: number
 }
 
 export interface PortalSource {
-  id?: string
+  portalId?: string
   portalName?: string
-  colorHex?: string
+  themeColor?: string
+  directListing?: boolean
 }
 
 export interface PriceHistoryEntry {
-  id?: string
-  url?: string
-  priceMillion?: number
-  priceFt?: number
-  discoveredAt?: string
+  id: number
+  propertyId: string
+  recordedAt: string
+  priceRaw: string
+  priceAmount: number
+  priceMillions: number
+  pricePerSqm?: number
+  previousPriceAmount?: number
+  priceDelta?: number
+  changePercent?: number
 }
 
 export interface StatusLogEntry {
-  id?: string
-  url?: string
-  status?: string
-  timestamp?: string
+  id: number
+  propertyId: string
+  status: string
+  changedAt: string
+  note: string
 }
 
 export interface IngatlanItem {

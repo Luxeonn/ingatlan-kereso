@@ -30,8 +30,8 @@ describe('useMarketAnalytics hook', () => {
         location: 'Debrecen',
         city: 'Debrecen',
         isNew: true,
-        priceInfo: { amountMillion: 60, amountFt: 60000000 },
-        detailsInfo: { floorAreaSqm: 100, pricePerSqmFt: 600000 },
+        priceInfo: { amountMillion: 60, amountHuf: 60000000 },
+        detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 600000 },
       },
       {
         id: '2',
@@ -42,8 +42,8 @@ describe('useMarketAnalytics hook', () => {
         location: 'Debrecen',
         city: 'Debrecen',
         isNew: false,
-        priceInfo: { amountMillion: 80, amountFt: 80000000 },
-        detailsInfo: { floorAreaSqm: 100, pricePerSqmFt: 800000 },
+        priceInfo: { amountMillion: 80, amountHuf: 80000000 },
+        detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 800000 },
       },
       {
         id: '3',
@@ -56,8 +56,8 @@ describe('useMarketAnalytics hook', () => {
         isNew: false,
         priceDelta: -5000000,
         priceChangePercent: -4.8,
-        priceInfo: { amountMillion: 100, amountFt: 100000000 },
-        detailsInfo: { floorAreaSqm: 100, pricePerSqmFt: 1000000 },
+        priceInfo: { amountMillion: 100, amountHuf: 100000000 },
+        detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 1000000 },
       },
       {
         id: '4',
@@ -68,8 +68,8 @@ describe('useMarketAnalytics hook', () => {
         location: 'Hajdúsámson',
         city: 'Hajdúsámson',
         isNew: true,
-        priceInfo: { amountMillion: 50, amountFt: 50000000 },
-        detailsInfo: { floorAreaSqm: 100, pricePerSqmFt: 500000 },
+        priceInfo: { amountMillion: 50, amountHuf: 50000000 },
+        detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 500000 },
       },
     ]
 

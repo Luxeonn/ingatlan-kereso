@@ -1,0 +1,806 @@
+openapi: 3.1.0
+info:
+  title: Ingatlan Kereső REST API
+  description: >
+    Típusbiztos OpenAPI 3.1 specifikáció az ingatlan-kereso Spring Boot 4.1.1 backend és React 19 SPA frontend között.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Helyi fejlesztői backend szerver
+paths:
+  /api/status:
+    get:
+      summary: Rendszerállapot lekérdezése
+      operationId: getStatus
+      responses:
+        '200':
+          description: A rendszer aktuális állapota és statisztikái
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  /api/portals:
+    get:
+      summary: Támogatott portálok listája
+      operationId: getPortals
+      responses:
+        '200':
+          description: A regisztrált ingatlanportálok és azok hirdetésszámai
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PortalDescriptor'
+
+  /api/cities:
+    get:
+      summary: Támogatott városok és előre definiált presetek
+      operationId: getCities
+      responses:
+        '200':
+          description: Előre definiált városok, preset csoportok és követett települések
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitiesResponse'
+
+  /api/config:
+    get:
+      summary: Legutóbbi mentett keresési feltételek lekérdezése
+      operationId: getLastCriteria
+      responses:
+        '200':
+          description: Az elmentett vagy alapértelmezett keresési paraméterek
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchCriteria'
+    post:
+      summary: Keresési feltételek mentése
+      operationId: saveLastCriteria
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchCriteria'
+      responses:
+        '200':
+          description: Sikeres mentés visszajelzése
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/history:
+    get:
+      summary: Korábban lementett hirdetések lekérése és szűrése
+      operationId: getHistory
+      parameters:
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Település szűrés
+        - name: onlyDiscounted
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Csak árcsökkentett ingatlanok
+        - name: portal
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Portál szűrés
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Minimum ár (millió Ft)
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Maximum ár (millió Ft)
+        - name: minArea
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Minimum alapterület (m²)
+        - name: maxArea
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Maximum alapterület (m²)
+        - name: minRooms
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Minimum szobaszám
+        - name: maxRooms
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Maximum szobaszám
+        - name: excludeViewed
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Megtekintett hirdetések kizárása
+        - name: sortBy
+          in: query
+          required: false
+          schema:
+            type: string
+            default: DISCOVERED_DESC
+          description: Rendezési sorrend (pl. DISCOVERED_DESC, PRICE_ASC, PRICE_PER_M2_ASC)
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Maximális találati szám lapozáshoz
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Találati eltolás lapozáshoz
+      responses:
+        '200':
+          description: A szűrési feltételeknek megfelelő hirdetések listája
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IngatlanItem'
+
+  /api/properties/price-history:
+    get:
+      summary: Ingatlan ártörténet lekérdezése paraméter alapján
+      operationId: getPriceHistoryByParam
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ingatlan egyedi azonosítója
+        - name: url
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ingatlan közvetlen URL-je
+      responses:
+        '200':
+          description: Az ingatlanhoz rögzített árváltozások listája
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PriceHistoryEntry'
+        '400':
+          description: Hiányzó id vagy url paraméter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties/{id}/price-history:
+    get:
+      summary: Ingatlan ártörténet lekérdezése útvonal azonosító alapján
+      operationId: getPriceHistoryById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Ingatlan egyedi azonosítója
+      responses:
+        '200':
+          description: Az ingatlanhoz rögzített árváltozások listája
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PriceHistoryEntry'
+        '400':
+          description: Hiányzó id paraméter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties/status-log:
+    get:
+      summary: Ingatlan állapotnapló lekérdezése paraméter alapján
+      operationId: getStatusLogByParam
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ingatlan egyedi azonosítója
+        - name: url
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ingatlan közvetlen URL-je
+      responses:
+        '200':
+          description: Az ingatlan állapotváltozásainak naplója
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StatusLogEntry'
+        '400':
+          description: Hiányzó id vagy url paraméter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties/{id}/status-log:
+    get:
+      summary: Ingatlan állapotnapló lekérdezése útvonal azonosító alapján
+      operationId: getStatusLogById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Ingatlan egyedi azonosítója
+      responses:
+        '200':
+          description: Az ingatlan állapotváltozásainak naplója
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StatusLogEntry'
+        '400':
+          description: Hiányzó id paraméter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties/discounted:
+    get:
+      summary: Árcsökkentett ingatlanok listája
+      operationId: getDiscountedProperties
+      parameters:
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Település szűrés
+      responses:
+        '200':
+          description: Árcsökkenést elszenvedett ingatlanok listája
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IngatlanItem'
+
+  /api/search:
+    post:
+      summary: Élő párhuzamos keresés futtatása a portálokon
+      operationId: executeSearch
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchCriteria'
+      responses:
+        '200':
+          description: A keresési eredmények, piaci statisztikák és portál státuszok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponseDto'
+
+  /api/open-urls:
+    post:
+      summary: URL-ek megnyitása és megtekintettként megjelölése
+      operationId: openUrls
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '200':
+          description: Sikeres megnyitás és státusz frissítés eredménye
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenUrlsResponse'
+
+  /api/items/viewed:
+    post:
+      summary: Egy adott hirdetés megtekintettként történő megjelölése
+      operationId: markViewed
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: A megtekintett hirdetés URL címe
+      responses:
+        '200':
+          description: Megtekintettség állapota
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkViewedResponse'
+
+  /api/history/clear:
+    post:
+      summary: Adatbázis / hirdetéstörténet törlése adott városra vagy globálisan
+      operationId: clearHistory
+      parameters:
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Opcionális városnév paraméter
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                city:
+                  type: string
+                  description: Opcionális városnév a törléshez
+      responses:
+        '200':
+          description: Törlés eredménye
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClearHistoryResponse'
+
+components:
+  schemas:
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+
+    OpenUrlsResponse:
+      type: object
+      required:
+        - success
+        - count
+      properties:
+        success:
+          type: boolean
+        count:
+          type: integer
+
+    MarkViewedResponse:
+      type: object
+      required:
+        - success
+        - marked
+        - url
+      properties:
+        success:
+          type: boolean
+        marked:
+          type: boolean
+        url:
+          type: string
+
+    ClearHistoryResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        clearedCity:
+          type: string
+        clearedAll:
+          type: boolean
+
+    StatusResponse:
+      type: object
+      required:
+        - status
+        - port
+        - totalInDb
+      properties:
+        status:
+          type: string
+          example: "UP"
+        port:
+          type: integer
+          example: 8080
+        totalInDb:
+          type: integer
+          example: 1240
+        lastRunTime:
+          type: string
+          nullable: true
+        trackedCities:
+          type: object
+          additionalProperties:
+            type: integer
+
+    PredefinedCity:
+      type: object
+      required:
+        - name
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        county:
+          type: string
+        description:
+          type: string
+
+    TrackedCityInfo:
+      type: object
+      required:
+        - name
+        - key
+        - count
+      properties:
+        name:
+          type: string
+        key:
+          type: string
+        count:
+          type: integer
+
+    CitiesResponse:
+      type: object
+      required:
+        - predefined
+        - presets
+        - trackedCities
+      properties:
+        predefined:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/PredefinedCity'
+              - type: string
+        presets:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        trackedCities:
+          anyOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/TrackedCityInfo'
+            - type: object
+              additionalProperties:
+                type: integer
+
+    PortalDescriptor:
+      type: object
+      required:
+        - id
+        - name
+        - color
+        - searchUrl
+        - supportedTypes
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        searchUrl:
+          type: string
+        supportedTypes:
+          type: array
+          items:
+            type: string
+        savedListingCount:
+          type: integer
+
+    PortalStatusDto:
+      type: object
+      required:
+        - portalId
+        - portalName
+        - status
+        - durationMs
+        - itemCount
+        - botProtected
+      properties:
+        portalId:
+          type: string
+        portalName:
+          type: string
+        status:
+          type: string
+        durationMs:
+          type: integer
+        itemCount:
+          type: integer
+        errorMessage:
+          type: string
+          nullable: true
+        botProtected:
+          type: boolean
+
+    PriceInfo:
+      type: object
+      properties:
+        rawText:
+          type: string
+        amountHuf:
+          type: integer
+        amountMillion:
+          type: number
+
+    PropertyDetails:
+      type: object
+      properties:
+        rawText:
+          type: string
+        areaSquareMeters:
+          type: number
+        roomCount:
+          type: number
+        pricePerSquareMeter:
+          type: number
+
+    PortalSource:
+      type: object
+      properties:
+        portalId:
+          type: string
+        portalName:
+          type: string
+        themeColor:
+          type: string
+        directListing:
+          type: boolean
+
+    PriceHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: string
+        recordedAt:
+          type: string
+        priceRaw:
+          type: string
+        priceAmount:
+          type: integer
+        priceMillions:
+          type: number
+        pricePerSqm:
+          type: integer
+        previousPriceAmount:
+          type: integer
+        priceDelta:
+          type: integer
+        changePercent:
+          type: number
+
+    StatusLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: string
+        status:
+          type: string
+        changedAt:
+          type: string
+        note:
+          type: string
+
+    SearchCriteria:
+      type: object
+      properties:
+        city:
+          type: string
+        cities:
+          type: array
+          items:
+            type: string
+          default: []
+        propertyType:
+          type: string
+          default: "haz"
+        minPriceMillion:
+          type: number
+          default: 0
+        maxPriceMillion:
+          type: number
+          default: 9999
+        minArea:
+          type: number
+          default: 0
+        maxArea:
+          type: number
+          default: 9999
+        minRooms:
+          type: number
+        portals:
+          type: array
+          items:
+            type: string
+          default: []
+        autoOpenBrowser:
+          type: boolean
+          default: false
+        excludeViewed:
+          type: boolean
+          default: false
+        onlyDiscounted:
+          type: boolean
+          default: false
+
+    MarketStatsDto:
+      type: object
+      properties:
+        averagePriceMillion:
+          type: number
+        averagePricePerM2:
+          type: number
+        minPriceMillion:
+          type: number
+        maxPriceMillion:
+          type: number
+        newRatePercent:
+          type: number
+        cityBreakdown:
+          type: object
+          additionalProperties:
+            type: integer
+
+    IngatlanItem:
+      type: object
+      required:
+        - id
+        - portal
+        - url
+        - title
+        - price
+        - location
+        - city
+      properties:
+        id:
+          type: string
+        portal:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        price:
+          type: string
+        location:
+          type: string
+        city:
+          type: string
+        details:
+          type: string
+        discoveredAt:
+          type: string
+        isNew:
+          type: boolean
+        viewed:
+          type: boolean
+        viewedAt:
+          type: string
+        imageUrl:
+          type: string
+        status:
+          type: string
+        priceDelta:
+          type: integer
+        priceChangePercent:
+          type: number
+        lastPriceChangeAt:
+          type: string
+        priceInfo:
+          $ref: '#/components/schemas/PriceInfo'
+        detailsInfo:
+          $ref: '#/components/schemas/PropertyDetails'
+        source:
+          $ref: '#/components/schemas/PortalSource'
+
+    DashboardResponseDto:
+      type: object
+      required:
+        - items
+        - newCount
+        - totalFound
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngatlanItem'
+        newCount:
+          type: integer
+        totalFound:
+          type: integer
+        executedAt:
+          type: string
+        portalCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        cityCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        newCitiesInitialized:
+          type: array
+          items:
+            type: string
+        marketStats:
+          $ref: '#/components/schemas/MarketStatsDto'
+        portalStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortalStatusDto'

@@ -1,28 +1,19 @@
 package ingatlanok.portal;
 
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.scraper.PortalScrapeResult;
 
-/**
- * Portál motor egységes interfész a moduláris Clean Architecture-ben.
- */
 public interface PortalEngine {
 
-    /**
-     * Visszaadja a portál metaadatait (leíróját).
-     */
-    PortalDescriptor getDescriptor();
+  PortalDescriptor getDescriptor();
 
-    /**
-     * Végrehajtja a hirdetésgyűjtést a megadott keresési kritériumok alapján.
-     */
-    PortalScrapeResult scrape(SearchCriteria criteria);
+  PortalScrapeResult scrape(SearchCriteria criteria);
 
-    default String getId() {
-        return getDescriptor().id();
-    }
+  default String getId() {
+    return getDescriptor().id();
+  }
 
-    default String getName() {
-        return getDescriptor().name();
-    }
+  default String getName() {
+    return getDescriptor().name();
+  }
 }

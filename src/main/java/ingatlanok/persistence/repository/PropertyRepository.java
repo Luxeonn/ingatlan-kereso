@@ -1,6 +1,11 @@
 package ingatlanok.persistence.repository;
 
-import ingatlanok.persistence.entity.PropertyEntity;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -8,41 +13,48 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import ingatlanok.persistence.entity.PropertyEntity;
 
 @Repository
-public interface PropertyRepository extends JpaRepository<PropertyEntity, Long>, JpaSpecificationExecutor<PropertyEntity> {
+public interface PropertyRepository
+    extends JpaRepository<PropertyEntity, Long>, JpaSpecificationExecutor<PropertyEntity> {
 
-    Optional<PropertyEntity> findByUrl(String url);
+  Optional<PropertyEntity> findByUrl(String url);
 
-    boolean existsByUrl(String url);
+  boolean existsByUrl(String url);
 
-    boolean existsByUrlAndNormalizedCity(String url, String normalizedCity);
+  boolean existsByUrlAndNormalizedCity(String url, String normalizedCity);
 
-    boolean existsByNormalizedCity(String normalizedCity);
+  boolean existsByNormalizedCity(String normalizedCity);
 
-    List<PropertyEntity> findByNormalizedCityOrderByDiscoveredAtDesc(String normalizedCity);
+  List<PropertyEntity> findByNormalizedCityOrderByDiscoveredAtDesc(String normalizedCity);
 
-    List<PropertyEntity> findAllByOrderByDiscoveredAtDesc();
+  List<PropertyEntity> findAllByOrderByDiscoveredAtDesc();
 
-    @Modifying
-    @Query("UPDATE PropertyEntity p SET p.viewed = true, p.viewedAt = :viewedAt WHERE p.url = :url")
-    int markAsViewed(@Param("url") String url, @Param("viewedAt") String viewedAt);
+  Page<PropertyEntity> findAll(Specification<PropertyEntity> specification, Pageable pageable);
 
-    @Modifying
-    @Query("DELETE FROM PropertyEntity p WHERE p.normalizedCity = :normalizedCity")
-    void deleteByNormalizedCity(@Param("normalizedCity") String normalizedCity);
+  List<PropertyEntity> findByPriceDeltaLessThanAndCityContainingIgnoreCaseOrderByDiscoveredAtDesc(
+      long priceDelta, String city);
 
-    @Query("SELECT p.url FROM PropertyEntity p")
-    List<String> findAllUrls();
+  @Modifying
+  @Query("UPDATE PropertyEntity p SET p.viewed = true, p.viewedAt = :viewedAt WHERE p.url = :url")
+  int markAsViewed(@Param("url") String url, @Param("viewedAt") String viewedAt);
 
-    @Query("SELECT p.portal, COUNT(p) FROM PropertyEntity p GROUP BY p.portal")
-    List<Object[]> countByPortalGroup();
+  @Modifying
+  @Query("DELETE FROM PropertyEntity p WHERE p.normalizedCity = :normalizedCity")
+  void deleteByNormalizedCity(@Param("normalizedCity") String normalizedCity);
 
-    @Query("SELECT p.city, p.normalizedCity, COUNT(p) FROM PropertyEntity p GROUP BY p.city, p.normalizedCity")
-    List<Object[]> countByCityGroup();
+  @Query("SELECT p.url FROM PropertyEntity p")
+  List<String> findAllUrls();
 
-    @Query("SELECT MAX(p.discoveredAt) FROM PropertyEntity p")
-    String findLatestDiscoveredAt();
+  @Query("SELECT p.portal, COUNT(p) FROM PropertyEntity p GROUP BY p.portal")
+  List<Object[]> countByPortalGroup();
+
+  @Query(
+      "SELECT p.city, p.normalizedCity, COUNT(p) FROM PropertyEntity p GROUP BY p.city,"
+          + " p.normalizedCity")
+  List<Object[]> countByCityGroup();
+
+  @Query("SELECT MAX(p.discoveredAt) FROM PropertyEntity p")
+  String findLatestDiscoveredAt();
 }

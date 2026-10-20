@@ -1,0 +1,247 @@
+name: Docker Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semantic version increment
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: Custom release version, for example 1.1.0-RELEASE
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Validate release branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require main branch
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" != "branch" ] || [ "$BRANCH" != "main" ]; then
+            echo "Docker Release must be started from the main branch."
+            exit 1
+          fi
+
+  verify:
+    name: Verify selected branch
+    needs: guard
+    uses: ./.github/workflows/ci.yml
+    with:
+      run_all: true
+      skip_container_scan: true
+    permissions:
+      contents: read
+      pull-requests: read
+
+  prepare:
+    name: Resolve release version
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      should_release: ${{ steps.release.outputs.should_release }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      short_sha: ${{ steps.release.outputs.short_sha }}
+      repository_lower: ${{ steps.release.outputs.repository_lower }}
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Calculate release version from latest Git tag
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUMP: ${{ inputs.bump }}
+          CUSTOM_VERSION: ${{ inputs.custom_version }}
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+
+          LATEST_TAG=""
+          while IFS= read -r CANDIDATE_TAG; do
+            if [[ "$CANDIDATE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+              LATEST_TAG="$CANDIDATE_TAG"
+            fi
+          done < <(git tag --list 'v*' | sort -V)
+
+          LATEST_VERSION="${LATEST_TAG#v}"
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_VERSION="0.0.0"
+          fi
+
+          case "$BUMP" in
+            patch|minor|major)
+              IFS=. read -r MAJOR MINOR PATCH <<< "${LATEST_VERSION%%[-+]*}"
+              case "$BUMP" in
+                patch) PATCH=$((PATCH + 1)) ;;
+                minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+                major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              esac
+              VERSION="$MAJOR.$MINOR.$PATCH"
+              ;;
+            custom)
+              VERSION="$CUSTOM_VERSION"
+              ;;
+            *)
+              echo "Unsupported version bump: $BUMP"
+              exit 1
+              ;;
+          esac
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Version must follow X.Y.Z with an optional SemVer suffix."
+            exit 1
+          fi
+
+          TAG="v${VERSION}"
+          SHORT_SHA="$(git rev-parse --short=7 "$GITHUB_SHA")"
+          REPOSITORY_LOWER="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          SHOULD_RELEASE=true
+
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              if [ "$SHOULD_RELEASE" = "true" ]; then
+                echo "Tag $TAG already points to a different commit."
+                exit 1
+              fi
+            elif gh release view "$TAG" >/dev/null 2>&1; then
+              SHOULD_RELEASE=false
+            else
+              echo "Resuming incomplete publication for $TAG."
+              SHOULD_RELEASE=true
+            fi
+          fi
+
+          echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "repository_lower=$REPOSITORY_LOWER" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish release image (${{ matrix.component }})
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: backend
+            context: .
+            dockerfile: Dockerfile
+          - component: frontend
+            context: ./frontend
+            dockerfile: frontend/Dockerfile
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push release image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ needs.prepare.outputs.repository_lower }}-${{ matrix.component }}:${{ needs.prepare.outputs.version }}
+            ghcr.io/${{ needs.prepare.outputs.repository_lower }}-${{ matrix.component }}:sha-${{ needs.prepare.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          build-args: |
+            APP_VERSION=${{ needs.prepare.outputs.version }}
+
+  create-tag:
+    name: Create release tag
+    needs: [prepare, publish]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Create or verify release tag
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              echo "Tag $TAG already points to a different commit."
+              exit 1
+            fi
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" "$GITHUB_SHA" -m "Release $TAG"
+            git push origin "refs/tags/$TAG"
+          fi
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [prepare, publish, create-tag]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Create release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release create "$TAG" --generate-notes --verify-tag

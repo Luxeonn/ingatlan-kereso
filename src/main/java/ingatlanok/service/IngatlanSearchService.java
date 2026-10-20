@@ -1,31 +1,21 @@
 package ingatlanok.service;
 
+import org.springframework.stereotype.Service;
+
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 
-/**
- * Szolgáltatás koordinátor, amely a moduláris {@link SearchExecutionEngine} felé delegál.
- */
+@Service
 public class IngatlanSearchService {
 
-    private static final IngatlanSearchService INSTANCE = new IngatlanSearchService();
+  private final SearchExecutionEngine searchEngine;
 
-    private final SearchExecutionEngine searchEngine;
+  public IngatlanSearchService(SearchExecutionEngine searchEngine) {
+    this.searchEngine = java.util.Objects.requireNonNull(searchEngine);
+  }
 
-    private IngatlanSearchService() {
-        this(SearchExecutionEngine.getInstance());
-    }
-
-    public IngatlanSearchService(SearchExecutionEngine searchEngine) {
-        this.searchEngine = searchEngine != null ? searchEngine : SearchExecutionEngine.getInstance();
-    }
-
-    public static IngatlanSearchService getInstance() {
-        return INSTANCE;
-    }
-
-    public SearchResult executeSearch(SearchCriteria criteria) {
-        return searchEngine.executeSearch(criteria);
-    }
+  public SearchResult executeSearch(SearchCriteria criteria) {
+    return searchEngine.executeSearch(criteria);
+  }
 }

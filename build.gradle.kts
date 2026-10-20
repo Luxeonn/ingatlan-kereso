@@ -4,13 +4,13 @@ buildscript {
     }
     configurations.classpath {
         resolutionStrategy {
-            force("org.apache.httpcomponents.client5:httpclient5:5.6.3")
-            force("org.apache.httpcomponents.core5:httpcore5:5.4.3")
-            force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
+            force("org.apache.httpcomponents.client5:httpclient5:5.6.5")
+            force("org.apache.httpcomponents.core5:httpcore5:5.4.4")
+            force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
             force("org.apache.commons:commons-lang3:3.21.0")
             force("org.springframework:spring-core:7.0.9")
-            force("tools.jackson.core:jackson-core:3.1.7")
-            force("tools.jackson.core:jackson-databind:3.1.7")
+            force("tools.jackson.core:jackson-core:3.2.3")
+            force("tools.jackson.core:jackson-databind:3.2.3")
         }
     }
 }
@@ -20,19 +20,17 @@ plugins {
     application
     jacoco
     checkstyle
-    id("org.springframework.boot") version "4.1.0"
+    id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.graalvm.buildtools.native") version "0.10.6"
 }
 
 group = "hu.pushinsky.viktor"
-version = "1.0.0"
+version = providers.gradleProperty("releaseVersion").getOrElse("1.0.0")
 
-extra["spring-framework.version"] = "7.0.9"
-extra["tomcat.version"] = "11.0.25"
+extra["tomcat.version"] = "11.0.27"
 extra["jackson-bom.version"] = "3.1.7"
-extra["postgresql.version"] = "42.7.12"
-extra["log4j2.version"] = "2.25.5"
+extra["postgresql.version"] = "42.7.14"
+extra["log4j2.version"] = "2.26.1"
 
 repositories {
     mavenCentral()
@@ -40,7 +38,7 @@ repositories {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(25))
     }
 }
 
@@ -51,48 +49,31 @@ application {
 val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
-val gsonVersion = "2.14.0"
+val caffeineVersion = "3.3.1"
 
 dependencies {
     constraints {
-        implementation("org.springframework:spring-webmvc:7.0.9")
-        implementation("org.springframework:spring-core:7.0.9")
-        implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.25")
-        implementation("tools.jackson.core:jackson-core:3.1.7")
-        implementation("tools.jackson.core:jackson-databind:3.1.7")
-        implementation("org.postgresql:postgresql:42.7.12")
-        implementation("org.apache.logging.log4j:log4j-api:2.25.5")
-        implementation("org.apache.httpcomponents.client5:httpclient5:5.6.3")
-        implementation("org.apache.httpcomponents.core5:httpcore5:5.4.3")
-        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
+        implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.27")
+        implementation("tools.jackson.core:jackson-core:3.2.3")
+        implementation("tools.jackson.core:jackson-databind:3.2.3")
+        implementation("org.postgresql:postgresql:42.7.14")
+        implementation("org.apache.logging.log4j:log4j-api:2.26.1")
+        implementation("org.apache.httpcomponents.client5:httpclient5:5.6.5")
+        implementation("org.apache.httpcomponents.core5:httpcore5:5.4.4")
+        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
     }
-
-    // Spring Boot Starter & Core Modules (Spring Framework 7.0.9)
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+    implementation("com.github.ben-manes.caffeine:caffeine:$caffeineVersion")
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
-
-    // Scraping & Utilities
     implementation("org.jsoup:jsoup:$jsoupVersion")
+    implementation("org.brotli:dec:0.1.2")
     implementation("commons-io:commons-io:$commonsIoVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
-    implementation("com.google.code.gson:gson:$gsonVersion")
-
-    // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-graalvmNative {
-    binaries {
-        named("main") {
-            imageName.set("ingatlan-kereso")
-            mainClass.set("ingatlanok.IngatlanApplication")
-            buildArgs.add("--no-fallback")
-            buildArgs.add("-H:+ReportExceptionStackTraces")
-        }
-    }
 }
 
 tasks.withType<JavaCompile> {
@@ -131,17 +112,9 @@ checkstyle {
 
 configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     resolutionStrategy {
-        force("org.codehaus.plexus:plexus-utils:3.6.1")
+        force("org.codehaus.plexus:plexus-utils:4.1.0")
         force("commons-beanutils:commons-beanutils:1.11.0")
     }
-}
-
-tasks.checkstyleTest {
-    enabled = false
-}
-
-tasks.matching { it.name.startsWith("checkstyleAot") }.configureEach {
-    enabled = false
 }
 
 tasks.withType<Checkstyle> {
@@ -154,5 +127,5 @@ tasks.withType<Checkstyle> {
 tasks.bootJar {
     archiveBaseName.set("ingatlan")
     archiveClassifier.set("")
-    archiveVersion.set("1.0.0")
+    archiveVersion.set(project.version.toString())
 }

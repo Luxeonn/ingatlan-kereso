@@ -83,11 +83,6 @@ export const PortalToggleGroup: FC<PortalToggleGroupProps> = ({
                     {isSelected && <Check className="h-2.5 w-2.5" />}
                   </span>
                   <span>{portal.name}</span>
-                  {portal.savedListingCount != null && portal.savedListingCount > 0 && (
-                    <span className="rounded-full bg-black/20 px-1.5 py-0.2 text-[10px] text-[var(--text-secondary)]">
-                      {portal.savedListingCount}
-                    </span>
-                  )}
                 </button>
               )
             })}

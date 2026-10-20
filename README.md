@@ -1,183 +1,75 @@
-# Ingatlan Kereső (Real Estate Scraper & Monitor)
+# Ingatlan Kereső
 
-[![Release: 1.0.0](https://img.shields.io/badge/Release-1.0.0-blue?style=for-the-badge)](https://github.com/Luxeonn/ingatlan-kereso/releases)
-[![Java](https://img.shields.io/badge/Java-21%20LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![Spring Framework](https://img.shields.io/badge/Spring%20Framework-7.0.9-6DB33F?style=for-the-badge&logo=spring&logoColor=white)](https://spring.io/projects/spring-framework)
-[![GraalVM](https://img.shields.io/badge/GraalVM-Native%20Image-orange?style=for-the-badge&logo=graalvm&logoColor=white)](https://www.graalvm.org/)
-[![Gradle](https://img.shields.io/badge/Gradle-8.12%2B-02303A?style=for-the-badge&logo=gradle&logoColor=white)](https://gradle.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-[![Docker Image](https://img.shields.io/badge/GHCR-1.0.0-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/Luxeonn/ingatlan-kereso/pkgs/container/ingatlan-kereso-backend)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
+A real estate search and monitoring app for Hungarian property portals. The Java 25 / Spring Boot backend collects and deduplicates listings; a React and TypeScript frontend provides search, filters, and market summaries.
 
-High-performance real estate monitoring and scraping application built with Java 21 LTS, Spring Boot 4.1.0 (Spring Framework 7.0.9), GraalVM Native Image support, Virtual Threads, Spring Data JPA / H2 persistence, and a decoupled modern React 19 SPA dashboard.
+## Supported portals
 
----
+Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, and Ingatlan.com. Ingatlan.com currently uses a fallback because the portal restricts automated access.
 
-## 📌 Overview
+## Run locally
 
-**ingatlan-kereso** automates property search across major Hungarian real estate portals. It aggregates active listings in a single unified view, deduplicates known ads, tracks newly discovered properties, and provides actionable market analytics.
+Requirements: JDK 25, Node.js 22, and npm.
 
-* **Unified Multi-City Search:** Monitor multiple cities or predefined regional clusters (e.g., Budapest & Agglomeration, Debrecen area, University cities).
-* **0-Crash Resilience:** Graceful degradation on anti-bot protected or dynamic single-page portals.
-* **Modern Decoupled React 19 SPA:** Fast frontend with TailwindCSS, dark/light themes, instant filtering, and responsive listing cards.
-* **Embedded Spring Data JPA & H2 Storage:** High-performance ACID storage with unique B-Tree indexes for O(1) deduplication and full backward-compatible storage abstractions.
-* **GraalVM Native Image Ready:** Sub-second startup and minimal memory footprint with Ahead-of-Time (AOT) compilation.
+Start the backend from the repository root:
 
----
-
-## 🌐 Supported Portals
-
-| Portal | Domain | Status | Method / Notes |
-| :--- | :--- | :--- : | :--- |
-| **Duna House** | [dh.hu](https://dh.hu) | **Active** | Live Jsoup DOM parsing (price, floor area, rooms) |
-| **Otthon Centrum** | [oc.hu](https://www.oc.hu) | **Active** | Live Jsoup DOM parsing with Sec-Ch-Ua client hints |
-| **Jófogás Ingatlan** | [jofogas.hu](https://ingatlan.jofogas.hu) | **Active** | Live Jsoup DOM search query and regex parsing |
-| **Költözzbe** | [koltozzbe.hu](https://koltozzbe.hu) | **Active** | Live DOM and Schema.org JSON-LD parsing |
-| **Ingatlanbazár** | [ingatlanbazar.hu](https://ingatlanbazar.hu) | **Active** | Fast internal REST JSON API with cached geo lookup |
-| **Ingatlan.com** | [ingatlan.com](https://ingatlan.com) | ⚠️ *Bot-protected* | Graceful fallback link generation (Cloudflare WAF protected) |
-
----
-
-## 🏗 Architecture & Project Structure
-
-```text
-ingatlan-kereso/
-├── .github/
-│   ├── pull_request_template.md                 # PR checklist & Thematic Agent Gate template
-│   └── workflows/
-│       ├── ci.yml                               # Java 21, Checkstyle, JaCoCo, Playwright E2E
-│       ├── docker-publish.yml                   # Automated GHCR release workflow (clean 1.0.0 tags)
-│       └── pr-review.yml                        # PR Review Guard (Conventional Commits & Thematic Gate)
-├── config/
-│   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
-├── scripts/
-│   └── start-docker.bat / start-docker.sh       # Docker Compose multi-container launchers
-├── build.gradle.kts                             # Gradle Kotlin DSL (Java 21, Spring Boot 4.1.0, 1.0.0)
-├── settings.gradle.kts                          # Gradle project settings
-├── gradlew / gradlew.bat                        # Gradle Wrapper binaries
-├── Dockerfile                                   # Hardened Temurin JRE 21 container build (UID 10001)
-├── docker-compose.yml                           # 3-tier production stack (Postgres 17, Backend, Nginx UI)
-├── README.md                                    # Main user and developer documentation
-├── gemini.md                                    # Comprehensive system architecture & AI workflow rules
-├── data/                                        # Persistent runtime database directory
-│   └── ingatlanok_jpa.mv.db                     # Embedded H2 / JPA database
-├── frontend/                                    # Modern Decoupled SPA (React 19, TypeScript, Vite, TailwindCSS)
-│   ├── src/                                     # React components, Zustand stores, TanStack Query hooks
-│   ├── package.json                             # Frontend dependencies and test scripts
-│   ├── nginx.conf                               # Production SPA reverse proxy configuration
-│   └── Dockerfile                               # Production Nginx frontend container
-└── src/main/java/ingatlanok/
-    ├── IngatlanApplication.java                 # Spring Boot application entry point (@SpringBootApplication)
-    ├── Main.java                                # Hybrid entry point (Spring Boot & CLI mode)
-    ├── common/                                  # Cross-cutting utilities (HttpFetcher, PropertyParser, SlugUtils)
-    ├── config/                                  # CoreEngineConfig, GraalVmRuntimeHints, SpaWebMvcConfig, GlobalCorsFilter
-    ├── core/                                    # Pure business engines (Filter, Deduplication, Analytics, Execution)
-    ├── model/                                   # Domain models and value objects
-    ├── persistence/                             # Decoupled persistence (ListingStorage, JpaIngatlanStorage, Entities, Repos)
-    ├── portal/                                  # Pluggable Portal Engines (DH, OC, Jófogás, Bazár, Költözzbe, IngatlanCom)
-    └── web/                                     # Headless Spring MVC REST Controllers, GlobalExceptionHandler, GlobalCorsFilter
-```
-
----
-
-## 💻 Quickstart
-
-### Prerequisites
-* **Java:** JDK 21 LTS or newer
-* **Build Tool:** Gradle Wrapper (`gradlew`, included)
-* **Node.js:** Node 20+ & npm (for frontend development)
-
-### 1. Local Development (Headless Backend + Decoupled Frontend)
-
-Start the headless Spring Boot backend:
 ```bash
 ./gradlew bootRun
 ```
-The REST API is active at **http://localhost:8080/api/status**.
 
-In a separate terminal, launch the modern React 19 SPA client:
+On Windows, use `gradlew.bat bootRun`. The API is available at [http://localhost:8080/api/status](http://localhost:8080/api/status).
+
+In another terminal, start the frontend:
+
 ```bash
 cd frontend
+npm ci
 npm run dev
 ```
-The Vite development server runs at **http://localhost:5173** and cleanly reverse-proxies `/api` calls to `http://localhost:8080`.
 
-### 2. Multi-Container Docker Compose Quickstart
-Start the full 3-tier architecture (PostgreSQL 17 database, headless Spring Boot backend, and Nginx React 19 frontend reverse proxy) with a single command:
+Open [http://localhost:5173](http://localhost:5173). Vite proxies API requests to the local backend.
 
-**Windows:**
-Double-click `scripts\start-docker.bat` or run:
-```cmd
-scripts\start-docker.bat
+## Run with Docker Compose
+
+Install and start Docker Desktop, then choose one of these modes from the repository root.
+
+**Build images from the local project:**
+
+```bash
+docker compose build
+docker compose up -d --no-build
 ```
 
-**Linux / macOS:**
-Run `scripts/start-docker.sh` or run:
+**Download and run the latest images from GHCR:**
+
 ```bash
-chmod +x scripts/start-docker.sh && ./scripts/start-docker.sh
+docker compose pull backend frontend
+docker compose up -d --no-build
 ```
 
-**Standard Docker Compose Commands:**
+The second mode pulls `ghcr.io/luxeonn/ingatlan-kereso-backend:latest` and `ghcr.io/luxeonn/ingatlan-kereso-frontend:latest` by default. Image names can be overridden with `BACKEND_IMAGE` and `FRONTEND_IMAGE` in a local `.env` file.
+
+The `Docker Build` workflow updates these `latest` images after pushes to `develop`. To publish a versioned release, run `Docker Release` manually from `main` and select a `patch`, `minor`, `major`, or custom SemVer version. It publishes both GHCR images before creating the matching `vX.Y.Z` Git tag and GitHub Release.
+
+On Windows, `scripts/start-docker.bat` presents both modes. Open [http://localhost:8080](http://localhost:8080) when the containers are healthy. Use `docker compose logs -f backend` to follow logs and `docker compose down` to stop the stack; this keeps the database volume.
+
+## Checks
+
 ```bash
-# Pull and start all services in the background
-docker compose up -d
-
-# Check service health and running status
-docker compose ps
-
-# View logs (e.g. backend)
-docker compose logs -f backend
-
-# Gracefully stop all services
-docker compose down
-```
-Once started, access the Web Dashboard at **http://localhost:8080** and the REST API at **http://localhost:8080/api/status**.
-
-> [!NOTE]
-> Published production images are automatically hosted on GitHub Container Registry (GHCR):
-> * Backend: `ghcr.io/luxeonn/ingatlan-kereso-backend:1.0.0`
-> * Frontend: `ghcr.io/luxeonn/ingatlan-kereso-frontend:1.0.0`
-> * **Manual Releases (`workflow_dispatch`):** Release workflows can be triggered manually for any branch via `gh workflow run docker-publish.yml --ref <branch> -f custom_tag_suffix=<suffix>`, dynamically generating `<version>-<branch>` (or `<version>-<suffix>`) tags.
-
-### 3. Local Development Build
-```bash
-# 1. Build Frontend SPA (React 19 + TypeScript + Vite)
-cd frontend
-npm ci && npm run test && npm run build
-cd ..
-
-# 2. Compile, Quality Check and Package Headless Backend (Java 21 + Gradle + Spring Boot)
 ./gradlew check bootJar
-
-# 3. Run Headless REST API Fat JAR
-java -jar build/libs/ingatlan-1.0.0.jar
-
-# 4. Optional: Build & Run Native Executable with GraalVM
-./gradlew nativeCompile
-./build/native/nativeCompile/ingatlan-kereso
+cd frontend
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run test:e2e
 ```
 
----
+The backend uses JUnit 5 and Checkstyle; frontend unit tests use Vitest and browser tests use Playwright.
 
-## ⚙️ Configuration & Storage
+## Project resources
 
-* **`data/ingatlanok_jpa.mv.db`:** Primary embedded H2 database with unique B-Tree index on `url` for O(1) deduplication.
-* **`src/main/resources/application.yml`:** Spring Boot configuration (server port, JPA, Virtual Threads).
-
----
-
-## 🛡️ Developer Workflow & Quality Gate
-
-* **Base Branch:** All feature work branches off from `develop`. Direct pushes to `main` and `develop` are prohibited.
-* **Branch Naming:** `feature/<name>`, `fix/<name>`, `docs/<name>`, `refactor/<name>`, `chore/<name>`.
-* **Atomic Commits:** Make discrete, descriptive commits using Conventional Commits (`feat: ...`, `fix: ...`). No squash or monolithic merges during development.
-* **Worktree Usage:** When developing from an issue, always create a dedicated `git worktree`.
-* **Merge Prerequisite:** Pull requests are strictly mergeable **ONLY WHEN ALL CHECKS ARE GREEN** (Java CI, Vitest, runtime smoke test, PR Guard).
-
----
-
-## 📄 License & Authors
-
-* **Original Author:** Viktor Pusinszky (2017)
-* **License:** [GNU General Public License v3.0](LICENSE)
+- [Architecture](docs/architecture.md)
+- [REST API specification](openapi/api-spec.yaml)
+- [Security policy](SECURITY.md)
+- [Contributor guide](AGENTS.md)
+- [License](LICENSE) (GPL-3.0)

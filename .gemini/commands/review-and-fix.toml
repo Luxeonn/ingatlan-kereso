@@ -26,7 +26,7 @@ Follow these steps to conduct a thorough review:
 3. **Determine Thematic Scope & Required Agent Approvals**:
    Analyze the modified files to determine which specialized agent must review and approve:
    * **Fullstack Architecture & UI (`fullstack-architect` required):**
-     Touching `ingatlanok.core.*`, `ingatlanok.presentation.*`, `ingatlanok.web.*`, `ingatlanok.persistence.*`, `Main.java`, `frontend/`, `WebDashboardHtml.java`, or static assets.
+     Touching `ingatlanok.core.*`, `ingatlanok.presentation.*`, `ingatlanok.web.*`, `ingatlanok.persistence.*`, `ingatlanok.config.*`, `Main.java`, `frontend/`, `build.gradle.kts`, `settings.gradle.kts`, or `docs/architecture.md`.
      *Criteria:* Clean Architecture, loose coupling, Virtual Threads, Spring Data JPA persistence, React 19 UI integrity (0-SyntaxError), responsive design.
    * **Scraper & Security (`scraper-security-engineer` required):**
      Touching `ingatlanok.portal.*`, `ingatlanok.scraper.*`, `ingatlanok.common.*`, network headers, process execution, security configs.
@@ -43,12 +43,12 @@ Follow these steps to conduct a thorough review:
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
-   * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with concise [OK] / [NOK] / [N/A] status accompanied by a mandatory 1-sentence rationale for every thematic domain:
+   * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with standard decision tokens ([NO_FINDING] / [FINDING] / [NOT_APPLICABLE] / [NOT_VERIFIED] or [OK] / [NOK] / [N/A]) accompanied by a mandatory 1-sentence rationale for every thematic domain:
      ```markdown
      ### 🛡️ Thematic Agent Approval Gate
-     - [x] Fullstack Architecture & UI (`fullstack-architect`): [OK] – A Clean Architecture réteghatárok, a Spring Data JPA perzisztencia és a React 19 UI integritás maradéktalanul érvényesül.
-     - [x] Scraper & Security (`scraper-security-engineer`): [OK] – A portálmotorok 0-crash robusztussága és az alkalmazásszintű védelem (AppSec) biztosított.
-     - [x] Quality & DevOps (`quality-devops-engineer`): [OK] – A determinista tesztek lefedettsége megfelelő, a CI/CD pipeline-ok és konténerizáció sértetlenek.
+     - [x] Fullstack Architecture & UI (`fullstack-architect`): [NO_FINDING] – A Clean Architecture réteghatárok, a Spring Data JPA perzisztencia és a React 19 UI integritás maradéktalanul érvényesül.
+     - [x] Scraper & Security (`scraper-security-engineer`): [NO_FINDING] – A portálmotorok 0-crash robusztussága és az alkalmazásszintű védelem (AppSec) biztosított.
+     - [x] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING] – A determinista tesztek lefedettsége megfelelő, a CI/CD pipeline-ok és konténerizáció sértetlenek.
      ```
    * Advance to Phase 2.
 
@@ -67,7 +67,8 @@ If actionable findings exist in `review_findings.md`:
 
 2. **Build & Test Verification**:
    Execute verification:
-   `mvn test-compile` and `mvn test`
+   `./gradlew check` (backend compilation, unit tests, JaCoCo, Checkstyle)
+   `cd frontend && npm run typecheck && npm test` (frontend TypeScript and Vitest)
    Ensure 100% build success and zero test regressions.
 
 3. **Update PR Sign-off**:
