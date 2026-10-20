@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip_container_scan:
+        description: Skip the container build and scan when a downstream workflow publishes images
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -89,6 +94,7 @@ jobs:
         id: result
         env:
           RUN_ALL: ${{ inputs.run_all }}
+          SKIP_CONTAINER_SCAN: ${{ inputs.skip_container_scan }}
           FRONTEND_CHANGED: ${{ steps.filter.outputs.frontend }}
           BACKEND_CHANGED: ${{ steps.filter.outputs.backend }}
           OPENAPI_CHANGED: ${{ steps.filter.outputs.openapi }}
@@ -99,7 +105,11 @@ jobs:
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
             echo "openapi=true" >> "$GITHUB_OUTPUT"
-            echo "container=true" >> "$GITHUB_OUTPUT"
+            if [ "$SKIP_CONTAINER_SCAN" = "true" ]; then
+              echo "container=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "container=true" >> "$GITHUB_OUTPUT"
+            fi
           elif [ "$FRONTEND_CHANGED" = "true" ] || [ "$BACKEND_CHANGED" = "true" ]; then
             echo "frontend=$FRONTEND_CHANGED" >> "$GITHUB_OUTPUT"
             echo "backend=$BACKEND_CHANGED" >> "$GITHUB_OUTPUT"

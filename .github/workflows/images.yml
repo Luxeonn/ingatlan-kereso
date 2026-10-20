@@ -1,7 +1,9 @@
-name: Images
+name: Docker Build
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - develop
 
 concurrency:
   group: images-develop
