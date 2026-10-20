@@ -203,6 +203,11 @@ ingatlan-kereso/
 > 14. **Docker Release & Build:**
 >     - `Docker Release` runs manually from `main`, calculates a semantic version from the latest Git tag plus a requested bump/custom input, publishes both images, and only then creates the `vX.Y.Z` Git tag and GitHub Release.
 >     - `Docker Build` runs automatically on pushes to `develop` and publishes backend and frontend `latest` images; it has no manual trigger.
+> 15. **Standardized Issue Templates as Single Source of Truth:**
+>     - Whenever creating new issues (manually or via `gh issue create`), always use the repository issue templates in `.github/ISSUE_TEMPLATE/` as the foundational baseline.
+>     - **Bugs:** Adhere strictly to `.github/ISSUE_TEMPLATE/bug_report.yml` (`fix: <summary>` title, `bug` label, problem, expected vs actual behavior, reproduction steps, affected component, environment, logs).
+>     - **Features / Enhancements:** Adhere strictly to `.github/ISSUE_TEMPLATE/feature_request.yml` (`feat: <summary>` title, `enhancement` label, user problem/need, proposed solution, specialist component/agent, alternatives).
+>     - In non-interactive environments, CLI-generated markdown bodies must explicitly structure and mirror all required template sections.
 
 
 ---
