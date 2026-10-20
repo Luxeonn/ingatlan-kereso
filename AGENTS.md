@@ -8,7 +8,6 @@ The backend is a Java 25 Spring Boot application. Production code lives in `src/
 
 - `./gradlew bootRun` (Windows: `.\gradlew.bat bootRun`) starts the backend on port 8080.
 - `./gradlew check bootJar` runs backend verification and packages the executable JAR.
-- `./gradlew liveTest` runs portal tests tagged `live`; these require network access.
 - `cd frontend && npm ci && npm run dev` installs dependencies and starts Vite on port 5173.
 - `cd frontend && npm run lint && npm run typecheck && npm run test && npm run build` runs frontend CI checks.
 - `cd frontend && npm run test:e2e` runs Playwright browser tests.

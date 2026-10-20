@@ -36,7 +36,6 @@ Activate this skill for any task, pull request, or code review affecting any of 
 
 1. **Fully offline hermetic testing (QA)**:
    - `./gradlew check` must run deterministically without network access.
-   - Keep live portal network tests separate using `@Tag("live")` and `excludeTags("live")` in the normal test cycle; use a dedicated `liveTest` task.
    - Use MockMvc endpoint tests and Spring Data JPA tests with embedded H2 or in-memory storage.
    - Maintain the frontend Vitest and Playwright E2E test suites.
 2. **Code quality gates**:
