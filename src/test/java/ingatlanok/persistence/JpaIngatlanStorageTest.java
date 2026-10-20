@@ -15,8 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import ingatlanok.dto.ListingDto;
-import ingatlanok.dto.ListingFilterDto;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
@@ -461,7 +459,7 @@ class JpaIngatlanStorageTest {
   }
 
   @Test
-  @DisplayName("findByCriteria filters and paginates through ListingFilterService")
+  @DisplayName("findByCriteria filters and paginates in the database")
   void testFindByCriteria() {
     IngatlanItem i1 =
         createItem(
@@ -493,8 +491,8 @@ class JpaIngatlanStorageTest {
             "2026-03-02");
     storage.saveAll(List.of(i1, i2));
 
-    ListingFilterDto filter =
-        new ListingFilterDto(
+    PropertySearchCriteria filter =
+        new PropertySearchCriteria(
             List.of("Győr"),
             null,
             20.0,
@@ -506,11 +504,11 @@ class JpaIngatlanStorageTest {
             false,
             false,
             "PRICE_ASC",
-            null,
-            null);
-    List<ListingDto> result = storage.findByCriteria(filter);
+            0,
+            20);
+    List<IngatlanItem> result = storage.findByCriteria(filter);
     assertEquals(1, result.size());
-    assertEquals("https://dh.hu/f1", result.get(0).url());
+    assertEquals("https://dh.hu/f1", result.get(0).getUrl());
   }
 
   @Test

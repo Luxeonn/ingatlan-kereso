@@ -1,4 +1,4 @@
-package ingatlanok.scraper;
+package ingatlanok.portal.sidecar;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -9,10 +9,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-
 import ingatlanok.common.AppLogger;
+import ingatlanok.common.JsonSupport;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
@@ -20,8 +18,6 @@ public class SidecarCliExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
   private static final int DEFAULT_TIMEOUT_SECONDS = 20;
-  private static final Gson GSON = new Gson();
-
   private static String customExecutable = null;
 
   private SidecarCliExecutor() {}
@@ -118,10 +114,10 @@ public class SidecarCliExecutor {
         stdoutJson = stdoutJson.substring(jsonStart, jsonEnd + 1);
       }
 
-      SidecarResponse response = GSON.fromJson(stdoutJson, SidecarResponse.class);
+      SidecarResponse response = JsonSupport.mapper().readValue(stdoutJson, SidecarResponse.class);
       return Optional.ofNullable(response);
 
-    } catch (JsonSyntaxException e) {
+    } catch (tools.jackson.core.JacksonException e) {
       LOGGER.error("JSON szintaxis hiba a sidecar kimenetében: {}", e.getMessage(), e);
       return Optional.empty();
     } catch (Exception e) {

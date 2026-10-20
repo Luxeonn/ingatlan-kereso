@@ -1,12 +1,10 @@
-package ingatlanok.scraper;
+package ingatlanok.portal.sidecar;
 
 import java.io.Serializable;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import com.google.gson.annotations.SerializedName;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
@@ -15,19 +13,14 @@ import ingatlanok.model.PropertyDetails;
 
 public class SidecarResponse implements Serializable {
 
-  @SerializedName("portalId")
   private String portalId;
 
-  @SerializedName("status")
   private String status;
 
-  @SerializedName("items")
   private List<SidecarItem> items = new ArrayList<>();
 
-  @SerializedName("errorMessage")
   private String errorMessage;
 
-  @SerializedName("elapsedMs")
   private long elapsedMs;
 
   public SidecarResponse() {}
@@ -78,28 +71,20 @@ public class SidecarResponse implements Serializable {
 
   public static class SidecarItem implements Serializable {
 
-    @SerializedName("id")
     private String id;
 
-    @SerializedName("url")
     private String url;
 
-    @SerializedName("title")
     private String title;
 
-    @SerializedName("priceMillion")
     private Double priceMillion;
 
-    @SerializedName("priceRaw")
     private String priceRaw;
 
-    @SerializedName("areaSquareMeters")
     private Double areaSquareMeters;
 
-    @SerializedName("roomCount")
     private Double roomCount;
 
-    @SerializedName("imageUrl")
     private String imageUrl;
 
     public SidecarItem() {}

@@ -6,13 +6,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import tools.jackson.databind.JsonNode;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
+import ingatlanok.common.JsonSupport;
 import ingatlanok.common.SlugUtils;
 
 public final class IngatlanBazarLocationResolver {
@@ -78,14 +76,14 @@ public final class IngatlanBazarLocationResolver {
       String json = HttpFetcher.fetchJson(url);
 
       if (json != null && !json.isBlank()) {
-        JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-        if (root.has("data") && root.get("data").isJsonArray()) {
-          JsonArray data = root.getAsJsonArray("data");
-          for (JsonElement el : data) {
-            if (el.isJsonObject()) {
-              JsonObject obj = el.getAsJsonObject();
-              if (obj.has("id") && !obj.get("id").isJsonNull()) {
-                int id = obj.get("id").getAsInt();
+        JsonNode root = JsonSupport.parse(json);
+        if (root.has("data") && root.get("data").isArray()) {
+          JsonNode data = root.get("data");
+          for (JsonNode el : data) {
+            if (el.isObject()) {
+              JsonNode obj = el;
+              if (obj.has("id") && !obj.get("id").isNull()) {
+                int id = obj.get("id").asInt();
                 LOCATION_CACHE.put(slug, id);
                 LOGGER.debug("Ingatlanbazár településkód megtalálva: {} -> {}", cityName, id);
                 return Optional.of(id);

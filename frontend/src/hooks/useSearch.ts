@@ -89,15 +89,15 @@ export function useSearch() {
     items.sort((a, b) => {
       switch (sortOption as SortOption) {
         case 'price_asc':
-          return (a.priceInfo?.amountFt ?? Infinity) - (b.priceInfo?.amountFt ?? Infinity)
+          return (a.priceInfo?.amountHuf ?? Infinity) - (b.priceInfo?.amountHuf ?? Infinity)
         case 'price_desc':
-          return (b.priceInfo?.amountFt ?? -Infinity) - (a.priceInfo?.amountFt ?? -Infinity)
+          return (b.priceInfo?.amountHuf ?? -Infinity) - (a.priceInfo?.amountHuf ?? -Infinity)
         case 'sqm_price_asc':
-          return (a.detailsInfo?.pricePerSqmFt ?? Infinity) - (b.detailsInfo?.pricePerSqmFt ?? Infinity)
+          return (a.detailsInfo?.pricePerSquareMeter ?? Infinity) - (b.detailsInfo?.pricePerSquareMeter ?? Infinity)
         case 'sqm_price_desc':
-          return (b.detailsInfo?.pricePerSqmFt ?? -Infinity) - (a.detailsInfo?.pricePerSqmFt ?? -Infinity)
+          return (b.detailsInfo?.pricePerSquareMeter ?? -Infinity) - (a.detailsInfo?.pricePerSquareMeter ?? -Infinity)
         case 'area_desc':
-          return (b.detailsInfo?.floorAreaSqm ?? 0) - (a.detailsInfo?.floorAreaSqm ?? 0)
+          return (b.detailsInfo?.areaSquareMeters ?? 0) - (a.detailsInfo?.areaSquareMeters ?? 0)
         case 'date_desc':
           return (b.discoveredAt || '').localeCompare(a.discoveredAt || '')
         default:

@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
-import com.google.gson.Gson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import ingatlanok.common.JsonSupport;
 import ingatlanok.config.GlobalCorsFilter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
@@ -33,7 +33,6 @@ class RestApiControllerIntegrationTest {
   @Autowired private GlobalCorsFilter globalCorsFilter;
 
   private MockMvc mockMvc;
-  private final Gson gson = new Gson();
 
   @BeforeEach
   void setupMockMvc() {
@@ -86,7 +85,7 @@ class RestApiControllerIntegrationTest {
         .perform(
             post("/api/config")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(gson.toJson(criteria)))
+                .content(JsonSupport.mapper().writeValueAsString(criteria)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true));
 
@@ -107,7 +106,7 @@ class RestApiControllerIntegrationTest {
         .perform(
             post("/api/search")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(gson.toJson(criteria)))
+                .content(JsonSupport.mapper().writeValueAsString(criteria)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items").isArray())
         .andExpect(jsonPath("$.portalStatuses").isArray());

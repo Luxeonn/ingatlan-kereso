@@ -1,15 +1,20 @@
-import { useEffect, useRef, FC } from 'react'
+import { lazy, Suspense, useEffect, useRef, type FC } from 'react'
 import { LayoutGrid, BarChart2 } from 'lucide-react'
 import { Header } from './components/layout/Header'
 import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsGrid } from './components/listings/ListingsGrid'
-import { MarketAnalyticsDashboard } from './components/analytics/MarketAnalyticsDashboard'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { useSearch } from './hooks/useSearch'
 import { useFilterStore } from './store/useFilterStore'
 import { useUiStore } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
+
+const MarketAnalyticsDashboard = lazy(() =>
+  import('./components/analytics/MarketAnalyticsDashboard').then((module) => ({
+    default: module.MarketAnalyticsDashboard,
+  })),
+)
 
 export const App: FC = () => {
   const { data, items, rawCount, isLoading, search, markAsViewed, openAllTabs } = useSearch()
@@ -95,14 +100,16 @@ export const App: FC = () => {
             onTriggerSearch={handleSearch}
           />
         ) : (
-          <MarketAnalyticsDashboard
-            items={items}
-            onMarkViewed={markAsViewed}
-            onOpenListing={(url) => {
-              window.open(url, '_blank', 'noopener,noreferrer')
-              markAsViewed(url)
-            }}
-          />
+          <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
+            <MarketAnalyticsDashboard
+              items={items}
+              onMarkViewed={markAsViewed}
+              onOpenListing={(url) => {
+                window.open(url, '_blank', 'noopener,noreferrer')
+                markAsViewed(url)
+              }}
+            />
+          </Suspense>
         )}
       </main>
 

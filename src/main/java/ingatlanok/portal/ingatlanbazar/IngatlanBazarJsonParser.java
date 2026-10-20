@@ -7,12 +7,10 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import tools.jackson.databind.JsonNode;
 
 import ingatlanok.common.AppLogger;
+import ingatlanok.common.JsonSupport;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
@@ -32,27 +30,27 @@ public class IngatlanBazarJsonParser {
     }
 
     try {
-      JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-      if (!root.has("hits") || !root.get("hits").isJsonArray()) {
+      JsonNode root = JsonSupport.parse(json);
+      if (!root.has("hits") || !root.get("hits").isArray()) {
         LOGGER.warn("Ingatlanbazár API válasz nem tartalmaz 'hits' tömböt");
         return result;
       }
 
-      JsonArray hits = root.getAsJsonArray("hits");
-      for (JsonElement el : hits) {
-        if (!el.isJsonObject()) {
+      JsonNode hits = root.get("hits");
+      for (JsonNode el : hits) {
+        if (!el.isObject()) {
           continue;
         }
 
-        JsonObject hit = el.getAsJsonObject();
+        JsonNode hit = el;
         String propertyId =
-            hit.has("propertyId") && !hit.get("propertyId").isJsonNull()
-                ? hit.get("propertyId").getAsString()
+            hit.has("propertyId") && !hit.get("propertyId").isNull()
+                ? hit.get("propertyId").asText()
                 : UUID.randomUUID().toString();
 
         String seoUrl =
-            hit.has("seoUrl") && !hit.get("seoUrl").isJsonNull()
-                ? hit.get("seoUrl").getAsString()
+            hit.has("seoUrl") && !hit.get("seoUrl").isNull()
+                ? hit.get("seoUrl").asText()
                 : "";
         if (seoUrl.isBlank()) {
           continue;
@@ -67,14 +65,14 @@ public class IngatlanBazarJsonParser {
         }
 
         String title =
-            hit.has("title") && !hit.get("title").isJsonNull()
-                ? hit.get("title").getAsString().trim()
+            hit.has("title") && !hit.get("title").isNull()
+                ? hit.get("title").asText().trim()
                 : "Ingatlanbazár hirdetés";
 
         Long priceHuf = null;
-        if (hit.has("priceHUF") && !hit.get("priceHUF").isJsonNull()) {
+        if (hit.has("priceHUF") && !hit.get("priceHUF").isNull()) {
           try {
-            priceHuf = hit.get("priceHUF").getAsLong();
+            priceHuf = hit.get("priceHUF").asLong();
           } catch (Exception ignored) {
             // Keep price unavailable when this optional API field is malformed.
           }
@@ -91,27 +89,27 @@ public class IngatlanBazarJsonParser {
         }
 
         Double area = null;
-        if (hit.has("area") && !hit.get("area").isJsonNull()) {
+        if (hit.has("area") && !hit.get("area").isNull()) {
           try {
-            area = hit.get("area").getAsDouble();
+            area = hit.get("area").asDouble();
           } catch (Exception ignored) {
             // Keep area unavailable when this optional API field is malformed.
           }
         }
 
         Double rooms = null;
-        if (hit.has("rooms") && !hit.get("rooms").isJsonNull()) {
+        if (hit.has("rooms") && !hit.get("rooms").isNull()) {
           try {
-            rooms = hit.get("rooms").getAsDouble();
+            rooms = hit.get("rooms").asDouble();
           } catch (Exception ignored) {
             // Keep room count unavailable when this optional API field is malformed.
           }
         }
 
         Long sqmPrice = null;
-        if (hit.has("sqmPriceHuf") && !hit.get("sqmPriceHuf").isJsonNull()) {
+        if (hit.has("sqmPriceHuf") && !hit.get("sqmPriceHuf").isNull()) {
           try {
-            sqmPrice = hit.get("sqmPriceHuf").getAsLong();
+            sqmPrice = hit.get("sqmPriceHuf").asLong();
           } catch (Exception ignored) {
             // Keep square-meter price unavailable when this optional API field is malformed.
           }
@@ -135,12 +133,12 @@ public class IngatlanBazarJsonParser {
 
         String defaultCity = criteria != null ? criteria.getCity() : "Debrecen";
         String settlement =
-            hit.has("settlement") && !hit.get("settlement").isJsonNull()
-                ? hit.get("settlement").getAsString().trim()
+            hit.has("settlement") && !hit.get("settlement").isNull()
+                ? hit.get("settlement").asText().trim()
                 : defaultCity;
         String quarter =
-            hit.has("quarter") && !hit.get("quarter").isJsonNull()
-                ? hit.get("quarter").getAsString().trim()
+            hit.has("quarter") && !hit.get("quarter").isNull()
+                ? hit.get("quarter").asText().trim()
                 : "";
 
         String location = settlement;
@@ -149,8 +147,8 @@ public class IngatlanBazarJsonParser {
         }
 
         String discoveredAt =
-            hit.has("createdAt") && !hit.get("createdAt").isJsonNull()
-                ? hit.get("createdAt").getAsString().trim()
+            hit.has("createdAt") && !hit.get("createdAt").isNull()
+                ? hit.get("createdAt").asText().trim()
                 : now;
 
         IngatlanItem item =
@@ -167,23 +165,23 @@ public class IngatlanBazarJsonParser {
         item.setLocation(location);
 
         String imageUrl = null;
-        if (hit.has("photo") && !hit.get("photo").isJsonNull()) {
-          JsonElement p = hit.get("photo");
-          if (p.isJsonPrimitive()) {
-            imageUrl = p.getAsString();
-          } else if (p.isJsonObject() && p.getAsJsonObject().has("url")) {
-            imageUrl = p.getAsJsonObject().get("url").getAsString();
+        if (hit.has("photo") && !hit.get("photo").isNull()) {
+          JsonNode p = hit.get("photo");
+          if (p.isValueNode()) {
+            imageUrl = p.asText();
+          } else if (p.isObject() && p.has("url")) {
+            imageUrl = p.get("url").asText();
           }
-        } else if (hit.has("picture") && !hit.get("picture").isJsonNull()) {
-          imageUrl = hit.get("picture").getAsString();
-        } else if (hit.has("images") && hit.get("images").isJsonArray()) {
-          JsonArray imgs = hit.getAsJsonArray("images");
+        } else if (hit.has("picture") && !hit.get("picture").isNull()) {
+          imageUrl = hit.get("picture").asText();
+        } else if (hit.has("images") && hit.get("images").isArray()) {
+          JsonNode imgs = hit.get("images");
           if (!imgs.isEmpty()) {
-            JsonElement first = imgs.get(0);
-            if (first.isJsonPrimitive()) {
-              imageUrl = first.getAsString();
-            } else if (first.isJsonObject() && first.getAsJsonObject().has("url")) {
-              imageUrl = first.getAsJsonObject().get("url").getAsString();
+            JsonNode first = imgs.get(0);
+            if (first.isValueNode()) {
+              imageUrl = first.asText();
+            } else if (first.isObject() && first.has("url")) {
+              imageUrl = first.get("url").asText();
             }
           }
         }

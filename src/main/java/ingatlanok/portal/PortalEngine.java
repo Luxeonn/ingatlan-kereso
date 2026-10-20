@@ -1,7 +1,7 @@
 package ingatlanok.portal;
 
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.scraper.PortalScrapeResult;
 
 public interface PortalEngine {
 

@@ -10,15 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import ingatlanok.common.CityUtils;
-import ingatlanok.dto.ListingDto;
-import ingatlanok.dto.ListingFilterDto;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
@@ -31,11 +30,11 @@ import ingatlanok.persistence.repository.ConfigRepository;
 import ingatlanok.persistence.repository.PriceHistoryRepository;
 import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
-import ingatlanok.persistence.service.ListingFilterService;
 import ingatlanok.persistence.service.PriceHistoryTracker;
 import ingatlanok.persistence.service.PriceHistoryTracker.PriceDeltaCalculation;
 import ingatlanok.persistence.service.StatusLogTracker;
 import ingatlanok.persistence.service.StatusLogTracker.StatusDecision;
+import ingatlanok.persistence.specification.PropertySpecifications;
 
 @Service
 @Primary
@@ -51,10 +50,9 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   private final StatusLogRepository statusLogRepo;
   private final ConfigRepository configRepo;
   private final JpaEntityMapper mapper;
-  private final ListingFilterService filterService;
+  private final ObjectMapper objectMapper;
   private final PriceHistoryTracker priceTracker;
   private final StatusLogTracker statusTracker;
-  private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
   public JpaIngatlanStorage(
       PropertyRepository propertyRepo,
@@ -62,7 +60,7 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       StatusLogRepository statusLogRepo,
       ConfigRepository configRepo,
       JpaEntityMapper mapper,
-      ListingFilterService filterService,
+      ObjectMapper objectMapper,
       PriceHistoryTracker priceTracker,
       StatusLogTracker statusTracker) {
     this.propertyRepo = propertyRepo;
@@ -70,17 +68,19 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     this.statusLogRepo = statusLogRepo;
     this.configRepo = configRepo;
     this.mapper = mapper;
-    this.filterService = filterService;
+    this.objectMapper = objectMapper;
     this.priceTracker = priceTracker;
     this.statusTracker = statusTracker;
   }
 
   @Override
+  @CacheEvict(cacheNames = {"portals", "cities"}, allEntries = true)
   public void saveCityItems(String city, Collection<IngatlanItem> items) {
     saveAll(items);
   }
 
   @Override
+  @CacheEvict(cacheNames = {"portals", "cities"}, allEntries = true)
   public void saveAll(Collection<IngatlanItem> items) {
     if (items == null || items.isEmpty()) {
       return;
@@ -254,6 +254,7 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   }
 
   @Override
+  @CacheEvict(cacheNames = {"portals", "cities"}, allEntries = true)
   public void clearCityHistory(String city) {
     if (city == null || city.isBlank()) {
       return;
@@ -271,6 +272,7 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   }
 
   @Override
+  @CacheEvict(cacheNames = {"portals", "cities"}, allEntries = true)
   public void clearHistory() {
     propertyRepo.deleteAll();
     priceHistoryRepo.deleteAll();
@@ -324,13 +326,32 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   @Override
   @Transactional(readOnly = true)
   public List<IngatlanItem> getDiscountedProperties(String city) {
-    return filterService.filterItems(getAll(), ListingFilterDto.discounted(city));
+    var spec = PropertySpecifications.from(new PropertySearchCriteria(
+        city == null || city.isBlank() ? null : List.of(city), null, null, null, null, null,
+        null, null, false, true, "DISCOVERED_DESC", 0, 1000));
+    return mapper.toItems(
+        propertyRepo.findAll(spec, Sort.by(Sort.Direction.DESC, "discoveredAt")));
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<ListingDto> findByCriteria(ListingFilterDto filter) {
-    return filterService.filter(getAll(), filter);
+  public List<IngatlanItem> findByCriteria(PropertySearchCriteria filter) {
+    PropertySearchCriteria criteria = filter != null ? filter : new PropertySearchCriteria(
+        null, null, null, null, null, null, null, null, false, false,
+        "DISCOVERED_DESC", 0, 100);
+    Sort sort = switch (criteria.sortBy() == null ? "" : criteria.sortBy().toUpperCase()) {
+      case "PRICE_ASC" -> Sort.by(Sort.Direction.ASC, "priceMillions");
+      case "PRICE_DESC" -> Sort.by(Sort.Direction.DESC, "priceMillions");
+      case "AREA_ASC" -> Sort.by(Sort.Direction.ASC, "areaSqm");
+      case "AREA_DESC" -> Sort.by(Sort.Direction.DESC, "areaSqm");
+      case "ROOMS_ASC" -> Sort.by(Sort.Direction.ASC, "rooms");
+      case "ROOMS_DESC" -> Sort.by(Sort.Direction.DESC, "rooms");
+      default -> Sort.by(Sort.Direction.DESC, "discoveredAt");
+    };
+    int offset = Math.max(0, criteria.offset());
+    int size = Math.max(1, Math.min(200, criteria.size()));
+    return mapper.toItems(propertyRepo.findAll(PropertySpecifications.from(criteria),
+        new OffsetPageRequest(offset, size, sort)).getContent());
   }
 
   @Override
@@ -342,7 +363,7 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
         .map(
             v -> {
               try {
-                return gson.fromJson(v, SearchCriteria.class);
+                return objectMapper.readValue(v, SearchCriteria.class);
               } catch (Exception e) {
                 return null;
               }
@@ -353,7 +374,8 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   @Override
   public void saveLastCriteria(SearchCriteria criteria) {
     if (criteria != null) {
-      configRepo.save(new ConfigEntity(CONFIG_KEY_LAST_CRITERIA, gson.toJson(criteria)));
+      configRepo.save(new ConfigEntity(CONFIG_KEY_LAST_CRITERIA,
+          objectMapper.writeValueAsString(criteria)));
     }
   }
 }

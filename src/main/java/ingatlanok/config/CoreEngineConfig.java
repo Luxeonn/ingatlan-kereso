@@ -10,31 +10,53 @@ import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.persistence.ConfigStorage;
-import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
+import ingatlanok.portal.dh.DunaHousePortalEngine;
+import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
+import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
+import ingatlanok.portal.jofogas.JofogasPortalEngine;
+import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
+import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.presentation.DashboardPresentationService;
 
 @Configuration
 public class CoreEngineConfig {
 
-  public CoreEngineConfig(ListingStorage listingStorage) {
-    if (listingStorage != null) {
-      ConfigStorage cs = (listingStorage instanceof ConfigStorage c) ? c : null;
-      IngatlanRepository.getInstance().setStorage(listingStorage, cs);
-    }
+  @Bean
+  public PortalEngineRegistry portalEngineRegistry(List<PortalEngine> engines) {
+    return new PortalEngineRegistry(engines);
   }
 
   @Bean
-  public PortalEngineRegistry portalEngineRegistry(List<PortalEngine> engines) {
-    PortalEngineRegistry registry = PortalEngineRegistry.getInstance();
-    if (engines != null) {
-      for (PortalEngine engine : engines) {
-        registry.register(engine);
-      }
-    }
-    return registry;
+  public DunaHousePortalEngine dunaHousePortalEngine() {
+    return new DunaHousePortalEngine();
+  }
+
+  @Bean
+  public OtthonCentrumPortalEngine otthonCentrumPortalEngine() {
+    return new OtthonCentrumPortalEngine();
+  }
+
+  @Bean
+  public JofogasPortalEngine jofogasPortalEngine() {
+    return new JofogasPortalEngine();
+  }
+
+  @Bean
+  public IngatlanBazarPortalEngine ingatlanBazarPortalEngine() {
+    return new IngatlanBazarPortalEngine();
+  }
+
+  @Bean
+  public KoltozzbePortalEngine koltozzbePortalEngine() {
+    return new KoltozzbePortalEngine();
+  }
+
+  @Bean
+  public IngatlanComPortalEngine ingatlanComPortalEngine() {
+    return new IngatlanComPortalEngine();
   }
 
   @Bean

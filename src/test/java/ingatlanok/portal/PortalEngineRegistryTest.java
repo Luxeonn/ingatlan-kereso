@@ -12,13 +12,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.dh.DunaHousePortalEngine;
+import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
+import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
+import ingatlanok.portal.jofogas.JofogasPortalEngine;
+import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
+import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 
 class PortalEngineRegistryTest {
 
   @Test
   @DisplayName("Beépített 6 portál motor elérhető és lekérdezhető")
   void testBuiltinEngines() {
-    PortalEngineRegistry registry = PortalEngineRegistry.getInstance();
+    PortalEngineRegistry registry = createRegistry();
     List<PortalEngine> engines = registry.getAllEngines();
 
     assertTrue(engines.size() >= 6);
@@ -48,7 +54,7 @@ class PortalEngineRegistryTest {
   @Test
   @DisplayName("getAllDescriptors visszaadja az összes portál metaadatait")
   void testGetAllDescriptors() {
-    PortalEngineRegistry registry = PortalEngineRegistry.getInstance();
+    PortalEngineRegistry registry = createRegistry();
     List<PortalDescriptor> descriptors = registry.getAllDescriptors();
 
     assertNotNull(descriptors);
@@ -60,7 +66,7 @@ class PortalEngineRegistryTest {
   @Test
   @DisplayName("Kritériumok szerinti aktív motorok szűrése")
   void testGetActiveEngines() {
-    PortalEngineRegistry registry = PortalEngineRegistry.getInstance();
+    PortalEngineRegistry registry = createRegistry();
     SearchCriteria criteria = new SearchCriteria();
     criteria.setPortals(List.of("dh", "oc"));
 
@@ -69,5 +75,16 @@ class PortalEngineRegistryTest {
     assertTrue(active.stream().anyMatch(e -> "dh".equals(e.getId())));
     assertTrue(active.stream().anyMatch(e -> "oc".equals(e.getId())));
     assertFalse(active.stream().anyMatch(e -> "jofogas".equals(e.getId())));
+  }
+
+  private PortalEngineRegistry createRegistry() {
+    return new PortalEngineRegistry(
+        List.of(
+            new DunaHousePortalEngine(),
+            new OtthonCentrumPortalEngine(),
+            new JofogasPortalEngine(),
+            new IngatlanBazarPortalEngine(),
+            new KoltozzbePortalEngine(),
+            new IngatlanComPortalEngine()));
   }
 }

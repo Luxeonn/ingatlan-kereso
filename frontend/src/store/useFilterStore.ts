@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { z } from 'zod'
 import { SearchCriteria } from '../types/api'
 
 export type SortOption =
@@ -24,6 +25,21 @@ const DEFAULT_CRITERIA: SearchCriteria = {
   excludeViewed: false,
   onlyDiscounted: false,
 }
+
+const urlSchema = z.object({
+  cities: z.string().max(1000).optional(),
+  city: z.string().max(100).optional(),
+  type: z.enum(['lakas', 'haz', 'telek']).optional(),
+  minPrice: z.coerce.number().finite().min(0).max(100_000).optional(),
+  maxPrice: z.coerce.number().finite().min(0).max(100_000).optional(),
+  minArea: z.coerce.number().finite().min(0).max(100_000).optional(),
+  maxArea: z.coerce.number().finite().min(0).max(100_000).optional(),
+  portals: z.string().max(500).optional(),
+  autoOpen: z.enum(['true', 'false']).optional(),
+  excludeViewed: z.enum(['true', 'false']).optional(),
+  sort: z.enum(['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc']).optional(),
+  onlyNew: z.enum(['true', 'false']).optional(),
+})
 
 interface FilterState {
   criteria: SearchCriteria
@@ -53,51 +69,52 @@ interface FilterState {
 
 function parseUrlParams(): { criteria?: Partial<SearchCriteria>; sort?: SortOption; onlyNew?: boolean } {
   if (typeof window === 'undefined') return {}
-  const params = new URLSearchParams(window.location.search)
+  const parsedUrl = urlSchema.safeParse(Object.fromEntries(new URLSearchParams(window.location.search)))
+  if (!parsedUrl.success) return {}
+  const params = parsedUrl.data
   const result: Partial<SearchCriteria> = {}
   
-  const citiesParam = params.get('cities') || params.get('city')
+  const citiesParam = params.cities || params.city
   if (citiesParam) {
-    const list = citiesParam.split(',').map((c) => c.trim()).filter(Boolean)
+    const list = citiesParam.split(',').map((c) => c.trim()).filter((c) => c.length > 0 && c.length <= 100).slice(0, 20)
     if (list.length > 0) {
       result.cities = list
       result.city = list[0]
     }
   }
 
-  const type = params.get('type')
+  const type = params.type
   if (type) result.propertyType = type
 
-  const minPrice = params.get('minPrice')
-  if (minPrice && !isNaN(Number(minPrice))) result.minPriceMillion = Number(minPrice)
+  const minPrice = params.minPrice
+  if (minPrice !== undefined) result.minPriceMillion = minPrice
 
-  const maxPrice = params.get('maxPrice')
-  if (maxPrice && !isNaN(Number(maxPrice))) result.maxPriceMillion = Number(maxPrice)
+  const maxPrice = params.maxPrice
+  if (maxPrice !== undefined) result.maxPriceMillion = maxPrice
 
-  const minArea = params.get('minArea')
-  if (minArea && !isNaN(Number(minArea))) result.minArea = Number(minArea)
+  const minArea = params.minArea
+  if (minArea !== undefined) result.minArea = minArea
 
-  const maxArea = params.get('maxArea')
-  if (maxArea && !isNaN(Number(maxArea))) result.maxArea = Number(maxArea)
+  const maxArea = params.maxArea
+  if (maxArea !== undefined) result.maxArea = maxArea
 
-  const portalsParam = params.get('portals')
+  const portalsParam = params.portals
   if (portalsParam) {
-    result.portals = portalsParam.split(',').map((p) => p.trim()).filter(Boolean)
+    const validPortals = portalsParam.split(',').map((p) => p.trim()).filter((p) => DEFAULT_PORTALS.includes(p))
+    if (validPortals.length > 0) result.portals = validPortals
   }
 
-  const autoOpen = params.get('autoOpen')
+  const autoOpen = params.autoOpen
   if (autoOpen != null) result.autoOpenBrowser = autoOpen === 'true'
 
-  const excludeViewed = params.get('excludeViewed')
+  const excludeViewed = params.excludeViewed
   if (excludeViewed != null) result.excludeViewed = excludeViewed === 'true'
 
   let sort: SortOption | undefined
-  const sortParam = params.get('sort')
-  if (sortParam && ['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc'].includes(sortParam)) {
-    sort = sortParam as SortOption
-  }
+  const sortParam = params.sort
+  if (sortParam) sort = sortParam
 
-  const onlyNewParam = params.get('onlyNew')
+  const onlyNewParam = params.onlyNew
   const onlyNew = onlyNewParam === 'true'
 
   return { criteria: result, sort, onlyNew }
@@ -258,13 +275,11 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     syncFromUrl: () => {
       const parsed = parseUrlParams()
-      if (parsed.criteria) {
-        set((state) => ({
-          criteria: { ...state.criteria, ...parsed.criteria },
-          sortOption: parsed.sort || state.sortOption,
-          onlyNew: parsed.onlyNew ?? state.onlyNew,
-        }))
-      }
+      set({
+        criteria: { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) },
+        sortOption: parsed.sort || 'price_asc',
+        onlyNew: parsed.onlyNew ?? false,
+      })
     },
 
     syncToUrl: () => {
@@ -308,7 +323,13 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
       const queryString = params.toString()
       const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname
-      window.history.replaceState(null, '', newUrl)
+      if (`${window.location.pathname}${window.location.search}` !== newUrl) {
+        window.history.pushState(null, '', newUrl)
+      }
     },
   }
 })
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => useFilterStore.getState().syncFromUrl())
+}

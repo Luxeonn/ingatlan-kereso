@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.gson.Gson;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,12 +12,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import ingatlanok.common.AppLogger;
+import ingatlanok.common.JsonSupport;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(GlobalExceptionHandler.class);
-  private static final Gson GSON = new Gson();
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<Map<String, Object>> handleIllegalArgument(
@@ -74,7 +73,7 @@ public class GlobalExceptionHandler {
     body.put("path", request.getRequestURI());
     return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-        .body(GSON.toJson(body));
+        .body(JsonSupport.mapper().writeValueAsString(body));
   }
 
   @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)

@@ -1,4 +1,5 @@
-import type { FC } from 'react'
+import { useEffect, useRef, useState, type FC } from 'react'
+import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { Inbox, Search } from 'lucide-react'
 import { IngatlanItem } from '../../types/property'
 import { PropertyCard } from './PropertyCard'
@@ -27,6 +28,37 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   onTriggerSearch,
 }) => {
   const { viewMode } = useUiStore()
+  const [columns, setColumns] = useState(1)
+  const [scrollMargin, setScrollMargin] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const updateColumns = () => {
+      setColumns(viewMode === 'list' ? 1 : window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1)
+    }
+    updateColumns()
+    window.addEventListener('resize', updateColumns)
+    return () => window.removeEventListener('resize', updateColumns)
+  }, [viewMode])
+
+  useEffect(() => {
+    const updateScrollMargin = () => {
+      if (listRef.current) {
+        setScrollMargin(listRef.current.getBoundingClientRect().top + window.scrollY)
+      }
+    }
+    updateScrollMargin()
+    window.addEventListener('resize', updateScrollMargin)
+    return () => window.removeEventListener('resize', updateScrollMargin)
+  }, [hasSearched, items.length])
+
+  const rowCount = Math.ceil(items.length / columns)
+  const virtualizer = useWindowVirtualizer({
+    count: rowCount,
+    estimateSize: () => 420,
+    overscan: 1,
+    scrollMargin,
+  })
 
   // 1. Loading skeletons
   if (isLoading) {
@@ -97,21 +129,34 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
       />
 
       {/* Grid or List */}
-      <div
-        className={cn(
-          viewMode === 'grid'
-            ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
-            : 'flex flex-col gap-3'
-        )}
-      >
-        {items.map((item) => (
-          <PropertyCard
-            key={item.url || item.id}
-            item={item}
-            onMarkViewed={onMarkViewed}
-            viewMode={viewMode}
-          />
-        ))}
+      <div ref={listRef} className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const rowItems = items.slice(virtualRow.index * columns, (virtualRow.index + 1) * columns)
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              className={cn(viewMode === 'grid' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-3')}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              }}
+            >
+              {rowItems.map((item) => (
+                <PropertyCard
+                  key={item.url || item.id}
+                  item={item}
+                  onMarkViewed={onMarkViewed}
+                  viewMode={viewMode}
+                />
+              ))}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

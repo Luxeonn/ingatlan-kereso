@@ -7,19 +7,17 @@ import java.util.Map;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.ConfigStorage;
-import ingatlanok.persistence.IngatlanRepository;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
-import ingatlanok.scraper.PortalScrapeResult;
 
 public class SearchExecutionEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SearchExecutionEngine.class);
-  private static final SearchExecutionEngine INSTANCE = new SearchExecutionEngine();
 
   private final PortalEngineRegistry portalRegistry;
   private final ListingStorage listingStorage;
@@ -29,16 +27,6 @@ public class SearchExecutionEngine {
   private final MarketAnalyticsEngine analyticsEngine;
   private final ParallelPortalScrapeExecutor scrapeExecutor;
   private final SearchResultAggregator resultAggregator;
-
-  private SearchExecutionEngine() {
-    this(
-        PortalEngineRegistry.getInstance(),
-        IngatlanRepository.getInstance(),
-        IngatlanRepository.getInstance(),
-        new PropertyFilterEngine(),
-        new DeduplicationEngine(IngatlanRepository.getInstance()),
-        new MarketAnalyticsEngine());
-  }
 
   public SearchExecutionEngine(
       PortalEngineRegistry portalRegistry,
@@ -67,23 +55,14 @@ public class SearchExecutionEngine {
       MarketAnalyticsEngine analyticsEngine,
       ParallelPortalScrapeExecutor scrapeExecutor,
       SearchResultAggregator resultAggregator) {
-    this.portalRegistry =
-        portalRegistry != null ? portalRegistry : PortalEngineRegistry.getInstance();
-    this.listingStorage =
-        listingStorage != null ? listingStorage : IngatlanRepository.getInstance();
-    this.configStorage = configStorage != null ? configStorage : IngatlanRepository.getInstance();
-    this.filterEngine = filterEngine != null ? filterEngine : new PropertyFilterEngine();
-    this.dedupEngine =
-        dedupEngine != null ? dedupEngine : new DeduplicationEngine(this.listingStorage);
-    this.analyticsEngine = analyticsEngine != null ? analyticsEngine : new MarketAnalyticsEngine();
-    this.scrapeExecutor =
-        scrapeExecutor != null ? scrapeExecutor : new ParallelPortalScrapeExecutor();
-    this.resultAggregator =
-        resultAggregator != null ? resultAggregator : new SearchResultAggregator();
-  }
-
-  public static SearchExecutionEngine getInstance() {
-    return INSTANCE;
+    this.portalRegistry = java.util.Objects.requireNonNull(portalRegistry);
+    this.listingStorage = java.util.Objects.requireNonNull(listingStorage);
+    this.configStorage = configStorage;
+    this.filterEngine = java.util.Objects.requireNonNull(filterEngine);
+    this.dedupEngine = java.util.Objects.requireNonNull(dedupEngine);
+    this.analyticsEngine = java.util.Objects.requireNonNull(analyticsEngine);
+    this.scrapeExecutor = java.util.Objects.requireNonNull(scrapeExecutor);
+    this.resultAggregator = java.util.Objects.requireNonNull(resultAggregator);
   }
 
   public SearchResult executeSearch(SearchCriteria criteria) {

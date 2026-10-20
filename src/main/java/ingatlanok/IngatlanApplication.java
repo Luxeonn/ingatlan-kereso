@@ -1,12 +1,12 @@
 package ingatlanok;
 
-import java.util.Arrays;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 
@@ -24,11 +24,17 @@ public class IngatlanApplication {
   }
 
   public static void main(String[] args) {
-    boolean isCli = Arrays.asList(args).contains("--cli") || Boolean.getBoolean("cli");
+    boolean isCli = java.util.Arrays.asList(args).contains("--cli") || Boolean.getBoolean("cli");
     if (isCli) {
-      Main.runCliMode();
-    } else {
-      SpringApplication.run(IngatlanApplication.class, args);
+      System.setProperty("cli", "true");
+    }
+    SpringApplication application = new SpringApplication(IngatlanApplication.class);
+    if (isCli) {
+      application.setWebApplicationType(WebApplicationType.NONE);
+    }
+    ConfigurableApplicationContext context = application.run(args);
+    if (isCli) {
+      System.exit(SpringApplication.exit(context));
     }
   }
 

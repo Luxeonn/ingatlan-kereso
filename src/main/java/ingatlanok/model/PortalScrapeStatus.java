@@ -1,4 +1,4 @@
-package ingatlanok.scraper;
+package ingatlanok.model;
 
 public enum PortalScrapeStatus {
   SUCCESS,

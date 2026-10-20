@@ -1,11 +1,10 @@
-package ingatlanok.scraper;
+package ingatlanok.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import ingatlanok.model.IngatlanItem;
 
 public class PortalScrapeResult implements Serializable {
 

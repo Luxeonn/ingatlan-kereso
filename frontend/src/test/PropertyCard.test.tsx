@@ -16,13 +16,13 @@ describe('PropertyCard component', () => {
     viewed: false,
     priceInfo: {
       amountMillion: 75.0,
-      amountFt: 75000000,
+      amountHuf: 75000000,
       rawText: '75 M Ft',
     },
     detailsInfo: {
-      floorAreaSqm: 85,
+      areaSquareMeters: 85,
       roomCount: 3,
-      pricePerSqmFt: 882352,
+      pricePerSquareMeter: 882352,
     },
   }
 

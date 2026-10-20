@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPOutputStream;
 
 import com.sun.net.httpserver.HttpServer;
 import org.jsoup.nodes.Document;
@@ -24,6 +26,7 @@ class HttpFetcherTest {
 
   @BeforeAll
   static void startServer() throws IOException {
+    System.setProperty("app.test-mode", "true");
     testServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     testPort = testServer.getAddress().getPort();
 
@@ -41,6 +44,14 @@ class HttpFetcherTest {
         });
 
     testServer.createContext(
+        "/redirect-test",
+        exchange -> {
+          exchange.getResponseHeaders().set("Location", "/test-html");
+          exchange.sendResponseHeaders(302, -1);
+          exchange.close();
+        });
+
+    testServer.createContext(
         "/test-json",
         exchange -> {
           byte[] response = "{\"status\":\"ok\",\"value\":42}".getBytes(StandardCharsets.UTF_8);
@@ -48,6 +59,21 @@ class HttpFetcherTest {
           exchange.sendResponseHeaders(200, response.length);
           try (OutputStream os = exchange.getResponseBody()) {
             os.write(response);
+          }
+        });
+
+    testServer.createContext(
+        "/test-gzip",
+        exchange -> {
+          ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+          try (GZIPOutputStream gzip = new GZIPOutputStream(buffer)) {
+            gzip.write("{\"compressed\":true}".getBytes(StandardCharsets.UTF_8));
+          }
+          byte[] response = buffer.toByteArray();
+          exchange.getResponseHeaders().set("Content-Encoding", "gzip");
+          exchange.sendResponseHeaders(200, response.length);
+          try (OutputStream output = exchange.getResponseBody()) {
+            output.write(response);
           }
         });
 
@@ -76,6 +102,7 @@ class HttpFetcherTest {
 
   @AfterAll
   static void stopServer() {
+    System.clearProperty("app.test-mode");
     if (testServer != null) {
       testServer.stop(0);
     }
@@ -112,12 +139,30 @@ class HttpFetcherTest {
   }
 
   @Test
+  @DisplayName("fetch methods reject malformed URLs and unapproved destinations")
+  void testFetchRejectsMalformedAndUnapprovedUrls() {
+    assertNull(HttpFetcher.fetchJson("http://example.com"));
+    assertNull(HttpFetcher.fetchJson("https://example.org"));
+    assertNull(HttpFetcher.fetchJson("not a valid URI["));
+    assertNull(HttpFetcher.fetchJson("https://dh.hu", 0));
+    assertNull(HttpFetcher.fetchDocument("https://dh.hu", 0));
+  }
+
+  @Test
   @DisplayName("fetchDocument successfully downloads HTML and parses Document")
   void testFetchDocumentSuccess() {
     Document doc = HttpFetcher.fetchDocument(getBaseUrl() + "/test-html");
     assertNotNull(doc);
     assertEquals("Test Page", doc.title());
     assertEquals("Hello World", doc.select("h1").text());
+  }
+
+  @Test
+  @DisplayName("fetchDocument follows redirects within approved domain")
+  void testFetchDocumentRedirect() {
+    Document doc = HttpFetcher.fetchDocument(getBaseUrl() + "/redirect-test");
+    assertNotNull(doc);
+    assertEquals("Test Page", doc.title());
   }
 
   @Test
@@ -134,6 +179,12 @@ class HttpFetcherTest {
     assertNotNull(json);
     assertTrue(json.contains("\"status\":\"ok\""));
     assertTrue(json.contains("42"));
+  }
+
+  @Test
+  @DisplayName("fetchJson decodes gzip-compressed responses")
+  void testFetchJsonGzipResponse() {
+    assertEquals("{\"compressed\":true}", HttpFetcher.fetchJson(getBaseUrl() + "/test-gzip"));
   }
 
   @Test

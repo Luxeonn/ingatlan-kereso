@@ -6,29 +6,20 @@ import java.util.List;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
-import ingatlanok.scraper.PortalScrapeResult;
 
 public class DashboardPresentationService {
 
-  private static final DashboardPresentationService INSTANCE = new DashboardPresentationService();
 
   private final SearchExecutionEngine searchEngine;
   private final MarketAnalyticsEngine analyticsEngine;
 
-  private DashboardPresentationService() {
-    this(SearchExecutionEngine.getInstance(), new MarketAnalyticsEngine());
-  }
-
   public DashboardPresentationService(
       SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
-    this.searchEngine = searchEngine != null ? searchEngine : SearchExecutionEngine.getInstance();
-    this.analyticsEngine = analyticsEngine != null ? analyticsEngine : new MarketAnalyticsEngine();
-  }
-
-  public static DashboardPresentationService getInstance() {
-    return INSTANCE;
+    this.searchEngine = java.util.Objects.requireNonNull(searchEngine);
+    this.analyticsEngine = java.util.Objects.requireNonNull(analyticsEngine);
   }
 
   public DashboardResponseDto executeSearch(SearchCriteria criteria) {

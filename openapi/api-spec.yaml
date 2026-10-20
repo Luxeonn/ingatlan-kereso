@@ -168,7 +168,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ListingDto'
+                  $ref: '#/components/schemas/IngatlanItem'
 
   /api/properties/price-history:
     get:
@@ -590,17 +590,7 @@ components:
       properties:
         rawText:
           type: string
-        amountFt:
-          type: integer
-        amountMillion:
-          type: number
-
-    PriceInfoDto:
-      type: object
-      properties:
-        rawText:
-          type: string
-        amountFt:
+        amountHuf:
           type: integer
         amountMillion:
           type: number
@@ -610,59 +600,61 @@ components:
       properties:
         rawText:
           type: string
-        floorAreaSqm:
+        areaSquareMeters:
           type: number
         roomCount:
           type: number
-        pricePerSqmFt:
-          type: number
-
-    PropertyDetailsDto:
-      type: object
-      properties:
-        rawText:
-          type: string
-        floorAreaSqm:
-          type: number
-        roomCount:
-          type: number
-        pricePerSqmFt:
+        pricePerSquareMeter:
           type: number
 
     PortalSource:
       type: object
       properties:
-        id:
+        portalId:
           type: string
         portalName:
           type: string
-        colorHex:
+        themeColor:
           type: string
+        directListing:
+          type: boolean
 
     PriceHistoryEntry:
       type: object
       properties:
         id:
-          type: string
-        url:
-          type: string
-        priceMillion:
-          type: number
-        priceFt:
           type: integer
-        discoveredAt:
+        propertyId:
           type: string
+        recordedAt:
+          type: string
+        priceRaw:
+          type: string
+        priceAmount:
+          type: integer
+        priceMillions:
+          type: number
+        pricePerSqm:
+          type: integer
+        previousPriceAmount:
+          type: integer
+        priceDelta:
+          type: integer
+        changePercent:
+          type: number
 
     StatusLogEntry:
       type: object
       properties:
         id:
-          type: string
-        url:
+          type: integer
+        propertyId:
           type: string
         status:
           type: string
-        timestamp:
+        changedAt:
+          type: string
+        note:
           type: string
 
     SearchCriteria:
@@ -776,58 +768,6 @@ components:
           $ref: '#/components/schemas/PropertyDetails'
         source:
           $ref: '#/components/schemas/PortalSource'
-
-    ListingDto:
-      type: object
-      required:
-        - id
-        - portal
-        - url
-        - title
-        - price
-        - location
-        - city
-        - isNew
-        - viewed
-      properties:
-        id:
-          type: string
-        portal:
-          type: string
-        url:
-          type: string
-        title:
-          type: string
-        price:
-          type: string
-        location:
-          type: string
-        city:
-          type: string
-        details:
-          type: string
-        discoveredAt:
-          type: string
-        isNew:
-          type: boolean
-        viewed:
-          type: boolean
-        viewedAt:
-          type: string
-        imageUrl:
-          type: string
-        status:
-          type: string
-        priceDelta:
-          type: integer
-        priceChangePercent:
-          type: number
-        lastPriceChangeAt:
-          type: string
-        priceInfo:
-          $ref: '#/components/schemas/PriceInfoDto'
-        detailsInfo:
-          $ref: '#/components/schemas/PropertyDetailsDto'
 
     DashboardResponseDto:
       type: object

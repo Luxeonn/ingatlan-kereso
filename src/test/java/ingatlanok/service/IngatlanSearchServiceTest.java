@@ -17,8 +17,7 @@ class IngatlanSearchServiceTest {
 
   private static final String MOCK_PORTAL_ID = "mockbazar";
 
-  @org.junit.jupiter.api.BeforeAll
-  static void setupMockPortal() {
+  private IngatlanSearchService createService() {
     ingatlanok.portal.PortalEngine mockEngine =
         new ingatlanok.portal.PortalEngine() {
           @Override
@@ -34,7 +33,7 @@ class IngatlanSearchServiceTest {
           }
 
           @Override
-          public ingatlanok.scraper.PortalScrapeResult scrape(SearchCriteria criteria) {
+          public ingatlanok.model.PortalScrapeResult scrape(SearchCriteria criteria) {
             ingatlanok.model.IngatlanItem item1 =
                 new ingatlanok.model.IngatlanItem(
                     "mb1",
@@ -57,17 +56,28 @@ class IngatlanSearchServiceTest {
                     new ingatlanok.model.PropertyDetails("120 m²", 120.0, 4.0, 458_333L),
                     "2026-10-15",
                     false);
-            return ingatlanok.scraper.PortalScrapeResult.success(
+            return ingatlanok.model.PortalScrapeResult.success(
                 MOCK_PORTAL_ID, "Mock Ingatlanbazár", List.of(item1, item2), 10);
           }
         };
-    ingatlanok.portal.PortalEngineRegistry.getInstance().register(mockEngine);
+    ingatlanok.persistence.InMemoryListingStorage storage =
+        new ingatlanok.persistence.InMemoryListingStorage();
+    ingatlanok.core.MarketAnalyticsEngine analytics = new ingatlanok.core.MarketAnalyticsEngine();
+    ingatlanok.core.SearchExecutionEngine engine =
+        new ingatlanok.core.SearchExecutionEngine(
+            new ingatlanok.portal.PortalEngineRegistry(List.of(mockEngine)),
+            storage,
+            storage,
+            new ingatlanok.core.PropertyFilterEngine(),
+            new ingatlanok.core.DeduplicationEngine(storage),
+            analytics);
+    return new IngatlanSearchService(engine);
   }
 
   @Test
   @DisplayName("IngatlanSearchService null criteria handling")
   void testSearchNullCriteria() {
-    IngatlanSearchService service = IngatlanSearchService.getInstance();
+    IngatlanSearchService service = createService();
     SearchResult result = service.executeSearch(null);
     assertNotNull(result);
     assertNotNull(result.getItems());
@@ -76,7 +86,7 @@ class IngatlanSearchServiceTest {
   @Test
   @DisplayName("IngatlanSearchService execution with selected portal")
   void testSearchExecution() {
-    IngatlanSearchService service = IngatlanSearchService.getInstance();
+    IngatlanSearchService service = createService();
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));
     criteria.setPropertyType("lakas");
@@ -95,7 +105,7 @@ class IngatlanSearchServiceTest {
   @Test
   @DisplayName("IngatlanSearchService sorts results by price ascending by default")
   void testDefaultSortPriceAscending() {
-    IngatlanSearchService service = IngatlanSearchService.getInstance();
+    IngatlanSearchService service = createService();
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));
     criteria.setPropertyType("lakas");

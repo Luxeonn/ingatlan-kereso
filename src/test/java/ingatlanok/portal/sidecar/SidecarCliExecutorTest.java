@@ -1,4 +1,4 @@
-package ingatlanok.scraper;
+package ingatlanok.portal.sidecar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
-import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import ingatlanok.common.JsonSupport;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.SearchCriteria;
@@ -34,10 +34,19 @@ class SidecarCliExecutorUnitTest {
   }
 
   @Test
-  @DisplayName("SidecarCliExecutor custom executable configuration")
+  @DisplayName("SidecarCliExecutor custom executable configuration and argument building")
   void testCustomExecutable() {
     SidecarCliExecutor.setCustomExecutable("test-fake-sidecar");
     assertTrue(SidecarCliExecutor.isAvailable());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(50);
+    criteria.setMaxPriceMillion(100);
+
+    Optional<SidecarResponse> res = SidecarCliExecutor.execute("ingatlancom", criteria);
+    assertTrue(res.isEmpty());
 
     SidecarCliExecutor.resetCustomExecutable();
   }
@@ -66,8 +75,7 @@ class SidecarCliExecutorUnitTest {
         }
         """;
 
-    Gson gson = new Gson();
-    SidecarResponse response = gson.fromJson(json, SidecarResponse.class);
+    SidecarResponse response = JsonSupport.mapper().readValue(json, SidecarResponse.class);
     assertNotNull(response);
     assertTrue(response.isSuccess());
     assertEquals("ingatlancom", response.getPortalId());
@@ -91,5 +99,22 @@ class SidecarCliExecutorUnitTest {
     assertNotNull(domainItem.getDetailsInfo());
     assertEquals(72.0, domainItem.getDetailsInfo().getAreaSquareMeters());
     assertEquals(2.5, domainItem.getDetailsInfo().getRoomCount());
+  }
+
+  @Test
+  @DisplayName("SidecarItem conversion handles missing price and property details")
+  void testSidecarItemConversionFallbacks() {
+    SidecarResponse.SidecarItem withoutPrice =
+        new SidecarResponse.SidecarItem("1", "https://example.test/1", " ", null, null, null, null);
+    IngatlanItem unavailable = withoutPrice.toIngatlanItem(null, "Debrecen", "today", false);
+    assertEquals("Debrecen - Ingatlan (1)", unavailable.getTitle());
+    assertEquals("Ár a hirdetésben", unavailable.getPriceInfo().getRawText());
+    assertEquals(0, unavailable.getDetailsInfo().getRawText().length());
+
+    SidecarResponse.SidecarItem withRawPrice =
+        new SidecarResponse.SidecarItem("2", "https://example.test/2", "Ház", null, "12 M Ft", null, null);
+    IngatlanItem rawPrice = withRawPrice.toIngatlanItem(null, "Szeged", "today", false);
+    assertEquals("12 M Ft", rawPrice.getPriceInfo().getRawText());
+    assertEquals("Szeged", rawPrice.getCity());
   }
 }

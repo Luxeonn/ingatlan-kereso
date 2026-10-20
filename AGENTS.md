@@ -25,6 +25,16 @@ Add JUnit 5 tests under the matching `src/test/java` package and Vitest tests in
 
 Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, or `docs/`; target `develop` by default. PRs should explain context and technical changes, list validation commands, link related issues when applicable, and complete the template checklist. All required CI checks must pass before merge.
 
+## Efficient Issue Implementation & CI Validation
+
+- Before a broad change, turn every issue acceptance criterion into a checklist and map it to the affected code, API contract, tests, and CI/security gates. Inspect the relevant workflow files and existing validation scripts before implementation so requirements such as Checkstyle, JaCoCo, OpenAPI generation, and CodeQL are known up front.
+- Implement the complete change in coherent, reviewable slices. Keep related production changes, compatibility updates, and their tests together; avoid publishing one-assertion test commits, syntax/style fixups, or successive trial-and-error security patches.
+- Validate locally before the first push. For backend changes run `./gradlew check bootJar`; for frontend changes run `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` from `frontend/`. For cross-stack work, run both suites and any affected contract/security checks. Resolve all findings from that pass together before pushing.
+- For logic changes, add happy-path and boundary/error-path tests in the same implementation slice. Keep Java line coverage safely above the repository's 80% CI minimum (target at least 82%) so later small edits do not make the PR fragile.
+- For security-sensitive networking, identify the tainted input and the final network sink before coding; use the shared validated `HttpFetcher` path where applicable. Review the repository's CodeQL rules and make validation explicit at the sink when static analysis cannot recognize an indirect sanitizer. Do not rely on repeated remote CodeQL failures to discover the required pattern.
+- After pushing, verify required checks against the PR's current head commit and inspect the failed job's steps/logs before changing code. Batch all fixes revealed by a run into one local correction, rerun the relevant local checks, then push once. Do not push a new commit merely to retrigger checks that already passed.
+- Prefer a small number of Conventional Commits, each representing a complete logical increment. Keep temporary checkpoints local; publish a commit only when its state is coherent and validated. A wide refactor can still use multiple commits when each is independently meaningful, but do not split mechanical fixups into separate remote commits.
+
 ## Configuration & Security
 
 Use `.env.example` as the configuration reference; never commit secrets or real credentials. Development uses embedded H2, while Docker Compose configures PostgreSQL. Review `SECURITY.md` before reporting vulnerabilities.

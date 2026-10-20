@@ -3,6 +3,9 @@ package ingatlanok.persistence.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -27,6 +30,11 @@ public interface PropertyRepository
   List<PropertyEntity> findByNormalizedCityOrderByDiscoveredAtDesc(String normalizedCity);
 
   List<PropertyEntity> findAllByOrderByDiscoveredAtDesc();
+
+  Page<PropertyEntity> findAll(Specification<PropertyEntity> specification, Pageable pageable);
+
+  List<PropertyEntity> findByPriceDeltaLessThanAndCityContainingIgnoreCaseOrderByDiscoveredAtDesc(
+      long priceDelta, String city);
 
   @Modifying
   @Query("UPDATE PropertyEntity p SET p.viewed = true, p.viewedAt = :viewedAt WHERE p.url = :url")

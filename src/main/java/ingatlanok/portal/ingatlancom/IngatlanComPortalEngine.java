@@ -13,13 +13,13 @@ import org.jsoup.nodes.Document;
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
-import ingatlanok.scraper.PortalScrapeResult;
-import ingatlanok.scraper.SidecarCliExecutor;
-import ingatlanok.scraper.SidecarResponse;
+import ingatlanok.portal.sidecar.SidecarCliExecutor;
+import ingatlanok.portal.sidecar.SidecarResponse;
 
 public class IngatlanComPortalEngine implements PortalEngine {
 

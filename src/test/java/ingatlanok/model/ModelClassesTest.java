@@ -169,8 +169,8 @@ class ModelClassesTest {
     item.setViewedAt("2026-10-13 22:00:00");
     assertEquals("2026-10-13 22:00:00", item.getViewedAt());
 
-    ingatlanok.scraper.SidecarResponse.SidecarItem sidecarItem =
-        new ingatlanok.scraper.SidecarResponse.SidecarItem(
+    ingatlanok.portal.sidecar.SidecarResponse.SidecarItem sidecarItem =
+        new ingatlanok.portal.sidecar.SidecarResponse.SidecarItem(
             "sc1",
             "https://example.com/prop",
             "Szép lakás",

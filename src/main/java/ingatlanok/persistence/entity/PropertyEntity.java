@@ -16,7 +16,14 @@ import jakarta.persistence.Table;
     indexes = {
       @Index(name = "idx_properties_url", columnList = "url", unique = true),
       @Index(name = "idx_properties_city_key", columnList = "normalizedCity"),
-      @Index(name = "idx_properties_discovered", columnList = "discoveredAt")
+      @Index(name = "idx_properties_discovered", columnList = "discoveredAt"),
+      @Index(name = "idx_properties_portal", columnList = "portal"),
+      @Index(name = "idx_properties_city_portal", columnList = "normalizedCity,portal"),
+      @Index(name = "idx_properties_price", columnList = "priceMillions"),
+      @Index(name = "idx_properties_area", columnList = "areaSqm"),
+      @Index(name = "idx_properties_rooms", columnList = "rooms"),
+      @Index(name = "idx_properties_viewed", columnList = "viewed"),
+      @Index(name = "idx_properties_price_delta", columnList = "priceDelta")
     })
 public class PropertyEntity implements Serializable {
 
