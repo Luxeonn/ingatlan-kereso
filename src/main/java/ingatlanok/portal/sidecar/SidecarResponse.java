@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import tools.jackson.annotation.JsonProperty;
-
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
@@ -15,19 +13,14 @@ import ingatlanok.model.PropertyDetails;
 
 public class SidecarResponse implements Serializable {
 
-  @JsonProperty("portalId")
   private String portalId;
 
-  @JsonProperty("status")
   private String status;
 
-  @JsonProperty("items")
   private List<SidecarItem> items = new ArrayList<>();
 
-  @JsonProperty("errorMessage")
   private String errorMessage;
 
-  @JsonProperty("elapsedMs")
   private long elapsedMs;
 
   public SidecarResponse() {}
@@ -78,28 +71,20 @@ public class SidecarResponse implements Serializable {
 
   public static class SidecarItem implements Serializable {
 
-    @JsonProperty("id")
     private String id;
 
-    @JsonProperty("url")
     private String url;
 
-    @JsonProperty("title")
     private String title;
 
-    @JsonProperty("priceMillion")
     private Double priceMillion;
 
-    @JsonProperty("priceRaw")
     private String priceRaw;
 
-    @JsonProperty("areaSquareMeters")
     private Double areaSquareMeters;
 
-    @JsonProperty("roomCount")
     private Double roomCount;
 
-    @JsonProperty("imageUrl")
     private String imageUrl;
 
     public SidecarItem() {}
