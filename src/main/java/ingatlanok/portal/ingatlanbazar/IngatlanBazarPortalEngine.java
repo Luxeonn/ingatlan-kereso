@@ -10,10 +10,10 @@ import java.util.Set;
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
-import ingatlanok.model.PortalScrapeResult;
 
 public class IngatlanBazarPortalEngine implements PortalEngine {
 

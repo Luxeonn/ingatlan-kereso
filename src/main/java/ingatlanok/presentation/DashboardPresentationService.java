@@ -6,9 +6,9 @@ import java.util.List;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
-import ingatlanok.model.PortalScrapeResult;
 
 public class DashboardPresentationService {
 

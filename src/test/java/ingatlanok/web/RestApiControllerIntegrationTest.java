@@ -17,10 +17,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import ingatlanok.common.JsonSupport;
 import ingatlanok.config.GlobalCorsFilter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.common.JsonSupport;
 import ingatlanok.persistence.ListingStorage;
 
 @SpringBootTest

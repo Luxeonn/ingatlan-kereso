@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
-import ingatlanok.persistence.PropertySearchCriteria;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;

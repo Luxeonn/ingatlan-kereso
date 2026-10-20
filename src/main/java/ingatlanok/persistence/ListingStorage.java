@@ -8,7 +8,6 @@ import java.util.Set;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.StatusLogEntry;
-import ingatlanok.persistence.PropertySearchCriteria;
 
 public interface ListingStorage {
 

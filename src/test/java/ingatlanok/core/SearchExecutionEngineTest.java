@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
@@ -25,7 +26,6 @@ import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
-import ingatlanok.model.PortalScrapeResult;
 
 class SearchExecutionEngineTest {
 

@@ -12,9 +12,9 @@ import java.util.concurrent.TimeoutException;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalEngine;
-import ingatlanok.model.PortalScrapeResult;
 
 public class ParallelPortalScrapeExecutor {
 
