@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPOutputStream;
 
 import com.sun.net.httpserver.HttpServer;
 import org.jsoup.nodes.Document;
@@ -49,6 +51,21 @@ class HttpFetcherTest {
           exchange.sendResponseHeaders(200, response.length);
           try (OutputStream os = exchange.getResponseBody()) {
             os.write(response);
+          }
+        });
+
+    testServer.createContext(
+        "/test-gzip",
+        exchange -> {
+          ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+          try (GZIPOutputStream gzip = new GZIPOutputStream(buffer)) {
+            gzip.write("{\"compressed\":true}".getBytes(StandardCharsets.UTF_8));
+          }
+          byte[] response = buffer.toByteArray();
+          exchange.getResponseHeaders().set("Content-Encoding", "gzip");
+          exchange.sendResponseHeaders(200, response.length);
+          try (OutputStream output = exchange.getResponseBody()) {
+            output.write(response);
           }
         });
 
@@ -146,6 +163,12 @@ class HttpFetcherTest {
     assertNotNull(json);
     assertTrue(json.contains("\"status\":\"ok\""));
     assertTrue(json.contains("42"));
+  }
+
+  @Test
+  @DisplayName("fetchJson decodes gzip-compressed responses")
+  void testFetchJsonGzipResponse() {
+    assertEquals("{\"compressed\":true}", HttpFetcher.fetchJson(getBaseUrl() + "/test-gzip"));
   }
 
   @Test

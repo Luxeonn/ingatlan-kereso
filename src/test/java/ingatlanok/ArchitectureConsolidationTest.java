@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import ingatlanok.common.JsonSupport;
 import ingatlanok.core.resilience.PortalCircuitBreaker;
 import ingatlanok.core.resilience.PortalRateLimiter;
 import ingatlanok.model.IngatlanItem;
@@ -18,6 +19,11 @@ import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.persistence.OffsetPageRequest;
 
 class ArchitectureConsolidationTest {
+
+  @Test
+  void jacksonSupportParsesPortalJson() {
+    assertEquals(42, JsonSupport.parse("{\"value\":42}").get("value").asInt());
+  }
 
   @Test
   void circuitBreakerOpensAfterThreeFailuresAndClosesOnSuccess() {
