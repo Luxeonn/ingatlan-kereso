@@ -27,11 +27,11 @@ describe('MarketAnalyticsDashboard component', () => {
       isNew: true,
       priceInfo: {
         amountMillion: 75.0,
-        amountFt: 75000000,
+        amountHuf: 75000000,
       },
       detailsInfo: {
-        floorAreaSqm: 85,
-        pricePerSqmFt: 882352,
+        areaSquareMeters: 85,
+        pricePerSquareMeter: 882352,
       },
     },
     {
@@ -47,11 +47,11 @@ describe('MarketAnalyticsDashboard component', () => {
       priceChangePercent: -5.1,
       priceInfo: {
         amountMillion: 55.0,
-        amountFt: 55000000,
+        amountHuf: 55000000,
       },
       detailsInfo: {
-        floorAreaSqm: 90,
-        pricePerSqmFt: 611111,
+        areaSquareMeters: 90,
+        pricePerSquareMeter: 611111,
       },
     },
     {
@@ -65,11 +65,11 @@ describe('MarketAnalyticsDashboard component', () => {
       isNew: true,
       priceInfo: {
         amountMillion: 65.0,
-        amountFt: 65000000,
+        amountHuf: 65000000,
       },
       detailsInfo: {
-        floorAreaSqm: 120,
-        pricePerSqmFt: 541666,
+        areaSquareMeters: 120,
+        pricePerSquareMeter: 541666,
       },
     },
   ]

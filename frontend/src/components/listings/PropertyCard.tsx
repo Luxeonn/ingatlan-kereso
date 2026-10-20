@@ -19,11 +19,11 @@ interface PropertyCardProps {
 }
 
 export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMode = 'grid' }) => {
-  const portalStyle = getPortalStyle(item.portal || item.source?.id || '')
+  const portalStyle = getPortalStyle(item.portal || item.source?.portalId || '')
   const priceMillion = item.priceInfo?.amountMillion
-  const priceFt = item.priceInfo?.amountFt
-  const sqmPrice = item.detailsInfo?.pricePerSqmFt
-  const floorArea = item.detailsInfo?.floorAreaSqm
+  const priceFt = item.priceInfo?.amountHuf
+  const sqmPrice = item.detailsInfo?.pricePerSquareMeter
+  const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
 
   const handleOpen = () => {

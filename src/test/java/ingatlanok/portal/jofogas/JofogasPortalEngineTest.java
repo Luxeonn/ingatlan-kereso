@@ -9,8 +9,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.scraper.PortalScrapeResult;
-import ingatlanok.scraper.PortalScrapeStatus;
+import ingatlanok.model.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeStatus;
 
 class JofogasPortalEngineTest {
 

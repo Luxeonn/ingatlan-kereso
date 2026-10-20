@@ -56,7 +56,6 @@ class OpenApiSpecIntegrityTest {
             "SearchCriteria:",
             "DashboardResponseDto:",
             "IngatlanItem:",
-            "ListingDto:",
             "PortalDescriptor:",
             "PortalStatusDto:",
             "PriceHistoryEntry:",

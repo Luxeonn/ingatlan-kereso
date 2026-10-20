@@ -6,15 +6,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import tools.jackson.databind.JsonNode;
 
 import ingatlanok.common.AppLogger;
+import ingatlanok.common.JsonSupport;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
@@ -120,27 +118,27 @@ public class KoltozzbeParser {
         continue;
       }
       try {
-        JsonElement root = JsonParser.parseString(jsonText);
-        if (!root.isJsonObject()) {
+        JsonNode root = JsonSupport.parse(jsonText);
+        if (!root.isObject()) {
           continue;
         }
-        JsonObject obj = root.getAsJsonObject();
+        JsonNode obj = root;
         if (!obj.has("itemListElement")) {
           continue;
         }
 
-        JsonArray elements = obj.getAsJsonArray("itemListElement");
-        for (JsonElement el : elements) {
-          if (!el.isJsonObject()) {
+        JsonNode elements = obj.get("itemListElement");
+        for (JsonNode el : elements) {
+          if (!el.isObject()) {
             continue;
           }
-          JsonObject itemObj = el.getAsJsonObject();
+          JsonNode itemObj = el;
           if (!itemObj.has("item")) {
             continue;
           }
-          JsonObject product = itemObj.getAsJsonObject("item");
+          JsonNode product = itemObj.get("item");
 
-          String url = product.has("url") ? product.get("url").getAsString() : null;
+          String url = product.has("url") ? product.get("url").asText() : null;
           if (url == null || (processedUrls != null && processedUrls.contains(url))) {
             continue;
           }
@@ -150,18 +148,18 @@ public class KoltozzbeParser {
 
           String city = criteria != null ? criteria.getCity() : "Debrecen";
           String name =
-              product.has("name") ? product.get("name").getAsString() : city + " - Eladó ingatlan";
+              product.has("name") ? product.get("name").asText() : city + " - Eladó ingatlan";
           String id =
               PropertyParser.extractFirstGroup(
                   url, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
 
           long rawPrice = 0;
           if (product.has("offers")) {
-            JsonObject offers = product.getAsJsonObject("offers");
+            JsonNode offers = product.get("offers");
             if (offers.has("priceSpecification")) {
-              JsonObject ps = offers.getAsJsonObject("priceSpecification");
+              JsonNode ps = offers.get("priceSpecification");
               if (ps.has("price")) {
-                rawPrice = ps.get("price").getAsLong();
+                rawPrice = ps.get("price").asLong();
               }
             }
           }
@@ -174,10 +172,10 @@ public class KoltozzbeParser {
           PropertyDetails details = PropertyParser.parseDetails(name, priceInfo);
 
           String imageUrl = null;
-          if (product.has("image") && product.get("image").isJsonArray()) {
-            JsonArray imgArr = product.getAsJsonArray("image");
+          if (product.has("image") && product.get("image").isArray()) {
+            JsonNode imgArr = product.get("image");
             if (!imgArr.isEmpty()) {
-              imageUrl = imgArr.get(0).getAsString();
+              imageUrl = imgArr.get(0).asText();
             }
           }
 

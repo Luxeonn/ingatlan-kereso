@@ -1,4 +1,4 @@
-package ingatlanok.scraper;
+package ingatlanok.portal.sidecar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
-import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import ingatlanok.common.JsonSupport;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.SearchCriteria;
@@ -66,8 +66,7 @@ class SidecarCliExecutorUnitTest {
         }
         """;
 
-    Gson gson = new Gson();
-    SidecarResponse response = gson.fromJson(json, SidecarResponse.class);
+    SidecarResponse response = JsonSupport.mapper().readValue(json, SidecarResponse.class);
     assertNotNull(response);
     assertTrue(response.isSuccess());
     assertEquals("ingatlancom", response.getPortalId());

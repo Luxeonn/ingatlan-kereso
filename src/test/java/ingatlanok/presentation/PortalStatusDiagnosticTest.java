@@ -11,10 +11,22 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import ingatlanok.core.DeduplicationEngine;
+import ingatlanok.core.MarketAnalyticsEngine;
+import ingatlanok.core.PropertyFilterEngine;
+import ingatlanok.core.SearchExecutionEngine;
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalSource;
+import ingatlanok.model.PriceInfo;
+import ingatlanok.model.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeStatus;
+import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
-import ingatlanok.scraper.PortalScrapeResult;
-import ingatlanok.scraper.PortalScrapeStatus;
+import ingatlanok.persistence.InMemoryListingStorage;
+import ingatlanok.portal.PortalDescriptor;
+import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.PortalEngineRegistry;
 
 class PortalStatusDiagnosticTest {
 
@@ -110,8 +122,27 @@ class PortalStatusDiagnosticTest {
     criteria.setCities(List.of("Debrecen"));
     criteria.setPortals(List.of("ingatlanbazar"));
 
+    PortalEngine engine = new PortalEngine() {
+      @Override
+      public PortalDescriptor getDescriptor() {
+        return new PortalDescriptor("ingatlanbazar", "Ingatlanbazár", "#123456",
+            "https://ingatlanbazar.hu", true, List.of("lakas"), true);
+      }
+
+      @Override
+      public PortalScrapeResult scrape(SearchCriteria searchCriteria) {
+        IngatlanItem item = new IngatlanItem("1", PortalSource.of("ingatlanbazar"),
+            "https://ingatlanbazar.hu/1", "Teszt", new PriceInfo("40 M Ft", 40_000_000L, 40.0),
+            "Debrecen", new PropertyDetails("60 m²", 60.0, 2.0, 666_667L), "2026-10-15", true);
+        return PortalScrapeResult.success("ingatlanbazar", "Ingatlanbazár", List.of(item), 1);
+      }
+    };
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
+    SearchExecutionEngine search = new SearchExecutionEngine(new PortalEngineRegistry(List.of(engine)),
+        storage, storage, new PropertyFilterEngine(), new DeduplicationEngine(storage), analytics);
     DashboardResponseDto response =
-        DashboardPresentationService.getInstance().executeSearch(criteria);
+        new DashboardPresentationService(search, analytics).executeSearch(criteria);
     assertNotNull(response);
     assertNotNull(response.getPortalStatuses());
     assertFalse(response.getPortalStatuses().isEmpty());

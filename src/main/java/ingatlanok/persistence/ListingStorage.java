@@ -8,6 +8,7 @@ import java.util.Set;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.persistence.PropertySearchCriteria;
 
 public interface ListingStorage {
 
@@ -57,7 +58,7 @@ public interface ListingStorage {
     return List.of();
   }
 
-  default List<ingatlanok.dto.ListingDto> findByCriteria(ingatlanok.dto.ListingFilterDto filter) {
+  default List<IngatlanItem> findByCriteria(PropertySearchCriteria filter) {
     return List.of();
   }
 }

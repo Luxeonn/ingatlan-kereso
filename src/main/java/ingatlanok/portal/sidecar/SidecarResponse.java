@@ -1,4 +1,4 @@
-package ingatlanok.scraper;
+package ingatlanok.portal.sidecar;
 
 import java.io.Serializable;
 import java.text.NumberFormat;
@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import com.google.gson.annotations.SerializedName;
+import tools.jackson.annotation.JsonProperty;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
@@ -15,19 +15,19 @@ import ingatlanok.model.PropertyDetails;
 
 public class SidecarResponse implements Serializable {
 
-  @SerializedName("portalId")
+  @JsonProperty("portalId")
   private String portalId;
 
-  @SerializedName("status")
+  @JsonProperty("status")
   private String status;
 
-  @SerializedName("items")
+  @JsonProperty("items")
   private List<SidecarItem> items = new ArrayList<>();
 
-  @SerializedName("errorMessage")
+  @JsonProperty("errorMessage")
   private String errorMessage;
 
-  @SerializedName("elapsedMs")
+  @JsonProperty("elapsedMs")
   private long elapsedMs;
 
   public SidecarResponse() {}
@@ -78,28 +78,28 @@ public class SidecarResponse implements Serializable {
 
   public static class SidecarItem implements Serializable {
 
-    @SerializedName("id")
+    @JsonProperty("id")
     private String id;
 
-    @SerializedName("url")
+    @JsonProperty("url")
     private String url;
 
-    @SerializedName("title")
+    @JsonProperty("title")
     private String title;
 
-    @SerializedName("priceMillion")
+    @JsonProperty("priceMillion")
     private Double priceMillion;
 
-    @SerializedName("priceRaw")
+    @JsonProperty("priceRaw")
     private String priceRaw;
 
-    @SerializedName("areaSquareMeters")
+    @JsonProperty("areaSquareMeters")
     private Double areaSquareMeters;
 
-    @SerializedName("roomCount")
+    @JsonProperty("roomCount")
     private Double roomCount;
 
-    @SerializedName("imageUrl")
+    @JsonProperty("imageUrl")
     private String imageUrl;
 
     public SidecarItem() {}

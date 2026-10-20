@@ -13,12 +13,18 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.MarketStatsDto;
+import ingatlanok.core.DeduplicationEngine;
+import ingatlanok.core.MarketAnalyticsEngine;
+import ingatlanok.core.PropertyFilterEngine;
+import ingatlanok.core.SearchExecutionEngine;
+import ingatlanok.persistence.InMemoryListingStorage;
+import ingatlanok.portal.PortalEngineRegistry;
 
 class DashboardPresentationServiceTest {
 
   @Test
   void testCalculateMarketStats() {
-    DashboardPresentationService service = DashboardPresentationService.getInstance();
+    DashboardPresentationService service = createService();
 
     IngatlanItem item1 = new IngatlanItem();
     item1.setCity("Debrecen");
@@ -48,11 +54,21 @@ class DashboardPresentationServiceTest {
 
   @Test
   void testCalculateMarketStatsWithEmptyList() {
-    DashboardPresentationService service = DashboardPresentationService.getInstance();
+    DashboardPresentationService service = createService();
     MarketStatsDto stats = service.calculateMarketStats(List.of());
 
     assertNotNull(stats);
     assertNull(stats.getAveragePriceMillion());
     assertNull(stats.getAveragePricePerM2());
+  }
+
+  private DashboardPresentationService createService() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
+    SearchExecutionEngine search =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of()), storage, storage,
+            new PropertyFilterEngine(), new DeduplicationEngine(storage), analytics);
+    return new DashboardPresentationService(search, analytics);
   }
 }

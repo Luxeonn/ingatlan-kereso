@@ -24,6 +24,7 @@ class HttpFetcherTest {
 
   @BeforeAll
   static void startServer() throws IOException {
+    System.setProperty("app.test-mode", "true");
     testServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     testPort = testServer.getAddress().getPort();
 
@@ -76,6 +77,7 @@ class HttpFetcherTest {
 
   @AfterAll
   static void stopServer() {
+    System.clearProperty("app.test-mode");
     if (testServer != null) {
       testServer.stop(0);
     }

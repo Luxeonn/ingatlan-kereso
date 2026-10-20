@@ -49,7 +49,7 @@ application {
 val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
-val gsonVersion = "2.14.0"
+val caffeineVersion = "3.2.3"
 
 dependencies {
     constraints {
@@ -64,12 +64,14 @@ dependencies {
     }
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+    implementation("com.github.ben-manes.caffeine:caffeine:$caffeineVersion")
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.jsoup:jsoup:$jsoupVersion")
+    implementation("org.brotli:dec:0.1.2")
     implementation("commons-io:commons-io:$commonsIoVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
-    implementation("com.google.code.gson:gson:$gsonVersion")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

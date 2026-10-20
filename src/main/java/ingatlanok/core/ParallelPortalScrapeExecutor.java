@@ -14,7 +14,7 @@ import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalEngine;
-import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeResult;
 
 public class ParallelPortalScrapeExecutor {
 

@@ -13,7 +13,7 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
-import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeResult;
 
 public class IngatlanBazarPortalEngine implements PortalEngine {
 

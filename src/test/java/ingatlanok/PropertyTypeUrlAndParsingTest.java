@@ -12,17 +12,17 @@ import ingatlanok.common.PropertyParser;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.scraper.DunaHouseScraper;
-import ingatlanok.scraper.IngatlanComScraper;
-import ingatlanok.scraper.JofogasScraper;
-import ingatlanok.scraper.OtthonCentrumScraper;
+import ingatlanok.portal.dh.DunaHouseUrlBuilder;
+import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
+import ingatlanok.portal.jofogas.JofogasUrlBuilder;
+import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
 
 class PropertyTypeUrlAndParsingTest {
 
-  private final DunaHouseScraper dhScraper = new DunaHouseScraper();
-  private final OtthonCentrumScraper ocScraper = new OtthonCentrumScraper();
-  private final JofogasScraper jfScraper = new JofogasScraper();
-  private final IngatlanComScraper icScraper = new IngatlanComScraper();
+  private final DunaHouseUrlBuilder dhScraper = new DunaHouseUrlBuilder();
+  private final OtthonCentrumUrlBuilder ocScraper = new OtthonCentrumUrlBuilder();
+  private final JofogasUrlBuilder jfScraper = new JofogasUrlBuilder();
+  private final IngatlanComUrlBuilder icScraper = new IngatlanComUrlBuilder();
 
   @ParameterizedTest
   @ValueSource(strings = {"lakas", "haz", "telek"})

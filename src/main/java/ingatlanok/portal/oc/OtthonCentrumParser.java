@@ -6,13 +6,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import tools.jackson.databind.JsonNode;
 
+import ingatlanok.common.JsonSupport;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
@@ -81,18 +80,18 @@ public class OtthonCentrumParser {
 
         if (!seoAttr.isBlank()) {
           try {
-            JsonObject seoObj = JsonParser.parseString(seoAttr).getAsJsonObject();
+            JsonNode seoObj = JsonSupport.parse(seoAttr);
             if (seoObj.has("ecommerce")) {
-              JsonObject ecom = seoObj.getAsJsonObject("ecommerce");
+              JsonNode ecom = seoObj.get("ecommerce");
               if (ecom.has("items")) {
-                JsonArray itemsArray = ecom.getAsJsonArray("items");
+                JsonNode itemsArray = ecom.get("items");
                 if (!itemsArray.isEmpty()) {
-                  JsonObject firstItem = itemsArray.get(0).getAsJsonObject();
+                  JsonNode firstItem = itemsArray.get(0);
                   if (firstItem.has("location_city")) {
-                    locationCity = firstItem.get("location_city").getAsString();
+                    locationCity = firstItem.get("location_city").asText();
                   }
-                  if (firstItem.has("price") && !firstItem.get("price").isJsonNull()) {
-                    jsonPriceHuf = firstItem.get("price").getAsLong();
+                  if (firstItem.has("price") && !firstItem.get("price").isNull()) {
+                    jsonPriceHuf = firstItem.get("price").asLong();
                   }
                 }
               }

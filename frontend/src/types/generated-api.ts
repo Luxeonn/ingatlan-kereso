@@ -318,43 +318,39 @@ export interface components {
         };
         PriceInfo: {
             rawText?: string;
-            amountFt?: number;
-            amountMillion?: number;
-        };
-        PriceInfoDto: {
-            rawText?: string;
-            amountFt?: number;
+            amountHuf?: number;
             amountMillion?: number;
         };
         PropertyDetails: {
             rawText?: string;
-            floorAreaSqm?: number;
+            areaSquareMeters?: number;
             roomCount?: number;
-            pricePerSqmFt?: number;
-        };
-        PropertyDetailsDto: {
-            rawText?: string;
-            floorAreaSqm?: number;
-            roomCount?: number;
-            pricePerSqmFt?: number;
+            pricePerSquareMeter?: number;
         };
         PortalSource: {
-            id?: string;
+            portalId?: string;
             portalName?: string;
-            colorHex?: string;
+            themeColor?: string;
+            directListing?: boolean;
         };
         PriceHistoryEntry: {
-            id?: string;
-            url?: string;
-            priceMillion?: number;
-            priceFt?: number;
-            discoveredAt?: string;
+            id?: number;
+            propertyId?: string;
+            recordedAt?: string;
+            priceRaw?: string;
+            priceAmount?: number;
+            priceMillions?: number;
+            pricePerSqm?: number;
+            previousPriceAmount?: number;
+            priceDelta?: number;
+            changePercent?: number;
         };
         StatusLogEntry: {
-            id?: string;
-            url?: string;
+            id?: number;
+            propertyId?: string;
             status?: string;
-            timestamp?: string;
+            changedAt?: string;
+            note?: string;
         };
         SearchCriteria: {
             city?: string;
@@ -411,27 +407,6 @@ export interface components {
             priceInfo?: components["schemas"]["PriceInfo"];
             detailsInfo?: components["schemas"]["PropertyDetails"];
             source?: components["schemas"]["PortalSource"];
-        };
-        ListingDto: {
-            id: string;
-            portal: string;
-            url: string;
-            title: string;
-            price: string;
-            location: string;
-            city: string;
-            details?: string;
-            discoveredAt?: string;
-            isNew: boolean;
-            viewed: boolean;
-            viewedAt?: string;
-            imageUrl?: string;
-            status?: string;
-            priceDelta?: number;
-            priceChangePercent?: number;
-            lastPriceChangeAt?: string;
-            priceInfo?: components["schemas"]["PriceInfoDto"];
-            detailsInfo?: components["schemas"]["PropertyDetailsDto"];
         };
         DashboardResponseDto: {
             items: components["schemas"]["IngatlanItem"][];
@@ -603,7 +578,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListingDto"][];
+                    "application/json": components["schemas"]["IngatlanItem"][];
                 };
             };
         };

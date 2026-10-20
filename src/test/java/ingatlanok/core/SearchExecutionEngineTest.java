@@ -25,7 +25,7 @@ import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
-import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeResult;
 
 class SearchExecutionEngineTest {
 
@@ -166,9 +166,7 @@ class SearchExecutionEngineTest {
           }
         };
 
-    PortalEngineRegistry registry = PortalEngineRegistry.getInstance();
-    registry.register(goodEngine);
-    registry.register(failingEngine);
+    PortalEngineRegistry registry = new PortalEngineRegistry(List.of(goodEngine, failingEngine));
 
     SearchExecutionEngine engine =
         new SearchExecutionEngine(
@@ -199,13 +197,13 @@ class SearchExecutionEngineTest {
             .anyMatch(
                 pr ->
                     "good".equals(pr.getPortalId())
-                        && pr.getStatus() == ingatlanok.scraper.PortalScrapeStatus.SUCCESS);
+                        && pr.getStatus() == ingatlanok.model.PortalScrapeStatus.SUCCESS);
     boolean hasFailure =
         result.getPortalResults().stream()
             .anyMatch(
                 pr ->
                     "fail".equals(pr.getPortalId())
-                        && pr.getStatus() == ingatlanok.scraper.PortalScrapeStatus.FAILED);
+                        && pr.getStatus() == ingatlanok.model.PortalScrapeStatus.FAILED);
 
     assertTrue(hasSuccess, "A jó portálnak sikeresnek kell lennie");
     assertTrue(hasFailure, "A hibás portálnak hibaállapotot kell rögzítenie leállás nélkül");

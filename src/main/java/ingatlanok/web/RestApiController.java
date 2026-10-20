@@ -10,6 +10,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,8 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
-import ingatlanok.dto.ListingDto;
-import ingatlanok.dto.ListingFilterDto;
+import ingatlanok.persistence.PropertySearchCriteria;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
@@ -67,6 +67,7 @@ public class RestApiController {
   }
 
   @GetMapping("/portals")
+  @Cacheable("portals")
   public ResponseEntity<List<PortalDescriptor>> getPortals() {
     Map<String, Long> portalCounts = listingStorage.countByPortal();
     List<PortalDescriptor> descriptors =
@@ -93,6 +94,7 @@ public class RestApiController {
   }
 
   @GetMapping("/cities")
+  @Cacheable("cities")
   public ResponseEntity<Map<String, Object>> getCities() {
     Map<String, Object> data = new LinkedHashMap<>();
     data.put("predefined", CityUtils.getPredefinedCities());
@@ -123,7 +125,7 @@ public class RestApiController {
   }
 
   @GetMapping("/history")
-  public ResponseEntity<List<ListingDto>> getHistory(
+  public ResponseEntity<List<IngatlanItem>> getHistory(
       @RequestParam(value = "city", required = false) String city,
       @RequestParam(value = "onlyDiscounted", defaultValue = "false") boolean onlyDiscounted,
       @RequestParam(value = "portal", required = false) String portal,
@@ -140,8 +142,9 @@ public class RestApiController {
     List<String> cities = (city != null && !city.isBlank()) ? List.of(city) : null;
     List<String> portals = (portal != null && !portal.isBlank()) ? List.of(portal) : null;
 
-    ListingFilterDto filter =
-        new ListingFilterDto(
+    int pageSize = limit == null || limit <= 0 ? 50 : Math.min(limit, 200);
+    PropertySearchCriteria filter =
+        new PropertySearchCriteria(
             cities,
             portals,
             minPrice,
@@ -153,10 +156,10 @@ public class RestApiController {
             excludeViewed,
             onlyDiscounted,
             sortBy,
-            limit,
-            offset);
+            offset == null || offset <= 0 ? 0 : offset,
+            pageSize);
 
-    List<ListingDto> dtoList = listingStorage.findByCriteria(filter);
+    List<IngatlanItem> dtoList = listingStorage.findByCriteria(filter);
     return ResponseEntity.ok(dtoList);
   }
 

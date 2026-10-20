@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import ingatlanok.presentation.PortalStatusDto;
-import ingatlanok.scraper.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeResult;
 
 public class SearchResult implements Serializable {
 

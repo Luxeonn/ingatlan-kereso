@@ -8,29 +8,15 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.portal.dh.DunaHousePortalEngine;
-import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
-import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
-import ingatlanok.portal.jofogas.JofogasPortalEngine;
-import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
-import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 
 public class PortalEngineRegistry {
 
-  private static final PortalEngineRegistry INSTANCE = new PortalEngineRegistry();
   private final Map<String, PortalEngine> engines = new ConcurrentHashMap<>();
 
-  private PortalEngineRegistry() {
-    register(new DunaHousePortalEngine());
-    register(new OtthonCentrumPortalEngine());
-    register(new JofogasPortalEngine());
-    register(new IngatlanBazarPortalEngine());
-    register(new KoltozzbePortalEngine());
-    register(new IngatlanComPortalEngine());
-  }
-
-  public static PortalEngineRegistry getInstance() {
-    return INSTANCE;
+  public PortalEngineRegistry(List<PortalEngine> portalEngines) {
+    if (portalEngines != null) {
+      portalEngines.forEach(this::register);
+    }
   }
 
   public void register(PortalEngine engine) {
