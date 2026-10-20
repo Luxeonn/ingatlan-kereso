@@ -20,28 +20,25 @@ public final class BrowserUtils {
       return false;
     }
     String trimmed = url.trim();
-    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-      LOGGER.warn(
-          "Biztonsági figyelmeztetés: Csak http:// vagy https:// hivatkozás nyitható meg: {}",
-          trimmed);
-      return false;
-    }
     try {
-      String os = System.getProperty("os.name", "").toLowerCase();
-      if (os.contains("win")) {
-        new ProcessBuilder("cmd", "/c", "start", "", trimmed).start();
-        return true;
-      } else if (os.contains("mac")) {
-        new ProcessBuilder("open", trimmed).start();
-        return true;
-      } else if (Desktop.isDesktopSupported()
+      URI uri = new URI(trimmed);
+      String scheme = uri.getScheme();
+      if (scheme == null
+          || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+        LOGGER.warn(
+            "Biztonsági figyelmeztetés: Csak http:// vagy https:// hivatkozás nyitható meg: {}",
+            trimmed);
+        return false;
+      }
+
+      if (Desktop.isDesktopSupported()
           && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-        Desktop.getDesktop().browse(new URI(trimmed));
-        return true;
-      } else {
-        new ProcessBuilder("xdg-open", trimmed).start();
+        Desktop.getDesktop().browse(uri);
         return true;
       }
+
+      LOGGER.warn("A böngésző megnyitása nem támogatott ezen a környezeten: {}", trimmed);
+      return false;
     } catch (Exception e) {
       LOGGER.error("Nem sikerült megnyitni a böngészőben: {} ({})", trimmed, e.getMessage(), e);
       return false;
