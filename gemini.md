@@ -201,3 +201,41 @@ ingatlan-kereso/
 > 14. **Manual Releases & Images:**
 >     - The `Release` workflow is manually started from `main` or `develop`, uses the version in `build.gradle.kts`, and creates `vX.Y.Z` Git/GitHub releases with versioned and commit-SHA GHCR images.
 >     - The `Images` workflow is manually started from `develop` and publishes only the backend and frontend `latest` images.
+
+
+---
+
+## 6. Lessons Learned & CI/CD Efficiency Rules (Preventing Multi-Step Cycles)
+
+To prevent iterative trial-and-error fix cycles and minimize redundant commits on PR branches:
+
+### 1. Mandatory Local Pre-Push Verification (Zero CI Guesswork)
+- **Never push unverified code to remote to let CI perform preliminary checks.**
+- **Backend check suite:** Before pushing any Java change, execute locally:
+  ```bash
+  ./gradlew checkstyleMain checkstyleTest test jacocoTestReport
+  ```
+  Ensure all tests pass, zero Checkstyle violations occur, and line coverage satisfies the threshold.
+- **Frontend check suite:** Before pushing any UI change, execute locally:
+  ```bash
+  cd frontend && npm run lint && npm run typecheck && npm run test && npm run build
+  ```
+
+### 2. JaCoCo Coverage Safety Buffer (Target ≥82%)
+- CI enforces a strict, non-negotiable **80.00%** minimum line coverage threshold (`ci.yml`).
+- Aiming near the 80% boundary (e.g. 80.05%) creates fragile PRs that fail upon minor refactors or dead code removal.
+- Maintain at least an **82.00%** local JaCoCo coverage buffer on touched modules. When introducing or refactoring business logic, add comprehensive unit/slice tests for both happy paths and edge/error paths in the same change before pushing.
+
+### 3. AppSec & CodeQL SSRF (CWE-918) Elimination
+- CodeQL taint-tracking flags any `java.net.http.HttpClient` or raw network socket sink receiving input tainted by request parameters, even when sanitized via indirect helper functions or stream predicates (which CodeQL does not recognize as taint barriers).
+- Always route external portal network requests through the pre-vetted, resilient `HttpFetcher` abstraction, which integrates `PortalRateLimiter`, `PortalCircuitBreaker`, and strict domain validation.
+- If direct HTTP connections are unavoidable, use compile-time literal prefix whitelisting immediately before the sink (`if (!url.startsWith("https://...")) throw ...`).
+
+### 4. Spring Boot CLI & Switch Arguments
+- In Spring Boot, boolean command-line switches like `--cli` without an explicit value (`--cli=true`) are injected into `CommandLinePropertySource` with an empty string value (`""`), **not** boolean `"true"`.
+- Never use `@ConditionalOnProperty(name = "cli", havingValue = "true")`.
+- Always use `@ConditionalOnProperty(name = "cli")` (checking only presence) and synchronize early flags via `System.setProperty("cli", "true")` in `main()` before context bootstrap.
+
+### 5. Clean Local Commit Hygiene
+- In accordance with the "Atomic Commits" rule, each commit should represent a coherent, discrete logical change.
+- Do not commit and push individual syntax error fixes, typo fixes, or trial-and-error debugging adjustments as separate remote commits. Fixes discovered during local pre-push verification must be resolved cleanly before publishing to the remote branch.
