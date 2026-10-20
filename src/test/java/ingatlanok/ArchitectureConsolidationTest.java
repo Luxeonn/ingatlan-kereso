@@ -5,11 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.core.env.Environment;
 
+import ingatlanok.IngatlanApplication;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.core.resilience.PortalCircuitBreaker;
 import ingatlanok.core.resilience.PortalRateLimiter;
@@ -23,6 +27,19 @@ class ArchitectureConsolidationTest {
   @Test
   void jacksonSupportParsesPortalJson() {
     assertEquals(42, JsonSupport.parse("{\"value\":42}").get("value").asInt());
+  }
+
+  @Test
+  void applicationReadyUsesLoopbackDisplayAddress() {
+    Environment environment = mock(Environment.class);
+    when(environment.getProperty("server.port", "8080")).thenReturn("9090");
+    when(environment.getProperty("server.address", "127.0.0.1")).thenReturn("0.0.0.0");
+    System.setProperty("open.browser", "false");
+    try {
+      new IngatlanApplication(environment).onApplicationReady();
+    } finally {
+      System.clearProperty("open.browser");
+    }
   }
 
   @Test
