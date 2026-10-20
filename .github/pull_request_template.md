@@ -1,25 +1,16 @@
-## Context & Goal
+## 🎯 Miért készült?
+<!-- 1-2 mondat a célról és az üzleti/technikai háttérről -->
 
-<!-- Briefly explain what changed and why. Plain free-form text is accepted. -->
+## 🛠️ Mit módosít / Mit javít?
+<!-- Pár tömör pontban a lényegi változások -->
+- 
 
-## Detailed Technical Changes
+## 🧪 Tesztelés és Ellenőrzés
+<!-- Futtatott helyi ellenőrzések, tesztek és verifikációs parancsok -->
 
-<!-- Optional: list the main files, modules, or behavior affected. -->
+## 🛡️ Thematic Agent Approval Gate
+- [x] **fullstack-architect**: [OK] - Indoklás.
+- [x] **scraper-security-engineer**: [OK] - Indoklás.
+- [x] **quality-devops-engineer**: [OK] - Indoklás.
 
-## Related Issues
-
-<!-- Optional: Closes #123 / Fixes #456 -->
-
-## User & Operational Impact
-
-<!-- Optional: describe any user-visible or operational impact. -->
-
-## How to Validate
-
-<!-- Optional: list checks you ran, e.g. ./gradlew check or bash scripts/validate-skills.sh. -->
-
-## Pre-Submission Checklist
-
-- [ ] PR title follows Conventional Commits (e.g. docs: clarify setup).
-- [ ] Source branch uses a descriptive name (e.g. feature/search-filter, fix/parser-timeout, docs/guide).
-- [ ] Target branch is appropriate (normally develop).
+Closes #

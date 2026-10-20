@@ -24,7 +24,7 @@ Add JUnit 5 tests under the matching `src/test/java` package and Vitest tests in
 
 ## Commits & Pull Requests
 
-Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, or `docs/`; target `develop` by default. PRs should explain context and technical changes, list validation commands, link related issues when applicable, and complete the template checklist. All required CI checks must pass before merge.
+Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, or `docs/`; target `develop` by default. PRs must use concise, high-signal Hungarian descriptions adhering strictly to the template's 4 core sections (Context/Goal, Key changes, Verification, and Thematic Agent Approval Gate with 1-sentence rationales), link related issues with closing keywords (`Closes #<id>`), and strictly enforce clean UTF-8 encoding (`gh pr create --body-file ...`) without BOM to prevent mojibake. All required CI checks must pass before merge.
 
 ## Efficient Issue Implementation & CI Validation
 
