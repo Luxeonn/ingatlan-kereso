@@ -48,6 +48,8 @@ docker compose up -d --no-build
 
 The second mode pulls `ghcr.io/luxeonn/ingatlan-kereso-backend:latest` and `ghcr.io/luxeonn/ingatlan-kereso-frontend:latest` by default. Image names can be overridden with `BACKEND_IMAGE` and `FRONTEND_IMAGE` in a local `.env` file.
 
+The `Docker Build` workflow updates these `latest` images after pushes to `develop`. To publish a versioned release, run `Docker Release` manually from `main` and select a `patch`, `minor`, `major`, or custom SemVer version. It publishes both GHCR images before creating the matching `vX.Y.Z` Git tag and GitHub Release.
+
 On Windows, `scripts/start-docker.bat` presents both modes. Open [http://localhost:8080](http://localhost:8080) when the containers are healthy. Use `docker compose logs -f backend` to follow logs and `docker compose down` to stop the stack; this keeps the database volume.
 
 ## Checks

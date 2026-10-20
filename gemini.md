@@ -65,8 +65,8 @@ ingatlan-kereso/
 │   └── workflows/
 │       ├── ci.yml                               # CI Build: backend, frontend, and minimal result gate
 │       ├── pr-build.yml                         # Required Conventional Commit PR title check
-│       ├── release.yml                          # Manual versioned release and GHCR publication
-│       └── images.yml                           # Manual develop-only latest image publication
+│       ├── release.yml                          # Main-only Docker Release with tag-derived SemVer
+│       └── images.yml                           # Automatic develop push and latest image publication
 ├── config/
 │   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 ├── scripts/
@@ -198,9 +198,9 @@ ingatlan-kereso/
 >     - If any check fails, immediately execute the **Fix Loop** (diagnose, commit fix, push, re-verify).
 > 12. **Never Auto-Merge:** The AI assistant must never run `gh pr merge` or merge branches. Merging is strictly reserved for the human repository owner.
 > 13. **Auto-Closing Linked Issues:** Always include official GitHub issue keywords (`Closes #<id>`, `Fixes #<id>`) in the PR description.
-> 14. **Manual Releases & Images:**
->     - The `Release` workflow is manually started from `main` or `develop`, uses the version in `build.gradle.kts`, and creates `vX.Y.Z` Git/GitHub releases with versioned and commit-SHA GHCR images.
->     - The `Images` workflow is manually started from `develop` and publishes only the backend and frontend `latest` images.
+> 14. **Docker Release & Build:**
+>     - `Docker Release` runs manually from `main`, calculates a semantic version from the latest Git tag plus a requested bump/custom input, publishes both images, and only then creates the `vX.Y.Z` Git tag and GitHub Release.
+>     - `Docker Build` runs automatically on pushes to `develop` and publishes backend and frontend `latest` images; it has no manual trigger.
 
 
 ---

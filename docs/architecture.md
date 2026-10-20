@@ -332,7 +332,7 @@ Backend containerization uses Eclipse Temurin JRE 25 with non-root security cont
 3. `frontend` starts only when `backend` is healthy (`depends_on: backend: condition: service_healthy`) and begins serving the SPA and reverse-proxying API traffic.
 
 ### 9.4 Clean Numeric Versioning
-- Releases follow Semantic Versioning (`1.0.0`).
+- Docker Release calculates a Semantic Version from the latest Git release tag and a `patch`, `minor`, `major`, or custom version input. Docker builds receive that version as a build argument; the Gradle project version does not select the release version.
 - Container images published to GHCR strictly emit clean numeric tags without `v` prefix (`1.0.0`, `1.0.0-<sha>`).
 
 ---
@@ -352,7 +352,7 @@ Backend containerization uses Eclipse Temurin JRE 25 with non-root security cont
 To eliminate conflicting instructions and ensure strict separation of concerns, AI code generation and PR reviews are governed by 3 specialist personas defined in `.agents/skills/`:
 1. `fullstack-architect`: System architecture, headless REST contract, Virtual Threads concurrency, Spring Data JPA persistence, React 19 UI integrity.
 2. `scraper-security-engineer`: Portal scrapers, DOM/JSON-LD parsing, Cloudflare/WAF anti-bot resilience, 0-crash error handling, AppSec (CORS, CSP, localhost binding, SSRF, input sanitization).
-3. `quality-devops-engineer`: Offline hermetic test suites, JaCoCo coverage thresholds, Checkstyle, Dockerfile and Docker Compose hardening, and the `CI Build`, `PR build`, `Release`, and `Images` workflows.
+3. `quality-devops-engineer`: Offline hermetic test suites, JaCoCo coverage thresholds, Checkstyle, Dockerfile and Docker Compose hardening, and the `CI Build`, `PR build`, `Docker Release`, and `Docker Build` workflows.
 
 ### 11.2 Standard Decision Semantics
 Specialist reviews emit standardized decision tokens:
