@@ -44,6 +44,14 @@ class HttpFetcherTest {
         });
 
     testServer.createContext(
+        "/redirect-test",
+        exchange -> {
+          exchange.getResponseHeaders().set("Location", "/test-html");
+          exchange.sendResponseHeaders(302, -1);
+          exchange.close();
+        });
+
+    testServer.createContext(
         "/test-json",
         exchange -> {
           byte[] response = "{\"status\":\"ok\",\"value\":42}".getBytes(StandardCharsets.UTF_8);
@@ -147,6 +155,14 @@ class HttpFetcherTest {
     assertNotNull(doc);
     assertEquals("Test Page", doc.title());
     assertEquals("Hello World", doc.select("h1").text());
+  }
+
+  @Test
+  @DisplayName("fetchDocument follows redirects within approved domain")
+  void testFetchDocumentRedirect() {
+    Document doc = HttpFetcher.fetchDocument(getBaseUrl() + "/redirect-test");
+    assertNotNull(doc);
+    assertEquals("Test Page", doc.title());
   }
 
   @Test

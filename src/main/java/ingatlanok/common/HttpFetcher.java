@@ -7,7 +7,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
@@ -24,21 +23,6 @@ import ingatlanok.core.resilience.PortalRateLimiter;
 public final class HttpFetcher {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
-  private static final List<String> APPROVED_PREFIXES =
-      List.of(
-          "https://dh.hu/",
-          "https://www.dh.hu/",
-          "https://oc.hu/",
-          "https://www.oc.hu/",
-          "https://jofogas.hu/",
-          "https://www.jofogas.hu/",
-          "https://ingatlan.jofogas.hu/",
-          "https://koltozzbe.hu/",
-          "https://www.koltozzbe.hu/",
-          "https://ingatlanbazar.hu/",
-          "https://www.ingatlanbazar.hu/",
-          "https://ingatlan.com/",
-          "https://www.ingatlan.com/");
 
   private static final HttpClient CLIENT =
       HttpClient.newBuilder()
@@ -84,20 +68,21 @@ public final class HttpFetcher {
     }
     String currentUrl = targetUrl.trim();
     for (int redirects = 0; redirects <= 5; redirects++) {
-      if (!isApprovedUrl(currentUrl)) {
+      String safeUrl = sanitizeUrl(currentUrl);
+      if (safeUrl == null) {
         LOGGER.warn("A portál URL nem engedélyezett: {}", currentUrl);
         return null;
       }
       URI uri;
       try {
-        uri = URI.create(currentUrl);
+        uri = URI.create(safeUrl);
       } catch (IllegalArgumentException exception) {
-        LOGGER.warn("Érvénytelen külső URL: {}", currentUrl);
+        LOGGER.warn("Érvénytelen külső URL: {}", safeUrl);
         return null;
       }
       String host = uri.getHost();
       if (host == null) {
-        LOGGER.warn("Érvénytelen külső URL (hiányzó host): {}", currentUrl);
+        LOGGER.warn("Érvénytelen külső URL (hiányzó host): {}", safeUrl);
         return null;
       }
       String normalizedHost = host.toLowerCase(Locale.ROOT);
@@ -138,7 +123,7 @@ public final class HttpFetcher {
         }
         if (status < 200 || status >= 300) {
           CIRCUIT_BREAKER.recordFailure(circuitKey);
-          LOGGER.warn("HTTP státuszkód hiba [{}] -> URL: {}", status, currentUrl);
+          LOGGER.warn("HTTP státuszkód hiba [{}] -> URL: {}", status, safeUrl);
           return null;
         }
         CIRCUIT_BREAKER.recordSuccess(circuitKey);
@@ -149,27 +134,38 @@ public final class HttpFetcher {
         return null;
       } catch (IOException | RuntimeException exception) {
         CIRCUIT_BREAKER.recordFailure(circuitKey);
-        LOGGER.warn("Hálózati hiba a portál lekérésekor [{}]: {}", currentUrl, exception.getMessage());
+        LOGGER.warn("Hálózati hiba a portál lekérésekor [{}]: {}", safeUrl, exception.getMessage());
         return null;
       }
     }
     return null;
   }
 
-  private static boolean isApprovedUrl(String url) {
+  private static String sanitizeUrl(String url) {
     if (url == null || url.isBlank()) {
-      return false;
+      return null;
     }
-    if (Boolean.getBoolean("app.test-mode")
-        && (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:"))) {
-      return true;
-    }
-    for (String prefix : APPROVED_PREFIXES) {
-      if (url.startsWith(prefix) || url.equals(prefix.substring(0, prefix.length() - 1))) {
-        return true;
+    if (Boolean.getBoolean("app.test-mode")) {
+      if (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:")) {
+        return url;
       }
     }
-    return false;
+    if (url.startsWith("https://dh.hu/")
+        || url.startsWith("https://www.dh.hu/")
+        || url.startsWith("https://oc.hu/")
+        || url.startsWith("https://www.oc.hu/")
+        || url.startsWith("https://jofogas.hu/")
+        || url.startsWith("https://www.jofogas.hu/")
+        || url.startsWith("https://ingatlan.jofogas.hu/")
+        || url.startsWith("https://koltozzbe.hu/")
+        || url.startsWith("https://www.koltozzbe.hu/")
+        || url.startsWith("https://ingatlanbazar.hu/")
+        || url.startsWith("https://www.ingatlanbazar.hu/")
+        || url.startsWith("https://ingatlan.com/")
+        || url.startsWith("https://www.ingatlan.com/")) {
+      return url;
+    }
+    return null;
   }
 
   private static String decode(byte[] body, String encoding) throws IOException {
