@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.presentation.PortalStatusDto;
 
 public class SearchResult implements Serializable {

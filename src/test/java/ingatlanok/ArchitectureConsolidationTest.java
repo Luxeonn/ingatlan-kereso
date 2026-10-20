@@ -2,13 +2,19 @@ package ingatlanok;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.core.resilience.PortalCircuitBreaker;
 import ingatlanok.core.resilience.PortalRateLimiter;
+import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.persistence.OffsetPageRequest;
 
 class ArchitectureConsolidationTest {
@@ -57,5 +63,47 @@ class ArchitectureConsolidationTest {
     assertThrows(IllegalArgumentException.class, () -> new OffsetPageRequest(-1, 5, null));
     assertThrows(IllegalArgumentException.class, () -> new OffsetPageRequest(0, 0, null));
     assertThrows(IllegalArgumentException.class, () -> request.withPage(-1));
+  }
+
+  @Test
+  void portalScrapeResultFactoriesAndAccessorsPreserveScrapeDetails() {
+    IngatlanItem item = new IngatlanItem();
+    PortalScrapeResult success = PortalScrapeResult.success("demo", "Demo", List.of(item), 12);
+    assertEquals(PortalScrapeStatus.SUCCESS, success.getStatus());
+    assertEquals(1, success.getItems().size());
+    assertEquals(200, success.getHttpStatusCode());
+
+    PortalScrapeResult empty = PortalScrapeResult.success("demo", "Demo", List.of(), 13);
+    assertEquals(PortalScrapeStatus.EMPTY, empty.getStatus());
+    assertEquals(PortalScrapeStatus.EMPTY, PortalScrapeResult.empty("demo", "Demo", "/", 14).getStatus());
+    assertEquals(
+        PortalScrapeStatus.BOT_PROTECTED,
+        PortalScrapeResult.botProtected("demo", "Demo", "/", 15).getStatus());
+    assertEquals(
+        PortalScrapeStatus.SPA_FALLBACK,
+        PortalScrapeResult.spaFallback("demo", "Demo", "/", 16).getStatus());
+    assertEquals(
+        500, PortalScrapeResult.failure("demo", "Demo", "error", 17).getHttpStatusCode());
+    assertEquals(
+        429,
+        PortalScrapeResult.failure("demo", "Demo", "error", 18, 429, "/").getHttpStatusCode());
+
+    success.setPortalId("other");
+    success.setPortalName("Other");
+    success.setStatus(PortalScrapeStatus.FAILED);
+    success.setItems(null);
+    success.setFallbackUrl("/fallback");
+    success.setMessage("message");
+    success.setExecutionTimeMs(42);
+    success.setHttpStatusCode(503);
+    success.setTechnicalDetails("details");
+    assertEquals("other", success.getPortalId());
+    assertEquals("Other", success.getPortalName());
+    assertNull(success.getItems());
+    assertEquals("/fallback", success.getFallbackUrl());
+    assertEquals("message", success.getMessage());
+    assertEquals(42, success.getExecutionTimeMs());
+    assertEquals(503, success.getHttpStatusCode());
+    assertEquals("details", success.getTechnicalDetails());
   }
 }

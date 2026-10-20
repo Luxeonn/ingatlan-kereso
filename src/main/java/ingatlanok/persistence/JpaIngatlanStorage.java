@@ -30,10 +30,10 @@ import ingatlanok.persistence.repository.ConfigRepository;
 import ingatlanok.persistence.repository.PriceHistoryRepository;
 import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
-import ingatlanok.persistence.service.PriceHistoryTracker.PriceDeltaCalculation;
 import ingatlanok.persistence.service.PriceHistoryTracker;
-import ingatlanok.persistence.service.StatusLogTracker.StatusDecision;
+import ingatlanok.persistence.service.PriceHistoryTracker.PriceDeltaCalculation;
 import ingatlanok.persistence.service.StatusLogTracker;
+import ingatlanok.persistence.service.StatusLogTracker.StatusDecision;
 import ingatlanok.persistence.specification.PropertySpecifications;
 
 @Service
