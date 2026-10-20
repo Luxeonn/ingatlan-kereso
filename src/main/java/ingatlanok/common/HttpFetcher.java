@@ -68,21 +68,36 @@ public final class HttpFetcher {
     }
     String currentUrl = targetUrl.trim();
     for (int redirects = 0; redirects <= 5; redirects++) {
-      String safeUrl = sanitizeUrl(currentUrl);
-      if (safeUrl == null) {
+      boolean allowed =
+          currentUrl.startsWith("https://dh.hu/")
+              || currentUrl.startsWith("https://www.dh.hu/")
+              || currentUrl.startsWith("https://oc.hu/")
+              || currentUrl.startsWith("https://www.oc.hu/")
+              || currentUrl.startsWith("https://jofogas.hu/")
+              || currentUrl.startsWith("https://www.jofogas.hu/")
+              || currentUrl.startsWith("https://ingatlan.jofogas.hu/")
+              || currentUrl.startsWith("https://koltozzbe.hu/")
+              || currentUrl.startsWith("https://www.koltozzbe.hu/")
+              || currentUrl.startsWith("https://ingatlanbazar.hu/")
+              || currentUrl.startsWith("https://www.ingatlanbazar.hu/")
+              || currentUrl.startsWith("https://ingatlan.com/")
+              || currentUrl.startsWith("https://www.ingatlan.com/")
+              || (Boolean.getBoolean("app.test-mode")
+                  && (currentUrl.startsWith("http://127.0.0.1:") || currentUrl.startsWith("http://localhost:")));
+      if (!allowed) {
         LOGGER.warn("A portál URL nem engedélyezett: {}", currentUrl);
         return null;
       }
       URI uri;
       try {
-        uri = URI.create(safeUrl);
+        uri = URI.create(currentUrl);
       } catch (IllegalArgumentException exception) {
-        LOGGER.warn("Érvénytelen külső URL: {}", safeUrl);
+        LOGGER.warn("Érvénytelen külső URL: {}", currentUrl);
         return null;
       }
       String host = uri.getHost();
       if (host == null) {
-        LOGGER.warn("Érvénytelen külső URL (hiányzó host): {}", safeUrl);
+        LOGGER.warn("Érvénytelen külső URL (hiányzó host): {}", currentUrl);
         return null;
       }
       String normalizedHost = host.toLowerCase(Locale.ROOT);
@@ -123,7 +138,7 @@ public final class HttpFetcher {
         }
         if (status < 200 || status >= 300) {
           CIRCUIT_BREAKER.recordFailure(circuitKey);
-          LOGGER.warn("HTTP státuszkód hiba [{}] -> URL: {}", status, safeUrl);
+          LOGGER.warn("HTTP státuszkód hiba [{}] -> URL: {}", status, currentUrl);
           return null;
         }
         CIRCUIT_BREAKER.recordSuccess(circuitKey);
@@ -134,36 +149,9 @@ public final class HttpFetcher {
         return null;
       } catch (IOException | RuntimeException exception) {
         CIRCUIT_BREAKER.recordFailure(circuitKey);
-        LOGGER.warn("Hálózati hiba a portál lekérésekor [{}]: {}", safeUrl, exception.getMessage());
+        LOGGER.warn("Hálózati hiba a portál lekérésekor [{}]: {}", currentUrl, exception.getMessage());
         return null;
       }
-    }
-    return null;
-  }
-
-  private static String sanitizeUrl(String url) {
-    if (url == null || url.isBlank()) {
-      return null;
-    }
-    if (Boolean.getBoolean("app.test-mode")) {
-      if (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:")) {
-        return url;
-      }
-    }
-    if (url.startsWith("https://dh.hu/")
-        || url.startsWith("https://www.dh.hu/")
-        || url.startsWith("https://oc.hu/")
-        || url.startsWith("https://www.oc.hu/")
-        || url.startsWith("https://jofogas.hu/")
-        || url.startsWith("https://www.jofogas.hu/")
-        || url.startsWith("https://ingatlan.jofogas.hu/")
-        || url.startsWith("https://koltozzbe.hu/")
-        || url.startsWith("https://www.koltozzbe.hu/")
-        || url.startsWith("https://ingatlanbazar.hu/")
-        || url.startsWith("https://www.ingatlanbazar.hu/")
-        || url.startsWith("https://ingatlan.com/")
-        || url.startsWith("https://www.ingatlan.com/")) {
-      return url;
     }
     return null;
   }
