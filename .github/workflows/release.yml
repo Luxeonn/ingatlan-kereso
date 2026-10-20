@@ -1,7 +1,22 @@
-name: Release
+name: Docker Release
 
 on:
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Semantic version increment
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: Custom release version, for example 1.1.0-RELEASE
+        required: false
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
@@ -16,13 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require main or develop
+      - name: Require main branch
         env:
           REF_TYPE: ${{ github.ref_type }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          if [ "$REF_TYPE" != "branch" ] || { [ "$BRANCH" != "main" ] && [ "$BRANCH" != "develop" ]; }; then
-            echo "Release must be started from the main or develop branch."
+          if [ "$REF_TYPE" != "branch" ] || [ "$BRANCH" != "main" ]; then
+            echo "Docker Release must be started from the main branch."
             exit 1
           fi
 
@@ -32,6 +47,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       run_all: true
+      skip_container_scan: true
     permissions:
       contents: read
       pull-requests: read
@@ -56,42 +72,56 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Compare project version with latest branch release
+      - name: Calculate release version from latest Git tag
         id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
+          BUMP: ${{ inputs.bump }}
+          CUSTOM_VERSION: ${{ inputs.custom_version }}
         run: |
           set -euo pipefail
           git fetch --force --tags origin
 
-          VERSION=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' build.gradle.kts | head -n 1)
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "build.gradle.kts must declare a numeric X.Y.Z release version."
-            exit 1
-          fi
-
           LATEST_TAG=""
           while IFS= read -r CANDIDATE_TAG; do
-            if [[ "$CANDIDATE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            if [[ "$CANDIDATE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
               LATEST_TAG="$CANDIDATE_TAG"
             fi
-          done < <(git tag --merged "$GITHUB_SHA" --list 'v*' | sort -V)
+          done < <(git tag --list 'v*' | sort -V)
+
+          LATEST_VERSION="${LATEST_TAG#v}"
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_VERSION="0.0.0"
+          fi
+
+          case "$BUMP" in
+            patch|minor|major)
+              IFS=. read -r MAJOR MINOR PATCH <<< "${LATEST_VERSION%%[-+]*}"
+              case "$BUMP" in
+                patch) PATCH=$((PATCH + 1)) ;;
+                minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+                major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              esac
+              VERSION="$MAJOR.$MINOR.$PATCH"
+              ;;
+            custom)
+              VERSION="$CUSTOM_VERSION"
+              ;;
+            *)
+              echo "Unsupported version bump: $BUMP"
+              exit 1
+              ;;
+          esac
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Version must follow X.Y.Z with an optional SemVer suffix."
+            exit 1
+          fi
 
           TAG="v${VERSION}"
           SHORT_SHA="$(git rev-parse --short=7 "$GITHUB_SHA")"
           REPOSITORY_LOWER="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
           SHOULD_RELEASE=true
-
-          if [ -n "$LATEST_TAG" ]; then
-            LATEST_VERSION="${LATEST_TAG#v}"
-            if [ "$VERSION" = "$LATEST_VERSION" ]; then
-              SHOULD_RELEASE=false
-            elif [ "$(printf '%s\n' "$LATEST_VERSION" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
-              echo "Version $VERSION is older than the latest release $LATEST_TAG on $BRANCH."
-              exit 1
-            fi
-          fi
 
           if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
             TAG_SHA="$(git rev-list -n 1 "$TAG")"
@@ -114,43 +144,9 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
           echo "repository_lower=$REPOSITORY_LOWER" >> "$GITHUB_OUTPUT"
 
-  create-tag:
-    name: Create release tag
-    needs: prepare
-    if: needs.prepare.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout selected branch commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-
-      - name: Create or verify release tag
-        env:
-          TAG: ${{ needs.prepare.outputs.tag }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          set -euo pipefail
-          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
-            TAG_SHA="$(git rev-list -n 1 "$TAG")"
-            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
-              echo "Tag $TAG already points to a different commit."
-              exit 1
-            fi
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -a "$TAG" "$GITHUB_SHA" -m "Release $TAG"
-            git push origin "refs/tags/$TAG"
-          fi
-
   publish:
     name: Publish release image (${{ matrix.component }})
-    needs: [prepare, create-tag]
+    needs: prepare
     if: needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -198,10 +194,45 @@ jobs:
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          build-args: |
+            APP_VERSION=${{ needs.prepare.outputs.version }}
+
+  create-tag:
+    name: Create release tag
+    needs: [prepare, publish]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout selected branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Create or verify release tag
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              echo "Tag $TAG already points to a different commit."
+              exit 1
+            fi
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" "$GITHUB_SHA" -m "Release $TAG"
+            git push origin "refs/tags/$TAG"
+          fi
 
   create-github-release:
     name: Create GitHub Release
-    needs: [prepare, publish]
+    needs: [prepare, publish, create-tag]
     if: needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5

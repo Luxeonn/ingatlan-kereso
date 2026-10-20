@@ -25,7 +25,7 @@ plugins {
 }
 
 group = "hu.pushinsky.viktor"
-version = "1.0.0"
+version = providers.gradleProperty("releaseVersion").getOrElse("1.0.0")
 
 extra["tomcat.version"] = "11.0.27"
 extra["jackson-bom.version"] = "3.1.7"
@@ -137,5 +137,5 @@ tasks.withType<Checkstyle> {
 tasks.bootJar {
     archiveBaseName.set("ingatlan")
     archiveClassifier.set("")
-    archiveVersion.set("1.0.0")
+    archiveVersion.set(project.version.toString())
 }

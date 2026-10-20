@@ -13,6 +13,8 @@ The backend is a Java 25 Spring Boot application. Production code lives in `src/
 - `cd frontend && npm run lint && npm run typecheck && npm run test && npm run build` runs frontend CI checks.
 - `cd frontend && npm run test:e2e` runs Playwright browser tests.
 
+Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`), which runs on pushes to `develop`, and `.github/workflows/release.yml` (`Docker Release`), which is manually started from `main`. Releases derive their version from the latest Git release tag and a patch/minor/major/custom input; GHCR publication must succeed before the Git tag and GitHub Release are created.
+
 ## Style & Naming
 
 Follow the existing Java package and class structure. Checkstyle 10.21.4 is strict: use spaces (no tabs), keep Java lines within 120 characters, group and sort imports, and avoid wildcard imports, `System.out`/`System.err`, and `printStackTrace()`. Use descriptive PascalCase Java type names and camelCase members. Frontend components use `.tsx` with PascalCase names; hooks use `use`-prefixed camelCase. Keep generated API types generated from the OpenAPI spec rather than editing them by hand.
