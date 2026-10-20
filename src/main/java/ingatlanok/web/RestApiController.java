@@ -27,6 +27,7 @@ import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.ListingStorage;
+import ingatlanok.persistence.PropertySearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
