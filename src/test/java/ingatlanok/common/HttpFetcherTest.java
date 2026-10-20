@@ -114,6 +114,16 @@ class HttpFetcherTest {
   }
 
   @Test
+  @DisplayName("fetch methods reject malformed URLs and unapproved destinations")
+  void testFetchRejectsMalformedAndUnapprovedUrls() {
+    assertNull(HttpFetcher.fetchJson("http://example.com"));
+    assertNull(HttpFetcher.fetchJson("https://example.org"));
+    assertNull(HttpFetcher.fetchJson("not a valid URI["));
+    assertNull(HttpFetcher.fetchJson("https://dh.hu", 0));
+    assertNull(HttpFetcher.fetchDocument("https://dh.hu", 0));
+  }
+
+  @Test
   @DisplayName("fetchDocument successfully downloads HTML and parses Document")
   void testFetchDocumentSuccess() {
     Document doc = HttpFetcher.fetchDocument(getBaseUrl() + "/test-html");

@@ -39,12 +39,16 @@ class ArchitectureConsolidationTest {
     PortalRateLimiter limiter = new PortalRateLimiter();
     System.setProperty("scraper.rate.test.portal", "20");
     System.setProperty("scraper.rate.invalid.portal", "not-a-number");
+    System.setProperty("scraper.rate.wait.portal", "1");
     try {
       limiter.acquire("test.portal");
       limiter.acquire("invalid.portal");
+      limiter.acquire("wait.portal");
+      limiter.acquire("wait.portal");
     } finally {
       System.clearProperty("scraper.rate.test.portal");
       System.clearProperty("scraper.rate.invalid.portal");
+      System.clearProperty("scraper.rate.wait.portal");
     }
   }
 
