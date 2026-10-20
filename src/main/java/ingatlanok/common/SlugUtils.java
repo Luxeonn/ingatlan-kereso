@@ -21,7 +21,14 @@ public final class SlugUtils {
     }
     String noAccents = stripAccents(text.trim().toLowerCase(Locale.ROOT));
     String slug = noAccents.replaceAll("[^a-z0-9]+", "-");
-    slug = slug.replaceAll("^-+|-+$", "");
-    return slug;
+    int start = 0;
+    while (start < slug.length() && slug.charAt(start) == '-') {
+      start++;
+    }
+    int end = slug.length();
+    while (end > start && slug.charAt(end - 1) == '-') {
+      end--;
+    }
+    return slug.substring(start, end);
   }
 }

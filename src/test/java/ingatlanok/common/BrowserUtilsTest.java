@@ -21,6 +21,16 @@ class BrowserUtilsTest {
   }
 
   @Test
+  @DisplayName("openUrl rejects unapproved schemes and untrusted domains")
+  void testOpenUrlDomainAndSchemeValidation() {
+    assertFalse(BrowserUtils.openUrl("ftp://dh.hu/ingatlan/123"));
+    assertFalse(BrowserUtils.openUrl("file:///etc/passwd"));
+    assertFalse(BrowserUtils.openUrl("https://evil-attacker.com/exploit"));
+    assertFalse(BrowserUtils.openUrl("javascript:alert(1)"));
+    assertFalse(BrowserUtils.openUrl("http://"));
+  }
+
+  @Test
   @DisplayName("openUrls returns empty list for null or empty collections")
   void testOpenUrlsEmptyCollection() {
     List<String> resultNull = BrowserUtils.openUrls(null, 5);
