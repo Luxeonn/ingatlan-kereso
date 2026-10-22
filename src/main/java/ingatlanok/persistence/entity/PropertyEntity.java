@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(
@@ -71,13 +72,19 @@ public class PropertyEntity implements Serializable {
   @Column(length = 2048)
   private String imageUrl;
 
+  @Column(nullable = false)
+  @ColumnDefault("false")
   private boolean newConstruction;
 
   @Column(length = 50)
   private String discoveredAt;
 
+  @Column(nullable = false)
+  @ColumnDefault("false")
   private boolean isNew;
 
+  @Column(nullable = false)
+  @ColumnDefault("false")
   private boolean viewed;
 
   @Column(length = 50)
