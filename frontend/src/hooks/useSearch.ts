@@ -13,14 +13,18 @@ import { useFilterStore, SortOption } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
 
 export function normalizePortalKey(portalOrId?: string | null): string {
-  const s = (portalOrId || '').toLowerCase()
-  if (s.includes('dh') || s.includes('duna')) return 'dh'
-  if (s.includes('oc') || s.includes('otthon')) return 'oc'
-  if (s.includes('jofogas') || s.includes('jófogás')) return 'jofogas'
-  if (s.includes('ingatlanbazar') || s.includes('ingatlanbazár') || s.includes('bazar')) return 'ingatlanbazar'
-  if (s.includes('koltozzbe') || s.includes('költözzbe')) return 'koltozzbe'
-  if (s.includes('ingatlancom') || s.includes('ingatlan.com')) return 'ingatlancom'
-  return s.replace(/[^a-z0-9]/g, '')
+  const cleaned = (portalOrId || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+  if (cleaned.includes('dh') || cleaned.includes('duna')) return 'dh'
+  if (cleaned.includes('oc') || cleaned.includes('otthon')) return 'oc'
+  if (cleaned.includes('jofogas')) return 'jofogas'
+  if (cleaned.includes('ingatlanbazar') || cleaned.includes('bazar')) return 'ingatlanbazar'
+  if (cleaned.includes('koltozzbe')) return 'koltozzbe'
+  if (cleaned.includes('ingatlancom')) return 'ingatlancom'
+  return cleaned
 }
 
 export function normalizeSearchText(str?: string | null): string {
