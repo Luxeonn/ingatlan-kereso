@@ -19,7 +19,7 @@ Ensure every code change is covered by deterministic, network-independent tests;
 
 Activate this skill for any task, pull request, or code review affecting any of the following:
 
-- **CI/CD workflows and actions**: `.github/workflows/**` (`ci.yml`, `pr-build.yml`, `release.yml`, `images.yml`)
+- **CI/CD workflows and actions**: `.github/workflows/**` (`ci.yml`, `dependency-submission.yml`, `pr-build.yml`, `release.yml`, `images.yml`)
 - **PR template and verification scripts**: `.github/pull_request_template.md`, `.github/scripts/**` (`calculate-jacoco.sh`)
 - **Containerization configuration**: `Dockerfile*`, `docker-compose.yml`, `frontend/Dockerfile`, `frontend/nginx.conf`
 - **Automation and runtime scripts**: `scripts/**` (`validate-skills.sh`, `smoke-test-docker-compose.sh`, `start-docker.*`)
