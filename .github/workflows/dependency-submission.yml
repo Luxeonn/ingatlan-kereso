@@ -1,0 +1,50 @@
+name: Dependency Submission
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - '.github/workflows/dependency-submission.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  submit-gradle:
+    name: Submit Gradle dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          java-version: '25'
+          distribution: temurin
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+
+      - name: Generate and submit dependency graph
+        uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        with:
+          cache-read-only: ${{ github.event_name != 'push' || (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop') }}
+          dependency-graph: generate-and-submit
+          add-job-summary: never
