@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jakarta.persistence.Column;
+import org.hibernate.annotations.ColumnDefault;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +24,7 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.persistence.entity.PropertyEntity;
 
 @SpringBootTest
 @DisplayName("JpaIngatlanStorage Integration Tests")
@@ -516,7 +520,7 @@ class JpaIngatlanStorageTest {
 
   @Test
   @DisplayName("ConfigStorage roundtrip for search criteria")
-  void testConfigStorage() {
+  void testConfigStorage() throws NoSuchFieldException {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Budapest", "Debrecen"));
     criteria.setMaxPriceMillion(80);
@@ -529,5 +533,15 @@ class JpaIngatlanStorageTest {
     assertEquals(List.of("Budapest", "Debrecen"), loaded.getCities());
     assertEquals(80, loaded.getMaxPriceMillion());
     assertEquals(45, loaded.getMinArea());
+
+    for (String fieldName : List.of("newConstruction", "isNew", "viewed")) {
+      Field field = PropertyEntity.class.getDeclaredField(fieldName);
+      Column column = field.getAnnotation(Column.class);
+      assertNotNull(column, "Missing @Column on " + fieldName);
+      assertFalse(column.nullable(), "Expected nullable = false on " + fieldName);
+      ColumnDefault colDefault = field.getAnnotation(ColumnDefault.class);
+      assertNotNull(colDefault, "Missing @ColumnDefault on " + fieldName);
+      assertEquals("false", colDefault.value(), "Expected default 'false' on " + fieldName);
+    }
   }
 }
