@@ -452,4 +452,143 @@ class SearchExecutionEngineTest {
             .orElseThrow();
     assertFalse(usedInR2.isNew(), "A meglévő nem-újépítésű hirdetés nem lehet hamisan ÚJ");
   }
+
+  @Test
+  @DisplayName(
+      "portalCounts a releváns és deduplikált darabszámot mutatja, összege megegyezik a totalFound"
+          + " értékkel (#251)")
+  void testPortalCountsReflectRelevantAndDeduplicatedItems() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+
+    PortalEngine dhEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "dh", "Duna House", "#008638", "https://dh.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            IngatlanItem relevant =
+                new IngatlanItem(
+                    "dh1",
+                    PortalSource.of("Duna House"),
+                    "https://dh.hu/ingatlan/1",
+                    "Megfelelő lakás",
+                    new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                    criteria.getCity(),
+                    new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                    "2026-10-20 10:00:00",
+                    false);
+            IngatlanItem duplicate =
+                new IngatlanItem(
+                    "dh1-dup",
+                    PortalSource.of("Duna House"),
+                    "https://dh.hu/ingatlan/1",
+                    "Duplikált lakás",
+                    new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                    criteria.getCity(),
+                    new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                    "2026-10-20 10:00:00",
+                    false);
+            IngatlanItem outOfPrice =
+                new IngatlanItem(
+                    "dh2",
+                    PortalSource.of("Duna House"),
+                    "https://dh.hu/ingatlan/2",
+                    "Túl drága lakás",
+                    new PriceInfo("150 M Ft", 150_000_000L, 150.0),
+                    criteria.getCity(),
+                    new PropertyDetails("60 m²", 60.0, 2.0, 2_500_000L),
+                    "2026-10-20 10:00:00",
+                    false);
+            return PortalScrapeResult.success(
+                "dh", "Duna House", List.of(relevant, duplicate, outOfPrice), 120);
+          }
+        };
+
+    PortalEngine ibEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "ingatlanbazar",
+                "Ingatlanbazár",
+                "#7c3aed",
+                "https://ingatlanbazar.hu",
+                true,
+                List.of("lakas"),
+                true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            IngatlanItem relevant1 =
+                new IngatlanItem(
+                    "ib1",
+                    PortalSource.of("Ingatlanbazár"),
+                    "https://ingatlanbazar.hu/1",
+                    "IB lakás 1",
+                    new PriceInfo("45 M Ft", 45_000_000L, 45.0),
+                    criteria.getCity(),
+                    new PropertyDetails("55 m²", 55.0, 2.0, 818_181L),
+                    "2026-10-20 10:00:00",
+                    false);
+            relevant1.setNewConstruction(true);
+            IngatlanItem usedFilteredByView =
+                new IngatlanItem(
+                    "ib2",
+                    PortalSource.of("Ingatlanbazár"),
+                    "https://ingatlanbazar.hu/2",
+                    "IB használt lakás",
+                    new PriceInfo("48 M Ft", 48_000_000L, 48.0),
+                    criteria.getCity(),
+                    new PropertyDetails("58 m²", 58.0, 2.0, 827_586L),
+                    "2026-10-20 10:00:00",
+                    false);
+            usedFilteredByView.setNewConstruction(false);
+            return PortalScrapeResult.success(
+                "ingatlanbazar",
+                "Ingatlanbazár",
+                List.of(relevant1, usedFilteredByView),
+                90);
+          }
+        };
+
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine, ibEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            new MarketAnalyticsEngine());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen"));
+    criteria.setPortals(List.of("dh", "ingatlanbazar"));
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(70);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(100);
+    criteria.setOnlyNewConstruction(true);
+
+    // dh1 nem újépítésű -> view filter kiszűri (0 marad), ib1 újépítésű -> 1 marad
+    SearchResult r1 = engine.executeSearch(criteria);
+    assertEquals(1, r1.getTotalFound());
+    assertEquals(0, r1.getPortalCounts().get("Duna House"));
+    assertEquals(1, r1.getPortalCounts().get("Ingatlanbazár"));
+    int sum1 = r1.getPortalCounts().values().stream().mapToInt(Integer::intValue).sum();
+    assertEquals(r1.getTotalFound(), sum1);
+
+    // Második futás onlyNewConstruction=false mellett: dh=1 (duplikált és túl drága kiszűrve), ib=2
+    criteria.setOnlyNewConstruction(false);
+    SearchResult r2 = engine.executeSearch(criteria);
+    assertEquals(3, r2.getTotalFound());
+    assertEquals(1, r2.getPortalCounts().get("Duna House"));
+    assertEquals(2, r2.getPortalCounts().get("Ingatlanbazár"));
+    int sum2 = r2.getPortalCounts().values().stream().mapToInt(Integer::intValue).sum();
+    assertEquals(r2.getTotalFound(), sum2);
+  }
 }

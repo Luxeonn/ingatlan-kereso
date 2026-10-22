@@ -203,6 +203,10 @@ public class IngatlanBazarJsonParser {
                 || PropertyParser.isNewConstructionText(title, fullUrl);
         item.setNewConstruction(isNewBuild);
 
+        if (criteria != null && !criteria.matchesRelevance(item)) {
+          continue;
+        }
+
         result.add(item);
       }
     } catch (Exception e) {
