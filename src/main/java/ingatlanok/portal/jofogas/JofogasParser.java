@@ -16,12 +16,15 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalHtmlParser;
+import ingatlanok.portal.PortalSupport;
 
-public class JofogasParser {
+public class JofogasParser implements PortalHtmlParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("_(\\d+)\\.htm");
   private static final PortalSource SOURCE = PortalSource.of("Jófogás Ingatlan");
 
+  @Override
   public List<IngatlanItem> parseItems(
       Document document, SearchCriteria criteria, String executionTime, Set<String> processedUrls) {
     List<IngatlanItem> items = new ArrayList<>();
@@ -36,15 +39,9 @@ public class JofogasParser {
         continue;
       }
 
-      String fullLink =
-          href.startsWith("http")
-              ? href
-              : JofogasUrlBuilder.BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-      if (processedUrls != null && processedUrls.contains(fullLink)) {
+      String fullLink = PortalSupport.resolveUrl(JofogasUrlBuilder.BASE_URL, href);
+      if (!PortalSupport.markProcessed(processedUrls, fullLink)) {
         continue;
-      }
-      if (processedUrls != null) {
-        processedUrls.add(fullLink);
       }
 
       String cardText = a.text().replaceAll("\\s+", " ").trim();
@@ -57,7 +54,7 @@ public class JofogasParser {
               fullLink, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
       PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
       PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
-      String city = criteria != null ? criteria.getCity() : "Debrecen";
+      String city = PortalSupport.resolveDefaultCity(criteria);
       String title = null;
       Element heading = a.selectFirst("h1, h2, h3, h4, h5");
       if (heading != null && !heading.text().isBlank()) {
@@ -71,12 +68,7 @@ public class JofogasParser {
           new IngatlanItem(
               id, SOURCE, fullLink, title, priceInfo, city, detailsInfo, executionTime, false);
       item.setLocation(city);
-
-      String imageUrl = PropertyParser.extractImageUrl(a);
-      if (imageUrl == null && a.parent() != null) {
-        imageUrl = PropertyParser.extractImageUrl(a.parent());
-      }
-      item.setImageUrl(imageUrl);
+      item.setImageUrl(PortalSupport.extractImageWithFallback(a, JofogasUrlBuilder.BASE_URL));
       item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
 
       if (criteria != null && !criteria.matches(item)) {
@@ -94,7 +86,8 @@ public class JofogasParser {
       String sanitized = text.replaceAll("<[^>]*>", "").trim();
       int mFtIndex = sanitized.indexOf("M Ft");
       if (mFtIndex > 0) {
-        String prefix = sanitized.substring(0, mFtIndex).replaceAll("\\d+[,.]?\\d*\\s*$", "").trim();
+        String prefix =
+            sanitized.substring(0, mFtIndex).replaceAll("\\d+[,.]?\\d*\\s*$", "").trim();
         if (prefix.length() > 5) {
           return prefix;
         }

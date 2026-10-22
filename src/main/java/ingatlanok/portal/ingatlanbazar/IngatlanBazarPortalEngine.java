@@ -1,7 +1,5 @@
 package ingatlanok.portal.ingatlanbazar;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -14,6 +12,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.PortalSupport;
 
 public class IngatlanBazarPortalEngine implements PortalEngine {
 
@@ -55,20 +54,18 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
       SearchCriteria criteria, java.util.function.Function<String, String> jsonFetcher) {
     long startTime = System.currentTimeMillis();
     List<IngatlanItem> items = new ArrayList<>();
-    if (criteria == null) {
-      criteria = new SearchCriteria();
-    }
+    SearchCriteria safeCriteria = PortalSupport.normalizeCriteria(criteria);
 
-    String fallbackUrl = queryBuilder.buildSearchUrl(criteria);
+    String fallbackUrl = queryBuilder.buildSearchUrl(safeCriteria);
     LOGGER.info("Ingatlanbazár keresés indítása: {}", fallbackUrl);
 
     int maxPages = 2;
-    String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+    String now = PortalSupport.nowTimestamp();
     Set<String> processedUrls = new HashSet<>();
 
     try {
       for (int page = 1; page <= maxPages; page++) {
-        String apiUrl = queryBuilder.buildApiSearchUrl(criteria, page);
+        String apiUrl = queryBuilder.buildApiSearchUrl(safeCriteria, page);
         LOGGER.debug("Ingatlanbazár REST API lekérdezése (oldal: {}): {}", page, apiUrl);
         String json = jsonFetcher.apply(apiUrl);
 
@@ -81,13 +78,15 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
                 DESCRIPTOR.id(),
                 DESCRIPTOR.name(),
                 "Nem sikerült elérni az Ingatlanbazár REST API-t",
-                elapsed);
+                elapsed,
+                500,
+                fallbackUrl);
           }
           break;
         }
 
         List<IngatlanItem> pageItems =
-            jsonParser.parseItemsFromJson(json, criteria, processedUrls, now);
+            jsonParser.parseItemsFromJson(json, safeCriteria, processedUrls, now);
         items.addAll(pageItems);
 
         if (pageItems.size() < 50) {
@@ -107,7 +106,7 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
       long elapsed = System.currentTimeMillis() - startTime;
       LOGGER.error("Hiba az Ingatlanbazár scraping során [{} ms]: {}", elapsed, e.getMessage(), e);
       return PortalScrapeResult.failure(
-          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed);
+          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed, 500, fallbackUrl);
     }
   }
 
