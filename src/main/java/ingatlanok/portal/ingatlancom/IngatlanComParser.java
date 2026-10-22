@@ -94,7 +94,7 @@ public class IngatlanComParser implements PortalHtmlParser {
           PortalSupport.extractImageWithFallback(card, IngatlanComUrlBuilder.BASE_URL));
       item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
 
-      if (criteria != null && !criteria.matches(item)) {
+      if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
       }
 

@@ -205,19 +205,11 @@ public class SearchCriteria implements Serializable {
   }
 
   public boolean matches(IngatlanItem item) {
+    return matchesRelevance(item) && matchesView(item);
+  }
+
+  public boolean matchesRelevance(IngatlanItem item) {
     if (item == null) {
-      return false;
-    }
-
-    if (excludeViewed && item.isViewed()) {
-      return false;
-    }
-
-    if (onlyDiscounted && !item.isDiscounted()) {
-      return false;
-    }
-
-    if (onlyNewConstruction && !item.isNewConstruction()) {
       return false;
     }
 
@@ -238,6 +230,26 @@ public class SearchCriteria implements Serializable {
     String targetCity = getCity();
     if (targetCity != null && !targetCity.isBlank()) {
       return matchesCity(item, targetCity);
+    }
+
+    return true;
+  }
+
+  public boolean matchesView(IngatlanItem item) {
+    if (item == null) {
+      return false;
+    }
+
+    if (excludeViewed && item.isViewed()) {
+      return false;
+    }
+
+    if (onlyDiscounted && !item.isDiscounted()) {
+      return false;
+    }
+
+    if (onlyNewConstruction && !item.isNewConstruction()) {
+      return false;
     }
 
     return true;

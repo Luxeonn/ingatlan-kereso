@@ -356,6 +356,31 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
 
   @Override
   @Transactional(readOnly = true)
+  public Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
+    if (urls == null || urls.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    List<String> cleanedUrls =
+        urls.stream()
+            .filter(u -> u != null && !u.isBlank())
+            .map(String::trim)
+            .distinct()
+            .toList();
+    if (cleanedUrls.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    Map<String, IngatlanItem> result = new HashMap<>();
+    for (PropertyEntity entity : propertyRepo.findByUrlIn(cleanedUrls)) {
+      IngatlanItem item = mapper.toItem(entity);
+      if (item != null && item.getUrl() != null) {
+        result.put(item.getUrl(), item);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  @Transactional(readOnly = true)
   public SearchCriteria getLastCriteria() {
     return configRepo
         .findById(CONFIG_KEY_LAST_CRITERIA)

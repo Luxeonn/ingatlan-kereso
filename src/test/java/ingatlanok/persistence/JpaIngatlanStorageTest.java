@@ -544,4 +544,86 @@ class JpaIngatlanStorageTest {
       assertEquals("false", colDefault.value(), "Expected default 'false' on " + fieldName);
     }
   }
+
+  @Test
+  @DisplayName("findByUrls returns persisted items in a single batch and SearchExecutionEngine enriches state")
+  void testFindByUrlsAndSearchExecutionEngineIntegration() {
+    assertEquals(Map.of(), storage.findByUrls(null));
+    assertEquals(Map.of(), storage.findByUrls(List.of()));
+    assertEquals(Map.of(), storage.findByUrls(List.of(" ", "")));
+
+    java.util.concurrent.atomic.AtomicReference<Long> priceHufRef =
+        new java.util.concurrent.atomic.AtomicReference<>(50_000_000L);
+    ingatlanok.portal.PortalEngine stubEngine =
+        new ingatlanok.portal.PortalEngine() {
+          @Override
+          public ingatlanok.portal.PortalDescriptor getDescriptor() {
+            return new ingatlanok.portal.PortalDescriptor(
+                "dh", "Duna House", "#ef4444", "https://dh.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public ingatlanok.model.PortalScrapeResult scrape(SearchCriteria criteria) {
+            long huf = priceHufRef.get();
+            double m = huf / 1_000_000.0;
+            IngatlanItem item =
+                createItem(
+                    "dh_int",
+                    "https://dh.hu/int-1",
+                    "Duna House",
+                    "Debrecen",
+                    "Debreceni lakás",
+                    m + " M Ft",
+                    huf,
+                    m,
+                    "60 m2, 2 szoba",
+                    60.0,
+                    2.0,
+                    "2026-03-01 10:00:00");
+            return ingatlanok.model.PortalScrapeResult.success("dh", "Duna House", List.of(item), 5);
+          }
+        };
+
+    ingatlanok.core.SearchExecutionEngine searchEngine =
+        new ingatlanok.core.SearchExecutionEngine(
+            new ingatlanok.portal.PortalEngineRegistry(List.of(stubEngine)),
+            storage,
+            storage,
+            new ingatlanok.core.PropertyFilterEngine(),
+            new ingatlanok.core.DeduplicationEngine(storage),
+            new ingatlanok.core.MarketAnalyticsEngine());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen"));
+    criteria.setPortals(List.of("dh"));
+    criteria.setMinPriceMillion(30);
+    criteria.setMaxPriceMillion(70);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(100);
+
+    // 1. futás: 50 M Ft baseline
+    ingatlanok.model.SearchResult r1 = searchEngine.executeSearch(criteria);
+    assertEquals(1, r1.getItems().size());
+    assertEquals(0L, r1.getItems().get(0).getPriceDelta());
+
+    // Megjelöljük megtekintettként
+    assertTrue(storage.markAsViewed("https://dh.hu/int-1"));
+
+    // 2. futás: ár csökken 45 M Ft-ra, onlyDiscounted=true
+    priceHufRef.set(45_000_000L);
+    criteria.setOnlyDiscounted(true);
+    ingatlanok.model.SearchResult r2 = searchEngine.executeSearch(criteria);
+    assertEquals(1, r2.getItems().size());
+    IngatlanItem enriched = r2.getItems().get(0);
+    assertEquals(-5_000_000L, enriched.getPriceDelta());
+    assertEquals(-10.0, enriched.getPriceChangePercent());
+    assertEquals("PRICE_DROP", enriched.getStatus());
+    assertTrue(enriched.isViewed());
+    assertNotNull(enriched.getViewedAt());
+
+    // 3. futás: excludeViewed=true -> kiszűri a megtekintett elemet
+    criteria.setExcludeViewed(true);
+    ingatlanok.model.SearchResult r3 = searchEngine.executeSearch(criteria);
+    assertEquals(0, r3.getItems().size());
+  }
 }

@@ -340,5 +340,19 @@ class PropertyFilterEngineTest {
     assertEquals(1, result.filteredByNewConstructionCount());
     org.junit.jupiter.api.Assertions.assertFalse(criteria.matches(usedHome));
     assertTrue(criteria.matches(newBuild));
+    assertTrue(criteria.matchesRelevance(usedHome));
+    assertTrue(criteria.matchesRelevance(newBuild));
+    org.junit.jupiter.api.Assertions.assertFalse(criteria.matchesView(usedHome));
+    assertTrue(criteria.matchesView(newBuild));
+
+    PropertyFilterEngine.FilterResult relevanceOnly =
+        filterEngine.filterRelevance(List.of(usedHome, newBuild), criteria, "Debrecen");
+    assertEquals(2, relevanceOnly.matchingItems().size());
+    assertEquals(0, relevanceOnly.filteredByNewConstructionCount());
+
+    PropertyFilterEngine.FilterResult viewOnly =
+        filterEngine.filterView(relevanceOnly.matchingItems(), criteria);
+    assertEquals(1, viewOnly.matchingItems().size());
+    assertEquals(1, viewOnly.filteredByNewConstructionCount());
   }
 }

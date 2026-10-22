@@ -71,7 +71,7 @@ public class JofogasParser implements PortalHtmlParser {
       item.setImageUrl(PortalSupport.extractImageWithFallback(a, JofogasUrlBuilder.BASE_URL));
       item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
 
-      if (criteria != null && !criteria.matches(item)) {
+      if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
       }
 
