@@ -64,6 +64,7 @@ ingatlan-kereso/
 │   ├── pull_request_template.md                 # PR checklist
 │   └── workflows/
 │       ├── ci.yml                               # CI Build: backend, frontend, and minimal result gate
+│       ├── dependency-submission.yml            # Gradle dependency graph submission with scoped cache policy
 │       ├── pr-build.yml                         # Required Conventional Commit PR title check
 │       ├── release.yml                          # Main-only Docker Release with tag-derived SemVer
 │       └── images.yml                           # Automatic develop push and latest image publication
