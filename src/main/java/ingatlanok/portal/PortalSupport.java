@@ -38,13 +38,11 @@ public final class PortalSupport {
   }
 
   public static String resolveAsciiCapitalizedCity(String rawCity) {
-    String city = (rawCity == null || rawCity.isBlank()) ? "Debrecen" : rawCity.trim();
-    String stripped = SlugUtils.stripAccents(city).replaceAll("[^A-Za-z0-9\\-]+", "-");
-    String clean = stripped.replaceAll("^-+|-+$", "");
-    if (clean.isEmpty()) {
+    String slug = SlugUtils.toSlug(rawCity);
+    if (slug.isEmpty()) {
       return "Debrecen";
     }
-    return Character.toUpperCase(clean.charAt(0)) + clean.substring(1).toLowerCase(Locale.ROOT);
+    return Character.toUpperCase(slug.charAt(0)) + slug.substring(1);
   }
 
   public static String resolvePropertyTypeSlug(SearchCriteria criteria) {
