@@ -1,6 +1,6 @@
 import type { FC, FormEvent } from 'react'
 import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react'
-import { useFilterStore } from '../../store/useFilterStore'
+import { useFilterStore, DEFAULT_PORTALS } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
 import { CitySelector } from './CitySelector'
 import { PropertyTypeTabs } from './PropertyTypeTabs'
@@ -14,10 +14,15 @@ interface SearchPanelProps {
   isLoading: boolean
 }
 
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  lakas: 'Lakás',
+  haz: 'Családi ház',
+  telek: 'Telek',
+}
+
 export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   const {
     criteria,
-    sortOption,
     onlyNew,
     addCity,
     removeCity,
@@ -30,8 +35,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
     togglePortal,
     setAllPortals,
     setAutoOpen,
-    setExcludeViewed,
-    setSortOption,
+    setOnlyNewConstruction,
     setOnlyNew,
   } = useFilterStore()
 
@@ -41,6 +45,11 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
     e.preventDefault()
     onSearch()
   }
+
+  const citiesSummary =
+    criteria.cities && criteria.cities.length > 0 ? criteria.cities.join(', ') : criteria.city || 'Debrecen'
+  const typeLabel =
+    PROPERTY_TYPE_LABELS[(criteria.propertyType || 'lakas').toLowerCase()] || criteria.propertyType
 
   return (
     <form
@@ -64,6 +73,46 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
           {isFiltersCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
         </button>
       </div>
+
+      {/* Collapsed summary bar (#157) */}
+      {isFiltersCollapsed && (
+        <div
+          data-testid="collapsed-filter-summary"
+          className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--text-secondary)]"
+        >
+          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-semibold text-[var(--text-primary)]">
+            <span>📍</span>
+            <span>{citiesSummary}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+            <span>🏠</span>
+            <span>{typeLabel}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+            <span>💰</span>
+            <span>
+              {criteria.minPriceMillion} - {criteria.maxPriceMillion} M Ft
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+            <span>📐</span>
+            <span>
+              {criteria.minArea} - {criteria.maxArea} m²
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+            <span>🌐</span>
+            <span>
+              {criteria.portals.length}/{DEFAULT_PORTALS.length} portál
+            </span>
+          </span>
+          {criteria.onlyNewConstruction && (
+            <span className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-1 font-semibold text-cyan-400">
+              <span>🏗️ Új építésű</span>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Main filters content */}
       {!isFiltersCollapsed && (
@@ -125,16 +174,14 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
             onSelectAll={setAllPortals}
           />
 
-          {/* Quick toggles & Sort */}
+          {/* Search-specific Quick toggles */}
           <QuickToggles
             onlyNew={onlyNew}
             onToggleOnlyNew={setOnlyNew}
-            excludeViewed={criteria.excludeViewed}
-            onToggleExcludeViewed={setExcludeViewed}
+            onlyNewConstruction={Boolean(criteria.onlyNewConstruction)}
+            onToggleOnlyNewConstruction={setOnlyNewConstruction}
             autoOpen={criteria.autoOpenBrowser}
             onToggleAutoOpen={setAutoOpen}
-            sortOption={sortOption}
-            onChangeSortOption={setSortOption}
           />
         </div>
       )}

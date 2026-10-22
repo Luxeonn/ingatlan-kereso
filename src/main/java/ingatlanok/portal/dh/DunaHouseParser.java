@@ -95,7 +95,11 @@ public class DunaHouseParser {
       if (imageUrl == null && a.parent() != null) {
         imageUrl = PropertyParser.extractImageUrl(a.parent());
       }
+      if (imageUrl != null && imageUrl.startsWith("/")) {
+        imageUrl = DunaHouseUrlBuilder.BASE_URL + imageUrl;
+      }
       item.setImageUrl(imageUrl);
+      item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
 
       if (criteria != null && !criteria.matches(item)) {
         continue;
@@ -111,7 +115,7 @@ public class DunaHouseParser {
     if (text != null && text.contains("|")) {
       String[] parts = text.split("\\|");
       if (parts.length > 0 && !parts[0].isBlank()) {
-        return parts[0].replace("Új ", "").trim();
+        return parts[0].replaceFirst("(?i)^Új\\s+(?!építés)", "").trim();
       }
     }
     return defaultCity + " - Eladó ingatlan (" + id + ")";

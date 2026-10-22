@@ -86,4 +86,28 @@ class PropertyParserTest {
         PropertyParser.extractFirstGroup("https://dh.hu/nincs-id", pattern, "fallback"));
     assertEquals("fallback", PropertyParser.extractFirstGroup(null, pattern, "fallback"));
   }
+
+  @Test
+  void testExtractImageUrlAndNewConstructionText() {
+    org.jsoup.nodes.Document doc =
+        org.jsoup.Jsoup.parse(
+            "<div><img data-src=\"//cdn.dh.hu/img1.jpg\" src=\"data:image/png;base64,xxx\" /></div>"
+                + "<div id=\"srcset-div\"><img srcset=\"https://oc.hu/a.jpg 1x, https://oc.hu/b.jpg 2x\" /></div>");
+    assertEquals(
+        "https://cdn.dh.hu/img1.jpg", PropertyParser.extractImageUrl(doc.selectFirst("div")));
+    assertEquals(
+        "https://oc.hu/a.jpg", PropertyParser.extractImageUrl(doc.selectFirst("#srcset-div")));
+    assertNull(PropertyParser.extractImageUrl(null));
+
+    org.junit.jupiter.api.Assertions.assertTrue(
+        PropertyParser.isNewConstructionText("Eladó új építésű lakás Debrecenben"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        PropertyParser.isNewConstructionText("Szerkezetkész ikerház eladó"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        PropertyParser.isNewConstructionText("Ujepitesu lakopark projekt"));
+    org.junit.jupiter.api.Assertions.assertFalse(
+        PropertyParser.isNewConstructionText("Felújított panellakás", null, ""));
+    org.junit.jupiter.api.Assertions.assertFalse(
+        PropertyParser.isNewConstructionText((String[]) null));
+  }
 }

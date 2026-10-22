@@ -375,6 +375,8 @@ export interface components {
             excludeViewed: boolean;
             /** @default false */
             onlyDiscounted: boolean;
+            /** @default false */
+            onlyNewConstruction: boolean;
         };
         MarketStatsDto: {
             averagePriceMillion?: number;
@@ -400,6 +402,7 @@ export interface components {
             viewed?: boolean;
             viewedAt?: string;
             imageUrl?: string;
+            newConstruction?: boolean;
             status?: string;
             priceDelta?: number;
             priceChangePercent?: number;
@@ -559,6 +562,8 @@ export interface operations {
                 maxRooms?: number;
                 /** @description Megtekintett hirdetések kizárása */
                 excludeViewed?: boolean;
+                /** @description Csak új építésű ingatlanok */
+                onlyNewConstruction?: boolean;
                 /** @description Rendezési sorrend (pl. DISCOVERED_DESC, PRICE_ASC, PRICE_PER_M2_ASC) */
                 sortBy?: string;
                 /** @description Maximális találati szám lapozáshoz */

@@ -22,6 +22,7 @@ public class SearchCriteria implements Serializable {
   private boolean autoOpenBrowser = false;
   private boolean excludeViewed = false;
   private boolean onlyDiscounted = false;
+  private boolean onlyNewConstruction = false;
 
   public SearchCriteria() {
 
@@ -96,6 +97,7 @@ public class SearchCriteria implements Serializable {
     clone.setAutoOpenBrowser(this.autoOpenBrowser);
     clone.setExcludeViewed(this.excludeViewed);
     clone.setOnlyDiscounted(this.onlyDiscounted);
+    clone.setOnlyNewConstruction(this.onlyNewConstruction);
     return clone;
   }
 
@@ -105,6 +107,14 @@ public class SearchCriteria implements Serializable {
 
   public void setOnlyDiscounted(boolean onlyDiscounted) {
     this.onlyDiscounted = onlyDiscounted;
+  }
+
+  public boolean isOnlyNewConstruction() {
+    return onlyNewConstruction;
+  }
+
+  public void setOnlyNewConstruction(boolean onlyNewConstruction) {
+    this.onlyNewConstruction = onlyNewConstruction;
   }
 
   public String getPropertyType() {
@@ -204,6 +214,10 @@ public class SearchCriteria implements Serializable {
     }
 
     if (onlyDiscounted && !item.isDiscounted()) {
+      return false;
+    }
+
+    if (onlyNewConstruction && !item.isNewConstruction()) {
       return false;
     }
 

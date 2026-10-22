@@ -18,7 +18,27 @@ public class PropertyFilterEngine {
       int filteredByAreaCount,
       int filteredByViewedCount,
       int filteredByCityCount,
-      int filteredByDiscountCount) {
+      int filteredByDiscountCount,
+      int filteredByNewConstructionCount) {
+    public FilterResult(
+        List<IngatlanItem> matchingItems,
+        int totalInputCount,
+        int filteredByPriceCount,
+        int filteredByAreaCount,
+        int filteredByViewedCount,
+        int filteredByCityCount,
+        int filteredByDiscountCount) {
+      this(
+          matchingItems,
+          totalInputCount,
+          filteredByPriceCount,
+          filteredByAreaCount,
+          filteredByViewedCount,
+          filteredByCityCount,
+          filteredByDiscountCount,
+          0);
+    }
+
     public FilterResult(
         List<IngatlanItem> matchingItems,
         int totalInputCount,
@@ -33,6 +53,7 @@ public class PropertyFilterEngine {
           filteredByAreaCount,
           filteredByViewedCount,
           filteredByCityCount,
+          0,
           0);
     }
   }
@@ -40,7 +61,7 @@ public class PropertyFilterEngine {
   public FilterResult filter(List<IngatlanItem> items, SearchCriteria criteria, String targetCity) {
     List<IngatlanItem> matching = new ArrayList<>();
     if (items == null || items.isEmpty()) {
-      return new FilterResult(matching, 0, 0, 0, 0, 0, 0);
+      return new FilterResult(matching, 0, 0, 0, 0, 0, 0, 0);
     }
 
     int filteredPrice = 0;
@@ -48,6 +69,7 @@ public class PropertyFilterEngine {
     int filteredViewed = 0;
     int filteredCity = 0;
     int filteredDiscount = 0;
+    int filteredNewConstruction = 0;
 
     for (IngatlanItem item : items) {
       if (item == null) {
@@ -68,6 +90,11 @@ public class PropertyFilterEngine {
 
       if (criteria != null && criteria.isOnlyDiscounted() && !item.isDiscounted()) {
         filteredDiscount++;
+        continue;
+      }
+
+      if (criteria != null && criteria.isOnlyNewConstruction() && !item.isNewConstruction()) {
+        filteredNewConstruction++;
         continue;
       }
 
@@ -112,6 +139,7 @@ public class PropertyFilterEngine {
         filteredArea,
         filteredViewed,
         filteredCity,
-        filteredDiscount);
+        filteredDiscount,
+        filteredNewConstruction);
   }
 }

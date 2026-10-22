@@ -212,6 +212,7 @@ class RestApiControllerIntegrationTest {
                 .param("maxArea", "100.0")
                 .param("minRooms", "1.0")
                 .param("maxRooms", "3.0")
+                .param("onlyNewConstruction", "true")
                 .param("sortBy", "PRICE_ASC")
                 .param("limit", "10")
                 .param("offset", "0"))

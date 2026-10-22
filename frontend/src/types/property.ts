@@ -53,6 +53,7 @@ export interface IngatlanItem {
   viewed?: boolean
   viewedAt?: string
   imageUrl?: string
+  newConstruction?: boolean
   status?: string
   priceDelta?: number
   priceChangePercent?: number

@@ -489,6 +489,7 @@ class JpaIngatlanStorageTest {
             90.0,
             3.0,
             "2026-03-02");
+    i1.setNewConstruction(true);
     storage.saveAll(List.of(i1, i2));
 
     PropertySearchCriteria filter =
@@ -503,12 +504,14 @@ class JpaIngatlanStorageTest {
             null,
             false,
             false,
+            true,
             "PRICE_ASC",
             0,
             20);
     List<IngatlanItem> result = storage.findByCriteria(filter);
     assertEquals(1, result.size());
     assertEquals("https://dh.hu/f1", result.get(0).getUrl());
+    assertTrue(result.get(0).isNewConstruction());
   }
 
   @Test

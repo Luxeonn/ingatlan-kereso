@@ -39,6 +39,7 @@ public class JpaEntityMapper {
     item.setViewed(entity.isViewed());
     item.setViewedAt(entity.getViewedAt());
     item.setImageUrl(entity.getImageUrl());
+    item.setNewConstruction(entity.isNewConstruction());
     item.setStatus(entity.getStatus());
     item.setPriceDelta(entity.getPriceDelta());
     item.setPriceChangePercent(entity.getPriceChangePercent());
@@ -117,6 +118,8 @@ public class JpaEntityMapper {
     entity.setAreaSqm(di != null ? di.getAreaSquareMeters() : null);
     entity.setRooms(di != null ? di.getRoomCount() : null);
     entity.setImageUrl(item.getImageUrl());
+    entity.setNewConstruction(
+        item.isNewConstruction() || (!isNew && existing.isNewConstruction()));
     entity.setNew(item.isNew());
     entity.setViewed(finalViewed);
     entity.setViewedAt(finalViewedAt);

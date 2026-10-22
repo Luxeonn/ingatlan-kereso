@@ -193,10 +193,16 @@ public final class PropertyParser {
     if (img == null) {
       return null;
     }
-    String[] attrs = {"data-src", "data-original", "data-lazy-src", "src"};
+    String[] attrs = {"data-src", "data-original", "data-lazy-src", "src", "data-srcset", "srcset"};
     for (String attr : attrs) {
       String src = img.attr(attr);
       if (src != null && !src.isBlank() && !src.startsWith("data:image")) {
+        if (attr.endsWith("srcset")) {
+          src = src.split(",")[0].trim().split("\\s+")[0].trim();
+        }
+        if (src.isBlank() || src.startsWith("data:image")) {
+          continue;
+        }
         if (src.startsWith("//")) {
           return "https:" + src;
         }
@@ -204,5 +210,26 @@ public final class PropertyParser {
       }
     }
     return null;
+  }
+
+  public static boolean isNewConstructionText(String... texts) {
+    if (texts == null) {
+      return false;
+    }
+    for (String text : texts) {
+      if (text == null || text.isBlank()) {
+        continue;
+      }
+      String slug = SlugUtils.toSlug(text);
+      if (slug.contains("uj-epitesu")
+          || slug.contains("ujepitesu")
+          || slug.contains("szerkezetkesz")
+          || slug.contains("kulcsrakesz-uj")
+          || slug.contains("uj-projekt")
+          || slug.contains("lakopark-projekt")) {
+        return true;
+      }
+    }
+    return false;
   }
 }
