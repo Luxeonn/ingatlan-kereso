@@ -16,12 +16,15 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalHtmlParser;
+import ingatlanok.portal.PortalSupport;
 
-public class DunaHouseParser {
+public class DunaHouseParser implements PortalHtmlParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/([A-Za-z0-9\\-]+)");
   private static final PortalSource SOURCE = PortalSource.of("Duna House");
 
+  @Override
   public List<IngatlanItem> parseItems(
       Document document, SearchCriteria criteria, String executionTime, Set<String> processedUrls) {
     List<IngatlanItem> items = new ArrayList<>();
@@ -36,19 +39,13 @@ public class DunaHouseParser {
         continue;
       }
 
-      String fullLink =
-          href.startsWith("http")
-              ? href
-              : DunaHouseUrlBuilder.BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+      String fullLink = PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href);
       if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+/.*")
           && !fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+$")) {
         continue;
       }
-      if (processedUrls != null && processedUrls.contains(fullLink)) {
+      if (!PortalSupport.markProcessed(processedUrls, fullLink)) {
         continue;
-      }
-      if (processedUrls != null) {
-        processedUrls.add(fullLink);
       }
 
       String cardText = a.text().replaceAll("\\s+", " ").trim();
@@ -74,7 +71,7 @@ public class DunaHouseParser {
       String actualCity =
           (extractedCity != null && !extractedCity.isBlank())
               ? extractedCity
-              : (criteria != null ? criteria.getCity() : "Debrecen");
+              : PortalSupport.resolveDefaultCity(criteria);
 
       String title = cleanTitle(cardText, actualCity, id);
 
@@ -90,15 +87,7 @@ public class DunaHouseParser {
               executionTime,
               false);
       item.setLocation(actualCity);
-
-      String imageUrl = PropertyParser.extractImageUrl(a);
-      if (imageUrl == null && a.parent() != null) {
-        imageUrl = PropertyParser.extractImageUrl(a.parent());
-      }
-      if (imageUrl != null && imageUrl.startsWith("/")) {
-        imageUrl = DunaHouseUrlBuilder.BASE_URL + imageUrl;
-      }
-      item.setImageUrl(imageUrl);
+      item.setImageUrl(PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL));
       item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
 
       if (criteria != null && !criteria.matches(item)) {

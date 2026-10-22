@@ -1,7 +1,5 @@
 package ingatlanok.portal.ingatlancom;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +16,7 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.sidecar.SidecarCliExecutor;
 import ingatlanok.portal.sidecar.SidecarResponse;
 
@@ -61,33 +60,29 @@ public class IngatlanComPortalEngine implements PortalEngine {
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
     long startTime = System.currentTimeMillis();
     List<IngatlanItem> items = new ArrayList<>();
-    if (criteria == null) {
-      criteria = new SearchCriteria();
-    }
+    SearchCriteria safeCriteria = PortalSupport.normalizeCriteria(criteria);
 
-    String searchUrl = urlBuilder.buildSearchUrl(criteria);
+    String searchUrl = urlBuilder.buildSearchUrl(safeCriteria);
     LOGGER.info("Ingatlan.com keresés indítása: {}", searchUrl);
 
-    String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+    String now = PortalSupport.nowTimestamp();
     Set<String> processedUrls = new HashSet<>();
 
     if (SidecarCliExecutor.isAvailable()) {
       LOGGER.info("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása...");
       try {
         Optional<SidecarResponse> sidecarResp =
-            SidecarCliExecutor.execute(DESCRIPTOR.id(), criteria);
+            SidecarCliExecutor.execute(DESCRIPTOR.id(), safeCriteria);
         if (sidecarResp.isPresent() && sidecarResp.get().isSuccess()) {
           SidecarResponse resp = sidecarResp.get();
           for (SidecarResponse.SidecarItem sidecarItem : resp.getItems()) {
-            if (sidecarItem.getUrl() == null || sidecarItem.getUrl().isBlank()) {
-              continue;
-            }
-            if (!processedUrls.add(sidecarItem.getUrl())) {
+            if (!PortalSupport.markProcessed(processedUrls, sidecarItem.getUrl())) {
               continue;
             }
 
-            IngatlanItem item = sidecarItem.toIngatlanItem(SOURCE, criteria.getCity(), now, false);
-            if (criteria.matches(item)) {
+            IngatlanItem item =
+                sidecarItem.toIngatlanItem(SOURCE, safeCriteria.getCity(), now, false);
+            if (safeCriteria.matches(item)) {
               items.add(item);
             }
           }
@@ -127,7 +122,7 @@ public class IngatlanComPortalEngine implements PortalEngine {
             DESCRIPTOR.id(), DESCRIPTOR.name(), searchUrl, elapsed);
       }
 
-      items = parser.parseItems(document, criteria, now, processedUrls);
+      items = parser.parseItems(document, safeCriteria, now, processedUrls);
       long elapsed = System.currentTimeMillis() - startTime;
 
       if (items.isEmpty()) {
@@ -146,7 +141,7 @@ public class IngatlanComPortalEngine implements PortalEngine {
       long elapsed = System.currentTimeMillis() - startTime;
       LOGGER.error("Hiba az Ingatlan.com keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
       return PortalScrapeResult.failure(
-          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed);
+          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed, 500, searchUrl);
     }
   }
 

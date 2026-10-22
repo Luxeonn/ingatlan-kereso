@@ -1,7 +1,5 @@
 package ingatlanok.portal.jofogas;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,6 +13,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.PortalSupport;
 
 public class JofogasPortalEngine implements PortalEngine {
 
@@ -54,8 +53,9 @@ public class JofogasPortalEngine implements PortalEngine {
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
     long startTime = System.currentTimeMillis();
+    String searchUrl = null;
     try {
-      String searchUrl = urlBuilder.buildSearchUrl(criteria);
+      searchUrl = urlBuilder.buildSearchUrl(criteria);
       LOGGER.info("Jófogás Ingatlan keresés indítása: {}", searchUrl);
 
       Document document = documentFetcher.apply(searchUrl);
@@ -64,21 +64,29 @@ public class JofogasPortalEngine implements PortalEngine {
         LOGGER.warn(
             "Nem sikerült letölteni a Jófogás keresési oldalt [{} ms]: {}", elapsed, searchUrl);
         return PortalScrapeResult.failure(
-            DESCRIPTOR.id(), DESCRIPTOR.name(), "Nem sikerült letölteni az oldalt", elapsed);
+            DESCRIPTOR.id(),
+            DESCRIPTOR.name(),
+            "Nem sikerült letölteni az oldalt",
+            elapsed,
+            500,
+            searchUrl);
       }
 
-      String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+      String now = PortalSupport.nowTimestamp();
       Set<String> processed = new HashSet<>();
       List<IngatlanItem> items = parser.parseItems(document, criteria, now, processed);
 
       long elapsed = System.currentTimeMillis() - startTime;
       LOGGER.info("jofogas.hu Találatok száma: {} db [{} ms]", items.size(), elapsed);
+      if (items.isEmpty()) {
+        return PortalScrapeResult.empty(DESCRIPTOR.id(), DESCRIPTOR.name(), searchUrl, elapsed);
+      }
       return PortalScrapeResult.success(DESCRIPTOR.id(), DESCRIPTOR.name(), items, elapsed);
     } catch (Exception e) {
       long elapsed = System.currentTimeMillis() - startTime;
       LOGGER.error("Hiba a Jófogás keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
       return PortalScrapeResult.failure(
-          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed);
+          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed, 500, searchUrl);
     }
   }
 

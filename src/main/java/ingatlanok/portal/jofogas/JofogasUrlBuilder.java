@@ -8,11 +8,14 @@ import java.util.Optional;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalSupport;
+import ingatlanok.portal.PortalUrlBuilder;
 
-public class JofogasUrlBuilder {
+public class JofogasUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://ingatlan.jofogas.hu";
 
+  @Override
   public String buildSearchUrl(SearchCriteria criteria) {
     if (criteria == null) {
       throw new IllegalArgumentException("SearchCriteria must not be null");
@@ -27,7 +30,7 @@ public class JofogasUrlBuilder {
     }
 
     String locationSegment;
-    if (citySlug.equals("budapest")) {
+    if ("budapest".equals(citySlug)) {
       locationSegment = "budapest";
     } else {
       Optional<String> countySlug = CityUtils.getCountySlug(criteria.getCity());
@@ -40,16 +43,7 @@ public class JofogasUrlBuilder {
       }
     }
 
-    String rawType =
-        criteria.getPropertyType() != null
-            ? criteria.getPropertyType().toLowerCase().trim()
-            : "lakas";
-    String typeSlug =
-        switch (rawType) {
-          case "haz" -> "haz";
-          case "telek" -> "telek";
-          default -> "lakas";
-        };
+    String typeSlug = PortalSupport.resolvePropertyTypeSlug(criteria);
 
     List<String> queryParams = new ArrayList<>();
     queryParams.add("st=s");

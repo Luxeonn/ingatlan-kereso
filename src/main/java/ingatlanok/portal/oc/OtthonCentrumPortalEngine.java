@@ -1,7 +1,5 @@
 package ingatlanok.portal.oc;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,6 +13,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.PortalSupport;
 
 public class OtthonCentrumPortalEngine implements PortalEngine {
 
@@ -54,11 +53,9 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
     long startTime = System.currentTimeMillis();
-    if (criteria == null) {
-      criteria = new SearchCriteria();
-    }
+    SearchCriteria safeCriteria = PortalSupport.normalizeCriteria(criteria);
 
-    String searchUrl = urlBuilder.buildSearchUrl(criteria);
+    String searchUrl = urlBuilder.buildSearchUrl(safeCriteria);
     LOGGER.info("Otthon Centrum keresés indítása: {}", searchUrl);
 
     try {
@@ -70,18 +67,23 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
             elapsed,
             searchUrl);
         return PortalScrapeResult.failure(
-            DESCRIPTOR.id(), DESCRIPTOR.name(), "Nem sikerült letölteni az oldalt", elapsed);
+            DESCRIPTOR.id(),
+            DESCRIPTOR.name(),
+            "Nem sikerült letölteni az oldalt",
+            elapsed,
+            500,
+            searchUrl);
       }
 
-      String now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+      String now = PortalSupport.nowTimestamp();
       Set<String> processed = new HashSet<>();
-      List<IngatlanItem> items = parser.parseItems(document, criteria, now, processed);
+      List<IngatlanItem> items = parser.parseItems(document, safeCriteria, now, processed);
 
       long elapsed = System.currentTimeMillis() - startTime;
       if (items.isEmpty()) {
         LOGGER.info(
             "oc.hu: Nincs közvetlen találat a(z) {} keresésre [{} ms]",
-            criteria.getCity(),
+            safeCriteria.getCity(),
             elapsed);
         return PortalScrapeResult.empty(DESCRIPTOR.id(), DESCRIPTOR.name(), searchUrl, elapsed);
       }
@@ -92,7 +94,7 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
       long elapsed = System.currentTimeMillis() - startTime;
       LOGGER.error("Hiba az Otthon Centrum keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
       return PortalScrapeResult.failure(
-          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed);
+          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed, 500, searchUrl);
     }
   }
 
