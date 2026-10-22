@@ -26,15 +26,29 @@ describe('PriceStepper component', () => {
     expect(handleChange).toHaveBeenCalledWith(72)
   })
 
-  it('allows arbitrary numeric manual input', () => {
+  it('allows arbitrary numeric manual input without mid-typing clamping', () => {
     const handleChange = vi.fn()
-    render(<PriceStepper label="Minimális ár" value={70} onChange={handleChange} />)
-    const input = screen.getByDisplayValue('70')
-    fireEvent.change(input, { target: { value: '112' } })
-    expect(handleChange).toHaveBeenCalledWith(112)
+    render(<PriceStepper label="Maximális ár" value={120} onChange={handleChange} min={0} />)
+    const input = screen.getByDisplayValue('120')
+    fireEvent.change(input, { target: { value: '2' } })
+    expect(handleChange).toHaveBeenCalledWith(2)
+    fireEvent.change(input, { target: { value: '200' } })
+    expect(handleChange).toHaveBeenCalledWith(200)
   })
 
-  it('respects min and max bounds', () => {
+  it('allows temporarily clearing input while typing and restores on blur if left empty', () => {
+    const handleChange = vi.fn()
+    render(<PriceStepper label="Maximális ár" value={120} onChange={handleChange} />)
+    const input = screen.getByDisplayValue('120') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input.value).toBe('')
+    expect(handleChange).not.toHaveBeenCalled()
+
+    fireEvent.blur(input)
+    expect(input.value).toBe('120')
+  })
+
+  it('respects min and max bounds on stepper buttons', () => {
     const handleChange = vi.fn()
     const { rerender } = render(
       <PriceStepper label="Minimális ár" value={10} onChange={handleChange} min={10} max={100} step={1} />

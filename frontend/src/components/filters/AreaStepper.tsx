@@ -1,4 +1,4 @@
-import type { ChangeEvent, FC } from 'react'
+import { useState, type ChangeEvent, type FC } from 'react'
 import { Minus, Plus } from 'lucide-react'
 
 interface AreaStepperProps {
@@ -15,22 +15,43 @@ export const AreaStepper: FC<AreaStepperProps> = ({
   value,
   onChange,
   min = 1,
-  max = 1000,
+  max,
   step = 1,
 }) => {
+  const [draftValue, setDraftValue] = useState<string | null>(null)
+
   const handleDecrement = () => {
-    onChange(Math.max(min, value - step))
+    const next = min !== undefined ? Math.max(min, value - step) : value - step
+    setDraftValue(null)
+    onChange(next)
   }
 
   const handleIncrement = () => {
-    onChange(Math.min(max, value + step))
+    const next = max !== undefined ? Math.min(max, value + step) : value + step
+    setDraftValue(null)
+    onChange(next)
   }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const num = Number(e.target.value)
-    if (!isNaN(num)) {
-      onChange(Math.max(min, Math.min(max, num)))
+    const val = e.target.value
+    setDraftValue(val)
+    if (val.trim() === '' || val.trim() === '-') {
+      return
     }
+    const num = Number(val)
+    if (Number.isFinite(num)) {
+      onChange(num)
+    }
+  }
+
+  const handleBlur = () => {
+    if (draftValue !== null && draftValue.trim() !== '' && draftValue.trim() !== '-') {
+      const num = Number(draftValue)
+      if (Number.isFinite(num)) {
+        onChange(num)
+      }
+    }
+    setDraftValue(null)
   }
 
   return (
@@ -51,11 +72,12 @@ export const AreaStepper: FC<AreaStepperProps> = ({
         <div className="relative flex flex-1 items-center justify-center">
           <input
             type="number"
-            value={value}
+            value={draftValue ?? String(value)}
             min={min}
             max={max}
             step={step}
             onChange={handleChange}
+            onBlur={handleBlur}
             className="w-full bg-transparent text-center font-bold text-[var(--text-primary)] focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="pointer-events-none absolute right-2 text-xs font-medium text-[var(--text-secondary)]">
