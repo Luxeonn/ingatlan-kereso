@@ -141,6 +141,13 @@ paths:
             type: boolean
             default: false
           description: Megtekintett hirdetések kizárása
+        - name: onlyNewConstruction
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Csak új építésű ingatlanok
         - name: sortBy
           in: query
           required: false
@@ -698,6 +705,9 @@ components:
         onlyDiscounted:
           type: boolean
           default: false
+        onlyNewConstruction:
+          type: boolean
+          default: false
 
     MarketStatsDto:
       type: object
@@ -754,6 +764,8 @@ components:
           type: string
         imageUrl:
           type: string
+        newConstruction:
+          type: boolean
         status:
           type: string
         priceDelta:

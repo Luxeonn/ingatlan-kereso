@@ -92,6 +92,8 @@ public class KoltozzbeParser {
             new IngatlanItem(lid, SOURCE, fullUrl, title, priceInfo, city, details, now, false);
         item.setLocation(city);
         item.setImageUrl(imageUrl);
+        item.setNewConstruction(
+            PropertyParser.isNewConstructionText(card.text(), title, fullUrl));
 
         if (criteria != null && !criteria.matches(item)) {
           continue;
@@ -183,6 +185,7 @@ public class KoltozzbeParser {
               new IngatlanItem(id, SOURCE, url, name, priceInfo, city, details, now, false);
           item.setLocation(city);
           item.setImageUrl(imageUrl);
+          item.setNewConstruction(PropertyParser.isNewConstructionText(name, url));
 
           if (criteria == null || criteria.matches(item)) {
             items.add(item);

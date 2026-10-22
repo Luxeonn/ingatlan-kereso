@@ -18,6 +18,7 @@ public class IngatlanItem implements Serializable {
   private boolean viewed;
   private String viewedAt;
   private String imageUrl;
+  private boolean newConstruction;
   private String status = "ACTIVE";
   private Long priceDelta;
   private Double priceChangePercent;
@@ -236,6 +237,14 @@ public class IngatlanItem implements Serializable {
 
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;
+  }
+
+  public boolean isNewConstruction() {
+    return newConstruction;
+  }
+
+  public void setNewConstruction(boolean newConstruction) {
+    this.newConstruction = newConstruction;
   }
 
   public String getStatus() {

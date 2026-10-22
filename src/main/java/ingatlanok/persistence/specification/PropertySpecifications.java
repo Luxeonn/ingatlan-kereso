@@ -54,6 +54,9 @@ public final class PropertySpecifications {
     if (criteria.onlyDiscounted()) {
       spec = spec.and((root, query, cb) -> cb.lt(root.get("priceDelta"), 0L));
     }
+    if (criteria.onlyNewConstruction()) {
+      spec = spec.and((root, query, cb) -> cb.isTrue(root.get("newConstruction")));
+    }
     return spec;
   }
 }

@@ -110,6 +110,7 @@ public class IngatlanComParser {
         imageUrl = PropertyParser.extractImageUrl(card.parent());
       }
       item.setImageUrl(imageUrl);
+      item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
 
       if (criteria != null && !criteria.matches(item)) {
         continue;

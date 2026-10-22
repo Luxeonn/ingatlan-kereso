@@ -71,6 +71,8 @@ public class PropertyEntity implements Serializable {
   @Column(length = 2048)
   private String imageUrl;
 
+  private boolean newConstruction;
+
   @Column(length = 50)
   private String discoveredAt;
 
@@ -222,6 +224,14 @@ public class PropertyEntity implements Serializable {
 
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;
+  }
+
+  public boolean isNewConstruction() {
+    return newConstruction;
+  }
+
+  public void setNewConstruction(boolean newConstruction) {
+    this.newConstruction = newConstruction;
   }
 
   public String getDiscoveredAt() {

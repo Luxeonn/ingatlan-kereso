@@ -11,6 +11,7 @@ import tools.jackson.databind.JsonNode;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
+import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
@@ -188,9 +189,19 @@ public class IngatlanBazarJsonParser {
         if (imageUrl != null && !imageUrl.isBlank()) {
           if (imageUrl.startsWith("//")) {
             imageUrl = "https:" + imageUrl;
+          } else if (imageUrl.startsWith("/")) {
+            imageUrl = IngatlanBazarQueryBuilder.BASE_URL + imageUrl;
           }
           item.setImageUrl(imageUrl);
         }
+
+        boolean isNewBuild =
+            (hit.has("isNewConstruction") && hit.get("isNewConstruction").asBoolean(false))
+                || (hit.has("newConstruction") && hit.get("newConstruction").asBoolean(false))
+                || (hit.has("condition")
+                    && PropertyParser.isNewConstructionText(hit.get("condition").asText("")))
+                || PropertyParser.isNewConstructionText(title, fullUrl);
+        item.setNewConstruction(isNewBuild);
 
         result.add(item);
       }

@@ -146,7 +146,12 @@ public class OtthonCentrumParser {
         if ((imageUrl == null || imageUrl.isBlank()) && card.parent() != null) {
           imageUrl = PropertyParser.extractImageUrl(card.parent());
         }
+        if (imageUrl != null && imageUrl.startsWith("/")) {
+          imageUrl = OtthonCentrumUrlBuilder.BASE_URL + imageUrl;
+        }
         item.setImageUrl(imageUrl);
+        item.setNewConstruction(
+            PropertyParser.isNewConstructionText(cardText, title, fullLink, seoAttr));
 
         if (criteria != null && !criteria.matches(item)) {
           continue;

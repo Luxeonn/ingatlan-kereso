@@ -46,7 +46,8 @@ class PortalAdaptersModularTest {
     String html =
         "<html><body>"
             + "<a href=\"/ingatlan/elado/lakas/debrecen/12345\">"
-            + "  <div>Debrecen Belváros 52 M Ft 65 m2 2 szoba</div>"
+            + "  <img src=\"/images/dh123.jpg\" />"
+            + "  <div>Új építésű lakás | Debrecen Belváros 52 M Ft 65 m2 2 szoba</div>"
             + "</a>"
             + "</body></html>";
     Document doc = Jsoup.parse(html, DunaHouseUrlBuilder.BASE_URL);
@@ -58,6 +59,8 @@ class PortalAdaptersModularTest {
     assertEquals(1, items.size());
     assertEquals("12345", items.get(0).getId());
     assertEquals(52_000_000L, items.get(0).getPriceInfo().getAmountHuf());
+    assertEquals("https://dh.hu/images/dh123.jpg", items.get(0).getImageUrl());
+    assertTrue(items.get(0).isNewConstruction());
   }
 
   @Test
@@ -218,5 +221,82 @@ class PortalAdaptersModularTest {
             "<html><head><title>Just a moment... Cloudflare</title></head><body><div"
                 + " id=\"challenge-error-text\">Error</div></body></html>");
     assertTrue(parser.isBotChallenge(cloudflareDoc));
+
+    String cardsHtml =
+        "<html><body>"
+            + "<div class=\"listing-card\" data-id=\"999\">"
+            + "  <a href=\"/ingatlan/999888\">"
+            + "    <h2 class=\"listing-card__title\">Új építésű lakás Debrecen</h2>"
+            + "    <div class=\"listing-card__price\">62 M Ft</div>"
+            + "    <div>95 m² 3 szoba</div>"
+            + "    <img data-src=\"https://ingatlan.com/img/999.jpg\" />"
+            + "  </a>"
+            + "</div>"
+            + "</body></html>";
+    List<IngatlanItem> parsedCards =
+        parser.parseItems(
+            Jsoup.parse(cardsHtml, IngatlanComUrlBuilder.BASE_URL),
+            criteria,
+            "2026-10-14 12:00:00",
+            new HashSet<>());
+    assertEquals(1, parsedCards.size());
+    assertEquals("999888", parsedCards.get(0).getId());
+    assertTrue(parsedCards.get(0).isNewConstruction());
+    assertEquals("https://ingatlan.com/img/999.jpg", parsedCards.get(0).getImageUrl());
+  }
+
+  @Test
+  @DisplayName(
+      "Költözzbe JSON-LD és OtthonCentrum SEO JSON attribútum elemzés új építésű és képadatokkal")
+  void testKoltozzbeJsonLdAndOcSeoParsing() {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(120);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(180);
+
+    String jsonLdHtml =
+        "<html><head><script type=\"application/ld+json\">"
+            + "{\"@context\":\"https://schema.org\",\"@type\":\"ItemList\",\"itemListElement\":[{"
+            + "\"@type\":\"ListItem\",\"item\":{\"@type\":\"Product\","
+            + "\"url\":\"https://koltozzbe.hu/elado-lakas-debrecen/h554433\","
+            + "\"name\":\"Debrecen új építésű 80 m² 3 szoba lakás\","
+            + "\"image\":[\"https://koltozzbe.hu/img/554433.jpg\"],"
+            + "\"offers\":{\"priceSpecification\":{\"price\":85000000}}"
+            + "}}]}"
+            + "</script></head><body></body></html>";
+    KoltozzbeParser kbParser = new KoltozzbeParser();
+    List<IngatlanItem> kbItems =
+        kbParser.parseItems(
+            Jsoup.parse(jsonLdHtml, KoltozzbeUrlBuilder.BASE_URL),
+            criteria,
+            "2026-10-18",
+            new HashSet<>());
+    assertEquals(1, kbItems.size());
+    assertEquals("554433", kbItems.get(0).getId());
+    assertTrue(kbItems.get(0).isNewConstruction());
+    assertEquals("https://koltozzbe.hu/img/554433.jpg", kbItems.get(0).getImageUrl());
+
+    String ocSeoHtml =
+        "<html><body>"
+            + "<div class=\"js-list-item\" data-controller=\"seo\" "
+            + "data-seo-select-item-value='{\"ecommerce\":{\"items\":["
+            + "{\"location_city\":\"Debrecen\",\"price\":78000000}]}}'>"
+            + "  <a href=\"/ingatlanok/OC777\">85 m² 3 szoba Szerkezetkész új otthon</a>"
+            + "  <img class=\"lazyload\" data-src=\"/uploads/oc777.jpg\" />"
+            + "</div>"
+            + "</body></html>";
+    OtthonCentrumParser ocParser = new OtthonCentrumParser();
+    List<IngatlanItem> ocItems =
+        ocParser.parseItems(
+            Jsoup.parse(ocSeoHtml, OtthonCentrumUrlBuilder.BASE_URL),
+            criteria,
+            "2026-10-18",
+            new HashSet<>());
+    assertEquals(1, ocItems.size());
+    assertEquals("OC777", ocItems.get(0).getId());
+    assertTrue(ocItems.get(0).isNewConstruction());
+    assertEquals("https://www.oc.hu/uploads/oc777.jpg", ocItems.get(0).getImageUrl());
   }
 }
