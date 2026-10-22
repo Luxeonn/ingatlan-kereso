@@ -1,5 +1,5 @@
 import type { FC, FormEvent } from 'react'
-import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 import { useFilterStore, DEFAULT_PORTALS } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
 import { CitySelector } from './CitySelector'
@@ -41,8 +41,28 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
 
   const { isFiltersCollapsed, setFiltersCollapsed } = useUiStore()
 
+  const validationWarnings: string[] = []
+  if (criteria.minPriceMillion < 0 || criteria.maxPriceMillion < 0) {
+    validationWarnings.push('Az ár nem lehet negatív.')
+  } else if (criteria.minPriceMillion > criteria.maxPriceMillion) {
+    validationWarnings.push(
+      `A minimális ár (${criteria.minPriceMillion} M Ft) nem lehet nagyobb a maximális árnál (${criteria.maxPriceMillion} M Ft).`,
+    )
+  }
+
+  if (criteria.minArea < 1 || criteria.maxArea < 1) {
+    validationWarnings.push('Az alapterületnek legalább 1 m²-nek kell lennie.')
+  } else if (criteria.minArea > criteria.maxArea) {
+    validationWarnings.push(
+      `A minimális alapterület (${criteria.minArea} m²) nem lehet nagyobb a maximális alapterületnél (${criteria.maxArea} m²).`,
+    )
+  }
+
+  const hasValidationErrors = validationWarnings.length > 0
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
+    if (hasValidationErrors) return
     onSearch()
   }
 
@@ -54,6 +74,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-xl transition-all duration-200 sm:p-5"
     >
       {/* Panel Header */}
@@ -138,15 +159,13 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
               value={criteria.minPriceMillion}
               onChange={setMinPriceMillion}
               min={0}
-              max={criteria.maxPriceMillion - 1}
               step={1}
             />
             <PriceStepper
               label="Maximális ár"
               value={criteria.maxPriceMillion}
               onChange={setMaxPriceMillion}
-              min={criteria.minPriceMillion + 1}
-              max={1000}
+              min={0}
               step={1}
             />
             <AreaStepper
@@ -154,15 +173,13 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
               value={criteria.minArea}
               onChange={setMinArea}
               min={1}
-              max={criteria.maxArea - 1}
               step={1}
             />
             <AreaStepper
               label="Maximális alapterület"
               value={criteria.maxArea}
               onChange={setMaxArea}
-              min={criteria.minArea + 1}
-              max={1000}
+              min={1}
               step={1}
             />
           </div>
@@ -187,10 +204,23 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
       )}
 
       {/* Submit button bar */}
-      <div className="mt-4 flex items-center justify-end gap-3 border-t border-[var(--border-color)] pt-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-color)] pt-3">
+        {hasValidationErrors ? (
+          <div
+            role="alert"
+            data-testid="search-validation-warning"
+            className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-400"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+            <span>{validationWarnings.join(' ')}</span>
+          </div>
+        ) : (
+          <div />
+        )}
+
         <button
           type="submit"
-          disabled={isLoading || criteria.portals.length === 0}
+          disabled={isLoading || criteria.portals.length === 0 || hasValidationErrors}
           className="flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (

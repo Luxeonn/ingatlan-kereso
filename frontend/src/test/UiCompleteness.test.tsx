@@ -146,4 +146,44 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(summary.textContent).toContain('90 - 200 m²')
     expect(summary.textContent).toContain('6/6 portál')
   })
+
+  it('allows free numeric typing across min/max ranges and displays warning near search button when min > max (#255)', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const handleSearch = vi.fn()
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SearchPanel onSearch={handleSearch} isLoading={false} />
+      </QueryClientProvider>,
+    )
+
+    // Set minPrice = 80
+    const minPriceInput = screen.getByDisplayValue('70') as HTMLInputElement
+    fireEvent.change(minPriceInput, { target: { value: '80' } })
+    expect(useFilterStore.getState().criteria.minPriceMillion).toBe(80)
+
+    // User edits maxPrice from 120 to 200 by typing '2' first (which is < 80)
+    const maxPriceInput = screen.getByDisplayValue('120') as HTMLInputElement
+    fireEvent.change(maxPriceInput, { target: { value: '2' } })
+    expect(maxPriceInput.value).toBe('2')
+    expect(useFilterStore.getState().criteria.maxPriceMillion).toBe(2)
+
+    // Warning message should appear and search button should be disabled while 80 > 2
+    const warning = screen.getByTestId('search-validation-warning')
+    expect(warning.textContent).toContain('A minimális ár (80 M Ft) nem lehet nagyobb a maximális árnál (2 M Ft).')
+    const searchBtn = screen.getByRole('button', { name: /Ingatlanok Keresése/i }) as HTMLButtonElement
+    expect(searchBtn.disabled).toBe(true)
+
+    // Completing typing '200' resolves the warning and re-enables the button
+    fireEvent.change(maxPriceInput, { target: { value: '200' } })
+    expect(maxPriceInput.value).toBe('200')
+    expect(useFilterStore.getState().criteria.maxPriceMillion).toBe(200)
+    expect(screen.queryByTestId('search-validation-warning')).toBeNull()
+    expect(searchBtn.disabled).toBe(false)
+
+    fireEvent.click(searchBtn)
+    expect(handleSearch).toHaveBeenCalledTimes(1)
+  })
 })
