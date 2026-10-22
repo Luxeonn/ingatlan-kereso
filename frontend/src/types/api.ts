@@ -14,6 +14,7 @@ export interface SearchCriteria {
   autoOpenBrowser: boolean
   excludeViewed: boolean
   onlyDiscounted?: boolean
+  onlyNewConstruction?: boolean
 }
 
 export interface MarketStatsDto {

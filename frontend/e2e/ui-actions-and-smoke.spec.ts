@@ -75,22 +75,65 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
-              items: [],
-              newCount: 0,
-              totalFound: 0,
+              items: [
+                {
+                  id: 'dh-101',
+                  portal: 'Duna House',
+                  url: 'https://dh.hu/ingatlan/dh-101',
+                  title: 'Új építésű nappali + 3 szobás lakás Debrecenben',
+                  price: '89 M Ft',
+                  location: 'Debrecen, Nagyerdő',
+                  city: 'Debrecen',
+                  isNew: true,
+                  viewed: false,
+                  newConstruction: true,
+                  imageUrl: '',
+                  priceInfo: { amountMillion: 89, amountHuf: 89000000, rawText: '89 M Ft' },
+                  detailsInfo: { areaSquareMeters: 95, roomCount: 4, pricePerSquareMeter: 936842 },
+                },
+              ],
+              newCount: 1,
+              totalFound: 1,
               executedAt: new Date().toISOString(),
               portalStatuses: [
-                { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', durationMs: 250, itemCount: 0, botProtected: false },
+                { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', durationMs: 250, itemCount: 1, botProtected: false },
               ],
               marketStats: {
-                averagePriceMillion: 45,
-                averagePricePerM2: 950000,
-                minPriceMillion: 30,
-                maxPriceMillion: 60,
-                newRatePercent: 0,
-                cityBreakdown: { Debrecen: 0 },
+                averagePriceMillion: 89,
+                averagePricePerM2: 936842,
+                minPriceMillion: 89,
+                maxPriceMillion: 89,
+                newRatePercent: 100,
+                cityBreakdown: { Debrecen: 1 },
               },
             }),
+          })
+        } else if (url.includes('/api/history/clear')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, clearedAll: true }),
+          })
+        } else if (url.includes('/api/history')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([
+              {
+                id: 'arch-1',
+                portal: 'Otthon Centrum',
+                url: 'https://oc.hu/ingatlanok/arch-1',
+                title: 'Archív belvárosi polgári lakás',
+                price: '68 M Ft',
+                location: 'Debrecen',
+                city: 'Debrecen',
+                isNew: false,
+                viewed: false,
+                newConstruction: false,
+                priceInfo: { amountMillion: 68, amountHuf: 68000000, rawText: '68 M Ft' },
+                detailsInfo: { areaSquareMeters: 74, roomCount: 3, pricePerSquareMeter: 918918 },
+              },
+            ]),
           })
         } else if (url.includes('/api/status')) {
           await route.fulfill({
@@ -188,10 +231,27 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     const onlyNewToggle = page.getByRole('button', { name: /Csak új találatok/i })
     await expect(onlyNewToggle).toBeVisible()
     await onlyNewToggle.click()
+    await onlyNewToggle.click() // toggle back off
+
+    const newConstructionToggle = page.getByRole('button', { name: /Csak új építésű ingatlanok/i })
+    await expect(newConstructionToggle).toBeVisible()
+
+    // Collapse filter panel and verify summary bar (#157)
+    const collapseBtn = page.getByRole('button', { name: /Összecsukás/i })
+    await collapseBtn.click()
+    await expect(page.getByTestId('collapsed-filter-summary')).toBeVisible()
+    const expandBtn = page.getByRole('button', { name: /Kibontás/i })
+    await expandBtn.click()
   })
 
   test('3. Search execution and Dashboard view switching triggers smoothly', async ({ page }) => {
     await page.goto('/')
+
+    // Verify Sort and ExcludeViewed controls in Listings Header (#227)
+    const headerBar = page.getByTestId('listings-panel-header')
+    await expect(headerBar).toBeVisible()
+    await expect(headerBar.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeVisible()
+    await expect(headerBar.getByLabel('Rendezés')).toBeVisible()
 
     // Trigger Search
     const searchBtn = page.getByRole('button', { name: /Ingatlanok Keresése/i })
@@ -206,13 +266,21 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     await searchBtn.click()
     await searchPromise
 
-    // Switch between Listings and Analytics tab
-    const analyticsTabBtn = page.getByRole('button', { name: /Piaci Elemzés és Árdiagramok/i })
+    // Switch between Favorites, Archive, Analytics and Listings tabs (#157)
+    const favoritesTabBtn = headerBar.getByRole('button', { name: /Kedvencek/i })
+    await expect(favoritesTabBtn).toBeVisible()
+    await favoritesTabBtn.click()
+
+    const archiveTabBtn = headerBar.getByRole('button', { name: /Archívum/i })
+    await expect(archiveTabBtn).toBeVisible()
+    await archiveTabBtn.click()
+
+    const analyticsTabBtn = headerBar.getByRole('button', { name: /Piaci Elemzés és Árdiagramok/i })
     await expect(analyticsTabBtn).toBeVisible()
     await analyticsTabBtn.click()
     await expect(analyticsTabBtn).toHaveClass(/bg-indigo-600/)
 
-    const listingsTabBtn = page.getByRole('button', { name: /Hirdetések/i })
+    const listingsTabBtn = headerBar.getByRole('button', { name: /Hirdetések/i })
     await expect(listingsTabBtn).toBeVisible()
     await listingsTabBtn.click()
     await expect(listingsTabBtn).toHaveClass(/bg-blue-600/)

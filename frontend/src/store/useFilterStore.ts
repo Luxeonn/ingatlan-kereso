@@ -12,6 +12,37 @@ export type SortOption =
 
 export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe']
 
+const VALID_SORTS: SortOption[] = [
+  'price_asc',
+  'price_desc',
+  'sqm_price_asc',
+  'sqm_price_desc',
+  'area_desc',
+  'date_desc',
+]
+
+function getStoredSortOption(): SortOption {
+  if (typeof window === 'undefined') return 'price_asc'
+  try {
+    const saved = localStorage.getItem('preferred_sort_option') as SortOption | null
+    if (saved && VALID_SORTS.includes(saved)) {
+      return saved
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return 'price_asc'
+}
+
+function getStoredExcludeViewed(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return localStorage.getItem('preferred_exclude_viewed') === 'true'
+  } catch {
+    return false
+  }
+}
+
 const DEFAULT_CRITERIA: SearchCriteria = {
   cities: ['Debrecen'],
   city: 'Debrecen',
@@ -24,6 +55,7 @@ const DEFAULT_CRITERIA: SearchCriteria = {
   autoOpenBrowser: false,
   excludeViewed: false,
   onlyDiscounted: false,
+  onlyNewConstruction: false,
 }
 
 const urlSchema = z.object({
@@ -37,6 +69,7 @@ const urlSchema = z.object({
   portals: z.string().max(500).optional(),
   autoOpen: z.enum(['true', 'false']).optional(),
   excludeViewed: z.enum(['true', 'false']).optional(),
+  onlyNewConstruction: z.enum(['true', 'false']).optional(),
   sort: z.enum(['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc']).optional(),
   onlyNew: z.enum(['true', 'false']).optional(),
 })
@@ -45,7 +78,9 @@ interface FilterState {
   criteria: SearchCriteria
   sortOption: SortOption
   onlyNew: boolean
-  
+  quickSearchQuery: string
+  selectedPortalFilter: string
+
   // Actions
   setCriteria: (criteria: Partial<SearchCriteria>) => void
   addCity: (city: string) => void
@@ -60,8 +95,11 @@ interface FilterState {
   setAllPortals: (portals: string[]) => void
   setAutoOpen: (auto: boolean) => void
   setExcludeViewed: (exclude: boolean) => void
+  setOnlyNewConstruction: (onlyNewConstruction: boolean) => void
   setSortOption: (sort: SortOption) => void
   setOnlyNew: (onlyNew: boolean) => void
+  setQuickSearchQuery: (query: string) => void
+  setSelectedPortalFilter: (portal: string) => void
   resetToDefaults: () => void
   syncFromUrl: () => void
   syncToUrl: () => void
@@ -73,10 +111,14 @@ function parseUrlParams(): { criteria?: Partial<SearchCriteria>; sort?: SortOpti
   if (!parsedUrl.success) return {}
   const params = parsedUrl.data
   const result: Partial<SearchCriteria> = {}
-  
+
   const citiesParam = params.cities || params.city
   if (citiesParam) {
-    const list = citiesParam.split(',').map((c) => c.trim()).filter((c) => c.length > 0 && c.length <= 100).slice(0, 20)
+    const list = citiesParam
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0 && c.length <= 100)
+      .slice(0, 20)
     if (list.length > 0) {
       result.cities = list
       result.city = list[0]
@@ -100,7 +142,10 @@ function parseUrlParams(): { criteria?: Partial<SearchCriteria>; sort?: SortOpti
 
   const portalsParam = params.portals
   if (portalsParam) {
-    const validPortals = portalsParam.split(',').map((p) => p.trim()).filter((p) => DEFAULT_PORTALS.includes(p))
+    const validPortals = portalsParam
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => DEFAULT_PORTALS.includes(p))
     if (validPortals.length > 0) result.portals = validPortals
   }
 
@@ -109,6 +154,9 @@ function parseUrlParams(): { criteria?: Partial<SearchCriteria>; sort?: SortOpti
 
   const excludeViewed = params.excludeViewed
   if (excludeViewed != null) result.excludeViewed = excludeViewed === 'true'
+
+  const onlyNewConstruction = params.onlyNewConstruction
+  if (onlyNewConstruction != null) result.onlyNewConstruction = onlyNewConstruction === 'true'
 
   let sort: SortOption | undefined
   const sortParam = params.sort
@@ -124,13 +172,16 @@ export const useFilterStore = create<FilterState>((set, get) => {
   const initial = parseUrlParams()
   const initialCriteria: SearchCriteria = {
     ...DEFAULT_CRITERIA,
+    excludeViewed: getStoredExcludeViewed(),
     ...(initial.criteria || {}),
   }
 
   return {
     criteria: initialCriteria,
-    sortOption: initial.sort || 'price_asc',
+    sortOption: initial.sort || getStoredSortOption(),
     onlyNew: initial.onlyNew || false,
+    quickSearchQuery: '',
+    selectedPortalFilter: 'all',
 
     setCriteria: (partial) => {
       set((state) => {
@@ -246,13 +297,30 @@ export const useFilterStore = create<FilterState>((set, get) => {
     },
 
     setExcludeViewed: (exclude) => {
+      try {
+        localStorage.setItem('preferred_exclude_viewed', String(exclude))
+      } catch {
+        // ignore
+      }
       set((state) => ({
         criteria: { ...state.criteria, excludeViewed: exclude },
       }))
       get().syncToUrl()
     },
 
+    setOnlyNewConstruction: (onlyNewConstruction) => {
+      set((state) => ({
+        criteria: { ...state.criteria, onlyNewConstruction },
+      }))
+      get().syncToUrl()
+    },
+
     setSortOption: (sort) => {
+      try {
+        localStorage.setItem('preferred_sort_option', sort)
+      } catch {
+        // ignore
+      }
       set({ sortOption: sort })
       get().syncToUrl()
     },
@@ -262,11 +330,21 @@ export const useFilterStore = create<FilterState>((set, get) => {
       get().syncToUrl()
     },
 
+    setQuickSearchQuery: (query) => {
+      set({ quickSearchQuery: query })
+    },
+
+    setSelectedPortalFilter: (portal) => {
+      set({ selectedPortalFilter: portal })
+    },
+
     resetToDefaults: () => {
       set({
         criteria: { ...DEFAULT_CRITERIA },
         sortOption: 'price_asc',
         onlyNew: false,
+        quickSearchQuery: '',
+        selectedPortalFilter: 'all',
       })
       if (typeof window !== 'undefined') {
         window.history.replaceState(null, '', window.location.pathname)
@@ -277,7 +355,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
       const parsed = parseUrlParams()
       set({
         criteria: { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) },
-        sortOption: parsed.sort || 'price_asc',
+        sortOption: parsed.sort || getStoredSortOption(),
         onlyNew: parsed.onlyNew ?? false,
       })
     },
@@ -319,6 +397,9 @@ export const useFilterStore = create<FilterState>((set, get) => {
       }
       if (criteria.excludeViewed) {
         params.set('excludeViewed', 'true')
+      }
+      if (criteria.onlyNewConstruction) {
+        params.set('onlyNewConstruction', 'true')
       }
 
       const queryString = params.toString()

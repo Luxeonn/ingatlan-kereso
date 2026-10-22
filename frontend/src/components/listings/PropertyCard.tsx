@@ -1,5 +1,17 @@
-import type { FC } from 'react'
-import { ExternalLink, Check, Sparkles, MapPin, Ruler, BedDouble, TrendingDown, Clock } from 'lucide-react'
+import { useState, type FC } from 'react'
+import {
+  ExternalLink,
+  Check,
+  Sparkles,
+  MapPin,
+  Ruler,
+  BedDouble,
+  TrendingDown,
+  Clock,
+  Star,
+  Building2,
+  Home,
+} from 'lucide-react'
 import { IngatlanItem } from '../../types/property'
 import {
   formatPriceMillion,
@@ -10,6 +22,7 @@ import {
   formatDate,
   getPortalStyle,
 } from '../../utils/formatters'
+import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
 interface PropertyCardProps {
@@ -19,12 +32,18 @@ interface PropertyCardProps {
 }
 
 export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMode = 'grid' }) => {
+  const [imageError, setImageError] = useState(false)
+  const { starredUrls, toggleStarred } = useUiStore()
+  const isStarred = starredUrls.includes(item.url)
+
   const portalStyle = getPortalStyle(item.portal || item.source?.portalId || '')
   const priceMillion = item.priceInfo?.amountMillion
   const priceFt = item.priceInfo?.amountHuf
   const sqmPrice = item.detailsInfo?.pricePerSquareMeter
   const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
+
+  const hasValidImage = Boolean(item.imageUrl && item.imageUrl.trim().length > 0 && !imageError)
 
   const handleOpen = () => {
     window.open(item.url, '_blank', 'noopener,noreferrer')
@@ -35,19 +54,60 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
 
   return (
     <div
+      data-testid="property-card"
       className={cn(
         'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5',
         item.viewed
-          ? 'border-[var(--border-color)] bg-[var(--bg-card)]/60 opacity-80'
+          ? 'border-[var(--border-color)] bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
           : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-blue-500/40',
-        viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-6 p-4' : 'p-4'
+        viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-5 p-4' : 'p-4'
       )}
     >
-      {/* Top / Left section: Badges, Title, Location */}
+      {/* Thumbnail / Cover Image (#157, #202) */}
+      <div
+        onClick={handleOpen}
+        className={cn(
+          'relative cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] shrink-0',
+          viewMode === 'list' ? 'h-36 w-full sm:h-28 sm:w-44 mb-3 sm:mb-0' : 'mb-3 h-40 w-full'
+        )}
+      >
+        {hasValidImage ? (
+          <img
+            src={item.imageUrl}
+            alt={item.title || 'Ingatlan előnézeti kép'}
+            loading="lazy"
+            onError={() => setImageError(true)}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div
+            data-testid="property-image-fallback"
+            className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-[var(--bg-input)] to-[var(--bg-card)] text-[var(--text-secondary)]"
+          >
+            <Home className={cn('h-7 w-7 opacity-60', portalStyle.text)} />
+            <span className="text-[11px] font-semibold uppercase tracking-wider opacity-75">
+              {item.portal || 'Ingatlan'}
+            </span>
+          </div>
+        )}
+
+        {/* New construction overlay badge on thumbnail (#202) */}
+        {item.newConstruction && (
+          <span
+            data-testid="new-construction-badge"
+            className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md border border-cyan-400/40 bg-slate-900/85 px-2 py-0.5 text-[11px] font-bold text-cyan-300 shadow-sm backdrop-blur-sm"
+          >
+            <Building2 className="h-3 w-3" />
+            <span>Új építésű</span>
+          </span>
+        )}
+      </div>
+
+      {/* Top / Middle section: Badges, Title, Location */}
       <div className={cn('flex flex-col gap-2', viewMode === 'list' ? 'flex-1' : '')}>
         {/* Badges row */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {/* Portal badge */}
             <span
               className={cn(
@@ -74,34 +134,55 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
             )}
           </div>
 
-          {/* Viewed checkbox / toggle */}
-          <button
-            type="button"
-            onClick={() => onMarkViewed(item.url)}
-            title={item.viewed ? 'Megtekintettnek jelölve' : 'Megjelölés megtekintettként'}
-            className={cn(
-              'flex items-center gap-1 text-[11px] font-semibold transition-colors',
-              item.viewed
-                ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                : 'text-blue-400 hover:text-blue-300'
-            )}
-          >
-            <span
+          {/* Right action icons: Star / Favorite (#157) + Viewed toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toggleStarred(item)}
+              aria-label={isStarred ? 'Eltávolítás a kedvencekből' : 'Hozzáadás a kedvencekhez'}
+              title={isStarred ? 'Eltávolítás a kedvencekből' : 'Hozzáadás a kedvencekhez'}
               className={cn(
-                'flex h-4 w-4 items-center justify-center rounded border transition-colors',
-                item.viewed ? 'bg-blue-600 border-blue-600 text-white' : 'border-[var(--border-color)]'
+                'flex items-center justify-center rounded-lg border p-1 text-xs transition-all',
+                isStarred
+                  ? 'border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm'
+                  : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-400'
               )}
             >
-              {item.viewed && <Check className="h-3 w-3" />}
-            </span>
-            <span className="hidden sm:inline">{item.viewed ? 'Megtekintve' : 'Nem láttam'}</span>
-          </button>
+              <Star className={cn('h-3.5 w-3.5', isStarred ? 'fill-amber-400 text-amber-400' : '')} />
+            </button>
+
+            {/* Viewed checkbox / toggle */}
+            <button
+              type="button"
+              onClick={() => onMarkViewed(item.url)}
+              title={item.viewed ? 'Megtekintettnek jelölve' : 'Megjelölés megtekintettként'}
+              className={cn(
+                'flex items-center gap-1 text-[11px] font-semibold transition-colors',
+                item.viewed
+                  ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  : 'text-blue-400 hover:text-blue-300'
+              )}
+            >
+              <span
+                className={cn(
+                  'flex h-4 w-4 items-center justify-center rounded border transition-colors',
+                  item.viewed ? 'bg-blue-600 border-blue-600 text-white' : 'border-[var(--border-color)]'
+                )}
+              >
+                {item.viewed && <Check className="h-3 w-3" />}
+              </span>
+              <span className="hidden sm:inline">{item.viewed ? 'Megtekintve' : 'Nem láttam'}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Title */}
+        {/* Title with pulse-title class for new unseen items (#157) */}
         <h3
           onClick={handleOpen}
-          className="cursor-pointer text-sm font-bold text-[var(--text-primary)] line-clamp-2 hover:text-blue-400 transition-colors"
+          className={cn(
+            'cursor-pointer text-sm font-bold text-[var(--text-primary)] line-clamp-2 hover:text-blue-400 transition-colors',
+            item.isNew && !item.viewed ? 'pulse-title text-emerald-300' : ''
+          )}
           title={item.title}
         >
           {item.title || 'Ingatlan hirdetés'}

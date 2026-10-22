@@ -23,10 +23,15 @@ export async function openUrls(urls: string[]): Promise<{ success: boolean; coun
   })
 }
 
-export async function getHistory(city?: string, onlyDiscounted?: boolean): Promise<IngatlanItem[]> {
+export async function getHistory(
+  city?: string,
+  onlyDiscounted?: boolean,
+  onlyNewConstruction?: boolean,
+): Promise<IngatlanItem[]> {
   const params = new URLSearchParams()
   if (city) params.set('city', city)
   if (onlyDiscounted) params.set('onlyDiscounted', 'true')
+  if (onlyNewConstruction) params.set('onlyNewConstruction', 'true')
   const query = params.toString() ? `?${params.toString()}` : ''
   return apiClient<IngatlanItem[]>(`/api/history${query}`)
 }
