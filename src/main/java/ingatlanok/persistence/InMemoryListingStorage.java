@@ -32,10 +32,8 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
     cityItems.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
     for (IngatlanItem item : items) {
       if (item != null && item.getUrl() != null) {
+        updateItemStateOnSave(item);
         urlIndex.put(item.getUrl(), item);
-        if (item.isViewed()) {
-          viewedUrls.add(item.getUrl());
-        }
       }
     }
     List<IngatlanItem> current = cityItems.get(key);
@@ -50,15 +48,57 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
     }
     for (IngatlanItem item : items) {
       if (item != null && item.getUrl() != null) {
+        updateItemStateOnSave(item);
         urlIndex.put(item.getUrl(), item);
-        if (item.isViewed()) {
-          viewedUrls.add(item.getUrl());
-        }
         String city = item.getCity() != null ? item.getCity().toLowerCase(Locale.ROOT) : "default";
         cityItems.computeIfAbsent(city, k -> new CopyOnWriteArrayList<>()).add(item);
       }
     }
     this.lastRunTime = java.time.LocalDateTime.now().toString();
+  }
+
+  private void updateItemStateOnSave(IngatlanItem item) {
+    String url = item.getUrl();
+    IngatlanItem existing = urlIndex.get(url);
+    String now = java.time.LocalDateTime.now().toString();
+    boolean isViewed = viewedUrls.contains(url) || (existing != null && existing.isViewed()) || item.isViewed();
+    if (isViewed) {
+      viewedUrls.add(url);
+      item.setViewed(true);
+      if (item.getViewedAt() == null) {
+        item.setViewedAt(existing != null && existing.getViewedAt() != null ? existing.getViewedAt() : now);
+      }
+    }
+    Long newAmount = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
+    if (existing == null) {
+      if (newAmount != null && newAmount > 0 && item.getPriceDelta() == null) {
+        item.setPriceDelta(0L);
+        item.setPriceChangePercent(0.0);
+      }
+    } else {
+      Long prevAmount = existing.getPriceInfo() != null ? existing.getPriceInfo().getAmountHuf() : null;
+      if (prevAmount != null && prevAmount > 0 && newAmount != null && newAmount > 0 && !prevAmount.equals(newAmount)) {
+        long delta = newAmount - prevAmount;
+        double pct = Math.round(((double) delta / prevAmount * 100.0) * 100.0) / 100.0;
+        item.setPriceDelta(delta);
+        item.setPriceChangePercent(pct);
+        item.setLastPriceChangeAt(now);
+        item.setStatus(delta < 0 ? "PRICE_DROP" : "PRICE_INCREASE");
+      } else {
+        if (item.getPriceDelta() == null) {
+          item.setPriceDelta(existing.getPriceDelta());
+        }
+        if (item.getPriceChangePercent() == null) {
+          item.setPriceChangePercent(existing.getPriceChangePercent());
+        }
+        if (item.getLastPriceChangeAt() == null) {
+          item.setLastPriceChangeAt(existing.getLastPriceChangeAt());
+        }
+        if ("ACTIVE".equals(item.getStatus()) && existing.getStatus() != null) {
+          item.setStatus(existing.getStatus());
+        }
+      }
+    }
   }
 
   @Override
@@ -180,5 +220,26 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   @Override
   public void saveLastCriteria(SearchCriteria criteria) {
     this.lastCriteria = criteria;
+  }
+
+  @Override
+  public Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
+    if (urls == null || urls.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    Map<String, IngatlanItem> result = new HashMap<>();
+    for (String url : urls) {
+      if (url != null && !url.isBlank()) {
+        String key = url.trim();
+        IngatlanItem item = urlIndex.get(key);
+        if (item != null) {
+          if (viewedUrls.contains(key)) {
+            item.setViewed(true);
+          }
+          result.put(key, item);
+        }
+      }
+    }
+    return result;
   }
 }

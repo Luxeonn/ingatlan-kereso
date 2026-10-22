@@ -136,7 +136,7 @@ public class OtthonCentrumParser implements PortalHtmlParser {
         item.setNewConstruction(
             PropertyParser.isNewConstructionText(cardText, title, fullLink, seoAttr));
 
-        if (criteria != null && !criteria.matches(item)) {
+        if (criteria != null && !criteria.matchesRelevance(item)) {
           continue;
         }
 

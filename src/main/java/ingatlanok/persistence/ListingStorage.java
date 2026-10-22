@@ -60,4 +60,8 @@ public interface ListingStorage {
   default List<IngatlanItem> findByCriteria(PropertySearchCriteria filter) {
     return List.of();
   }
+
+  default Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
+    return Map.of();
+  }
 }

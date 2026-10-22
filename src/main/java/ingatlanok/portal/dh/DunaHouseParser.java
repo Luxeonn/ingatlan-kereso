@@ -90,7 +90,7 @@ public class DunaHouseParser implements PortalHtmlParser {
       item.setImageUrl(PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL));
       item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
 
-      if (criteria != null && !criteria.matches(item)) {
+      if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
       }
 

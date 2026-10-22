@@ -82,7 +82,7 @@ public class IngatlanComPortalEngine implements PortalEngine {
 
             IngatlanItem item =
                 sidecarItem.toIngatlanItem(SOURCE, safeCriteria.getCity(), now, false);
-            if (safeCriteria.matches(item)) {
+            if (safeCriteria.matchesRelevance(item)) {
               items.add(item);
             }
           }

@@ -21,6 +21,8 @@ public interface PropertyRepository
 
   Optional<PropertyEntity> findByUrl(String url);
 
+  List<PropertyEntity> findByUrlIn(java.util.Collection<String> urls);
+
   boolean existsByUrl(String url);
 
   boolean existsByUrlAndNormalizedCity(String url, String normalizedCity);

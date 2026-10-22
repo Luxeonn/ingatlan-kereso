@@ -126,15 +126,20 @@ public class SearchExecutionEngine {
       allScrapeResults.addAll(scrapeOutput.results());
       scrapeOutput.portalCounts().forEach((k, v) -> portalCounts.merge(k, v, Integer::sum));
 
-      PropertyFilterEngine.FilterResult filterResult =
-          filterEngine.filter(scrapeOutput.items(), cityCriteria, currentCity);
-      List<IngatlanItem> filteredCityItems = filterResult.matchingItems();
+      PropertyFilterEngine.FilterResult relevanceResult =
+          filterEngine.filterRelevance(scrapeOutput.items(), cityCriteria, currentCity);
+      List<IngatlanItem> relevantCityItems = relevanceResult.matchingItems();
 
-      dedupEngine.applyNewStatus(currentCity, filteredCityItems, isFirstSearch);
-      List<IngatlanItem> uniqueCityItems = dedupEngine.deduplicateByUrl(filteredCityItems);
+      dedupEngine.applyNewStatus(currentCity, relevantCityItems, isFirstSearch);
+      List<IngatlanItem> uniqueCityItems = dedupEngine.deduplicateByUrl(relevantCityItems);
       listingStorage.saveCityItems(currentCity, uniqueCityItems);
+      enrichWithPersistedState(uniqueCityItems);
 
-      int cityMatchingCount = uniqueCityItems.size();
+      PropertyFilterEngine.FilterResult viewResult =
+          filterEngine.filterView(uniqueCityItems, cityCriteria);
+      List<IngatlanItem> visibleCityItems = viewResult.matchingItems();
+
+      int cityMatchingCount = visibleCityItems.size();
       int cityTotalFiltered = scrapeOutput.items().size() - cityMatchingCount;
       LOGGER.info(
           "  └─ [{}] Összesítés: {} letöltve -> {} megfelelő találat (Kiszűrve: {} db | Ár: {},"
@@ -143,12 +148,12 @@ public class SearchExecutionEngine {
           scrapeOutput.items().size(),
           cityMatchingCount,
           cityTotalFiltered,
-          filterResult.filteredByPriceCount(),
-          filterResult.filteredByAreaCount(),
-          filterResult.filteredByViewedCount());
+          relevanceResult.filteredByPriceCount(),
+          relevanceResult.filteredByAreaCount(),
+          viewResult.filteredByViewedCount());
 
-      cityCounts.put(currentCity, uniqueCityItems.size());
-      allAggregatedItems.addAll(uniqueCityItems);
+      cityCounts.put(currentCity, visibleCityItems.size());
+      allAggregatedItems.addAll(visibleCityItems);
     }
 
     List<IngatlanItem> uniqueAggregatedList = dedupEngine.deduplicateByUrl(allAggregatedItems);
@@ -172,6 +177,44 @@ public class SearchExecutionEngine {
     LOGGER.info("==================================================");
 
     return result;
+  }
+
+  private void enrichWithPersistedState(List<IngatlanItem> items) {
+    if (items == null || items.isEmpty()) {
+      return;
+    }
+    List<String> urls =
+        items.stream()
+            .map(IngatlanItem::getUrl)
+            .filter(u -> u != null && !u.isBlank())
+            .map(String::trim)
+            .distinct()
+            .toList();
+    if (urls.isEmpty()) {
+      return;
+    }
+    Map<String, IngatlanItem> persistedByUrl = listingStorage.findByUrls(urls);
+    if (persistedByUrl == null || persistedByUrl.isEmpty()) {
+      return;
+    }
+    for (IngatlanItem item : items) {
+      if (item == null || item.getUrl() == null) {
+        continue;
+      }
+      IngatlanItem persisted = persistedByUrl.get(item.getUrl().trim());
+      if (persisted == null) {
+        continue;
+      }
+      item.setViewed(persisted.isViewed());
+      item.setViewedAt(persisted.getViewedAt());
+      item.setPriceDelta(persisted.getPriceDelta());
+      item.setPriceChangePercent(persisted.getPriceChangePercent());
+      item.setLastPriceChangeAt(persisted.getLastPriceChangeAt());
+      if (persisted.getStatus() != null && !persisted.getStatus().isBlank()) {
+        item.setStatus(persisted.getStatus());
+      }
+      item.setNewConstruction(item.isNewConstruction() || persisted.isNewConstruction());
+    }
   }
 
   public PortalEngineRegistry getPortalRegistry() {

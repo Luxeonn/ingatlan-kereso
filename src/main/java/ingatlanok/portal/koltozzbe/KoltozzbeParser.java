@@ -90,7 +90,7 @@ public class KoltozzbeParser implements PortalHtmlParser {
       item.setImageUrl(imageUrl);
       item.setNewConstruction(PropertyParser.isNewConstructionText(card.text(), title, fullUrl));
 
-      if (criteria != null && !criteria.matches(item)) {
+      if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
       }
       items.add(item);
@@ -229,7 +229,7 @@ public class KoltozzbeParser implements PortalHtmlParser {
           item.setImageUrl(imageUrl);
           item.setNewConstruction(PropertyParser.isNewConstructionText(name, description, url));
 
-          if (criteria == null || criteria.matches(item)) {
+          if (criteria == null || criteria.matchesRelevance(item)) {
             items.add(item);
           }
         }
