@@ -1,35 +1,24 @@
 package ingatlanok.portal.jofogas;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.jsoup.nodes.Document;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
-import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.AdapterPortalEngine;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
-import ingatlanok.portal.PortalSupport;
 
 public class JofogasPortalEngine implements PortalEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(JofogasPortalEngine.class);
-  private static final PortalDescriptor DESCRIPTOR =
-      new PortalDescriptor(
-          "jofogas",
-          "Jófogás Ingatlan",
-          "#059669",
-          "https://ingatlan.jofogas.hu",
-          true,
-          List.of("lakas", "haz", "telek"),
-          true);
 
   private final JofogasUrlBuilder urlBuilder;
   private final JofogasParser parser;
+  private final AdapterPortalEngine adapterEngine;
 
   public JofogasPortalEngine() {
     this(new JofogasUrlBuilder(), new JofogasParser());
@@ -38,11 +27,13 @@ public class JofogasPortalEngine implements PortalEngine {
   public JofogasPortalEngine(JofogasUrlBuilder urlBuilder, JofogasParser parser) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new JofogasUrlBuilder();
     this.parser = parser != null ? parser : new JofogasParser();
+    this.adapterEngine = new AdapterPortalEngine(new JofogasPortalAdapter(this.urlBuilder,
+        List.of(new JofogasHtmlStrategy(this.urlBuilder, new JofogasRawParser(), HttpFetcher::fetchDocument))));
   }
 
   @Override
   public PortalDescriptor getDescriptor() {
-    return DESCRIPTOR;
+    return adapterEngine.getDescriptor();
   }
 
   @Override
@@ -52,42 +43,12 @@ public class JofogasPortalEngine implements PortalEngine {
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
-    long startTime = System.currentTimeMillis();
-    String searchUrl = null;
-    try {
-      searchUrl = urlBuilder.buildSearchUrl(criteria);
-      LOGGER.info("Jófogás Ingatlan keresés indítása: {}", searchUrl);
-
-      Document document = documentFetcher.apply(searchUrl);
-      if (document == null) {
-        long elapsed = System.currentTimeMillis() - startTime;
-        LOGGER.warn(
-            "Nem sikerült letölteni a Jófogás keresési oldalt [{} ms]: {}", elapsed, searchUrl);
-        return PortalScrapeResult.failure(
-            DESCRIPTOR.id(),
-            DESCRIPTOR.name(),
-            "Nem sikerült letölteni az oldalt",
-            elapsed,
-            500,
-            searchUrl);
-      }
-
-      String now = PortalSupport.nowTimestamp();
-      Set<String> processed = new HashSet<>();
-      List<IngatlanItem> items = parser.parseItems(document, criteria, now, processed);
-
-      long elapsed = System.currentTimeMillis() - startTime;
-      LOGGER.info("jofogas.hu Találatok száma: {} db [{} ms]", items.size(), elapsed);
-      if (items.isEmpty()) {
-        return PortalScrapeResult.empty(DESCRIPTOR.id(), DESCRIPTOR.name(), searchUrl, elapsed);
-      }
-      return PortalScrapeResult.success(DESCRIPTOR.id(), DESCRIPTOR.name(), items, elapsed);
-    } catch (Exception e) {
-      long elapsed = System.currentTimeMillis() - startTime;
-      LOGGER.error("Hiba a Jófogás keresésekor [{} ms]: {}", elapsed, e.getMessage(), e);
-      return PortalScrapeResult.failure(
-          DESCRIPTOR.id(), DESCRIPTOR.name(), e.getMessage(), elapsed, 500, searchUrl);
+    if (criteria == null) {
+      return PortalScrapeResult.failure("jofogas", "Jófogás Ingatlan", "Criteria is null", 0, 400, "https://ingatlan.jofogas.hu");
     }
+    AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new JofogasPortalAdapter(urlBuilder,
+        List.of(new JofogasHtmlStrategy(urlBuilder, new JofogasRawParser(), documentFetcher))));
+    return dynamicEngine.scrape(criteria);
   }
 
   public JofogasUrlBuilder getUrlBuilder() {
