@@ -205,28 +205,26 @@ Persistence is abstracted behind two clean interfaces in `ingatlanok.persistence
 
 ## 5. Web Scraping & Pluggable Portal Engine Architecture (Layer 3)
 
-### 5.1 Pluggable Engine Interface
-Every scraper implements `PortalEngine`:
+### 5.1 Pluggable Engine Interface & Adapter Architecture
+Every portal scraper implements `PortalEngine`, bridged to uniform extraction adapters:
 ```java
 public interface PortalEngine {
-    String getId();
-    String getName();
     PortalDescriptor getDescriptor();
     PortalScrapeResult scrape(SearchCriteria criteria);
 }
 ```
-All engines register dynamically in `PortalEngineRegistry`.
+All engines register dynamically in `PortalEngineRegistry`. Under the hood, portál implementations delegate to `AdapterPortalEngine` backed by `PortalAdapter` and ordered `ExtractionStrategy` pipelines (`API`, `STATE_JSON`, `JSON_LD`, `HTML`, `SIDECAR`), feeding raw extraction results (`RawPropertyListing`) into the centralized `ListingNormalizer` and `ListingValidator` (Layer 2a).
 
 ### 5.2 Portal Inventory & Extraction Strategies
 
 | Portal | Domain | Method | Extraction Strategy & Anti-Bot Mitigations |
 | :--- | :--- | :--- | :--- |
-| **Duna House** | `dh.hu` | Live Jsoup DOM | Pattern: `/elado-ingatlan/<type>/<county>/<city>/<price>-mFt`. Direct card parsing for price, floor area, rooms, image URLs. |
-| **Otthon Centrum** | `oc.hu` | Live Jsoup DOM | Rich card parsing using Chrome 133 `Sec-Ch-Ua` headers and client hints to prevent bot challenges. |
-| **Jófogás Ingatlan** | `jofogas.hu` | Live Jsoup DOM | Search query parsing with robust regex extraction of Hungarian price notations (millió Ft) and location normalization. |
-| **Költözzbe** | `koltozzbe.hu` | Live DOM & JSON-LD | Dual strategy: Parses HTML cards with fallback to embedded Schema.org JSON-LD microdata. |
-| **Ingatlanbazár** | `ingatlanbazar.hu` | Live REST API | High-speed JSON endpoints (`/api/property-search`) with cached location codes and structured response parsing. |
-| **Ingatlan.com** | `ingatlan.com` | Graceful Fallback | Cloudflare WAF protected. Generates a pre-parameterized direct browser search link and returns `BOT_PROTECTED` status card without hanging. |
+| **Duna House** | `dh.hu` | Live Jsoup DOM | Pattern: `/elado-ingatlan/<type>/<county>/<city>/<price>-mFt`. Adapter with `DunaHouseHtmlStrategy` parsing into `RawPropertyListing`. |
+| **Otthon Centrum** | `oc.hu` | Live Jsoup DOM | Rich card parsing with `OtthonCentrumHtmlStrategy` using Chrome 133 `Sec-Ch-Ua` headers and client hints to prevent bot challenges. |
+| **Jófogás Ingatlan** | `jofogas.hu` | Live Jsoup DOM | Search query parsing with `JofogasHtmlStrategy` producing `RawPropertyListing`. |
+| **Költözzbe** | `koltozzbe.hu` | Live DOM & JSON-LD | Dual strategy: `KoltozzbeExtractionStrategy` parsing HTML cards and embedded Schema.org JSON-LD microdata into raw listings. |
+| **Ingatlanbazár** | `ingatlanbazar.hu` | Live REST API | High-speed JSON endpoints (`/api/property-search`) handled by `IngatlanBazarApiStrategy` producing `RawPropertyListing` with typed HUF pricing. |
+| **Ingatlan.com** | `ingatlan.com` | Sidecar / Graceful Fallback | Priority chain: `IngatlanComSidecarStrategy` first; fallback to `IngatlanComHtmlStrategy` (Cloudflare WAF bot detection) returning `BOT_PROTECTED` status card without hanging. |
 
 ### 5.3 Anti-Bot & Browser Client Hints
 `HttpFetcher` standardizes all outbound requests:
