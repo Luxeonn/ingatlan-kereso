@@ -479,4 +479,83 @@ class PortalAdaptersModularTest {
         "https://ingatlan.com/lista/elado+telek+500-m2-tol+20-mFt-tol+hajduszoboszlo",
         icBot.getFallbackUrl());
   }
+
+  @Test
+  @DisplayName("Fázis 0: Offline fixture fájlok integritásának és parsereinek ellenőrzése")
+  void testOfflineFixturesIntegrity() throws Exception {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("lakas");
+    criteria.setMinPriceMillion(null);
+    criteria.setMaxPriceMillion(null);
+    criteria.setMinArea(null);
+    criteria.setMaxArea(null);
+
+    // Duna House fixture
+    String dhHtml = new String(
+        getClass().getResourceAsStream("/fixtures/dh/sample-dh.html").readAllBytes());
+    Document dhDoc = Jsoup.parse(dhHtml, DunaHouseUrlBuilder.BASE_URL);
+    List<IngatlanItem> dhItems = new DunaHouseParser().parseItems(
+        dhDoc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+    assertEquals(2, dhItems.size());
+    assertEquals("12345", dhItems.get(0).getId());
+
+    // Otthon Centrum fixture
+    SearchCriteria ocCriteria = new SearchCriteria();
+    ocCriteria.setCity("Debrecen");
+    ocCriteria.setPropertyType("haz");
+    ocCriteria.setMinPriceMillion(null);
+    ocCriteria.setMaxPriceMillion(null);
+    ocCriteria.setMinArea(null);
+    ocCriteria.setMaxArea(null);
+    String ocHtml = new String(
+        getClass().getResourceAsStream("/fixtures/oc/sample-oc.html").readAllBytes());
+    Document ocDoc = Jsoup.parse(ocHtml, OtthonCentrumUrlBuilder.BASE_URL);
+    List<IngatlanItem> ocItems = new OtthonCentrumParser().parseItems(
+        ocDoc, ocCriteria, "2026-10-14 12:00:00", new HashSet<>());
+    assertEquals(2, ocItems.size());
+    assertEquals("H45678", ocItems.get(0).getId());
+
+    // Jófogás fixture
+    String jfHtml = new String(
+        getClass().getResourceAsStream("/fixtures/jofogas/sample-jofogas.html").readAllBytes());
+    Document jfDoc = Jsoup.parse(jfHtml, JofogasUrlBuilder.BASE_URL);
+    List<IngatlanItem> jfItems = new JofogasParser().parseItems(
+        jfDoc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+    assertEquals(2, jfItems.size());
+    assertEquals("12345678", jfItems.get(0).getId());
+
+    // Ingatlanbazár fixture
+    SearchCriteria ibCriteria = new SearchCriteria();
+    ibCriteria.setCity("Hajdúszoboszló");
+    ibCriteria.setPropertyType("haz");
+    ibCriteria.setMinPriceMillion(null);
+    ibCriteria.setMaxPriceMillion(null);
+    ibCriteria.setMinArea(null);
+    ibCriteria.setMaxArea(null);
+    String ibJson = new String(
+        getClass().getResourceAsStream(
+            "/fixtures/ingatlanbazar/sample-ingatlanbazar.json").readAllBytes());
+    List<IngatlanItem> ibItems = new IngatlanBazarJsonParser().parseItemsFromJson(
+        ibJson, ibCriteria, new HashSet<>(), "2026-10-14 12:00:00");
+    assertEquals(2, ibItems.size());
+    assertEquals("IB999", ibItems.get(0).getId());
+
+    // Költözzbe fixture
+    String kbHtml = new String(
+        getClass().getResourceAsStream("/fixtures/koltozzbe/sample-koltozzbe.html").readAllBytes());
+    Document kbDoc = Jsoup.parse(kbHtml, KoltozzbeUrlBuilder.BASE_URL);
+    List<IngatlanItem> kbItems = new KoltozzbeParser().parseItems(
+        kbDoc, ibCriteria, "2026-10-14 12:00:00", new HashSet<>());
+    assertEquals(2, kbItems.size());
+
+    // Ingatlan.com fixture
+    String icHtml = new String(
+        getClass().getResourceAsStream("/fixtures/ingatlancom/sample-ingatlancom.html").readAllBytes());
+    Document icDoc = Jsoup.parse(icHtml, IngatlanComUrlBuilder.BASE_URL);
+    List<IngatlanItem> icItems = new IngatlanComParser().parseItems(
+        icDoc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+    assertEquals(1, icItems.size());
+    assertEquals("12345678", icItems.get(0).getId());
+  }
 }
