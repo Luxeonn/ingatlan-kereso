@@ -4,12 +4,16 @@ import java.io.Serializable;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnDefault;
+
+import ingatlanok.model.PropertyType;
 
 @Entity
 @Table(
@@ -24,7 +28,9 @@ import org.hibernate.annotations.ColumnDefault;
       @Index(name = "idx_properties_area", columnList = "areaSqm"),
       @Index(name = "idx_properties_rooms", columnList = "rooms"),
       @Index(name = "idx_properties_viewed", columnList = "viewed"),
-      @Index(name = "idx_properties_price_delta", columnList = "priceDelta")
+      @Index(name = "idx_properties_price_delta", columnList = "priceDelta"),
+      @Index(name = "idx_properties_property_type", columnList = "property_type"),
+      @Index(name = "idx_properties_canonical_id", columnList = "canonicalId")
     })
 public class PropertyEntity implements Serializable {
 
@@ -102,6 +108,19 @@ public class PropertyEntity implements Serializable {
 
   @Column(length = 50)
   private String updatedAt;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "property_type", length = 50)
+  private PropertyType propertyType = PropertyType.EGYEB_ISMERETLEN;
+
+  @Column(length = 128)
+  private String canonicalId;
+
+  @Column(length = 50)
+  private String firstSeenAt;
+
+  @Column(length = 50)
+  private String lastSeenAt;
 
   public PropertyEntity() {}
 
@@ -311,5 +330,37 @@ public class PropertyEntity implements Serializable {
 
   public void setUpdatedAt(String updatedAt) {
     this.updatedAt = updatedAt;
+  }
+
+  public PropertyType getPropertyType() {
+    return propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
+  }
+
+  public void setPropertyType(PropertyType propertyType) {
+    this.propertyType = propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
+  }
+
+  public String getCanonicalId() {
+    return canonicalId;
+  }
+
+  public void setCanonicalId(String canonicalId) {
+    this.canonicalId = canonicalId;
+  }
+
+  public String getFirstSeenAt() {
+    return firstSeenAt;
+  }
+
+  public void setFirstSeenAt(String firstSeenAt) {
+    this.firstSeenAt = firstSeenAt;
+  }
+
+  public String getLastSeenAt() {
+    return lastSeenAt;
+  }
+
+  public void setLastSeenAt(String lastSeenAt) {
+    this.lastSeenAt = lastSeenAt;
   }
 }

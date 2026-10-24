@@ -22,6 +22,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.ConfigStorage;
@@ -590,5 +591,72 @@ class SearchExecutionEngineTest {
     assertEquals(2, r2.getPortalCounts().get("Ingatlanbazár"));
     int sum2 = r2.getPortalCounts().values().stream().mapToInt(Integer::intValue).sum();
     assertEquals(r2.getTotalFound(), sum2);
+  }
+
+  @Test
+  @DisplayName("Milestone R5: SearchExecutionEngine evaluates data quality scores during search pipeline")
+  void testQualityScoringIntegratedIntoSearchExecution() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+
+    IngatlanItem item = new IngatlanItem();
+    item.setId("qs-1");
+    item.setUrl("https://dh.hu/1");
+    item.setTitle("Szép lakás");
+    item.setCity("Debrecen");
+    item.setLocation("Debrecen");
+    item.setPortal("Duna House");
+    item.setPrice("50 M Ft");
+    item.setPriceInfo(new PriceInfo("50 M Ft", 50_000_000L, 50.0));
+    item.setDetails("50 m² • 2 szoba");
+    item.setDetailsInfo(new PropertyDetails("50 m² • 2 szoba", 50.0, 2.0, 1_000_000L));
+    item.setPropertyType(PropertyType.LAKAS);
+    item.setImageUrl("https://dh.hu/img1.jpg");
+
+    PortalEngine dhEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "dh",
+                "Duna House",
+                "#d32f2f",
+                "https://dh.hu",
+                true,
+                List.of("lakas"),
+                true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            return PortalScrapeResult.success("dh", "Duna House", List.of(item), 100);
+          }
+        };
+
+    DataQualityEngine qualityEngine = new DataQualityEngine();
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            new MarketAnalyticsEngine(qualityEngine),
+            qualityEngine);
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen"));
+    criteria.setPortals(List.of("dh"));
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(60);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(60);
+
+    SearchResult result = engine.executeSearch(criteria);
+    assertEquals(1, result.getTotalFound());
+    IngatlanItem resultItem = result.getItems().getFirst();
+    assertNotNull(resultItem.getQualityScore());
+    assertEquals(100, resultItem.getQualityScore());
+    assertNotNull(resultItem.getQualityDeductions());
+    assertTrue(resultItem.getQualityDeductions().isEmpty());
   }
 }

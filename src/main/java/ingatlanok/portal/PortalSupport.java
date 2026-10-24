@@ -2,7 +2,6 @@ package ingatlanok.portal;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.Set;
 
 import org.jsoup.nodes.Document;
@@ -10,6 +9,7 @@ import org.jsoup.nodes.Element;
 
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
+import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 
 /** Shared modular helper methods for portal URL builders, HTML parsers, and scraper engines. */
@@ -45,15 +45,29 @@ public final class PortalSupport {
     return Character.toUpperCase(slug.charAt(0)) + slug.substring(1);
   }
 
+  public static PropertyType resolvePropertyType(SearchCriteria criteria) {
+    if (criteria == null || criteria.getPropertyType() == null || criteria.getPropertyType().isBlank()) {
+      return PropertyType.LAKAS;
+    }
+    PropertyType parsed = PropertyType.fromString(criteria.getPropertyType());
+    return parsed != PropertyType.EGYEB_ISMERETLEN ? parsed : PropertyType.LAKAS;
+  }
+
   public static String resolvePropertyTypeSlug(SearchCriteria criteria) {
     SearchCriteria safe = normalizeCriteria(criteria);
-    String rawType =
-        safe.getPropertyType() != null
-            ? safe.getPropertyType().toLowerCase(Locale.ROOT).trim()
-            : "lakas";
-    return switch (rawType) {
-      case "haz" -> "haz";
-      case "telek" -> "telek";
+    PropertyType type = resolvePropertyType(safe);
+    return resolvePropertyTypeSlug(type);
+  }
+
+  public static String resolvePropertyTypeSlug(PropertyType type) {
+    if (type == null) {
+      return "lakas";
+    }
+    return switch (type) {
+      case HAZ -> "haz";
+      case TELEK -> "telek";
+      case GARAZS -> "garazs";
+      case IPARI_KERESKEDELMI -> "ipari";
       default -> "lakas";
     };
   }

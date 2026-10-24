@@ -10,10 +10,15 @@ import org.springframework.stereotype.Component;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
+import ingatlanok.model.Property;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.PropertyType;
+import ingatlanok.model.SourceListing;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.entity.StatusLogEntity;
@@ -44,6 +49,8 @@ public class JpaEntityMapper {
     item.setPriceDelta(entity.getPriceDelta());
     item.setPriceChangePercent(entity.getPriceChangePercent());
     item.setLastPriceChangeAt(entity.getLastPriceChangeAt());
+    item.setPropertyType(
+        entity.getPropertyType() != null ? entity.getPropertyType() : PropertyType.EGYEB_ISMERETLEN);
 
     if (entity.getPriceAmount() != null || entity.getPriceMillions() != null) {
       item.setPriceInfo(
@@ -61,6 +68,11 @@ public class JpaEntityMapper {
               entity.getAreaSqm() != null ? entity.getAreaSqm() : 0.0,
               entity.getRooms() != null ? entity.getRooms() : 0.0,
               entity.getPricePerSqm() != null ? entity.getPricePerSqm() : 0L));
+    }
+    SourceListing source = toSourceListing(entity);
+    if (source != null) {
+      item.setSourceListings(List.of(source));
+      item.setSourcesCount(1);
     }
     return item;
   }
@@ -107,6 +119,8 @@ public class JpaEntityMapper {
     entity.setNormalizedCity(CityUtils.normalizeCityKey(cityName));
     entity.setLocation(cityName);
     entity.setTitle(item.getTitle() != null ? item.getTitle() : "");
+    entity.setPropertyType(
+        item.getPropertyType() != null ? item.getPropertyType() : PropertyType.EGYEB_ISMERETLEN);
     entity.setPriceRaw(
         (pi != null && pi.getRawText() != null)
             ? pi.getRawText()
@@ -127,6 +141,14 @@ public class JpaEntityMapper {
     entity.setPriceDelta(priceDelta);
     entity.setPriceChangePercent(priceChangePercent);
     entity.setLastPriceChangeAt(lastPriceChangeAt);
+    entity.setFirstSeenAt(
+        !isNew && existing.getFirstSeenAt() != null
+            ? existing.getFirstSeenAt()
+            : (item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now));
+    entity.setLastSeenAt(now);
+    if (!isNew && existing.getCanonicalId() != null) {
+      entity.setCanonicalId(existing.getCanonicalId());
+    }
     entity.setUpdatedAt(now);
     return entity;
   }
@@ -141,6 +163,9 @@ public class JpaEntityMapper {
   public void normalizeItem(IngatlanItem item) {
     if (item == null) {
       return;
+    }
+    if (item.getPropertyType() == null) {
+      item.setPropertyType(PropertyType.EGYEB_ISMERETLEN);
     }
     if (item.getPriceInfo() == null && item.getPrice() != null && !item.getPrice().isBlank()) {
       item.setPriceInfo(PropertyParser.parsePrice(item.getPrice()));
@@ -215,5 +240,89 @@ public class JpaEntityMapper {
         sl.getStatus(),
         sl.getChangedAt(),
         sl.getNote());
+  }
+
+  public SourceListing toSourceListing(PropertyEntity entity) {
+    if (entity == null) {
+      return null;
+    }
+    SourceListing sl = new SourceListing();
+    sl.setPortal(entity.getPortal());
+    sl.setExternalListingId(entity.getPropertyId());
+    sl.setUrl(entity.getUrl());
+    sl.setTitle(entity.getTitle());
+    sl.setImageUrl(entity.getImageUrl());
+    sl.setFirstSeenAt(
+        entity.getFirstSeenAt() != null ? entity.getFirstSeenAt() : entity.getDiscoveredAt());
+    sl.setLastSeenAt(entity.getLastSeenAt() != null ? entity.getLastSeenAt() : entity.getUpdatedAt());
+    sl.setStatus(entity.getStatus());
+    sl.setPriceHuf(entity.getPriceAmount());
+    sl.setPricePerM2(entity.getPricePerSqm());
+    sl.setViewed(entity.isViewed());
+    sl.setViewedAt(entity.getViewedAt());
+    return sl;
+  }
+
+  public ListingObservation toListingObservation(ListingObservationEntity entity) {
+    if (entity == null) {
+      return null;
+    }
+    return new ListingObservation(
+        entity.getObservedAt(),
+        entity.getPriceHuf(),
+        entity.getPricePerM2(),
+        entity.getStatusEvent(),
+        entity.getPriceDelta(),
+        entity.getChangePercent());
+  }
+
+  public ListingObservationEntity createListingObservationEntity(
+      String propertyId,
+      String url,
+      String canonicalId,
+      String observedAt,
+      Long priceHuf,
+      Long pricePerM2,
+      String statusEvent,
+      Long priceDelta,
+      Double changePercent) {
+    ListingObservationEntity lo = new ListingObservationEntity();
+    lo.setPropertyId(propertyId);
+    lo.setUrl(url);
+    lo.setCanonicalId(canonicalId);
+    lo.setObservedAt(observedAt);
+    lo.setPriceHuf(priceHuf);
+    lo.setPricePerM2(pricePerM2);
+    lo.setStatusEvent(statusEvent);
+    lo.setPriceDelta(priceDelta);
+    lo.setChangePercent(changePercent);
+    return lo;
+  }
+
+  public Property toProperty(PropertyEntity entity, List<SourceListing> sources) {
+    if (entity == null) {
+      return null;
+    }
+    Property prop = new Property();
+    prop.setCanonicalId(
+        entity.getCanonicalId() != null ? entity.getCanonicalId() : entity.getPropertyId());
+    prop.setNormalizedCity(entity.getNormalizedCity());
+    prop.setCity(entity.getCity());
+    prop.setPropertyType(
+        entity.getPropertyType() != null ? entity.getPropertyType() : PropertyType.EGYEB_ISMERETLEN);
+    prop.setFloorAreaSquareMeters(entity.getAreaSqm());
+    prop.setRoomCount(entity.getRooms());
+    prop.setLocation(entity.getLocation());
+    prop.setMinActivePriceHuf(entity.getPriceAmount());
+    if (sources != null && !sources.isEmpty()) {
+      prop.setSources(sources);
+      prop.setMinActivePriceHuf(prop.calculateMinActivePriceHuf());
+    } else {
+      SourceListing singleSource = toSourceListing(entity);
+      if (singleSource != null) {
+        prop.setSources(List.of(singleSource));
+      }
+    }
+    return prop;
   }
 }

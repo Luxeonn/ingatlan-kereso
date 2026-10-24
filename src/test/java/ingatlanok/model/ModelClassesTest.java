@@ -188,4 +188,88 @@ class ModelClassesTest {
     sidecarItem.setImageUrl("https://example.com/updated.jpg");
     assertEquals("https://example.com/updated.jpg", sidecarItem.getImageUrl());
   }
+
+  @Test
+  @DisplayName("IngatlanItem propertyType and overloaded constructor")
+  void testIngatlanItemPropertyType() {
+    IngatlanItem item = new IngatlanItem();
+    assertEquals(PropertyType.EGYEB_ISMERETLEN, item.getPropertyType());
+
+    item.setPropertyType(PropertyType.HAZ);
+    assertEquals(PropertyType.HAZ, item.getPropertyType());
+
+    item.setPropertyType("telek");
+    assertEquals(PropertyType.TELEK, item.getPropertyType());
+
+    item.setPropertyType((PropertyType) null);
+    assertEquals(PropertyType.EGYEB_ISMERETLEN, item.getPropertyType());
+
+    IngatlanItem overloaded = new IngatlanItem(
+        "id1",
+        PortalSource.of("dh"),
+        "https://dh.hu/1",
+        "Családi ház",
+        new PriceInfo("80 M Ft", 80_000_000L, 80.0),
+        "Debrecen",
+        new PropertyDetails("120 m²", 120.0, 4.0, 666_667L),
+        "2026-10-24 10:00:00",
+        true,
+        PropertyType.HAZ
+    );
+    assertEquals(PropertyType.HAZ, overloaded.getPropertyType());
+    assertEquals("Családi ház", overloaded.getTitle());
+    assertTrue(overloaded.isNew());
+  }
+
+  @Test
+  @DisplayName("PriceInfo and PropertyDetails setters and edge cases")
+  void testPriceInfoAndPropertyDetailsCoverage() {
+    PriceInfo priceInfo = new PriceInfo();
+    priceInfo.setAmountHuf(60_000_000L);
+    priceInfo.setAmountMillion(60.0);
+    priceInfo.setRawText("60 M Ft");
+    priceInfo.setCurrency("HUF");
+
+    assertEquals(60_000_000L, priceInfo.getAmountHuf());
+    assertEquals(60.0, priceInfo.getAmountMillion());
+    assertEquals("60 M Ft", priceInfo.getRawText());
+    assertEquals("HUF", priceInfo.getCurrency());
+
+    PropertyDetails details = new PropertyDetails();
+    details.setAreaSquareMeters(70.0);
+    details.setRoomCount(3.0);
+    details.setPricePerSquareMeter(857_143L);
+    details.setRawText("70 m² 3 szoba");
+
+    assertEquals(70.0, details.getAreaSquareMeters());
+    assertEquals(3.0, details.getRoomCount());
+    assertEquals(857_143L, details.getPricePerSquareMeter());
+    assertEquals("70 m² 3 szoba", details.getRawText());
+  }
+
+  @Test
+  @DisplayName("IngatlanItem qualityScore, qualityDeductions and getRawCity coverage")
+  void testQualityScoreAndCityMethods() {
+    IngatlanItem item = new IngatlanItem();
+    assertNull(item.getQualityScore());
+    assertNotNull(item.getQualityDeductions());
+    assertTrue(item.getQualityDeductions().isEmpty());
+    assertNull(item.getRawCity());
+    assertEquals("Debrecen", item.getCity());
+
+    item.setCity("Szeged");
+    assertEquals("Szeged", item.getRawCity());
+    assertEquals("Szeged", item.getCity());
+
+    item.setQualityScore(85);
+    assertEquals(85, item.getQualityScore());
+
+    item.setQualityDeductions(List.of("Deduction 1", "Deduction 2"));
+    assertEquals(2, item.getQualityDeductions().size());
+    assertEquals("Deduction 1", item.getQualityDeductions().getFirst());
+
+    item.setQualityDeductions(null);
+    assertNotNull(item.getQualityDeductions());
+    assertTrue(item.getQualityDeductions().isEmpty());
+  }
 }

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.StatusLogEntry;
 
@@ -50,6 +51,10 @@ public interface ListingStorage {
   }
 
   default List<StatusLogEntry> getStatusLog(String idOrUrl) {
+    return List.of();
+  }
+
+  default List<ListingObservation> getListingObservations(String idOrUrl) {
     return List.of();
   }
 

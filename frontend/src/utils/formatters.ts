@@ -1,3 +1,168 @@
+import {
+  Building2,
+  Home,
+  Trees,
+  Warehouse,
+  Factory,
+  HelpCircle,
+  type LucideIcon,
+} from 'lucide-react'
+import type { CanonicalPropertyType } from '../types/property'
+
+export interface PropertyTypeConfig {
+  key: CanonicalPropertyType
+  label: string
+  icon: LucideIcon
+  colorClasses: {
+    badge: string
+    icon: string
+  }
+}
+
+export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeConfig> = {
+  LAKAS: {
+    key: 'LAKAS',
+    label: 'Lakás',
+    icon: Building2,
+    colorClasses: {
+      badge: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+      icon: 'text-indigo-400',
+    },
+  },
+  HAZ: {
+    key: 'HAZ',
+    label: 'Ház',
+    icon: Home,
+    colorClasses: {
+      badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+      icon: 'text-amber-400',
+    },
+  },
+  TELEK: {
+    key: 'TELEK',
+    label: 'Telek',
+    icon: Trees,
+    colorClasses: {
+      badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+      icon: 'text-emerald-400',
+    },
+  },
+  GARAZS: {
+    key: 'GARAZS',
+    label: 'Garázs',
+    icon: Warehouse,
+    colorClasses: {
+      badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+      icon: 'text-cyan-400',
+    },
+  },
+  IPARI_KERESKEDELMI: {
+    key: 'IPARI_KERESKEDELMI',
+    label: 'Ipari / Kereskedelmi',
+    icon: Factory,
+    colorClasses: {
+      badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+      icon: 'text-purple-400',
+    },
+  },
+  EGYEB_ISMERETLEN: {
+    key: 'EGYEB_ISMERETLEN',
+    label: 'Egyéb',
+    icon: HelpCircle,
+    colorClasses: {
+      badge: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+      icon: 'text-slate-400',
+    },
+  },
+}
+
+export function normalizePropertyType(rawType?: string | null): CanonicalPropertyType {
+  if (!rawType || typeof rawType !== 'string') return 'EGYEB_ISMERETLEN'
+
+  const normalized = rawType.trim().toUpperCase()
+  if (normalized in PROPERTY_TYPE_CONFIGS) {
+    return normalized as CanonicalPropertyType
+  }
+
+  const lower = rawType.trim().toLowerCase()
+  if (
+    lower === 'lakas' ||
+    lower === 'lakás' ||
+    lower === 'apartment' ||
+    lower === 'flat' ||
+    lower.includes('lakas') ||
+    lower.includes('lakás') ||
+    lower.includes('tarsashaz') ||
+    lower.includes('társasház') ||
+    lower.includes('panel')
+  ) {
+    return 'LAKAS'
+  }
+
+  if (
+    lower === 'haz' ||
+    lower === 'ház' ||
+    lower === 'house' ||
+    lower.includes('haz') ||
+    lower.includes('ház') ||
+    lower.includes('csaladi') ||
+    lower.includes('családi') ||
+    lower.includes('ikerhaz') ||
+    lower.includes('sorhaz') ||
+    lower.includes('villa')
+  ) {
+    return 'HAZ'
+  }
+
+  if (
+    lower === 'telek' ||
+    lower === 'land' ||
+    lower === 'plot' ||
+    lower.includes('telek') ||
+    lower.includes('epitesi') ||
+    lower.includes('építési') ||
+    lower.includes('zartkert') ||
+    lower.includes('szanto')
+  ) {
+    return 'TELEK'
+  }
+
+  if (
+    lower === 'garazs' ||
+    lower === 'garázs' ||
+    lower === 'garage' ||
+    lower.includes('garazs') ||
+    lower.includes('garázs') ||
+    lower.includes('parkolo') ||
+    lower.includes('parkoló') ||
+    lower.includes('beallo')
+  ) {
+    return 'GARAZS'
+  }
+
+  if (
+    lower === 'ipari' ||
+    lower === 'kereskedelmi' ||
+    lower === 'commercial' ||
+    lower === 'industrial' ||
+    lower.includes('ipari') ||
+    lower.includes('kereskedelmi') ||
+    lower.includes('iroda') ||
+    lower.includes('raktar') ||
+    lower.includes('raktár') ||
+    lower.includes('telephely')
+  ) {
+    return 'IPARI_KERESKEDELMI'
+  }
+
+  return 'EGYEB_ISMERETLEN'
+}
+
+export function getPropertyTypeConfig(rawType?: string | null): PropertyTypeConfig {
+  const key = normalizePropertyType(rawType)
+  return PROPERTY_TYPE_CONFIGS[key]
+}
+
 export function formatPriceMillion(million?: number | null): string {
   if (million == null || isNaN(million)) return 'N/A'
   return `${Number(million.toFixed(1))} M Ft`

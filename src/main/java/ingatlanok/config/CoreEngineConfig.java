@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import ingatlanok.core.DataQualityEngine;
 import ingatlanok.core.DeduplicationEngine;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.PropertyFilterEngine;
@@ -60,13 +61,18 @@ public class CoreEngineConfig {
   }
 
   @Bean
+  public DataQualityEngine dataQualityEngine() {
+    return new DataQualityEngine();
+  }
+
+  @Bean
   public PropertyFilterEngine propertyFilterEngine() {
     return new PropertyFilterEngine();
   }
 
   @Bean
-  public MarketAnalyticsEngine marketAnalyticsEngine() {
-    return new MarketAnalyticsEngine();
+  public MarketAnalyticsEngine marketAnalyticsEngine(DataQualityEngine qualityEngine) {
+    return new MarketAnalyticsEngine(qualityEngine);
   }
 
   @Bean
@@ -80,10 +86,17 @@ public class CoreEngineConfig {
       ListingStorage listingStorage,
       PropertyFilterEngine filterEngine,
       DeduplicationEngine dedupEngine,
-      MarketAnalyticsEngine analyticsEngine) {
+      MarketAnalyticsEngine analyticsEngine,
+      DataQualityEngine qualityEngine) {
     ConfigStorage configStorage = (listingStorage instanceof ConfigStorage cs) ? cs : null;
     return new SearchExecutionEngine(
-        portalRegistry, listingStorage, configStorage, filterEngine, dedupEngine, analyticsEngine);
+        portalRegistry,
+        listingStorage,
+        configStorage,
+        filterEngine,
+        dedupEngine,
+        analyticsEngine,
+        qualityEngine);
   }
 
   @Bean

@@ -64,6 +64,20 @@ export interface MarketAnalyticsData {
     discountedPercent: number
     newCount: number
     newPercent: number
+    // Category medians & sample sizes (#263 & #264)
+    lakasMedianPricePerSqm: number | null
+    hazMedianPricePerSqm: number | null
+    telekMedianPricePerSqm: number | null
+    residentialMedianPricePerSqm: number | null
+    plotMedianPricePerSqm: number | null
+    lakasSampleSize: number
+    hazSampleSize: number
+    telekSampleSize: number
+    residentialSampleSize: number
+    plotSampleSize: number
+    insufficientData: boolean
+    bargainCount: number
+    bargainPercent: number
   }
   distribution: {
     priceBins: HistogramBin[]
@@ -98,13 +112,14 @@ function calculatePercentile(arr: number[], p: number): number {
   const lower = Math.floor(index)
   const upper = Math.ceil(index)
   const weight = index - lower
+  if (lower === upper) return sorted[lower]
   return sorted[lower] * (1 - weight) + sorted[upper] * weight
 }
 
 function calculateStdDev(arr: number[], mean: number): number {
   if (arr.length <= 1) return 0
-  const sumSquares = arr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0)
-  return Math.sqrt(sumSquares / (arr.length - 1))
+  const sumSquaredDiffs = arr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0)
+  return Math.sqrt(sumSquaredDiffs / (arr.length - 1))
 }
 
 export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
@@ -127,6 +142,19 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
           discountedPercent: 0,
           newCount: 0,
           newPercent: 0,
+          lakasMedianPricePerSqm: null,
+          hazMedianPricePerSqm: null,
+          telekMedianPricePerSqm: null,
+          residentialMedianPricePerSqm: null,
+          plotMedianPricePerSqm: null,
+          lakasSampleSize: 0,
+          hazSampleSize: 0,
+          telekSampleSize: 0,
+          residentialSampleSize: 0,
+          plotSampleSize: 0,
+          insufficientData: true,
+          bargainCount: 0,
+          bargainPercent: 0,
         },
         distribution: {
           priceBins: [],
@@ -149,7 +177,16 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
 
     const prices: number[] = []
     const sqmPrices: number[] = []
+    const lakasSqmPrices: number[] = []
+    const hazSqmPrices: number[] = []
+    const telekSqmPrices: number[] = []
+    const residentialSqmPrices: number[] = []
+    const plotSqmPrices: number[] = []
+
     const cityMap = new Map<string, IngatlanItem[]>()
+    // Bucket map for (city#type) -> sqm prices
+    const segmentMap = new Map<string, number[]>()
+
     let discountedCount = 0
     let newCount = 0
 
@@ -164,9 +201,33 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
         prices.push(pMillion)
       }
 
-      const sqPrice = item.detailsInfo?.pricePerSquareMeter
+      const sqPrice =
+        item.detailsInfo?.pricePerSquareMeter ??
+        (item.priceInfo?.amountHuf && item.detailsInfo?.areaSquareMeters && item.detailsInfo.areaSquareMeters > 0
+          ? Math.round(item.priceInfo.amountHuf / item.detailsInfo.areaSquareMeters)
+          : null)
+
       if (sqPrice != null && sqPrice > 0) {
         sqmPrices.push(sqPrice)
+
+        const rawType = (item.propertyType || '').toUpperCase()
+        if (rawType.includes('LAKAS') || rawType === 'FLAT' || rawType === 'APARTMENT') {
+          lakasSqmPrices.push(sqPrice)
+          residentialSqmPrices.push(sqPrice)
+        } else if (rawType.includes('HAZ') || rawType === 'HOUSE') {
+          hazSqmPrices.push(sqPrice)
+          residentialSqmPrices.push(sqPrice)
+        } else if (rawType.includes('TELEK') || rawType === 'LAND' || rawType === 'PLOT') {
+          telekSqmPrices.push(sqPrice)
+          plotSqmPrices.push(sqPrice)
+        }
+
+        const cityName = item.city || item.location || 'Ismeretlen'
+        const bucketKey = `${cityName.toLowerCase()}#${rawType}`
+        if (!segmentMap.has(bucketKey)) {
+          segmentMap.set(bucketKey, [])
+        }
+        segmentMap.get(bucketKey)!.push(sqPrice)
       }
 
       const cityName = item.city || item.location || 'Ismeretlen'
@@ -177,6 +238,21 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
     })
 
     const totalCount = items.length
+    const insufficientData = totalCount < 5
+
+    // Category medians with >= 5 minimum sample size guard
+    const lakasSampleSize = lakasSqmPrices.length
+    const hazSampleSize = hazSqmPrices.length
+    const telekSampleSize = telekSqmPrices.length
+    const residentialSampleSize = residentialSqmPrices.length
+    const plotSampleSize = plotSqmPrices.length
+
+    const lakasMedianPricePerSqm = lakasSampleSize >= 5 ? Math.round(calculateMedian(lakasSqmPrices)) : null
+    const hazMedianPricePerSqm = hazSampleSize >= 5 ? Math.round(calculateMedian(hazSqmPrices)) : null
+    const telekMedianPricePerSqm = telekSampleSize >= 5 ? Math.round(calculateMedian(telekSqmPrices)) : null
+    const residentialMedianPricePerSqm = residentialSampleSize >= 5 ? Math.round(calculateMedian(residentialSqmPrices)) : null
+    const plotMedianPricePerSqm = plotSampleSize >= 5 ? Math.round(calculateMedian(plotSqmPrices)) : null
+
     const avgPriceMillion = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0
     const medianPriceMillion = calculateMedian(prices)
     const minPriceMillion = prices.length > 0 ? Math.min(...prices) : 0
@@ -184,7 +260,14 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
     const priceStdDev = calculateStdDev(prices, avgPriceMillion)
 
     const avgPricePerSqm = sqmPrices.length > 0 ? Math.round(sqmPrices.reduce((a, b) => a + b, 0) / sqmPrices.length) : 0
-    const medianPricePerSqm = Math.round(calculateMedian(sqmPrices))
+    // Separate living area from plot: if residential is available, use residential median
+    const medianPricePerSqm =
+      residentialMedianPricePerSqm != null
+        ? residentialMedianPricePerSqm
+        : (plotMedianPricePerSqm != null && residentialSampleSize === 0
+            ? plotMedianPricePerSqm
+            : (sqmPrices.length >= 5 ? Math.round(calculateMedian(sqmPrices)) : 0))
+
     const minPricePerSqm = sqmPrices.length > 0 ? Math.min(...sqmPrices) : 0
     const maxPricePerSqm = sqmPrices.length > 0 ? Math.max(...sqmPrices) : 0
     const sqmPriceStdDev = Math.round(calculateStdDev(sqmPrices, avgPricePerSqm))
@@ -223,7 +306,7 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
             count: inBin.length,
             newCount: inBin.filter((it) => it.isNew).length,
             avgVal: inBin.length > 0 ? Math.round((sum / inBin.length) * 10) / 10 : 0,
-            percentage: Math.round((inBin.length / totalCount) * 100),
+            percentage: totalCount > 0 ? Math.round((inBin.length / totalCount) * 100) : 0,
           })
         }
       }
@@ -232,90 +315,106 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
     // 2. Build Histogram for Sqm Price (ezer Ft/m²)
     const sqmPriceBins: HistogramBin[] = []
     if (sqmPrices.length > 0) {
-      const minSqmK = Math.floor(minPricePerSqm / 1000)
-      const maxSqmK = Math.ceil(maxPricePerSqm / 1000)
-      const sqmRange = maxSqmK - minSqmK
-      const numBins = Math.min(8, Math.max(4, Math.ceil(sqmRange / 50)))
-      const step = sqmRange > 0 ? Math.max(25, Math.ceil(sqmRange / numBins / 25) * 25) : 50
-      const start = Math.floor(minSqmK / step) * step
+      const sqmRange = maxPricePerSqm - minPricePerSqm
+      const numBins = Math.min(8, Math.max(4, Math.ceil(sqmRange / 100_000)))
+      const step = sqmRange > 0 ? Math.ceil(sqmRange / numBins / 50_000) * 50_000 || 100_000 : 100_000
+      const start = Math.floor(minPricePerSqm / step) * step
 
       for (let i = 0; i < numBins; i++) {
-        const binMinK = start + i * step
-        const binMaxK = binMinK + step
-        const binMinFt = binMinK * 1000
-        const binMaxFt = binMaxK * 1000
-
+        const binMin = start + i * step
+        const binMax = binMin + step
         const inBin = items.filter((it) => {
           const val = it.detailsInfo?.pricePerSquareMeter
           if (val == null) return false
-          return i === numBins - 1 ? val >= binMinFt && val <= binMaxFt : val >= binMinFt && val < binMaxFt
+          return i === numBins - 1 ? val >= binMin && val <= binMax : val >= binMin && val < binMax
         })
 
-        if (inBin.length > 0 || (binMinFt <= maxPricePerSqm && binMaxFt >= minPricePerSqm)) {
+        if (inBin.length > 0 || (binMin <= maxPricePerSqm && binMax >= minPricePerSqm)) {
           const sum = inBin.reduce((acc, it) => acc + (it.detailsInfo?.pricePerSquareMeter || 0), 0)
           sqmPriceBins.push({
-            rangeLabel: `${binMinK} - ${binMaxK} eFt/m²`,
-            min: binMinFt,
-            max: binMaxFt,
+            rangeLabel: `${Math.round(binMin / 1000)}k - ${Math.round(binMax / 1000)}k`,
+            min: binMin,
+            max: binMax,
             count: inBin.length,
             newCount: inBin.filter((it) => it.isNew).length,
             avgVal: inBin.length > 0 ? Math.round(sum / inBin.length) : 0,
-            percentage: Math.round((inBin.length / totalCount) * 100),
+            percentage: totalCount > 0 ? Math.round((inBin.length / totalCount) * 100) : 0,
           })
         }
       }
     }
 
-    // 3. City Comparison
+    // 3. City Comparisons
     const cityComparison: CityStat[] = []
     const cityAvgSqmMap = new Map<string, number>()
 
-    cityMap.forEach((cityItems, city) => {
-      const cPrices = cityItems.map((it) => it.priceInfo?.amountMillion).filter((p): p is number => p != null && p > 0)
-      const cSqm = cityItems.map((it) => it.detailsInfo?.pricePerSquareMeter).filter((s): s is number => s != null && s > 0)
+    cityMap.forEach((cityItems, cityName) => {
+      const cityPrices = cityItems
+        .map((it) => it.priceInfo?.amountMillion)
+        .filter((p): p is number => p != null && p > 0)
+      const citySqmPrices = cityItems
+        .map((it) => it.detailsInfo?.pricePerSquareMeter)
+        .filter((p): p is number => p != null && p > 0)
 
-      const cAvgPrice = cPrices.length > 0 ? Math.round((cPrices.reduce((a, b) => a + b, 0) / cPrices.length) * 10) / 10 : 0
-      const cMedianPrice = Math.round(calculateMedian(cPrices) * 10) / 10
-      const cAvgSqm = cSqm.length > 0 ? Math.round(cSqm.reduce((a, b) => a + b, 0) / cSqm.length) : 0
-      const cMedianSqm = Math.round(calculateMedian(cSqm))
+      const cityAvgPrice = cityPrices.length > 0 ? cityPrices.reduce((a, b) => a + b, 0) / cityPrices.length : 0
+      const cityMedianPrice = calculateMedian(cityPrices)
+      const cityAvgSqm = citySqmPrices.length > 0 ? Math.round(citySqmPrices.reduce((a, b) => a + b, 0) / citySqmPrices.length) : 0
+      const cityMedianSqm = Math.round(calculateMedian(citySqmPrices))
 
-      cityAvgSqmMap.set(city, cAvgSqm)
+      cityAvgSqmMap.set(cityName, cityAvgSqm)
 
       cityComparison.push({
-        city,
+        city: cityName,
         count: cityItems.length,
         newCount: cityItems.filter((it) => it.isNew).length,
-        avgPriceMillion: cAvgPrice,
-        medianPriceMillion: cMedianPrice,
-        avgPricePerSqm: cAvgSqm,
-        medianPricePerSqm: cMedianSqm,
-        minPriceMillion: cPrices.length > 0 ? Math.min(...cPrices) : 0,
-        maxPriceMillion: cPrices.length > 0 ? Math.max(...cPrices) : 0,
+        avgPriceMillion: Math.round(cityAvgPrice * 10) / 10,
+        medianPriceMillion: Math.round(cityMedianPrice * 10) / 10,
+        avgPricePerSqm: cityAvgSqm,
+        medianPricePerSqm: cityMedianSqm,
+        minPriceMillion: cityPrices.length > 0 ? Math.min(...cityPrices) : 0,
+        maxPriceMillion: cityPrices.length > 0 ? Math.max(...cityPrices) : 0,
       })
     })
 
     cityComparison.sort((a, b) => b.count - a.count)
 
-    // 4. Scatter Data (Area vs Price) & Bargain Detection
+    // 4. Scatter Plot Points & Bargain Hunter Deals
     const scatterData: ScatterPoint[] = []
     const belowMarketDeals: BargainItem[] = []
+    let detectedBargainsCount = 0
 
     items.forEach((item) => {
       const area = item.detailsInfo?.areaSquareMeters
       const price = item.priceInfo?.amountMillion
-      const sqmPrice = item.detailsInfo?.pricePerSquareMeter || (area && price ? Math.round((price * 1_000_000) / area) : 0)
+      const sqmPrice =
+        item.detailsInfo?.pricePerSquareMeter || (area && price ? Math.round((price * 1_000_000) / area) : 0)
 
       if (area && area > 0 && price && price > 0) {
         const city = item.city || item.location || 'Ismeretlen'
+        const rawType = (item.propertyType || '').toUpperCase()
+        const bucketKey = `${city.toLowerCase()}#${rawType}`
+        const bucketPrices = segmentMap.get(bucketKey) || []
+        const bucketMedian = bucketPrices.length >= 5 ? calculateMedian(bucketPrices) : 0
+
         const cityAvg = cityAvgSqmMap.get(city) || avgPricePerSqm
 
-        let segment: 'bargain' | 'fair' | 'premium' = 'fair'
-        const isBargainByCity = cityAvg > 0 && sqmPrice > 0 && sqmPrice <= cityAvg * 0.85
-        const isBargainByDrop = item.priceDelta != null && item.priceDelta < 0
+        let isBargain = Boolean(item.isBargain)
+        if (!isBargain) {
+          if (bucketMedian > 0 && sqmPrice > 0) {
+            isBargain = sqmPrice <= bucketMedian * 0.80
+          } else if (cityAvg > 0 && sqmPrice > 0) {
+            isBargain = sqmPrice <= cityAvg * 0.85
+          }
+        }
 
-        if (isBargainByCity || isBargainByDrop) {
+        const isPriceDrop = (item.priceDelta != null && item.priceDelta < 0) || (item.priceChangePercent != null && item.priceChangePercent < 0)
+
+        let segment: 'bargain' | 'fair' | 'premium' = 'fair'
+        const refPrice = bucketMedian > 0 ? bucketMedian : cityAvg
+        if (isBargain || isPriceDrop) {
           segment = 'bargain'
-        } else if (cityAvg > 0 && sqmPrice > cityAvg * 1.25) {
+          detectedBargainsCount++
+        } else if (refPrice > 0 && sqmPrice > refPrice * 1.25) {
           segment = 'premium'
         }
 
@@ -329,19 +428,19 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
           price,
           sqmPrice,
           isNew: Boolean(item.isNew),
-          isDiscounted: isBargainByDrop,
+          isDiscounted: isPriceDrop,
           priceDelta: item.priceDelta,
           priceChangePercent: item.priceChangePercent,
-          isBargain: segment === 'bargain',
+          isBargain,
           segment,
         })
 
-        if (isBargainByCity && cityAvg > 0) {
-          const diff = cityAvg - sqmPrice
-          const discountPct = Math.round((diff / cityAvg) * 100)
+        if (isBargain && refPrice > 0) {
+          const diff = refPrice - sqmPrice
+          const discountPct = Math.round((diff / refPrice) * 100)
           belowMarketDeals.push({
             item,
-            cityAvgSqmPrice: cityAvg,
+            cityAvgSqmPrice: Math.round(refPrice),
             discountPercent: discountPct,
             sqmDiffFt: diff,
           })
@@ -351,10 +450,10 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
 
     belowMarketDeals.sort((a, b) => b.discountPercent - a.discountPercent)
 
-    // Top price drops
+    // Top price drops sorted by largest absolute price drop
     const topPriceDrops = items
       .filter((it) => (it.priceDelta != null && it.priceDelta < 0) || (it.priceChangePercent != null && it.priceChangePercent < 0))
-      .sort((a, b) => (a.priceDelta ?? 0) - (b.priceDelta ?? 0))
+      .sort((a, b) => Math.abs(b.priceDelta ?? 0) - Math.abs(a.priceDelta ?? 0))
 
     return {
       totalCount,
@@ -373,6 +472,19 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
         discountedPercent: totalCount > 0 ? Math.round((discountedCount / totalCount) * 100) : 0,
         newCount,
         newPercent: totalCount > 0 ? Math.round((newCount / totalCount) * 100) : 0,
+        lakasMedianPricePerSqm,
+        hazMedianPricePerSqm,
+        telekMedianPricePerSqm,
+        residentialMedianPricePerSqm,
+        plotMedianPricePerSqm,
+        lakasSampleSize,
+        hazSampleSize,
+        telekSampleSize,
+        residentialSampleSize,
+        plotSampleSize,
+        insufficientData,
+        bargainCount: detectedBargainsCount,
+        bargainPercent: totalCount > 0 ? Math.round((detectedBargainsCount / totalCount) * 100) : 0,
       },
       distribution: {
         priceBins,
