@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Sort;
@@ -19,14 +20,17 @@ import tools.jackson.databind.ObjectMapper;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.entity.ConfigEntity;
+import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.mapper.JpaEntityMapper;
 import ingatlanok.persistence.repository.ConfigRepository;
+import ingatlanok.persistence.repository.ListingObservationRepository;
 import ingatlanok.persistence.repository.PriceHistoryRepository;
 import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
@@ -53,6 +57,29 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   private final ObjectMapper objectMapper;
   private final PriceHistoryTracker priceTracker;
   private final StatusLogTracker statusTracker;
+  private final ListingObservationRepository listingObservationRepo;
+
+  @Autowired
+  public JpaIngatlanStorage(
+      PropertyRepository propertyRepo,
+      PriceHistoryRepository priceHistoryRepo,
+      StatusLogRepository statusLogRepo,
+      ConfigRepository configRepo,
+      JpaEntityMapper mapper,
+      ObjectMapper objectMapper,
+      PriceHistoryTracker priceTracker,
+      StatusLogTracker statusTracker,
+      ListingObservationRepository listingObservationRepo) {
+    this.propertyRepo = propertyRepo;
+    this.priceHistoryRepo = priceHistoryRepo;
+    this.statusLogRepo = statusLogRepo;
+    this.configRepo = configRepo;
+    this.mapper = mapper;
+    this.objectMapper = objectMapper;
+    this.priceTracker = priceTracker;
+    this.statusTracker = statusTracker;
+    this.listingObservationRepo = listingObservationRepo;
+  }
 
   public JpaIngatlanStorage(
       PropertyRepository propertyRepo,
@@ -63,14 +90,16 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       ObjectMapper objectMapper,
       PriceHistoryTracker priceTracker,
       StatusLogTracker statusTracker) {
-    this.propertyRepo = propertyRepo;
-    this.priceHistoryRepo = priceHistoryRepo;
-    this.statusLogRepo = statusLogRepo;
-    this.configRepo = configRepo;
-    this.mapper = mapper;
-    this.objectMapper = objectMapper;
-    this.priceTracker = priceTracker;
-    this.statusTracker = statusTracker;
+    this(
+        propertyRepo,
+        priceHistoryRepo,
+        statusLogRepo,
+        configRepo,
+        mapper,
+        objectMapper,
+        priceTracker,
+        statusTracker,
+        null);
   }
 
   @Override
@@ -164,6 +193,39 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       statusLogRepo.save(
           mapper.createStatusLogEntity(propId, url, sd.status(), sd.changedAt(), sd.note()));
     }
+
+    String statusEvent;
+    if (existing == null) {
+      statusEvent = ListingObservation.StatusEvent.NEW.name();
+    } else if (calc.priceChanged()) {
+      statusEvent = ListingObservation.StatusEvent.PRICE_CHANGED.name();
+    } else if (("INACTIVE".equalsIgnoreCase(existing.getStatus())
+            || "ARCHIVED".equalsIgnoreCase(existing.getStatus()))
+        && "ACTIVE".equalsIgnoreCase(calc.resolvedStatus())) {
+      statusEvent = ListingObservation.StatusEvent.RELISTED.name();
+    } else {
+      statusEvent = ListingObservation.StatusEvent.UNCHANGED.name();
+    }
+
+    if (listingObservationRepo != null) {
+      String obsTime =
+          existing == null && item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now;
+      Long perSqm =
+          item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
+      ListingObservationEntity obs =
+          mapper.createListingObservationEntity(
+              propId,
+              url,
+              existing != null ? existing.getCanonicalId() : null,
+              obsTime,
+              priceAmount,
+              perSqm,
+              statusEvent,
+              calc.delta(),
+              calc.changePercent());
+      listingObservationRepo.save(obs);
+    }
+
     propertyRepo.save(
         mapper.toEntity(
             item,
@@ -268,6 +330,9 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     if (!urls.isEmpty()) {
       priceHistoryRepo.deleteByUrlIn(urls);
       statusLogRepo.deleteByUrlIn(urls);
+      if (listingObservationRepo != null) {
+        listingObservationRepo.deleteByUrlIn(urls);
+      }
     }
   }
 
@@ -277,6 +342,9 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     propertyRepo.deleteAll();
     priceHistoryRepo.deleteAll();
     statusLogRepo.deleteAll();
+    if (listingObservationRepo != null) {
+      listingObservationRepo.deleteAll();
+    }
   }
 
   @Override
@@ -320,6 +388,16 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
         ? Collections.emptyList()
         : statusLogRepo.findByUrlOrPropertyId(idOrUrl.trim()).stream()
             .map(mapper::toStatusLogEntry)
+            .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<ListingObservation> getListingObservations(String idOrUrl) {
+    return (idOrUrl == null || idOrUrl.isBlank() || listingObservationRepo == null)
+        ? Collections.emptyList()
+        : listingObservationRepo.findByUrlOrPropertyIdOrCanonicalId(idOrUrl.trim()).stream()
+            .map(mapper::toListingObservation)
             .toList();
   }
 

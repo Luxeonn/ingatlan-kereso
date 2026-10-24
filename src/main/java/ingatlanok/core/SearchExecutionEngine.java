@@ -25,6 +25,7 @@ public class SearchExecutionEngine {
   private final PropertyFilterEngine filterEngine;
   private final DeduplicationEngine dedupEngine;
   private final MarketAnalyticsEngine analyticsEngine;
+  private final DataQualityEngine qualityEngine;
   private final ParallelPortalScrapeExecutor scrapeExecutor;
   private final SearchResultAggregator resultAggregator;
 
@@ -42,6 +43,27 @@ public class SearchExecutionEngine {
         filterEngine,
         dedupEngine,
         analyticsEngine,
+        new DataQualityEngine(),
+        new ParallelPortalScrapeExecutor(),
+        new SearchResultAggregator());
+  }
+
+  public SearchExecutionEngine(
+      PortalEngineRegistry portalRegistry,
+      ListingStorage listingStorage,
+      ConfigStorage configStorage,
+      PropertyFilterEngine filterEngine,
+      DeduplicationEngine dedupEngine,
+      MarketAnalyticsEngine analyticsEngine,
+      DataQualityEngine qualityEngine) {
+    this(
+        portalRegistry,
+        listingStorage,
+        configStorage,
+        filterEngine,
+        dedupEngine,
+        analyticsEngine,
+        qualityEngine,
         new ParallelPortalScrapeExecutor(),
         new SearchResultAggregator());
   }
@@ -55,12 +77,35 @@ public class SearchExecutionEngine {
       MarketAnalyticsEngine analyticsEngine,
       ParallelPortalScrapeExecutor scrapeExecutor,
       SearchResultAggregator resultAggregator) {
+    this(
+        portalRegistry,
+        listingStorage,
+        configStorage,
+        filterEngine,
+        dedupEngine,
+        analyticsEngine,
+        new DataQualityEngine(),
+        scrapeExecutor,
+        resultAggregator);
+  }
+
+  public SearchExecutionEngine(
+      PortalEngineRegistry portalRegistry,
+      ListingStorage listingStorage,
+      ConfigStorage configStorage,
+      PropertyFilterEngine filterEngine,
+      DeduplicationEngine dedupEngine,
+      MarketAnalyticsEngine analyticsEngine,
+      DataQualityEngine qualityEngine,
+      ParallelPortalScrapeExecutor scrapeExecutor,
+      SearchResultAggregator resultAggregator) {
     this.portalRegistry = java.util.Objects.requireNonNull(portalRegistry);
     this.listingStorage = java.util.Objects.requireNonNull(listingStorage);
     this.configStorage = configStorage;
     this.filterEngine = java.util.Objects.requireNonNull(filterEngine);
     this.dedupEngine = java.util.Objects.requireNonNull(dedupEngine);
     this.analyticsEngine = java.util.Objects.requireNonNull(analyticsEngine);
+    this.qualityEngine = qualityEngine != null ? qualityEngine : new DataQualityEngine();
     this.scrapeExecutor = java.util.Objects.requireNonNull(scrapeExecutor);
     this.resultAggregator = java.util.Objects.requireNonNull(resultAggregator);
   }
@@ -134,6 +179,7 @@ public class SearchExecutionEngine {
       List<IngatlanItem> uniqueCityItems = dedupEngine.deduplicateByUrl(relevantCityItems);
       listingStorage.saveCityItems(currentCity, uniqueCityItems);
       enrichWithPersistedState(uniqueCityItems);
+      qualityEngine.evaluateAll(uniqueCityItems);
 
       PropertyFilterEngine.FilterResult viewResult =
           filterEngine.filterView(uniqueCityItems, cityCriteria);
@@ -156,7 +202,8 @@ public class SearchExecutionEngine {
       allAggregatedItems.addAll(visibleCityItems);
     }
 
-    List<IngatlanItem> uniqueAggregatedList = dedupEngine.deduplicateByUrl(allAggregatedItems);
+    List<IngatlanItem> uniqueAggregatedList = dedupEngine.deduplicateMultiSignal(allAggregatedItems);
+    qualityEngine.evaluateAll(uniqueAggregatedList);
     recalculateRelevantPortalCounts(portalCounts, uniqueAggregatedList);
     List<PortalScrapeResult> aggregatedPortalResults =
         aggregatePortalResultsByPortal(allScrapeResults, uniqueAggregatedList);

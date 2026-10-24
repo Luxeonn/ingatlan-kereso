@@ -1,6 +1,8 @@
 package ingatlanok.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class IngatlanItem implements Serializable {
@@ -23,6 +25,19 @@ public class IngatlanItem implements Serializable {
   private Long priceDelta;
   private Double priceChangePercent;
   private String lastPriceChangeAt;
+  private PropertyType propertyType = PropertyType.EGYEB_ISMERETLEN;
+  private int sourcesCount = 1;
+  private List<SourceListing> sourceListings = new ArrayList<>();
+
+  // Milestone R4 Bargain fields (#263 & #264)
+  private Boolean isBargain = false;
+  private Long referenceMedianPricePerSquareMeter;
+  private Double percentageBelowMedian;
+  private Integer referenceSampleSize;
+
+  // Milestone R5 Data Quality fields (#267)
+  private Integer qualityScore;
+  private List<String> qualityDeductions = new ArrayList<>();
 
   private PriceInfo priceInfo;
   private PropertyDetails detailsInfo;
@@ -90,6 +105,21 @@ public class IngatlanItem implements Serializable {
     this.details = detailsInfo != null ? detailsInfo.getRawText() : "";
     this.discoveredAt = discoveredAt;
     this.isNew = isNew;
+  }
+
+  public IngatlanItem(
+      String id,
+      PortalSource source,
+      String url,
+      String title,
+      PriceInfo priceInfo,
+      String city,
+      PropertyDetails detailsInfo,
+      String discoveredAt,
+      boolean isNew,
+      PropertyType propertyType) {
+    this(id, source, url, title, priceInfo, city, detailsInfo, discoveredAt, isNew);
+    this.propertyType = propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
   }
 
   public String getId() {
@@ -174,6 +204,10 @@ public class IngatlanItem implements Serializable {
       return city;
     }
     return location != null && !location.isBlank() ? location : "Debrecen";
+  }
+
+  public String getRawCity() {
+    return city;
   }
 
   public void setCity(String city) {
@@ -279,8 +313,113 @@ public class IngatlanItem implements Serializable {
     this.lastPriceChangeAt = lastPriceChangeAt;
   }
 
+  public PropertyType getPropertyType() {
+    return propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
+  }
+
+  public void setPropertyType(PropertyType propertyType) {
+    this.propertyType = propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
+  }
+
+  public void setPropertyType(String typeStr) {
+    this.propertyType = PropertyType.fromString(typeStr);
+  }
+
   public boolean isDiscounted() {
     return priceDelta != null && priceDelta < 0;
+  }
+
+  public int getSourcesCount() {
+    if (sourceListings != null && !sourceListings.isEmpty()) {
+      return sourceListings.size();
+    }
+    return Math.max(sourcesCount, 1);
+  }
+
+  public void setSourcesCount(int sourcesCount) {
+    this.sourcesCount = sourcesCount;
+  }
+
+  public List<SourceListing> getSourceListings() {
+    if (sourceListings == null) {
+      sourceListings = new ArrayList<>();
+    }
+    return sourceListings;
+  }
+
+  public void setSourceListings(List<SourceListing> sourceListings) {
+    this.sourceListings = sourceListings != null ? new ArrayList<>(sourceListings) : new ArrayList<>();
+    this.sourcesCount = Math.max(this.sourceListings.size(), 1);
+  }
+
+  public void addSourceListing(SourceListing sourceListing) {
+    if (sourceListing != null) {
+      if (this.sourceListings == null) {
+        this.sourceListings = new ArrayList<>();
+      }
+      this.sourceListings.add(sourceListing);
+      this.sourcesCount = this.sourceListings.size();
+    }
+  }
+
+  public Boolean isBargain() {
+    return Boolean.TRUE.equals(isBargain);
+  }
+
+  public Boolean getIsBargain() {
+    return isBargain;
+  }
+
+  public void setBargain(Boolean bargain) {
+    this.isBargain = bargain;
+  }
+
+  public void setIsBargain(Boolean bargain) {
+    this.isBargain = bargain;
+  }
+
+  public Long getReferenceMedianPricePerSquareMeter() {
+    return referenceMedianPricePerSquareMeter;
+  }
+
+  public void setReferenceMedianPricePerSquareMeter(Long referenceMedianPricePerSquareMeter) {
+    this.referenceMedianPricePerSquareMeter = referenceMedianPricePerSquareMeter;
+  }
+
+  public Double getPercentageBelowMedian() {
+    return percentageBelowMedian;
+  }
+
+  public void setPercentageBelowMedian(Double percentageBelowMedian) {
+    this.percentageBelowMedian = percentageBelowMedian;
+  }
+
+  public Integer getReferenceSampleSize() {
+    return referenceSampleSize;
+  }
+
+  public void setReferenceSampleSize(Integer referenceSampleSize) {
+    this.referenceSampleSize = referenceSampleSize;
+  }
+
+  public Integer getQualityScore() {
+    return qualityScore;
+  }
+
+  public void setQualityScore(Integer qualityScore) {
+    this.qualityScore = qualityScore;
+  }
+
+  public List<String> getQualityDeductions() {
+    if (qualityDeductions == null) {
+      qualityDeductions = new ArrayList<>();
+    }
+    return qualityDeductions;
+  }
+
+  public void setQualityDeductions(List<String> qualityDeductions) {
+    this.qualityDeductions =
+        qualityDeductions != null ? new ArrayList<>(qualityDeductions) : new ArrayList<>();
   }
 
   @Override

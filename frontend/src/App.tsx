@@ -3,7 +3,7 @@ import { LayoutGrid, BarChart2, Star, Archive, EyeOff, ArrowUpDown } from 'lucid
 import { Header } from './components/layout/Header'
 import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
-import { ListingsGrid } from './components/listings/ListingsGrid'
+import { ListingsPanel } from './components/listings/ListingsPanel'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { useSearch } from './hooks/useSearch'
 import { useFilterStore, SortOption } from './store/useFilterStore'
@@ -11,9 +11,9 @@ import { useUiStore } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { cn } from './utils/cn'
 
-const MarketAnalyticsDashboard = lazy(() =>
-  import('./components/analytics/MarketAnalyticsDashboard').then((module) => ({
-    default: module.MarketAnalyticsDashboard,
+const MarketAnalyticsPanel = lazy(() =>
+  import('./components/analytics/MarketAnalyticsPanel').then((module) => ({
+    default: module.MarketAnalyticsPanel,
   })),
 )
 
@@ -66,6 +66,35 @@ export const App: FC = () => {
     search()
   }
 
+  // Active listings data slice based on current view tab
+  const activeItems =
+    dashboardTab === 'favorites'
+      ? favoriteItems
+      : dashboardTab === 'archive'
+        ? archiveItems
+        : items
+
+  const activeRawItems =
+    dashboardTab === 'favorites'
+      ? rawFavoriteItems
+      : dashboardTab === 'archive'
+        ? rawArchiveItems
+        : rawItems
+
+  const activeRawCount =
+    dashboardTab === 'favorites'
+      ? rawFavoriteItems.length
+      : dashboardTab === 'archive'
+        ? rawArchiveItems.length
+        : rawCount
+
+  const activeLoading =
+    dashboardTab === 'archive'
+      ? isArchiveLoading
+      : dashboardTab === 'favorites'
+        ? false
+        : isLoading
+
   return (
     <div className="min-h-screen bg-[var(--bg-body)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Sticky Header */}
@@ -79,12 +108,12 @@ export const App: FC = () => {
         {/* Market stats bar */}
         <MarketStatsBar data={data} />
 
-        {/* Dashboard View Switcher & Listings Header Controls (#157, #227) */}
+        {/* Dashboard View Switcher & Listings Header Controls (#157, #227, #264) */}
         <div
           data-testid="listings-panel-header"
           className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3"
         >
-          {/* Left: View Tabs */}
+          {/* Left: View Navigation Tabs */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -182,56 +211,30 @@ export const App: FC = () => {
           </div>
         </div>
 
-        {/* Dynamic View: Listings, Favorites, Archive or Analytics */}
-        {dashboardTab === 'listings' && (
-          <ListingsGrid
-            items={items}
-            rawItems={rawItems}
-            totalRawCount={rawCount}
-            isLoading={isLoading}
-            hasSearched={data != null}
-            mode="listings"
+        {/* Decoupled Panel Routing (#264) */}
+        {dashboardTab !== 'analytics' ? (
+          <ListingsPanel
+            items={activeItems}
+            rawItems={activeRawItems}
+            totalRawCount={activeRawCount}
+            isLoading={activeLoading}
+            hasSearched={dashboardTab === 'listings' ? data != null : true}
+            mode={dashboardTab as 'listings' | 'favorites' | 'archive'}
             onMarkViewed={markAsViewed}
             onOpenAll={openAllTabs}
             onTriggerSearch={handleSearch}
-          />
-        )}
-
-        {dashboardTab === 'favorites' && (
-          <ListingsGrid
-            items={favoriteItems}
-            rawItems={rawFavoriteItems}
-            totalRawCount={rawFavoriteItems.length}
-            isLoading={false}
-            hasSearched={true}
-            mode="favorites"
-            onMarkViewed={markAsViewed}
-            onOpenAll={openAllTabs}
-            onTriggerSearch={handleSearch}
-          />
-        )}
-
-        {dashboardTab === 'archive' && (
-          <ListingsGrid
-            items={archiveItems}
-            rawItems={rawArchiveItems}
-            totalRawCount={rawArchiveItems.length}
-            isLoading={isArchiveLoading}
-            hasSearched={true}
-            mode="archive"
-            onMarkViewed={markAsViewed}
-            onOpenAll={openAllTabs}
-            onTriggerSearch={handleSearch}
-            onClearHistory={() => {
-              void clearArchiveHistory()
-            }}
+            onClearHistory={
+              dashboardTab === 'archive'
+                ? () => {
+                    void clearArchiveHistory()
+                  }
+                : undefined
+            }
             isClearingHistory={isClearingHistory}
           />
-        )}
-
-        {dashboardTab === 'analytics' && (
+        ) : (
           <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
-            <MarketAnalyticsDashboard
+            <MarketAnalyticsPanel
               items={items}
               onMarkViewed={markAsViewed}
               onOpenListing={(url) => {

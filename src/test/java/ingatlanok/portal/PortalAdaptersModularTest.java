@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
+import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.dh.DunaHouseParser;
 import ingatlanok.portal.dh.DunaHousePortalEngine;
@@ -416,6 +417,15 @@ class PortalAdaptersModularTest {
     assertEquals("https://dh.hu/a/b", PortalSupport.resolveUrl("https://dh.hu/", "/a/b"));
     assertEquals("https://cdn.test/img.jpg", PortalSupport.resolveUrl("https://dh.hu", "//cdn.test/img.jpg"));
     assertNull(PortalSupport.extractImageWithFallback(null, "https://dh.hu"));
+
+    assertEquals(PropertyType.LAKAS, PortalSupport.resolvePropertyType(null));
+    SearchCriteria scHaz = new SearchCriteria();
+    scHaz.setPropertyType("haz");
+    assertEquals(PropertyType.HAZ, PortalSupport.resolvePropertyType(scHaz));
+    assertEquals("haz", PortalSupport.resolvePropertyTypeSlug(scHaz));
+    assertEquals("garazs", PortalSupport.resolvePropertyTypeSlug(PropertyType.GARAZS));
+    assertEquals("ipari", PortalSupport.resolvePropertyTypeSlug(PropertyType.IPARI_KERESKEDELMI));
+    assertEquals("lakas", PortalSupport.resolvePropertyTypeSlug((PropertyType) null));
 
     SearchCriteria minOnly = new SearchCriteria();
     minOnly.setCity("Hajdúszoboszló");

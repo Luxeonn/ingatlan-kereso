@@ -10,7 +10,7 @@ import {
   Clock,
   Star,
   Building2,
-  Home,
+  Layers,
 } from 'lucide-react'
 import { IngatlanItem } from '../../types/property'
 import {
@@ -21,7 +21,12 @@ import {
   formatRooms,
   formatDate,
   getPortalStyle,
+  getPropertyTypeConfig,
 } from '../../utils/formatters'
+import { PropertyTypeBadge } from './PropertyTypeBadge'
+import { BargainBadge } from './BargainBadge'
+import { QualityScoreShield } from './QualityScoreShield'
+import { MultiSourceDrawer } from './MultiSourceDrawer'
 import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
@@ -33,12 +38,35 @@ interface PropertyCardProps {
 
 export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMode = 'grid' }) => {
   const [imageError, setImageError] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const { starredUrls, toggleStarred } = useUiStore()
   const isStarred = starredUrls.includes(item.url)
 
+  const sourcesCount = item.sourcesCount ?? (item.sourceListings?.length || 1)
+  const isMultiSource = sourcesCount > 1
+
   const portalStyle = getPortalStyle(item.portal || item.source?.portalId || '')
-  const priceMillion = item.priceInfo?.amountMillion
-  const priceFt = item.priceInfo?.amountHuf
+
+  // Calculate lowest active source price (#260, #261)
+  const activeSources = (item.sourceListings || []).filter(
+    (s) => !s.status || s.status.toUpperCase() === 'ACTIVE'
+  )
+  const lowestActivePriceFt =
+    activeSources.length > 0
+      ? activeSources.reduce((min, s) => {
+          if (s.priceHuf != null && s.priceHuf > 0) {
+            return min == null || s.priceHuf < min ? s.priceHuf : min
+          }
+          return min
+        }, null as number | null)
+      : null
+
+  const priceFt = lowestActivePriceFt ?? item.priceInfo?.amountHuf
+  const priceMillion =
+    priceFt != null
+      ? priceFt / 1_000_000
+      : item.priceInfo?.amountMillion
+
   const sqmPrice = item.detailsInfo?.pricePerSquareMeter
   const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
@@ -56,13 +84,18 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
     <div
       data-testid="property-card"
       className={cn(
-        'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5',
+        'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
         item.viewed
           ? 'border-[var(--border-color)] bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
-          : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-blue-500/40',
-        viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-5 p-4' : 'p-4'
+          : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-blue-500/40'
       )}
     >
+      <div
+        className={cn(
+          'flex flex-col justify-between w-full',
+          viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-5' : ''
+        )}
+      >
       {/* Thumbnail / Cover Image (#157, #202) */}
       <div
         onClick={handleOpen}
@@ -84,7 +117,10 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
             data-testid="property-image-fallback"
             className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-[var(--bg-input)] to-[var(--bg-card)] text-[var(--text-secondary)]"
           >
-            <Home className={cn('h-7 w-7 opacity-60', portalStyle.text)} />
+            {(() => {
+              const TypeIcon = getPropertyTypeConfig(item.propertyType).icon
+              return <TypeIcon className={cn('h-7 w-7 opacity-60', portalStyle.text)} aria-hidden="true" />
+            })()}
             <span className="text-[11px] font-semibold uppercase tracking-wider opacity-75">
               {item.portal || 'Ingatlan'}
             </span>
@@ -118,6 +154,33 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
               {item.portal}
             </span>
 
+            {/* Property type badge (#258) */}
+            <PropertyTypeBadge propertyType={item.propertyType} />
+
+            {/* Multi-source count badge (#260, #261) */}
+            {isMultiSource && (
+              <button
+                type="button"
+                aria-expanded={isDrawerOpen}
+                aria-controls={`drawer-${item.id}`}
+                aria-label={`${sourcesCount} forrás megjelenítése`}
+                data-testid="sources-count-badge"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsDrawerOpen((prev) => !prev)
+                }}
+                className={cn(
+                  'flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold border transition-all cursor-pointer',
+                  isDrawerOpen
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-sm'
+                    : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/20'
+                )}
+              >
+                <Layers className="h-3 w-3 text-indigo-400" aria-hidden="true" />
+                <span>{sourcesCount} forrás</span>
+              </button>
+            )}
+
             {/* New item badge */}
             {item.isNew && (
               <span className="flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400 animate-pulse">
@@ -132,6 +195,12 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
                 {Math.abs(Math.round(item.priceChangePercent || 0))}%
               </span>
             )}
+
+            {/* Bargain badge (#263 & #264) */}
+            <BargainBadge item={item} />
+
+            {/* Data Quality Shield (#267) */}
+            <QualityScoreShield item={item} />
           </div>
 
           {/* Right action icons: Star / Favorite (#157) + Viewed toggle */}
@@ -261,6 +330,10 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
           </button>
         </div>
       </div>
+      </div>
+
+      {/* Multi-source expandable drawer (#260, #261) */}
+      {isDrawerOpen && <MultiSourceDrawer item={item} onMarkViewed={onMarkViewed} />}
     </div>
   )
 }

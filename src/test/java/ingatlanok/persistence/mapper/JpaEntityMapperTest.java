@@ -16,6 +16,7 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.PropertyType;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
@@ -57,6 +58,7 @@ class JpaEntityMapperTest {
     entity.setViewedAt("2026-03-01 11:00:00");
     entity.setImageUrl("https://dh.hu/img.jpg");
     entity.setStatus("ACTIVE");
+    entity.setPropertyType(PropertyType.LAKAS);
     entity.setPriceDelta(-1_000_000L);
     entity.setPriceChangePercent(-1.79);
     entity.setLastPriceChangeAt("2026-03-01 10:30:00");
@@ -69,6 +71,7 @@ class JpaEntityMapperTest {
     assertEquals("Kiadó lakás", item.getTitle());
     assertEquals("55 M Ft", item.getPrice());
     assertEquals("Budapest", item.getCity());
+    assertEquals(PropertyType.LAKAS, item.getPropertyType());
     assertTrue(item.isNew());
     assertTrue(item.isViewed());
     assertEquals("2026-03-01 11:00:00", item.getViewedAt());
@@ -219,5 +222,27 @@ class JpaEntityMapperTest {
     assertEquals(9, slEntry.id());
     assertEquals("ACTIVE", slEntry.status());
     assertEquals("Kezdeti állapot", slEntry.note());
+  }
+
+  @Test
+  @DisplayName("PropertyType maps bidirectionally with safe fallback for nulls")
+  void testPropertyTypeMappingAndNullFallback() {
+    PropertyEntity entity = new PropertyEntity();
+    entity.setPropertyType(PropertyType.GARAZS);
+    IngatlanItem item = mapper.toItem(entity);
+    assertEquals(PropertyType.GARAZS, item.getPropertyType());
+
+    entity.setPropertyType(null);
+    IngatlanItem itemNull = mapper.toItem(entity);
+    assertEquals(PropertyType.EGYEB_ISMERETLEN, itemNull.getPropertyType());
+
+    IngatlanItem item2 = new IngatlanItem();
+    item2.setPropertyType(PropertyType.IPARI_KERESKEDELMI);
+    PropertyEntity entity2 = mapper.toEntity(item2, null, "now", 0L, 0.0, null, "ACTIVE");
+    assertEquals(PropertyType.IPARI_KERESKEDELMI, entity2.getPropertyType());
+
+    item2.setPropertyType((PropertyType) null);
+    PropertyEntity entityNull = mapper.toEntity(item2, null, "now", 0L, 0.0, null, "ACTIVE");
+    assertEquals(PropertyType.EGYEB_ISMERETLEN, entityNull.getPropertyType());
   }
 }
