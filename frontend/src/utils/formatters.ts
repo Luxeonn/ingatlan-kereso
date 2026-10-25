@@ -221,3 +221,31 @@ export function getPortalStyle(portalId: string) {
   }
   return { bg: 'bg-blue-500/10 text-blue-400 border-blue-500/30', text: 'text-blue-400', border: 'border-blue-500/40' }
 }
+
+export function detectPortalFromUrl(url: string): { portalId: string; portalName: string } {
+  try {
+    const parsed = new URL(url)
+    const hostname = parsed.hostname.toLowerCase()
+    if (hostname === 'dh.hu' || hostname.endsWith('.dh.hu')) {
+      return { portalId: 'dh', portalName: 'Duna House' }
+    }
+    if (hostname === 'oc.hu' || hostname.endsWith('.oc.hu')) {
+      return { portalId: 'oc', portalName: 'Otthon Centrum' }
+    }
+    if (hostname === 'jofogas.hu' || hostname.endsWith('.jofogas.hu')) {
+      return { portalId: 'jofogas', portalName: 'Jófogás' }
+    }
+    if (hostname === 'ingatlanbazar.hu' || hostname.endsWith('.ingatlanbazar.hu')) {
+      return { portalId: 'ingatlanbazar', portalName: 'Ingatlanbazár' }
+    }
+    if (hostname === 'koltozzbe.hu' || hostname.endsWith('.koltozzbe.hu')) {
+      return { portalId: 'koltozzbe', portalName: 'Költözzbe' }
+    }
+    if (hostname === 'ingatlan.com' || hostname.endsWith('.ingatlan.com')) {
+      return { portalId: 'ingatlancom', portalName: 'Ingatlan.com' }
+    }
+  } catch {
+    // Ignore URL parse error and fall back to default
+  }
+  return { portalId: 'egyeb', portalName: 'Hirdetés' }
+}
