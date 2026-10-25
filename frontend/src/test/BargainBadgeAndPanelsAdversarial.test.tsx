@@ -293,7 +293,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       expect(screen.queryByTestId('insufficient-data-banner')).toBeNull()
     })
 
-    it('renders Lakás, Ház, and Telek KPI medians independently with "<5" fallback when insufficient', () => {
+    it('renders Lakás, Ház, and Telek KPI medians independently with "<5" fallback when insufficient, hiding 0-sample categories (#276)', () => {
       // 6 Lakás, 2 Ház, 0 Telek
       const mixedItems = [...mockApartments, ...mockHouses]
       render(<MarketAnalyticsPanel items={mixedItems} />)
@@ -304,15 +304,13 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       expect(lakasCard.textContent).toMatch(/Ft\/m²/)
       expect(lakasCard.textContent).toContain('6 db lakás alapján')
 
-      // 2. Ház (2 items < 5): insufficient data state
+      // 2. Ház (2 items < 5): insufficient data state (<5 guard)
       const hazCard = screen.getByTestId('kpi-card-haz')
       expect(hazCard.textContent).toContain('Kevés minta (<5)')
       expect(hazCard.textContent).toContain('2 db ház alapján')
 
-      // 3. Telek (0 items < 5): insufficient data state
-      const telekCard = screen.getByTestId('kpi-card-telek')
-      expect(telekCard.textContent).toContain('Kevés minta (<5)')
-      expect(telekCard.textContent).toContain('0 db telek alapján')
+      // 3. Telek (0 items): dynamically hidden per #276 (no confusing "0 db telek alapján" error)
+      expect(screen.queryByTestId('kpi-card-telek')).toBeNull()
     })
 
     it('verifies price drop cards formatting, original struck-through price, and secure link attributes', () => {

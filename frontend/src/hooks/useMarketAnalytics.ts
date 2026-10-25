@@ -78,6 +78,7 @@ export interface MarketAnalyticsData {
     insufficientData: boolean
     bargainCount: number
     bargainPercent: number
+    activeCategory: 'lakas' | 'haz' | 'telek' | null
   }
   distribution: {
     priceBins: HistogramBin[]
@@ -122,8 +123,26 @@ function calculateStdDev(arr: number[], mean: number): number {
   return Math.sqrt(sumSquaredDiffs / (arr.length - 1))
 }
 
-export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
+export function normalizeCategoryType(type?: string | null): 'lakas' | 'haz' | 'telek' | null {
+  if (!type) return null
+  const upper = type.toUpperCase()
+  if (upper.includes('LAKAS') || upper === 'FLAT' || upper === 'APARTMENT') return 'lakas'
+  if (upper.includes('HAZ') || upper === 'HOUSE') return 'haz'
+  if (upper.includes('TELEK') || upper === 'LAND' || upper === 'PLOT') return 'telek'
+  return null
+}
+
+export function useMarketAnalytics(
+  items: IngatlanItem[],
+  targetPropertyTypeOrOptions?: string | null | { targetPropertyType?: string | null }
+): MarketAnalyticsData {
+  const targetPropertyType =
+    typeof targetPropertyTypeOrOptions === 'string'
+      ? targetPropertyTypeOrOptions
+      : targetPropertyTypeOrOptions?.targetPropertyType ?? null
+
   return useMemo(() => {
+    const targetCategory = normalizeCategoryType(targetPropertyType)
     if (!items || items.length === 0) {
       return {
         totalCount: 0,
@@ -155,6 +174,7 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
           insufficientData: true,
           bargainCount: 0,
           bargainPercent: 0,
+          activeCategory: targetCategory,
         },
         distribution: {
           priceBins: [],
@@ -238,7 +258,6 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
     })
 
     const totalCount = items.length
-    const insufficientData = totalCount < 5
 
     // Category medians with >= 5 minimum sample size guard
     const lakasSampleSize = lakasSqmPrices.length
@@ -253,6 +272,34 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
     const residentialMedianPricePerSqm = residentialSampleSize >= 5 ? Math.round(calculateMedian(residentialSqmPrices)) : null
     const plotMedianPricePerSqm = plotSampleSize >= 5 ? Math.round(calculateMedian(plotSqmPrices)) : null
 
+    // Determine active category (#276): explicit target category or inferred single-category dataset
+    const sampleCounts: Record<'lakas' | 'haz' | 'telek', number> = {
+      lakas: lakasSampleSize,
+      haz: hazSampleSize,
+      telek: telekSampleSize,
+    }
+    const categoriesWithSamples = (['lakas', 'haz', 'telek'] as const).filter(
+      (cat) => sampleCounts[cat] > 0
+    )
+
+    const activeCategory =
+      targetCategory && sampleCounts[targetCategory] > 0
+        ? targetCategory
+        : categoriesWithSamples.length === 1
+          ? categoriesWithSamples[0]
+          : targetCategory ?? null
+
+    // Intelligent insufficientData evaluation (#276):
+    // Focus specifically on the searched/dominant category's sample size if available
+    const insufficientData =
+      activeCategory === 'lakas'
+        ? lakasSampleSize < 5
+        : activeCategory === 'haz'
+          ? hazSampleSize < 5
+          : activeCategory === 'telek'
+            ? telekSampleSize < 5
+            : totalCount < 5
+
     const avgPriceMillion = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0
     const medianPriceMillion = calculateMedian(prices)
     const minPriceMillion = prices.length > 0 ? Math.min(...prices) : 0
@@ -260,13 +307,22 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
     const priceStdDev = calculateStdDev(prices, avgPriceMillion)
 
     const avgPricePerSqm = sqmPrices.length > 0 ? Math.round(sqmPrices.reduce((a, b) => a + b, 0) / sqmPrices.length) : 0
-    // Separate living area from plot: if residential is available, use residential median
-    const medianPricePerSqm =
-      residentialMedianPricePerSqm != null
-        ? residentialMedianPricePerSqm
-        : (plotMedianPricePerSqm != null && residentialSampleSize === 0
-            ? plotMedianPricePerSqm
-            : (sqmPrices.length >= 5 ? Math.round(calculateMedian(sqmPrices)) : 0))
+
+    // Dynamic Median Ft/m² aligned with search criteria and results (#276)
+    let medianPricePerSqm = 0
+    if (activeCategory === 'lakas' && lakasMedianPricePerSqm != null) {
+      medianPricePerSqm = lakasMedianPricePerSqm
+    } else if (activeCategory === 'haz' && hazMedianPricePerSqm != null) {
+      medianPricePerSqm = hazMedianPricePerSqm
+    } else if (activeCategory === 'telek' && telekMedianPricePerSqm != null) {
+      medianPricePerSqm = telekMedianPricePerSqm
+    } else if (residentialMedianPricePerSqm != null) {
+      medianPricePerSqm = residentialMedianPricePerSqm
+    } else if (plotMedianPricePerSqm != null && residentialSampleSize === 0) {
+      medianPricePerSqm = plotMedianPricePerSqm
+    } else if (sqmPrices.length >= 5) {
+      medianPricePerSqm = Math.round(calculateMedian(sqmPrices))
+    }
 
     const minPricePerSqm = sqmPrices.length > 0 ? Math.min(...sqmPrices) : 0
     const maxPricePerSqm = sqmPrices.length > 0 ? Math.max(...sqmPrices) : 0
@@ -485,6 +541,7 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
         insufficientData,
         bargainCount: detectedBargainsCount,
         bargainPercent: totalCount > 0 ? Math.round((detectedBargainsCount / totalCount) * 100) : 0,
+        activeCategory,
       },
       distribution: {
         priceBins,
@@ -503,5 +560,5 @@ export function useMarketAnalytics(items: IngatlanItem[]): MarketAnalyticsData {
         belowMarketDeals: belowMarketDeals.slice(0, 10),
       },
     }
-  }, [items])
+  }, [items, targetPropertyType])
 }
