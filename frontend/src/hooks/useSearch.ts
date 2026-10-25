@@ -35,12 +35,27 @@ export function normalizeSearchText(str?: string | null): string {
     .replace(/[\u0300-\u036f]/g, '')
 }
 
+export function isItemBargain(item: IngatlanItem): boolean {
+  if (item.isBargain || item.bargainInfo?.isBargain) {
+    return true
+  }
+  if (item.percentageBelowMedian != null && item.percentageBelowMedian >= 20) {
+    return true
+  }
+  if (item.bargainInfo?.percentageBelowMedian != null && item.bargainInfo.percentageBelowMedian >= 20) {
+    return true
+  }
+  return false
+}
+
 export function filterAndSortItems(
   rawItems: IngatlanItem[],
   options: {
     onlyNew?: boolean
     excludeViewed?: boolean
     onlyNewConstruction?: boolean
+    onlyBargain?: boolean
+    minQualityScore?: number
     selectedPortalFilter?: string
     quickSearchQuery?: string
     sortOption: SortOption
@@ -63,7 +78,17 @@ export function filterAndSortItems(
     items = items.filter((item) => Boolean(item.newConstruction))
   }
 
-  // 4. Filter by portal chip (#157)
+  // 4. Filter only bargain (#275)
+  if (options.onlyBargain) {
+    items = items.filter((item) => isItemBargain(item))
+  }
+
+  // 5. Filter by minimum quality score (#275)
+  if (options.minQualityScore != null && options.minQualityScore > 0) {
+    items = items.filter((item) => item.qualityScore != null && item.qualityScore >= options.minQualityScore!)
+  }
+
+  // 6. Filter by portal chip (#157)
   if (options.selectedPortalFilter && options.selectedPortalFilter !== 'all') {
     items = items.filter(
       (item) =>
@@ -71,7 +96,7 @@ export function filterAndSortItems(
     )
   }
 
-  // 5. Filter by multi-keyword quick search (#157)
+  // 7. Filter by multi-keyword quick search (#157)
   const q = normalizeSearchText(options.quickSearchQuery).trim()
   if (q) {
     const tokens = q.split(/\s+/).filter(Boolean)
@@ -137,6 +162,8 @@ export function useSearch() {
     criteria,
     sortOption,
     onlyNew,
+    onlyBargain,
+    minQualityScore,
     quickSearchQuery,
     selectedPortalFilter,
   } = useFilterStore()
@@ -236,6 +263,8 @@ export function useSearch() {
       onlyNew,
       excludeViewed: criteria.excludeViewed,
       onlyNewConstruction: criteria.onlyNewConstruction,
+      onlyBargain,
+      minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
       sortOption,
@@ -245,6 +274,8 @@ export function useSearch() {
     onlyNew,
     criteria.excludeViewed,
     criteria.onlyNewConstruction,
+    onlyBargain,
+    minQualityScore,
     selectedPortalFilter,
     quickSearchQuery,
     sortOption,
@@ -257,6 +288,8 @@ export function useSearch() {
       onlyNew: false,
       excludeViewed: criteria.excludeViewed,
       onlyNewConstruction: criteria.onlyNewConstruction,
+      onlyBargain,
+      minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
       sortOption,
@@ -265,6 +298,8 @@ export function useSearch() {
     historyQuery.data,
     criteria.excludeViewed,
     criteria.onlyNewConstruction,
+    onlyBargain,
+    minQualityScore,
     selectedPortalFilter,
     quickSearchQuery,
     sortOption,
@@ -313,6 +348,8 @@ export function useSearch() {
       onlyNew: false,
       excludeViewed: criteria.excludeViewed,
       onlyNewConstruction: criteria.onlyNewConstruction,
+      onlyBargain,
+      minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
       sortOption,
@@ -321,6 +358,8 @@ export function useSearch() {
     rawFavoriteItems,
     criteria.excludeViewed,
     criteria.onlyNewConstruction,
+    onlyBargain,
+    minQualityScore,
     selectedPortalFilter,
     quickSearchQuery,
     sortOption,

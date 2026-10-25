@@ -165,7 +165,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
             Nem található ingatlan a megadott feltételekkel
           </h3>
           <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
-            Próbáld meg módosítani a gyorskereső kifejezést, a portál szűrőt, vagy kikapcsolni a "Csak új találatok" / "Megtekintettek rejtése" kapcsolót!
+            Próbáld meg módosítani a gyorskereső kifejezést, a portál szűrőt, vagy kikapcsolni az aktív szűrőket (Alkalmi vétel, Minőség, Megtekintettek rejtése)!
           </p>
         </div>
       ) : (
