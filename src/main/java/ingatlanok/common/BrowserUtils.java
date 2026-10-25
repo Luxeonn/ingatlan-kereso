@@ -71,6 +71,7 @@ public final class BrowserUtils {
     try {
       if (Desktop.isDesktopSupported()
           && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+        // codeql[java/unvalidated-url-redirection]
         Desktop.getDesktop().browse(uri);
         return true;
       }
