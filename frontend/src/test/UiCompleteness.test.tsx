@@ -46,6 +46,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     useUiStore.setState({
       isFiltersCollapsed: false,
       dashboardTab: 'listings',
+      listingSubView: 'listings',
       starredUrls: [],
       starredItemsCache: {},
     })

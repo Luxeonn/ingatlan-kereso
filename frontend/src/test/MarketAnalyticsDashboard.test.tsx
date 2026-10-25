@@ -118,4 +118,16 @@ describe('MarketAnalyticsDashboard component', () => {
 
     expect(screen.getByText(/Kínálati Ár Eloszlás \(M Ft\)/i)).toBeTruthy()
   })
+
+  it('navigates back to listings view when clicking Hirdetéskártyák Megtekintése quick link', async () => {
+    const { useUiStore } = await import('../store/useUiStore')
+    useUiStore.setState({ dashboardTab: 'analytics' })
+
+    render(<MarketAnalyticsDashboard items={mockItems} />)
+
+    const viewListingsBtn = screen.getByRole('button', { name: /Hirdetéskártyák Megtekintése/i })
+    fireEvent.click(viewListingsBtn)
+
+    expect(useUiStore.getState().dashboardTab).toBe('listings')
+  })
 })

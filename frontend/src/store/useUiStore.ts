@@ -1,12 +1,14 @@
 import { create } from 'zustand'
 import { IngatlanItem } from '../types/property'
 
-export type DashboardTab = 'listings' | 'favorites' | 'archive' | 'analytics'
+export type DashboardTab = 'listings' | 'analytics'
+export type ListingSubView = 'listings' | 'favorites' | 'archive'
 
 interface UiState {
   theme: 'dark' | 'light'
   viewMode: 'grid' | 'list'
   dashboardTab: DashboardTab
+  listingSubView: ListingSubView
   isDiagnosticsModalOpen: boolean
   isFiltersCollapsed: boolean
   starredUrls: string[]
@@ -14,6 +16,7 @@ interface UiState {
   toggleTheme: () => void
   setViewMode: (mode: 'grid' | 'list') => void
   setDashboardTab: (tab: DashboardTab) => void
+  setListingSubView: (subView: ListingSubView) => void
   setDiagnosticsModalOpen: (open: boolean) => void
   setFiltersCollapsed: (collapsed: boolean) => void
   toggleStarred: (itemOrUrl: IngatlanItem | string) => void
@@ -68,6 +71,7 @@ export const useUiStore = create<UiState>((set, get) => {
     theme: initialTheme,
     viewMode: 'grid',
     dashboardTab: 'listings',
+    listingSubView: 'listings',
     isDiagnosticsModalOpen: false,
     isFiltersCollapsed: false,
     starredUrls: getInitialStarredUrls(),
@@ -85,8 +89,15 @@ export const useUiStore = create<UiState>((set, get) => {
         localStorage.setItem('theme', next)
         return { theme: next }
       }),
-    setViewMode: (mode) => set({ viewMode: mode }),
-    setDashboardTab: (tab) => set({ dashboardTab: tab }),
+    setViewMode: (mode) => set((state) => (state.viewMode === mode ? state : { viewMode: mode })),
+    setDashboardTab: (tab) =>
+      set((state) => (state.dashboardTab === tab ? state : { dashboardTab: tab })),
+    setListingSubView: (subView) =>
+      set((state) =>
+        state.listingSubView === subView && state.dashboardTab === 'listings'
+          ? state
+          : { listingSubView: subView, dashboardTab: 'listings' },
+      ),
     setDiagnosticsModalOpen: (open) => set({ isDiagnosticsModalOpen: open }),
     setFiltersCollapsed: (collapsed) => set({ isFiltersCollapsed: collapsed }),
     toggleStarred: (itemOrUrl) =>

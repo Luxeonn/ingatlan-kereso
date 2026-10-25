@@ -247,9 +247,11 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
   test('3. Search execution and Dashboard view switching triggers smoothly', async ({ page }) => {
     await page.goto('/')
 
-    // Verify view switcher navigation tabs in Listings Header (#157, #264, #273)
+    // Verify Sort and ExcludeViewed controls in Listings Header (#227)
     const headerBar = page.getByTestId('listings-panel-header')
     await expect(headerBar).toBeVisible()
+    await expect(headerBar.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeVisible()
+    await expect(headerBar.getByLabel('Rendezés')).toBeVisible()
 
     // Trigger Search
     const searchBtn = page.getByRole('button', { name: /Ingatlanok Keresése/i })
@@ -264,27 +266,42 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     await searchBtn.click()
     await searchPromise
 
-    // Verify Sort and ExcludeViewed controls in Listings Toolbar (#273)
-    await expect(page.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeVisible()
-    await expect(page.getByLabel('Rendezés')).toBeVisible()
+    // Verify static MarketStatsBar cards (#R3)
+    const statsBar = page.getByTestId('market-stats-bar')
+    await expect(statsBar).toBeVisible()
+    const avgPriceCard = statsBar.getByText('Átlagos Kínálati Ár')
+    await avgPriceCard.click()
+    await expect(headerBar.getByTestId('tab-listings')).toHaveAttribute('aria-pressed', 'true')
 
-    // Switch between Favorites, Archive, Analytics and Listings tabs (#157)
-    const favoritesTabBtn = headerBar.getByRole('button', { name: /Kedvencek/i })
+    // Switch between embedded Favorites, Archive, and Listings sub-views (#157)
+    const listingsPanel = page.getByTestId('listings-panel')
+    const favoritesTabBtn = listingsPanel.getByTestId('subview-favorites')
     await expect(favoritesTabBtn).toBeVisible()
     await favoritesTabBtn.click()
+    await expect(page.getByText('Még nincsenek kedvencnek jelölt ingatlanok')).toBeVisible()
 
-    const archiveTabBtn = headerBar.getByRole('button', { name: /Archívum/i })
+    const archiveTabBtn = listingsPanel.getByTestId('subview-archive')
     await expect(archiveTabBtn).toBeVisible()
     await archiveTabBtn.click()
+    await expect(page.getByText('Archív belvárosi polgári lakás')).toBeVisible()
 
-    const analyticsTabBtn = headerBar.getByRole('button', { name: /Piaci Elemzés és Árdiagramok/i })
+    const listingsSubViewBtn = listingsPanel.getByTestId('subview-listings')
+    await expect(listingsSubViewBtn).toBeVisible()
+    await listingsSubViewBtn.click()
+    await expect(page.getByText('Új építésű nappali + 3 szobás lakás Debrecenben')).toBeVisible()
+
+    // Switch to Piaci Elemzés top tab
+    const analyticsTabBtn = headerBar.getByTestId('tab-analytics')
     await expect(analyticsTabBtn).toBeVisible()
     await analyticsTabBtn.click()
     await expect(analyticsTabBtn).toHaveClass(/bg-indigo-600/)
+    await expect(page.getByTestId('market-analytics-panel')).toBeVisible()
 
-    const listingsTabBtn = headerBar.getByRole('button', { name: /Hirdetések/i })
-    await expect(listingsTabBtn).toBeVisible()
-    await listingsTabBtn.click()
-    await expect(listingsTabBtn).toHaveClass(/bg-blue-600/)
+    // Switch back to Találatok top tab
+    const talalatokTabBtn = headerBar.getByTestId('tab-listings')
+    await expect(talalatokTabBtn).toBeVisible()
+    await talalatokTabBtn.click()
+    await expect(talalatokTabBtn).toHaveClass(/bg-blue-600/)
+    await expect(page.getByTestId('listings-panel')).toBeVisible()
   })
 })

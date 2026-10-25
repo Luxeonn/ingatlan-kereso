@@ -366,6 +366,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       useUiStore.setState({
         isFiltersCollapsed: false,
         dashboardTab: 'listings',
+        listingSubView: 'listings',
         starredUrls: [],
         starredItemsCache: {},
       })
@@ -424,22 +425,32 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
 
       // 2. Default tab is listings
       expect(useUiStore.getState().dashboardTab).toBe('listings')
+      expect(useUiStore.getState().listingSubView).toBe('listings')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-      // 3. Switch to Favorites tab
+      // 3. Switch to Favorites sub-view within listings panel
       const favoritesBtn = screen.getByRole('button', { name: /⭐ Kedvencek/i })
       fireEvent.click(favoritesBtn)
-      expect(useUiStore.getState().dashboardTab).toBe('favorites')
+      expect(useUiStore.getState().dashboardTab).toBe('listings')
+      expect(useUiStore.getState().listingSubView).toBe('favorites')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-      // 4. Switch to Archive tab
+      // 4. Switch to Archive sub-view within listings panel
       const archiveBtn = screen.getByRole('button', { name: /Archívum/i })
       fireEvent.click(archiveBtn)
-      expect(useUiStore.getState().dashboardTab).toBe('archive')
+      expect(useUiStore.getState().dashboardTab).toBe('listings')
+      expect(useUiStore.getState().listingSubView).toBe('archive')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-      // 5. Switch to Market Analytics tab
-      const analyticsBtn = screen.getByRole('button', { name: /Piaci Elemzés és Árdiagramok/i })
+      // 5. Switch back to Hirdetések sub-view
+      const activeListingsBtn = screen.getByRole('button', { name: /Hirdetések/i })
+      fireEvent.click(activeListingsBtn)
+      expect(useUiStore.getState().dashboardTab).toBe('listings')
+      expect(useUiStore.getState().listingSubView).toBe('listings')
+      expect(screen.getByTestId('listings-panel')).toBeTruthy()
+
+      // 6. Switch to Market Analytics tab (top-level navigation)
+      const analyticsBtn = screen.getByRole('button', { name: /Piaci Elemzés/i })
       fireEvent.click(analyticsBtn)
       expect(useUiStore.getState().dashboardTab).toBe('analytics')
 
@@ -447,9 +458,9 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       const analyticsPanel = await screen.findByTestId('market-analytics-panel')
       expect(analyticsPanel).toBeTruthy()
 
-      // 6. Switch back to Listings tab
-      const listingsBtn = screen.getByRole('button', { name: /Hirdetések/i })
-      fireEvent.click(listingsBtn)
+      // 7. Switch back to Találatok tab (top-level navigation)
+      const talalatokBtn = screen.getByRole('button', { name: /^Találatok$/i })
+      fireEvent.click(talalatokBtn)
       expect(useUiStore.getState().dashboardTab).toBe('listings')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
     })
