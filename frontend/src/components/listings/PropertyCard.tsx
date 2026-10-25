@@ -135,6 +135,20 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
           {/* Header row: Critical market highlights (left) + Action buttons (right) */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1.5">
+              {/* Portal badge (#288) */}
+              {item.portal && (
+                <span
+                  data-testid="property-portal-badge"
+                  className={cn(
+                    'rounded-md px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase',
+                    portalStyle.bg
+                  )}
+                >
+                  {item.portal}
+                </span>
+              )}
+
+
               {/* New item badge */}
               {item.isNew && (
                 <span className="flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400 animate-pulse">
