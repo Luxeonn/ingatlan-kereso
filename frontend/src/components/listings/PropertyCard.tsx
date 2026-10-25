@@ -74,11 +74,14 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
   return (
     <div
       data-testid="property-card"
+      data-starred={isStarred ? 'true' : undefined}
       className={cn(
         'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
-        item.viewed
-          ? 'border-[var(--border-color)] bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
-          : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-blue-500/40'
+        isStarred
+          ? 'border-amber-500/50 bg-[var(--bg-card)] ring-1 ring-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] hover:border-amber-500/70 hover:ring-amber-500/50'
+          : item.viewed
+            ? 'border-[var(--border-color)] bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
+            : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-blue-500/40'
       )}
     >
       <div
