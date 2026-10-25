@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { PropertyCard } from '../components/listings/PropertyCard'
 import { IngatlanItem } from '../types/property'
 import { useUiStore } from '../store/useUiStore'
@@ -299,5 +299,41 @@ describe('PropertyCard component (#270)', () => {
     expect(screen.getByTestId('property-type-badge')).toBeTruthy()
     expect(screen.getByText('Lakás')).toBeTruthy()
     expect(screen.getAllByText('Duna House').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('highlights starred property cards and overrides viewed grayscale styling (#289)', () => {
+    // 1. Unstarred, unviewed card
+    const { rerender } = render(<PropertyCard item={mockItem} onMarkViewed={() => {}} />)
+    const card = screen.getByTestId('property-card')
+    expect(card.getAttribute('data-starred')).toBeNull()
+    expect(card.className).not.toContain('border-amber-500/50')
+    expect(card.className).not.toContain('opacity-70')
+
+    // 2. Viewed card without star -> should have opacity-70 and grayscale
+    const viewedItem: IngatlanItem = { ...mockItem, viewed: true }
+    rerender(<PropertyCard item={viewedItem} onMarkViewed={() => {}} />)
+    expect(card.getAttribute('data-starred')).toBeNull()
+    expect(card.className).toContain('opacity-70')
+    expect(card.className).toContain('grayscale-[15%]')
+    expect(card.className).not.toContain('border-amber-500/50')
+
+    // 3. Starred and viewed card -> should override grayscale/opacity and display amber border & ring highlight (#289)
+    act(() => {
+      useUiStore.setState({ starredUrls: [mockItem.url] })
+    })
+    rerender(<PropertyCard item={viewedItem} onMarkViewed={() => {}} />)
+    expect(card.getAttribute('data-starred')).toBe('true')
+    expect(card.className).toContain('border-amber-500/50')
+    expect(card.className).toContain('ring-amber-500/30')
+    expect(card.className).not.toContain('opacity-70')
+    expect(card.className).not.toContain('grayscale-[15%]')
+
+    // 4. Starred and unviewed card -> also maintains amber border & ring highlight
+    rerender(<PropertyCard item={mockItem} onMarkViewed={() => {}} />)
+    expect(card.getAttribute('data-starred')).toBe('true')
+    expect(card.className).toContain('border-amber-500/50')
+    expect(card.className).toContain('ring-amber-500/30')
+    expect(card.className).not.toContain('opacity-70')
+    expect(card.className).not.toContain('grayscale-[15%]')
   })
 })
