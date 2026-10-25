@@ -13,6 +13,7 @@ import ingatlanok.model.raw.RawPropertyListing;
 public class IngatlanBazarRawParser {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarRawParser.class);
+  static final String THUMBNAIL_SUFFIX = "_485x354.jpg";
 
   public List<RawPropertyListing> parseRawListings(String json) {
     List<RawPropertyListing> result = new ArrayList<>();
@@ -92,34 +93,7 @@ public class IngatlanBazarRawParser {
           location = settlement.isBlank() ? quarter : settlement + ", " + quarter;
         }
 
-        String imageUrl = null;
-        if (hit.has("photo") && !hit.get("photo").isNull()) {
-          JsonNode p = hit.get("photo");
-          if (p.isValueNode()) {
-            imageUrl = p.asText();
-          } else if (p.isObject() && p.has("url")) {
-            imageUrl = p.get("url").asText();
-          }
-        } else if (hit.has("picture") && !hit.get("picture").isNull()) {
-          imageUrl = hit.get("picture").asText();
-        } else if (hit.has("images") && hit.get("images").isArray()) {
-          JsonNode imgs = hit.get("images");
-          if (!imgs.isEmpty()) {
-            JsonNode first = imgs.get(0);
-            if (first.isValueNode()) {
-              imageUrl = first.asText();
-            } else if (first.isObject() && first.has("url")) {
-              imageUrl = first.get("url").asText();
-            }
-          }
-        }
-        if (imageUrl != null && !imageUrl.isBlank()) {
-          if (imageUrl.startsWith("//")) {
-            imageUrl = "https:" + imageUrl;
-          } else if (imageUrl.startsWith("/")) {
-            imageUrl = IngatlanBazarQueryBuilder.BASE_URL + imageUrl;
-          }
-        }
+        String imageUrl = extractImageUrl(hit);
 
         String descriptionText = "";
         if (hit.has("condition") && !hit.get("condition").isNull()) {
@@ -152,5 +126,68 @@ public class IngatlanBazarRawParser {
     }
 
     return result;
+  }
+
+  static String extractImageUrl(JsonNode hit) {
+    if (hit == null || !hit.isObject()) {
+      return null;
+    }
+
+    String candidate = null;
+    if (hit.has("renderPictures") && hit.get("renderPictures").isArray()) {
+      JsonNode renderPics = hit.get("renderPictures");
+      for (JsonNode pic : renderPics) {
+        if (pic.isValueNode() && !pic.asText().isBlank()) {
+          candidate = pic.asText().trim();
+          break;
+        }
+      }
+    }
+
+    if (candidate == null && hit.has("photo") && !hit.get("photo").isNull()) {
+      JsonNode p = hit.get("photo");
+      if (p.isValueNode()) {
+        candidate = p.asText().trim();
+      } else if (p.isObject() && p.has("url")) {
+        candidate = p.get("url").asText().trim();
+      }
+    }
+
+    if (candidate == null && hit.has("picture") && !hit.get("picture").isNull()) {
+      candidate = hit.get("picture").asText().trim();
+    }
+
+    if (candidate == null && hit.has("images") && hit.get("images").isArray()) {
+      JsonNode imgs = hit.get("images");
+      for (JsonNode img : imgs) {
+        if (img.isValueNode() && !img.asText().isBlank()) {
+          candidate = img.asText().trim();
+          break;
+        } else if (img.isObject() && img.has("url") && !img.get("url").asText().isBlank()) {
+          candidate = img.get("url").asText().trim();
+          break;
+        }
+      }
+    }
+
+    if (candidate == null || candidate.isBlank()) {
+      return null;
+    }
+
+    if (candidate.startsWith("//")) {
+      candidate = "https:" + candidate;
+    } else if (candidate.startsWith("/")) {
+      candidate = IngatlanBazarQueryBuilder.BASE_URL + candidate;
+    }
+
+    if (candidate.contains("images2.ingatlanbazar.hu/static/property/images/")) {
+      int lastSlash = candidate.lastIndexOf('/');
+      String lastSegment = lastSlash >= 0 ? candidate.substring(lastSlash + 1) : candidate;
+      if (!lastSegment.contains(".")) {
+        candidate = candidate + THUMBNAIL_SUFFIX;
+      }
+    }
+
+    return candidate;
   }
 }
