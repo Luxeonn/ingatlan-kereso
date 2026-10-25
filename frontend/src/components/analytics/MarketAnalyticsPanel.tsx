@@ -319,7 +319,10 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
       </div>
 
       {/* Price vs Area Correlation Scatter Chart */}
-      <PriceScatterCorrelationChart scatterData={scatterData} />
+      <PriceScatterCorrelationChart
+        scatterData={scatterData}
+        onOpenListing={onOpenListing}
+      />
 
       {/* Bargain Hunter Table */}
       <BargainHunterTable
