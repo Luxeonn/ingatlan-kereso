@@ -223,12 +223,29 @@ export function getPortalStyle(portalId: string) {
 }
 
 export function detectPortalFromUrl(url: string): { portalId: string; portalName: string } {
-  const lower = (url || '').toLowerCase()
-  if (lower.includes('dh.hu')) return { portalId: 'dh', portalName: 'Duna House' }
-  if (lower.includes('oc.hu')) return { portalId: 'oc', portalName: 'Otthon Centrum' }
-  if (lower.includes('jofogas.hu')) return { portalId: 'jofogas', portalName: 'Jófogás' }
-  if (lower.includes('ingatlanbazar.hu')) return { portalId: 'ingatlanbazar', portalName: 'Ingatlanbazár' }
-  if (lower.includes('koltozzbe.hu')) return { portalId: 'koltozzbe', portalName: 'Költözzbe' }
-  if (lower.includes('ingatlan.com')) return { portalId: 'ingatlancom', portalName: 'Ingatlan.com' }
+  try {
+    const parsed = new URL(url)
+    const hostname = parsed.hostname.toLowerCase()
+    if (hostname === 'dh.hu' || hostname.endsWith('.dh.hu')) {
+      return { portalId: 'dh', portalName: 'Duna House' }
+    }
+    if (hostname === 'oc.hu' || hostname.endsWith('.oc.hu')) {
+      return { portalId: 'oc', portalName: 'Otthon Centrum' }
+    }
+    if (hostname === 'jofogas.hu' || hostname.endsWith('.jofogas.hu')) {
+      return { portalId: 'jofogas', portalName: 'Jófogás' }
+    }
+    if (hostname === 'ingatlanbazar.hu' || hostname.endsWith('.ingatlanbazar.hu')) {
+      return { portalId: 'ingatlanbazar', portalName: 'Ingatlanbazár' }
+    }
+    if (hostname === 'koltozzbe.hu' || hostname.endsWith('.koltozzbe.hu')) {
+      return { portalId: 'koltozzbe', portalName: 'Költözzbe' }
+    }
+    if (hostname === 'ingatlan.com' || hostname.endsWith('.ingatlan.com')) {
+      return { portalId: 'ingatlancom', portalName: 'Ingatlan.com' }
+    }
+  } catch {
+    // Ignore URL parse error and fall back to default
+  }
   return { portalId: 'egyeb', portalName: 'Hirdetés' }
 }
