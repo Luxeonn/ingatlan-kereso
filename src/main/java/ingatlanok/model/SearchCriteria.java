@@ -10,9 +10,9 @@ import ingatlanok.common.SlugUtils;
 
 public class SearchCriteria implements Serializable {
 
-  private String city = "Debrecen";
+  private String city = "Hajdúszoboszló";
   private List<String> cities = new ArrayList<>();
-  private String propertyType = "lakas";
+  private String propertyType = "haz";
   private Integer minPriceMillion = 70;
   private Integer maxPriceMillion = 120;
   private Integer minArea = 90;
@@ -27,7 +27,7 @@ public class SearchCriteria implements Serializable {
   public SearchCriteria() {
 
     if (cities.isEmpty()) {
-      cities.add("Debrecen");
+      cities.add("Hajdúszoboszló");
     }
     portals.add("dh");
     portals.add("oc");
@@ -44,7 +44,7 @@ public class SearchCriteria implements Serializable {
         return first.trim();
       }
     }
-    return city != null && !city.isBlank() ? city.trim() : "Debrecen";
+    return city != null && !city.isBlank() ? city.trim() : "Hajdúszoboszló";
   }
 
   public void setCity(String city) {

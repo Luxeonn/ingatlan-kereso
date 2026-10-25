@@ -66,7 +66,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   }
 
   const citiesSummary =
-    criteria.cities && criteria.cities.length > 0 ? criteria.cities.join(', ') : criteria.city || 'Debrecen'
+    criteria.cities && criteria.cities.length > 0 ? criteria.cities.join(', ') : criteria.city || 'Hajdúszoboszló'
   const typeLabel =
     PROPERTY_TYPE_LABELS[(criteria.propertyType || 'lakas').toLowerCase()] || criteria.propertyType
 

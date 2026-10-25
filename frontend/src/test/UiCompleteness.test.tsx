@@ -154,7 +154,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     )
 
     const summary = screen.getByTestId('collapsed-filter-summary')
-    expect(summary.textContent).toContain('Debrecen')
+    expect(summary.textContent).toContain('Hajdúszoboszló')
     expect(summary.textContent).toContain('70 - 120 M Ft')
     expect(summary.textContent).toContain('90 - 200 m²')
     expect(summary.textContent).toContain('6/6 portál')

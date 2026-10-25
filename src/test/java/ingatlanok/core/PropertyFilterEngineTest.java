@@ -19,6 +19,7 @@ class PropertyFilterEngineTest {
     PropertyFilterEngine filterEngine = new PropertyFilterEngine();
 
     SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
     criteria.setMinPriceMillion(40);
     criteria.setMaxPriceMillion(80);
     criteria.setMinArea(50);
@@ -299,6 +300,7 @@ class PropertyFilterEngineTest {
     PropertyFilterEngine filterEngine = new PropertyFilterEngine();
 
     SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
     criteria.setMinPriceMillion(40);
     criteria.setMaxPriceMillion(120);
     criteria.setMinArea(40);

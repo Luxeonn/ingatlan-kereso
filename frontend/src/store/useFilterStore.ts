@@ -44,9 +44,9 @@ function getStoredExcludeViewed(): boolean {
 }
 
 const DEFAULT_CRITERIA: SearchCriteria = {
-  cities: ['Debrecen'],
-  city: 'Debrecen',
-  propertyType: 'lakas',
+  cities: ['Hajdúszoboszló'],
+  city: 'Hajdúszoboszló',
+  propertyType: 'haz',
   minPriceMillion: 70,
   maxPriceMillion: 120,
   minArea: 90,
@@ -235,7 +235,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
           criteria: {
             ...state.criteria,
             cities: updated,
-            city: updated.length > 0 ? updated[0] : 'Debrecen',
+            city: updated.length > 0 ? updated[0] : 'Hajdúszoboszló',
           },
         }
       })
@@ -248,7 +248,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         criteria: {
           ...state.criteria,
           cities: list,
-          city: list.length > 0 ? list[0] : 'Debrecen',
+          city: list.length > 0 ? list[0] : 'Hajdúszoboszló',
         },
       }))
       get().syncToUrl()
