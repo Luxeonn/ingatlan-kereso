@@ -20,7 +20,12 @@ interface ListingsGridProps {
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
+  initialBatchSize?: number
+  batchSize?: number
 }
+
+const DEFAULT_INITIAL_BATCH_SIZE = 18
+const DEFAULT_BATCH_STEP = 18
 
 export const ListingsGrid: FC<ListingsGridProps> = ({
   items,
@@ -34,11 +39,48 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   onTriggerSearch,
   onClearHistory,
   isClearingHistory = false,
+  initialBatchSize = DEFAULT_INITIAL_BATCH_SIZE,
+  batchSize = DEFAULT_BATCH_STEP,
 }) => {
   const { viewMode } = useUiStore()
   const [columns, setColumns] = useState(1)
   const [scrollMargin, setScrollMargin] = useState(0)
+  const [visibleLimit, setVisibleLimit] = useState(initialBatchSize)
+  const [prevResetToken, setPrevResetToken] = useState(() => ({ items, mode, initialBatchSize }))
   const listRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Reset pagination limit during render when items, mode, or batch size changes (#278)
+  if (
+    prevResetToken.items !== items ||
+    prevResetToken.mode !== mode ||
+    prevResetToken.initialBatchSize !== initialBatchSize
+  ) {
+    setPrevResetToken({ items, mode, initialBatchSize })
+    setVisibleLimit(initialBatchSize)
+  }
+
+  // Progressive batching via IntersectionObserver (#278)
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+        if (first && first.isIntersecting) {
+          setVisibleLimit((prev) => Math.min(prev + batchSize, items.length))
+        }
+      },
+      { rootMargin: '400px 0px' }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [items.length, batchSize])
+
+  const visibleItems = items.slice(0, visibleLimit)
+  const hasMore = visibleLimit < items.length
 
   useEffect(() => {
     const updateColumns = () => {
@@ -58,9 +100,9 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
     updateScrollMargin()
     window.addEventListener('resize', updateScrollMargin)
     return () => window.removeEventListener('resize', updateScrollMargin)
-  }, [hasSearched, items.length, mode])
+  }, [hasSearched, visibleItems.length, mode])
 
-  const rowCount = Math.ceil(items.length / columns)
+  const rowCount = Math.ceil(visibleItems.length / columns)
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
     estimateSize: () => 480,
@@ -154,6 +196,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
         }}
         onClearHistory={mode === 'archive' ? onClearHistory : undefined}
         isClearingHistory={isClearingHistory}
+        visibleCount={visibleItems.length}
       />
 
       {items.length === 0 ? (
@@ -169,38 +212,54 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
           </p>
         </div>
       ) : (
-        <div ref={listRef} className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const rowItems = items.slice(virtualRow.index * columns, (virtualRow.index + 1) * columns)
-            return (
-              <div
-                key={virtualRow.key}
-                ref={virtualizer.measureElement}
-                data-index={virtualRow.index}
-                className={cn(
-                  viewMode === 'grid'
-                    ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
-                    : 'flex flex-col gap-3'
-                )}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-                }}
-              >
-                {rowItems.map((item) => (
-                  <PropertyCard
-                    key={item.url || item.id}
-                    item={item}
-                    onMarkViewed={onMarkViewed}
-                    viewMode={viewMode}
-                  />
-                ))}
+        <div className="space-y-4">
+          <div ref={listRef} className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const rowItems = visibleItems.slice(virtualRow.index * columns, (virtualRow.index + 1) * columns)
+              return (
+                <div
+                  key={virtualRow.key}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className={cn(
+                    viewMode === 'grid'
+                      ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+                      : 'flex flex-col gap-3'
+                  )}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                  }}
+                >
+                  {rowItems.map((item) => (
+                    <PropertyCard
+                      key={item.url || item.id}
+                      item={item}
+                      onMarkViewed={onMarkViewed}
+                      viewMode={viewMode}
+                    />
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Infinite Scroll Sentinel / Progressive loader (#278) */}
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              data-testid="infinite-scroll-sentinel"
+              className="flex items-center justify-center py-6 text-xs text-[var(--text-secondary)]"
+            >
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                <span>További ingatlanok betöltése... ({visibleItems.length} / {items.length} db)</span>
               </div>
-            )
-          })}
+            </div>
+          )}
         </div>
       )}
     </div>

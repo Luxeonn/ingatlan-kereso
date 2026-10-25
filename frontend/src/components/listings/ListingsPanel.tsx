@@ -22,6 +22,8 @@ export interface ListingsPanelProps {
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
+  initialBatchSize?: number
+  batchSize?: number
 }
 
 export const ListingsPanel: FC<ListingsPanelProps> = ({
@@ -41,6 +43,8 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   onTriggerSearch,
   onClearHistory,
   isClearingHistory = false,
+  initialBatchSize,
+  batchSize,
 }) => {
   const { listingSubView: storeSubView, setListingSubView } = useUiStore()
   const activeMode: ListingSubView = subView ?? mode ?? storeSubView ?? 'listings'
@@ -151,6 +155,8 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         onTriggerSearch={onTriggerSearch}
         onClearHistory={onClearHistory}
         isClearingHistory={isClearingHistory}
+        initialBatchSize={initialBatchSize}
+        batchSize={batchSize}
       />
     </section>
   )

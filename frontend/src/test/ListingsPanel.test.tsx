@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ListingsPanel } from '../components/listings/ListingsPanel'
 import { useUiStore } from '../store/useUiStore'
@@ -215,6 +215,78 @@ describe('ListingsPanel component (#264)', () => {
     expect(screen.getByRole('button', { name: /⭐ Kedvencek \(4\)/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Hirdetések \(0\)/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Archívum \(0\)/i })).toBeTruthy()
+  })
+
+  it('progressively batches rendered cards with infinite scroll sentinel (#278)', () => {
+    // Mock IntersectionObserver
+    let observerCallback: (entries: IntersectionObserverEntry[]) => void = () => {}
+    const observeMock = vi.fn()
+    const disconnectMock = vi.fn()
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root: Element | Document | null = null
+      readonly rootMargin: string = ''
+      readonly thresholds: ReadonlyArray<number> = []
+      constructor(callback: IntersectionObserverCallback) {
+        observerCallback = callback as (entries: IntersectionObserverEntry[]) => void
+      }
+      observe = observeMock
+      unobserve = vi.fn()
+      disconnect = disconnectMock
+      takeRecords = () => []
+    }
+
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+
+    // Generate 50 mock items
+    const manyItems: IngatlanItem[] = Array.from({ length: 50 }, (_, i) => ({
+      id: `prop-${i}`,
+      portal: 'dh',
+      url: `https://example.com/prop-${i}`,
+      title: `Ingatlan #${i}`,
+      price: `${30 + i} M Ft`,
+      location: 'Debrecen',
+      city: 'Debrecen',
+      propertyType: 'LAKAS',
+    }))
+
+    render(
+      <ListingsPanel
+        items={manyItems}
+        totalRawCount={50}
+        isLoading={false}
+        hasSearched={true}
+        initialBatchSize={10}
+        batchSize={10}
+        onMarkViewed={vi.fn()}
+        onOpenAll={vi.fn()}
+        onTriggerSearch={vi.fn()}
+      />
+    )
+
+    // Initially displays visibleCount / items.length
+    expect(screen.getByText(/Megjelenítve: 10 \/ 50 db/i)).toBeTruthy()
+    expect(observeMock).toHaveBeenCalled()
+
+    const sentinel = screen.getByTestId('infinite-scroll-sentinel')
+    expect(sentinel).toBeTruthy()
+    expect(sentinel.textContent).toContain('További ingatlanok betöltése... (10 / 50 db)')
+
+    // Trigger intersection event wrapped in act
+    act(() => {
+      observerCallback([
+        {
+          isIntersecting: true,
+          target: sentinel,
+        } as unknown as IntersectionObserverEntry,
+      ])
+    })
+
+    // Should batch-append next 10 items => 20 / 50 db
+    expect(screen.getByText(/Megjelenítve: 20 \/ 50 db/i)).toBeTruthy()
+    expect(sentinel.textContent).toContain('További ingatlanok betöltése... (20 / 50 db)')
+
+    vi.unstubAllGlobals()
   })
 })
 
