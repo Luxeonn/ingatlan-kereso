@@ -12,7 +12,6 @@ import {
 import { IngatlanItem } from '../../types/property'
 import {
   formatPriceMillion,
-  formatPriceFt,
   formatPricePerSqm,
   formatArea,
   formatRooms,
@@ -261,11 +260,6 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
             <div className="text-base font-extrabold text-blue-400">
               {priceMillion != null ? formatPriceMillion(priceMillion) : item.price}
             </div>
-            {priceFt != null && priceMillion != null && (
-              <div className="text-[11px] text-[var(--text-secondary)]">
-                {formatPriceFt(priceFt)}
-              </div>
-            )}
           </div>
         </div>
       </div>

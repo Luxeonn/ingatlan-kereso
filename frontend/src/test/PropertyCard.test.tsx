@@ -265,9 +265,9 @@ describe('PropertyCard component (#270)', () => {
 
     render(<PropertyCard item={complexItem} onMarkViewed={() => {}} />)
 
-    // Expected lowest active price is 68 M Ft / 68 000 000 Ft
+    // Expected lowest active price is 68 M Ft (#286: exact Ft is in details drawer only)
     expect(screen.getByText('68 M Ft')).toBeTruthy()
-    expect(screen.getByText('68 000 000 Ft')).toBeTruthy()
+    expect(screen.queryByText('68 000 000 Ft')).toBeNull()
 
     // Inactive 40M / 60M should NOT appear in card primary pricing
     expect(screen.queryByText('40 M Ft')).toBeNull()
