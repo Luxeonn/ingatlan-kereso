@@ -72,12 +72,16 @@ const urlSchema = z.object({
   onlyNewConstruction: z.enum(['true', 'false']).optional(),
   sort: z.enum(['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc']).optional(),
   onlyNew: z.enum(['true', 'false']).optional(),
+  onlyBargain: z.enum(['true', 'false']).optional(),
+  minQuality: z.coerce.number().finite().min(0).max(100).optional(),
 })
 
 interface FilterState {
   criteria: SearchCriteria
   sortOption: SortOption
   onlyNew: boolean
+  onlyBargain: boolean
+  minQualityScore: number
   quickSearchQuery: string
   selectedPortalFilter: string
 
@@ -98,6 +102,8 @@ interface FilterState {
   setOnlyNewConstruction: (onlyNewConstruction: boolean) => void
   setSortOption: (sort: SortOption) => void
   setOnlyNew: (onlyNew: boolean) => void
+  setOnlyBargain: (onlyBargain: boolean) => void
+  setMinQualityScore: (score: number) => void
   setQuickSearchQuery: (query: string) => void
   setSelectedPortalFilter: (portal: string) => void
   resetToDefaults: () => void
@@ -105,7 +111,13 @@ interface FilterState {
   syncToUrl: () => void
 }
 
-function parseUrlParams(): { criteria?: Partial<SearchCriteria>; sort?: SortOption; onlyNew?: boolean } {
+function parseUrlParams(): {
+  criteria?: Partial<SearchCriteria>
+  sort?: SortOption
+  onlyNew?: boolean
+  onlyBargain?: boolean
+  minQualityScore?: number
+} {
   if (typeof window === 'undefined') return {}
   const parsedUrl = urlSchema.safeParse(Object.fromEntries(new URLSearchParams(window.location.search)))
   if (!parsedUrl.success) return {}
@@ -165,7 +177,12 @@ function parseUrlParams(): { criteria?: Partial<SearchCriteria>; sort?: SortOpti
   const onlyNewParam = params.onlyNew
   const onlyNew = onlyNewParam === 'true'
 
-  return { criteria: result, sort, onlyNew }
+  const onlyBargainParam = params.onlyBargain
+  const onlyBargain = onlyBargainParam === 'true'
+
+  const minQualityScore = params.minQuality ?? 0
+
+  return { criteria: result, sort, onlyNew, onlyBargain, minQualityScore }
 }
 
 export const useFilterStore = create<FilterState>((set, get) => {
@@ -180,6 +197,8 @@ export const useFilterStore = create<FilterState>((set, get) => {
     criteria: initialCriteria,
     sortOption: initial.sort || getStoredSortOption(),
     onlyNew: initial.onlyNew || false,
+    onlyBargain: initial.onlyBargain || false,
+    minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
     selectedPortalFilter: 'all',
 
@@ -330,6 +349,16 @@ export const useFilterStore = create<FilterState>((set, get) => {
       get().syncToUrl()
     },
 
+    setOnlyBargain: (onlyBargain) => {
+      set({ onlyBargain })
+      get().syncToUrl()
+    },
+
+    setMinQualityScore: (score) => {
+      set({ minQualityScore: score })
+      get().syncToUrl()
+    },
+
     setQuickSearchQuery: (query) => {
       set({ quickSearchQuery: query })
     },
@@ -343,6 +372,8 @@ export const useFilterStore = create<FilterState>((set, get) => {
         criteria: { ...DEFAULT_CRITERIA },
         sortOption: 'price_asc',
         onlyNew: false,
+        onlyBargain: false,
+        minQualityScore: 0,
         quickSearchQuery: '',
         selectedPortalFilter: 'all',
       })
@@ -357,12 +388,14 @@ export const useFilterStore = create<FilterState>((set, get) => {
         criteria: { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) },
         sortOption: parsed.sort || getStoredSortOption(),
         onlyNew: parsed.onlyNew ?? false,
+        onlyBargain: parsed.onlyBargain ?? false,
+        minQualityScore: parsed.minQualityScore ?? 0,
       })
     },
 
     syncToUrl: () => {
       if (typeof window === 'undefined') return
-      const { criteria, sortOption, onlyNew } = get()
+      const { criteria, sortOption, onlyNew, onlyBargain, minQualityScore } = get()
       const params = new URLSearchParams()
 
       if (criteria.cities && criteria.cities.length > 0) {
@@ -391,6 +424,12 @@ export const useFilterStore = create<FilterState>((set, get) => {
       }
       if (onlyNew) {
         params.set('onlyNew', 'true')
+      }
+      if (onlyBargain) {
+        params.set('onlyBargain', 'true')
+      }
+      if (minQualityScore > 0) {
+        params.set('minQuality', String(minQualityScore))
       }
       if (criteria.autoOpenBrowser) {
         params.set('autoOpen', 'true')
