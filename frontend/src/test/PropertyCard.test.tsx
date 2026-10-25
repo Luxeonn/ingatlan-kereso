@@ -45,6 +45,10 @@ describe('PropertyCard component (#270)', () => {
     expect(screen.getByTestId('new-construction-badge')).toBeTruthy()
 
     // Details drawer button is present on the card face (#270)
+    // Portal badge is present on the card face (#288)
+    expect(screen.getByTestId('property-portal-badge').textContent).toContain('Duna House')
+
+    // Details drawer button is present on the card face (#270, #288)
     const detailsBtn = screen.getByTestId('details-button')
     expect(detailsBtn).toBeTruthy()
     expect(detailsBtn.textContent).toContain('Részletek')
@@ -61,7 +65,7 @@ describe('PropertyCard component (#270)', () => {
     const itemWithoutImg: IngatlanItem = { ...mockItem, imageUrl: undefined }
     render(<PropertyCard item={itemWithoutImg} onMarkViewed={() => {}} />)
     expect(screen.getByTestId('property-image-fallback')).toBeTruthy()
-    expect(screen.getByText('Duna House')).toBeTruthy()
+    expect(screen.getAllByText('Duna House').length).toBeGreaterThanOrEqual(2)
   })
 
   it('toggles favorite star and persists in store and localStorage', () => {
@@ -294,6 +298,6 @@ describe('PropertyCard component (#270)', () => {
     expect(screen.getByText('-11 pont: Enyhe adateltérés')).toBeTruthy()
     expect(screen.getByTestId('property-type-badge')).toBeTruthy()
     expect(screen.getByText('Lakás')).toBeTruthy()
-    expect(screen.getByText('Duna House')).toBeTruthy()
+    expect(screen.getAllByText('Duna House').length).toBeGreaterThanOrEqual(2)
   })
 })
