@@ -26,6 +26,7 @@ interface BulkActionBarProps {
   onMarkAllViewed: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
+  visibleCount?: number
 }
 
 const PORTAL_CHIPS = [
@@ -46,6 +47,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   onMarkAllViewed,
   onClearHistory,
   isClearingHistory = false,
+  visibleCount,
 }) => {
   const { viewMode, setViewMode } = useUiStore()
   const {
@@ -223,7 +225,9 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 mr-1">
             <span className="text-xs font-bold text-[var(--text-primary)]">
-              {items.length} db találat
+              {visibleCount != null && visibleCount < items.length
+                ? `Megjelenítve: ${visibleCount} / ${items.length} db`
+                : `${items.length} db találat`}
             </span>
             {items.length !== totalRawCount && (
               <span className="text-[11px] text-[var(--text-secondary)]">
