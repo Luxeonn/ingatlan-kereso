@@ -34,6 +34,9 @@ class IngatlanBazarAdapterTest {
     assertEquals(115.0, first.areaSquareMeters());
     assertEquals(4.0, first.roomCount());
     assertEquals(ExtractionMethod.API, first.method());
+    assertEquals(
+        "https://images2.ingatlanbazar.hu/static/property/images/b3/4c/44/2d/b34c442d-c20e-11f1-b393-bc2411815210/4455ddbb-8d38-453a-a0c7-063fd4872b56_485x354.jpg",
+        first.imageUrl());
   }
 
   @Test
@@ -64,5 +67,51 @@ class IngatlanBazarAdapterTest {
     assertEquals(2, result.getItems().size());
     assertEquals("IB999", result.getItems().get(0).getId());
     assertEquals(92_000_000L, result.getItems().get(0).getPriceInfo().getAmountHuf());
+    assertEquals(
+        "https://images2.ingatlanbazar.hu/static/property/images/b3/4c/44/2d/b34c442d-c20e-11f1-b393-bc2411815210/4455ddbb-8d38-453a-a0c7-063fd4872b56_485x354.jpg",
+        result.getItems().get(0).getImageUrl());
+  }
+
+  @Test
+  @DisplayName("extractImageUrl helyesen kezeli a különböző képmezőket és méret utótagokat")
+  void testExtractImageUrlVariants() throws Exception {
+    tools.jackson.databind.ObjectMapper mapper = new tools.jackson.databind.ObjectMapper();
+
+    // 1. renderPictures tömbből nyers bázis URL -> hozzáadja a _485x354.jpg-t
+    String jsonRenderPics = "{\"renderPictures\": [\"https://images2.ingatlanbazar.hu/static/property/images/1/2\"]}";
+    assertEquals(
+        "https://images2.ingatlanbazar.hu/static/property/images/1/2_485x354.jpg",
+        IngatlanBazarRawParser.extractImageUrl(mapper.readTree(jsonRenderPics)));
+
+    // 2. renderPictures már kiterjesztéssel rendelkező URL -> nem duplázza az utótagot
+    String jsonRenderPicsWithExt = "{\"renderPictures\": [\"https://images2.ingatlanbazar.hu/static/property/images/1/2_485x354.jpg\"]}";
+    assertEquals(
+        "https://images2.ingatlanbazar.hu/static/property/images/1/2_485x354.jpg",
+        IngatlanBazarRawParser.extractImageUrl(mapper.readTree(jsonRenderPicsWithExt)));
+
+    // 3. photo objektum url mezővel
+    String jsonPhotoObj = "{\"photo\": {\"url\": \"https://example.com/test.jpg\"}}";
+    assertEquals(
+        "https://example.com/test.jpg",
+        IngatlanBazarRawParser.extractImageUrl(mapper.readTree(jsonPhotoObj)));
+
+    // 4. picture string
+    String jsonPicture = "{\"picture\": \"//images.ingatlanbazar.hu/pic.jpg\"}";
+    assertEquals(
+        "https://images.ingatlanbazar.hu/pic.jpg",
+        IngatlanBazarRawParser.extractImageUrl(mapper.readTree(jsonPicture)));
+
+    // 5. images tömb relatív URL-lel
+    String jsonImages = "{\"images\": [\"/img/prop1.jpg\"]}";
+    assertEquals(
+        "https://www.ingatlanbazar.hu/img/prop1.jpg",
+        IngatlanBazarRawParser.extractImageUrl(mapper.readTree(jsonImages)));
+
+    // 6. null vagy hiányzó képmezők
+    String jsonNoImages = "{\"title\": \"Nincs kép\"}";
+    org.junit.jupiter.api.Assertions.assertNull(
+        IngatlanBazarRawParser.extractImageUrl(mapper.readTree(jsonNoImages)));
+    org.junit.jupiter.api.Assertions.assertNull(
+        IngatlanBazarRawParser.extractImageUrl(null));
   }
 }

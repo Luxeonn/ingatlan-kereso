@@ -165,33 +165,8 @@ public class IngatlanBazarJsonParser {
                 true);
         item.setLocation(location);
 
-        String imageUrl = null;
-        if (hit.has("photo") && !hit.get("photo").isNull()) {
-          JsonNode p = hit.get("photo");
-          if (p.isValueNode()) {
-            imageUrl = p.asText();
-          } else if (p.isObject() && p.has("url")) {
-            imageUrl = p.get("url").asText();
-          }
-        } else if (hit.has("picture") && !hit.get("picture").isNull()) {
-          imageUrl = hit.get("picture").asText();
-        } else if (hit.has("images") && hit.get("images").isArray()) {
-          JsonNode imgs = hit.get("images");
-          if (!imgs.isEmpty()) {
-            JsonNode first = imgs.get(0);
-            if (first.isValueNode()) {
-              imageUrl = first.asText();
-            } else if (first.isObject() && first.has("url")) {
-              imageUrl = first.get("url").asText();
-            }
-          }
-        }
-        if (imageUrl != null && !imageUrl.isBlank()) {
-          if (imageUrl.startsWith("//")) {
-            imageUrl = "https:" + imageUrl;
-          } else if (imageUrl.startsWith("/")) {
-            imageUrl = IngatlanBazarQueryBuilder.BASE_URL + imageUrl;
-          }
+        String imageUrl = IngatlanBazarRawParser.extractImageUrl(hit);
+        if (imageUrl != null) {
           item.setImageUrl(imageUrl);
         }
 
