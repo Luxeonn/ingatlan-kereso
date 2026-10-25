@@ -142,22 +142,20 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
     },
   ]
 
-  it('renders 6 visual KPI cards with separated Lakás and Telek medians', () => {
+  it('renders relevant KPI cards and dynamically hides 0-sample categories (#263, #264, #276)', () => {
     render(<MarketAnalyticsPanel items={mockItems} />)
 
     expect(screen.getByTestId('market-analytics-panel')).toBeTruthy()
 
-    // 1. Lakás card
+    // 1. Lakás card (5 items >= 5)
     const lakasCard = screen.getByTestId('kpi-card-lakas')
     expect(lakasCard.textContent).toMatch(/1\s*000\s*000\s*Ft\/m²/)
     expect(lakasCard.textContent).toContain('5 db lakás alapján')
 
-    // 2. Ház card (0 items -> <5 guard)
-    const hazCard = screen.getByTestId('kpi-card-haz')
-    expect(hazCard.textContent).toContain('Kevés minta (<5)')
-    expect(hazCard.textContent).toContain('0 db ház alapján')
+    // 2. Ház card (0 items in current results -> dynamically hidden per #276)
+    expect(screen.queryByTestId('kpi-card-haz')).toBeNull()
 
-    // 3. Telek card (strictly separated from living area)
+    // 3. Telek card (strictly separated from living area, 5 items >= 5)
     const telekCard = screen.getByTestId('kpi-card-telek')
     expect(telekCard.textContent).toMatch(/30\s*000\s*Ft\/m²/)
     expect(telekCard.textContent).toContain('5 db telek alapján')
@@ -181,6 +179,74 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
     const banner = screen.getByTestId('insufficient-data-banner')
     expect(banner).toBeTruthy()
     expect(banner.textContent).toMatch(/Kevés minta az elemzéshez/i)
+  })
+
+  it('dynamically highlights Ház category and suppresses warning banner when house sample >= 5 (#276)', () => {
+    const mockHouses: IngatlanItem[] = Array.from({ length: 6 }, (_, i) => ({
+      id: `house-${i}`,
+      portal: 'oc',
+      url: `https://example.com/h${i}`,
+      title: `Családi Ház ${i + 1}`,
+      price: `${70 + i * 5} M Ft`,
+      location: 'Debrecen',
+      city: 'Debrecen',
+      propertyType: 'HAZ',
+      priceInfo: { amountMillion: 70 + i * 5, amountHuf: (70 + i * 5) * 1_000_000 },
+      detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 700_000 + i * 50_000 },
+    }))
+
+    render(<MarketAnalyticsPanel items={mockHouses} targetPropertyType="haz" />)
+
+    // Insufficient data banner must NOT be shown when 6 houses are present
+    expect(screen.queryByTestId('insufficient-data-banner')).toBeNull()
+
+    // Ház card must be rendered and highlighted as primary stat
+    const hazCard = screen.getByTestId('kpi-card-haz')
+    expect(hazCard).toBeTruthy()
+    expect(hazCard.textContent).toContain('Ház Medián Fajlagos Ár')
+    expect(hazCard.textContent).toContain('Kiemelt')
+    expect(hazCard.textContent).toContain('6 db ház alapján')
+    expect(hazCard.textContent).toMatch(/Ft\/m²/)
+
+    // Irrelevant 0-sample categories must remain hidden
+    expect(screen.queryByTestId('kpi-card-lakas')).toBeNull()
+    expect(screen.queryByTestId('kpi-card-telek')).toBeNull()
+  })
+
+  it('activates insufficient data warning when targeted category has < 5 samples (#276)', () => {
+    const fewHouses: IngatlanItem[] = Array.from({ length: 3 }, (_, i) => ({
+      id: `house-few-${i}`,
+      portal: 'dh',
+      url: `https://example.com/hf${i}`,
+      title: `Kis Családi Ház ${i + 1}`,
+      price: `${60 + i * 5} M Ft`,
+      location: 'Szeged',
+      city: 'Szeged',
+      propertyType: 'HAZ',
+      priceInfo: { amountMillion: 60 + i * 5, amountHuf: (60 + i * 5) * 1_000_000 },
+      detailsInfo: { areaSquareMeters: 90, pricePerSquareMeter: 650_000 },
+    }))
+
+    render(<MarketAnalyticsPanel items={fewHouses} targetPropertyType="haz" />)
+
+    // Warning banner MUST be displayed for sample < 5
+    const banner = screen.getByTestId('insufficient-data-banner')
+    expect(banner).toBeTruthy()
+    expect(banner.textContent).toContain('Kevés minta az elemzéshez')
+
+    // Ház card displays <5 guard
+    const hazCard = screen.getByTestId('kpi-card-haz')
+    expect(hazCard.textContent).toContain('Kevés minta (<5)')
+    expect(hazCard.textContent).toContain('3 db ház alapján')
+  })
+
+  it('renders clean empty state when items list is empty (#276)', () => {
+    render(<MarketAnalyticsPanel items={[]} />)
+
+    expect(screen.getByTestId('market-analytics-empty-state')).toBeTruthy()
+    expect(screen.queryByTestId('insufficient-data-banner')).toBeNull()
+    expect(screen.queryByTestId('kpi-card-lakas')).toBeNull()
+    expect(screen.queryByTestId('kpi-card-haz')).toBeNull()
   })
 
   it('renders top price drops showcase cards and triggers onMarkViewed', () => {

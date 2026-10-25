@@ -129,4 +129,39 @@ describe('useMarketAnalytics hook', () => {
     const scatterItem1 = result.current.scatterData.find((s) => s.id === '1')
     expect(scatterItem1?.segment).toBe('bargain')
   })
+
+  it('accurately evaluates activeCategory and insufficientData for targeted category (#276)', () => {
+    const mockHouses: IngatlanItem[] = Array.from({ length: 6 }, (_, i) => ({
+      id: `h-${i}`,
+      portal: 'oc',
+      url: `https://example.com/h/${i}`,
+      title: `Ház ${i + 1}`,
+      price: `${80 + i * 5} M Ft`,
+      location: 'Debrecen',
+      city: 'Debrecen',
+      propertyType: 'HAZ',
+      priceInfo: { amountMillion: 80 + i * 5, amountHuf: (80 + i * 5) * 1_000_000 },
+      detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 800_000 + i * 20_000 },
+    }))
+
+    // Targeted Ház search with 6 samples (>= 5)
+    const { result } = renderHook(() => useMarketAnalytics(mockHouses, 'haz'))
+    expect(result.current.kpi.activeCategory).toBe('haz')
+    expect(result.current.kpi.hazSampleSize).toBe(6)
+    expect(result.current.kpi.hazMedianPricePerSqm).toBe(850_000)
+    expect(result.current.kpi.medianPricePerSqm).toBe(850_000)
+    expect(result.current.kpi.insufficientData).toBe(false)
+
+    // Insufficient data when targeted category has < 5 samples
+    const { result: fewResult } = renderHook(() => useMarketAnalytics(mockHouses.slice(0, 3), 'haz'))
+    expect(fewResult.current.kpi.activeCategory).toBe('haz')
+    expect(fewResult.current.kpi.hazSampleSize).toBe(3)
+    expect(fewResult.current.kpi.hazMedianPricePerSqm).toBeNull()
+    expect(fewResult.current.kpi.insufficientData).toBe(true)
+
+    // Auto-inferred category when all listings belong to the same property type
+    const { result: inferredResult } = renderHook(() => useMarketAnalytics(mockHouses))
+    expect(inferredResult.current.kpi.activeCategory).toBe('haz')
+    expect(inferredResult.current.kpi.insufficientData).toBe(false)
+  })
 })
