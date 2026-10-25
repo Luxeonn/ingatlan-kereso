@@ -247,11 +247,9 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
   test('3. Search execution and Dashboard view switching triggers smoothly', async ({ page }) => {
     await page.goto('/')
 
-    // Verify Sort and ExcludeViewed controls in Listings Header (#227)
+    // Verify view switcher navigation tabs in Listings Header (#157, #264, #273)
     const headerBar = page.getByTestId('listings-panel-header')
     await expect(headerBar).toBeVisible()
-    await expect(headerBar.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeVisible()
-    await expect(headerBar.getByLabel('Rendezés')).toBeVisible()
 
     // Trigger Search
     const searchBtn = page.getByRole('button', { name: /Ingatlanok Keresése/i })
@@ -265,6 +263,10 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
 
     await searchBtn.click()
     await searchPromise
+
+    // Verify Sort and ExcludeViewed controls in Listings Toolbar (#273)
+    await expect(page.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeVisible()
+    await expect(page.getByLabel('Rendezés')).toBeVisible()
 
     // Switch between Favorites, Archive, Analytics and Listings tabs (#157)
     const favoritesTabBtn = headerBar.getByRole('button', { name: /Kedvencek/i })
