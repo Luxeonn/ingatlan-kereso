@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { PropertyTypeBadge } from '../components/listings/PropertyTypeBadge'
 import { PropertyCard } from '../components/listings/PropertyCard'
 import { IngatlanItem, CanonicalPropertyType } from '../types/property'
@@ -63,6 +63,10 @@ describe('PropertyType Adversarial & Stress Testing', () => {
         }
 
         const { unmount } = render(<PropertyCard item={item} onMarkViewed={() => {}} />)
+
+        // Open details drawer to inspect property type badge (#270)
+        const detailsBtn = screen.getByTestId('details-button')
+        fireEvent.click(detailsBtn)
 
         // Verify badge
         const badge = screen.getByTestId('property-type-badge')

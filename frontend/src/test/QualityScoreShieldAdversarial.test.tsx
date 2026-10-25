@@ -173,14 +173,18 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
   })
 
   // =========================================================================
-  // 2. RAPID EVENTS & PROPAGATION ISOLATION IN PROPERTYCARD
+  // 2. RAPID EVENTS & PROPAGATION ISOLATION IN PROPERTYCARD & QUALITYSCORESHIELD (#267, #270)
   // =========================================================================
-  describe('2. Rapid events & propagation isolation in PropertyCard', () => {
+  describe('2. Rapid events & propagation isolation in QualityScoreShield', () => {
     it('clicking quality score button does NOT invoke window.open or trigger onMarkViewed', () => {
       const handleMarkViewed = vi.fn()
       const itemWithScore: IngatlanItem = { ...baseItem, qualityScore: 90 }
 
-      render(<PropertyCard item={itemWithScore} onMarkViewed={handleMarkViewed} />)
+      render(
+        <div onClick={() => { (windowOpenSpy as unknown as () => void)() }}>
+          <QualityScoreShield item={itemWithScore} />
+        </div>
+      )
 
       const scoreBtn = screen.getByTestId('quality-score-button')
       fireEvent.click(scoreBtn)
@@ -188,7 +192,7 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
       // Popover opens
       expect(screen.getByTestId('quality-score-popover')).toBeTruthy()
 
-      // Card action was NOT triggered
+      // Outer action was NOT triggered
       expect(windowOpenSpy).not.toHaveBeenCalled()
       expect(handleMarkViewed).not.toHaveBeenCalled()
     })
@@ -201,7 +205,11 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
         qualityDeductions: ['-20 pont: Alacsony megbízhatóság', '-15 pont: Hiányzó cím'],
       }
 
-      render(<PropertyCard item={itemWithScore} onMarkViewed={handleMarkViewed} />)
+      render(
+        <div onClick={() => { (windowOpenSpy as unknown as () => void)() }}>
+          <QualityScoreShield item={itemWithScore} />
+        </div>
+      )
 
       // Open popover
       const scoreBtn = screen.getByTestId('quality-score-button')
@@ -233,7 +241,11 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
       const handleMarkViewed = vi.fn()
       const itemWithScore: IngatlanItem = { ...baseItem, qualityScore: 95 }
 
-      render(<PropertyCard item={itemWithScore} onMarkViewed={handleMarkViewed} />)
+      render(
+        <div onClick={() => { (windowOpenSpy as unknown as () => void)() }}>
+          <QualityScoreShield item={itemWithScore} />
+        </div>
+      )
       const button = screen.getByTestId('quality-score-button')
 
       for (let i = 1; i <= 10; i++) {
@@ -252,10 +264,13 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
     })
 
     it('pressing Space or Enter on the button does NOT trigger card navigation', () => {
-      const handleMarkViewed = vi.fn()
       const itemWithScore: IngatlanItem = { ...baseItem, qualityScore: 95 }
 
-      render(<PropertyCard item={itemWithScore} onMarkViewed={handleMarkViewed} />)
+      render(
+        <div onClick={() => { (windowOpenSpy as unknown as () => void)() }}>
+          <QualityScoreShield item={itemWithScore} />
+        </div>
+      )
       const button = screen.getByTestId('quality-score-button')
 
       // Space key
@@ -271,7 +286,7 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
       expect(windowOpenSpy).not.toHaveBeenCalled()
     })
 
-    it('thumbnail and title clicks still open window normally', () => {
+    it('thumbnail and title clicks on PropertyCard still open window normally (#270)', () => {
       const handleMarkViewed = vi.fn()
       const itemWithScore: IngatlanItem = { ...baseItem, qualityScore: 90 }
 
