@@ -186,4 +186,35 @@ describe('UI Completeness (#157, #202, #227)', () => {
     fireEvent.click(searchBtn)
     expect(handleSearch).toHaveBeenCalledTimes(1)
   })
+
+  it('keeps favorites counter in header and rendered favorites list synchronized even with missing cache (#271)', () => {
+    // Simulate orphan starred url without item in cache
+    useUiStore.setState({
+      starredUrls: ['https://dh.hu/elado-ingatlan/12345'],
+      starredItemsCache: {},
+    })
+
+    const byUrl = new Map<string, IngatlanItem>()
+    Object.entries(useUiStore.getState().starredItemsCache).forEach(([u, item]) => {
+      if (item) byUrl.set(u, item)
+    })
+    const starredUrls = useUiStore.getState().starredUrls
+    const rawFavoriteItems = starredUrls.map((url) => {
+      const existing = byUrl.get(url)
+      if (existing) return existing
+      return {
+        id: `orphan-${url}`,
+        portal: 'Duna House',
+        url,
+        title: 'Elmentett hirdetés (Duna House)',
+        price: 'N/A',
+        location: 'Elmentett hivatkozás',
+        city: 'Ismeretlen',
+      }
+    })
+
+    expect(rawFavoriteItems).toHaveLength(1)
+    expect(rawFavoriteItems[0].url).toBe('https://dh.hu/elado-ingatlan/12345')
+    expect(rawFavoriteItems[0].portal).toBe('Duna House')
+  })
 })

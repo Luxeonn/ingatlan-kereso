@@ -110,7 +110,22 @@ export const useUiStore = create<UiState>((set, get) => {
           localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
           localStorage.setItem('starred_items_cache', JSON.stringify(nextCache))
         } catch {
-          // ignore storage quota errors
+          // If storage quota exceeded, attempt to prune cached items not in nextUrls or trim oldest
+          try {
+            const prunedCache: Record<string, IngatlanItem> = {}
+            nextUrls.slice(-30).forEach((u) => {
+              if (nextCache[u]) prunedCache[u] = nextCache[u]
+            })
+            localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
+            localStorage.setItem('starred_items_cache', JSON.stringify(prunedCache))
+          } catch {
+            // Still failing: ensure starred_urls alone is safely stored
+            try {
+              localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
+            } catch {
+              // Ignore critical storage quota failure
+            }
+          }
         }
 
         return {

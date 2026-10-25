@@ -221,3 +221,14 @@ export function getPortalStyle(portalId: string) {
   }
   return { bg: 'bg-blue-500/10 text-blue-400 border-blue-500/30', text: 'text-blue-400', border: 'border-blue-500/40' }
 }
+
+export function detectPortalFromUrl(url: string): { portalId: string; portalName: string } {
+  const lower = (url || '').toLowerCase()
+  if (lower.includes('dh.hu')) return { portalId: 'dh', portalName: 'Duna House' }
+  if (lower.includes('oc.hu')) return { portalId: 'oc', portalName: 'Otthon Centrum' }
+  if (lower.includes('jofogas.hu')) return { portalId: 'jofogas', portalName: 'Jófogás' }
+  if (lower.includes('ingatlanbazar.hu')) return { portalId: 'ingatlanbazar', portalName: 'Ingatlanbazár' }
+  if (lower.includes('koltozzbe.hu')) return { portalId: 'koltozzbe', portalName: 'Költözzbe' }
+  if (lower.includes('ingatlan.com')) return { portalId: 'ingatlancom', portalName: 'Ingatlan.com' }
+  return { portalId: 'egyeb', portalName: 'Hirdetés' }
+}

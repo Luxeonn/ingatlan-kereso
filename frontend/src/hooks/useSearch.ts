@@ -11,6 +11,7 @@ import { DashboardResponseDto, SearchCriteria } from '../types/api'
 import { IngatlanItem } from '../types/property'
 import { useFilterStore, SortOption } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
+import { detectPortalFromUrl } from '../utils/formatters'
 
 export function normalizePortalKey(portalOrId?: string | null): string {
   const cleaned = (portalOrId || '')
@@ -269,7 +270,7 @@ export function useSearch() {
     sortOption,
   ])
 
-  // Starred / Favorite items (#157)
+  // Starred / Favorite items (#157, #271)
   const rawFavoriteItems = useMemo(() => {
     const byUrl = new Map<string, IngatlanItem>()
     Object.entries(starredItemsCache).forEach(([u, item]) => {
@@ -282,9 +283,29 @@ export function useSearch() {
       if (item.url) byUrl.set(item.url, item)
     })
 
-    return starredUrls
-      .map((url) => byUrl.get(url))
-      .filter((item): item is IngatlanItem => Boolean(item))
+    return starredUrls.map((url) => {
+      const existing = byUrl.get(url)
+      if (existing) return existing
+
+      // Resilient fallback for orphan starred URLs (#271)
+      const portalInfo = detectPortalFromUrl(url)
+      const fallbackItem: IngatlanItem = {
+        id: `orphan-${url}`,
+        portal: portalInfo.portalName,
+        url,
+        title: `Elmentett hirdetés (${portalInfo.portalName})`,
+        price: 'N/A',
+        location: 'Elmentett hivatkozás',
+        city: 'Ismeretlen',
+        propertyType: 'EGYEB_ISMERETLEN',
+        source: {
+          portalId: portalInfo.portalId,
+          portalName: portalInfo.portalName,
+          directListing: true,
+        },
+      }
+      return fallbackItem
+    })
   }, [starredUrls, starredItemsCache, historyQuery.data, data?.items])
 
   const favoriteItems = useMemo(() => {
@@ -316,7 +337,7 @@ export function useSearch() {
     isArchiveLoading: historyQuery.isLoading,
     favoriteItems,
     rawFavoriteItems,
-    favoritesCount: starredUrls.length,
+    favoritesCount: rawFavoriteItems.length,
     isLoading: searchMutation.isPending,
     isError: searchMutation.isError,
     error: searchMutation.error,
