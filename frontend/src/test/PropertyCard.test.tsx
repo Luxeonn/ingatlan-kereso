@@ -4,7 +4,7 @@ import { PropertyCard } from '../components/listings/PropertyCard'
 import { IngatlanItem } from '../types/property'
 import { useUiStore } from '../store/useUiStore'
 
-describe('PropertyCard component', () => {
+describe('PropertyCard component (#270)', () => {
   const mockItem: IngatlanItem = {
     id: 'test-1',
     portal: 'Duna House',
@@ -35,17 +35,19 @@ describe('PropertyCard component', () => {
     useUiStore.setState({ starredUrls: [], starredItemsCache: {} })
   })
 
-  it('renders title, portal badge, price, parameters, thumbnail, and new construction badge', () => {
+  it('renders title, price, parameters, thumbnail, new construction badge, and details trigger button (#270)', () => {
     render(<PropertyCard item={mockItem} onMarkViewed={() => {}} />)
     expect(screen.getByText('Szép felújított lakás Debrecen belvárosában')).toBeTruthy()
-    expect(screen.getByText('Duna House')).toBeTruthy()
-    expect(screen.getByText('Lakás')).toBeTruthy()
-    expect(screen.getByTestId('property-type-badge')).toBeTruthy()
     expect(screen.getByText('75 M Ft')).toBeTruthy()
     expect(screen.getByText('85 m²')).toBeTruthy()
     expect(screen.getByText('3 szoba')).toBeTruthy()
     expect(screen.getByText('ÚJ')).toBeTruthy()
     expect(screen.getByTestId('new-construction-badge')).toBeTruthy()
+
+    // Details drawer button is present on the card face (#270)
+    const detailsBtn = screen.getByTestId('details-button')
+    expect(detailsBtn).toBeTruthy()
+    expect(detailsBtn.textContent).toContain('Részletek')
 
     const img = screen.getByRole('img') as HTMLImageElement
     expect(img.getAttribute('src')).toBe('https://dh.hu/images/test-1.jpg')
@@ -55,10 +57,11 @@ describe('PropertyCard component', () => {
     expect(titleEl.className).toContain('pulse-title')
   })
 
-  it('shows fallback placeholder when imageUrl is missing or fails to load', () => {
+  it('shows fallback placeholder with portal name when imageUrl is missing or fails to load', () => {
     const itemWithoutImg: IngatlanItem = { ...mockItem, imageUrl: undefined }
     render(<PropertyCard item={itemWithoutImg} onMarkViewed={() => {}} />)
     expect(screen.getByTestId('property-image-fallback')).toBeTruthy()
+    expect(screen.getByText('Duna House')).toBeTruthy()
   })
 
   it('toggles favorite star and persists in store and localStorage', () => {
@@ -73,19 +76,29 @@ describe('PropertyCard component', () => {
     expect(useUiStore.getState().starredUrls).not.toContain('https://dh.hu/ingatlan/123')
   })
 
-  it('applies opacity-70 styling when item is viewed', () => {
+  it('applies opacity-70 and dimmed styling when item is viewed (#270)', () => {
     const viewedItem: IngatlanItem = { ...mockItem, viewed: true }
     render(<PropertyCard item={viewedItem} onMarkViewed={() => {}} />)
     const card = screen.getByTestId('property-card')
     expect(card.className).toContain('opacity-70')
+    expect(card.className).toContain('grayscale-[15%]')
   })
 
-  it('triggers mark as viewed on toggle button click', () => {
+  it('clicking card title or thumbnail opens advertisement in new window and marks as viewed (#270)', () => {
+    vi.stubGlobal('open', vi.fn())
     const handleMarkViewed = vi.fn()
     render(<PropertyCard item={mockItem} onMarkViewed={handleMarkViewed} />)
-    const viewedBtn = screen.getByTitle('Megjelölés megtekintettként')
-    fireEvent.click(viewedBtn)
+
+    // Title click
+    const titleEl = screen.getByText('Szép felújított lakás Debrecen belvárosában')
+    fireEvent.click(titleEl)
+    expect(window.open).toHaveBeenCalledWith('https://dh.hu/ingatlan/123', '_blank', 'noopener,noreferrer')
     expect(handleMarkViewed).toHaveBeenCalledWith('https://dh.hu/ingatlan/123')
+
+    // Image thumbnail click
+    const img = screen.getByRole('img')
+    fireEvent.click(img)
+    expect(window.open).toHaveBeenCalledWith('https://dh.hu/ingatlan/123', '_blank', 'noopener,noreferrer')
   })
 
   it('does not display sources-count-badge for single-source listings', () => {
@@ -94,7 +107,7 @@ describe('PropertyCard component', () => {
     expect(screen.queryByTestId('multi-source-drawer')).toBeNull()
   })
 
-  it('displays source count badge, toggles drawer, and highlights lowest active price for multi-source items (#260, #261)', () => {
+  it('displays details button with source count badge, toggles drawer, and highlights lowest active price for multi-source items (#260, #261, #270)', () => {
     const multiItem: IngatlanItem = {
       ...mockItem,
       id: 'multi-item-123',
@@ -128,7 +141,7 @@ describe('PropertyCard component', () => {
 
     render(<PropertyCard item={multiItem} onMarkViewed={() => {}} />)
 
-    // 1. Prominent source count badge is rendered
+    // 1. Prominent source count badge is rendered on details button
     const badge = screen.getByTestId('sources-count-badge')
     expect(badge).toBeTruthy()
     expect(badge.textContent).toContain('3 forrás')
@@ -261,11 +274,26 @@ describe('PropertyCard component', () => {
     expect(screen.queryByText('60 M Ft')).toBeNull()
   })
 
-  it('renders QualityScoreShield within badges row when qualityScore is present', () => {
-    const itemWithScore: IngatlanItem = { ...mockItem, qualityScore: 89 }
+  it('renders details drawer with metadata and quality score when opened (#270)', () => {
+    const itemWithScore: IngatlanItem = {
+      ...mockItem,
+      qualityScore: 89,
+      qualityDeductions: ['-11 pont: Enyhe adateltérés'],
+    }
     render(<PropertyCard item={itemWithScore} onMarkViewed={() => {}} />)
-    const button = screen.getByTestId('quality-score-button')
-    expect(button).toBeTruthy()
-    expect(button.textContent).toContain('89/100')
+
+    // Open details drawer
+    const detailsBtn = screen.getByTestId('details-button')
+    fireEvent.click(detailsBtn)
+
+    // Details drawer content
+    expect(screen.getByTestId('multi-source-drawer')).toBeTruthy()
+    expect(screen.getByTestId('drawer-quality-section')).toBeTruthy()
+    expect(screen.getByText('89/100 pont')).toBeTruthy()
+    expect(screen.getByText(/Kiváló adatminőség/i)).toBeTruthy()
+    expect(screen.getByText('-11 pont: Enyhe adateltérés')).toBeTruthy()
+    expect(screen.getByTestId('property-type-badge')).toBeTruthy()
+    expect(screen.getByText('Lakás')).toBeTruthy()
+    expect(screen.getByText('Duna House')).toBeTruthy()
   })
 })
