@@ -85,7 +85,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(byUnviewed[0].id).toBe('1')
   })
 
-  it('renders BulkActionBar with quick search input, portal quick-filter chips, and archive clear confirmation', () => {
+  it('renders BulkActionBar with quick search input, exclude viewed, sort select, portal chips, and archive clear confirmation', () => {
     const handleClear = vi.fn()
     render(
       <BulkActionBar
@@ -101,6 +101,18 @@ describe('UI Completeness (#157, #202, #227)', () => {
     const searchInput = screen.getByPlaceholderText(/Gyorskeresés a találatok között/i)
     fireEvent.change(searchInput, { target: { value: 'Nagyerdő 140' } })
     expect(useFilterStore.getState().quickSearchQuery).toBe('Nagyerdő 140')
+
+    // Exclude viewed toggle (#273)
+    const excludeViewedBtn = screen.getByRole('button', { name: /Megtekintettek rejtése/i })
+    expect(excludeViewedBtn).toBeTruthy()
+    fireEvent.click(excludeViewedBtn)
+    expect(useFilterStore.getState().criteria.excludeViewed).toBe(true)
+
+    // Sort select dropdown (#273)
+    const sortSelect = screen.getByLabelText('Rendezés')
+    expect(sortSelect).toBeTruthy()
+    fireEvent.change(sortSelect, { target: { value: 'price_desc' } })
+    expect(useFilterStore.getState().sortOption).toBe('price_desc')
 
     const ocChip = screen.getByRole('button', { name: /Otthon Centrum/i })
     fireEvent.click(ocChip)

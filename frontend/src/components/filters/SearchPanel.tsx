@@ -34,7 +34,6 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
     setMaxArea,
     togglePortal,
     setAllPortals,
-    setAutoOpen,
     setOnlyNewConstruction,
     setOnlyNew,
   } = useFilterStore()
@@ -197,8 +196,6 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
             onToggleOnlyNew={setOnlyNew}
             onlyNewConstruction={Boolean(criteria.onlyNewConstruction)}
             onToggleOnlyNewConstruction={setOnlyNewConstruction}
-            autoOpen={criteria.autoOpenBrowser}
-            onToggleAutoOpen={setAutoOpen}
           />
         </div>
       )}

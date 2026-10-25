@@ -1,8 +1,8 @@
 import { useMemo, useState, type FC } from 'react'
-import { LayoutGrid, List, ExternalLink, CheckCheck, Search, X, Trash2 } from 'lucide-react'
+import { LayoutGrid, List, ExternalLink, CheckCheck, Search, X, Trash2, EyeOff, ArrowUpDown } from 'lucide-react'
 import { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
-import { useFilterStore } from '../../store/useFilterStore'
+import { useFilterStore, type SortOption } from '../../store/useFilterStore'
 import { normalizePortalKey } from '../../hooks/useSearch'
 import { cn } from '../../utils/cn'
 
@@ -37,6 +37,10 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
 }) => {
   const { viewMode, setViewMode } = useUiStore()
   const {
+    criteria,
+    setExcludeViewed,
+    sortOption,
+    setSortOption,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -63,29 +67,68 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
 
   return (
     <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
-      {/* Top row: Quick Search input + Count summary + Actions */}
+      {/* Top row: Quick Search input + Exclude Viewed + Sort + Count summary + Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Quick Search Input (#157) */}
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
-          <input
-            type="text"
-            value={quickSearchQuery}
-            onChange={(e) => setQuickSearchQuery(e.target.value)}
-            placeholder="Gyorskeresés a találatok között (cím, ár, m², szoba)..."
-            aria-label="Gyorskeresés a találatok között"
-            className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] py-1.5 pl-8 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:outline-none"
-          />
-          {quickSearchQuery && (
-            <button
-              type="button"
-              onClick={() => setQuickSearchQuery('')}
-              aria-label="Gyorskeresés törlése"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+        {/* Left cluster: Quick Search Input (#157), Exclude Viewed toggle & Sort selector (#227, #273) */}
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
+            <input
+              type="text"
+              value={quickSearchQuery}
+              onChange={(e) => setQuickSearchQuery(e.target.value)}
+              placeholder="Gyorskeresés a találatok között (cím, ár, m², szoba)..."
+              aria-label="Gyorskeresés a találatok között"
+              className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] py-1.5 pl-8 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:outline-none"
+            />
+            {quickSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setQuickSearchQuery('')}
+                aria-label="Gyorskeresés törlése"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Exclude Viewed toggle */}
+          <button
+            type="button"
+            onClick={() => setExcludeViewed(!criteria.excludeViewed)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0',
+              criteria.excludeViewed
+                ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
+                : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            )}
+          >
+            <EyeOff className="h-3.5 w-3.5 text-blue-400" />
+            <span>Megtekintettek rejtése</span>
+          </button>
+
+          {/* Sort selector */}
+          <div className="flex items-center gap-1.5 text-xs shrink-0">
+            <ArrowUpDown className="h-3.5 w-3.5 text-[var(--text-secondary)] shrink-0" />
+            <label htmlFor="listings-sort-select" className="text-[var(--text-secondary)] font-medium">
+              Rendezés:
+            </label>
+            <select
+              id="listings-sort-select"
+              aria-label="Rendezés"
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value as SortOption)}
+              className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+              <option value="price_asc">Ár: Növekvő (alapértelmezett)</option>
+              <option value="price_desc">Ár: Csökkenő</option>
+              <option value="sqm_price_asc">Ft/m²: Növekvő</option>
+              <option value="sqm_price_desc">Ft/m²: Csökkenő</option>
+              <option value="area_desc">Méret: Legnagyobb elöl</option>
+              <option value="date_desc">Felfedezés: Legfrissebb</option>
+            </select>
+          </div>
         </div>
 
         {/* Count summary & Action buttons */}

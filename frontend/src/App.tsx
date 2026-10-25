@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, type FC } from 'react'
-import { LayoutGrid, BarChart2, Star, Archive, EyeOff, ArrowUpDown } from 'lucide-react'
+import { LayoutGrid, BarChart2, Star, Archive } from 'lucide-react'
 import { Header } from './components/layout/Header'
 import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { useSearch } from './hooks/useSearch'
-import { useFilterStore, SortOption } from './store/useFilterStore'
+import { useFilterStore } from './store/useFilterStore'
 import { useUiStore } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { cn } from './utils/cn'
@@ -36,7 +36,7 @@ export const App: FC = () => {
     isClearingHistory,
     openAllTabs,
   } = useSearch()
-  const { criteria, sortOption, setCriteria, setExcludeViewed, setSortOption } = useFilterStore()
+  const { setCriteria } = useFilterStore()
   const { dashboardTab, setDashboardTab } = useUiStore()
   const initialLoadDone = useRef(false)
 
@@ -170,44 +170,6 @@ export const App: FC = () => {
               <BarChart2 className="h-4 w-4" />
               <span>Piaci Elemzés és Árdiagramok</span>
             </button>
-          </div>
-
-          {/* Right: Exclude Viewed toggle & Sort selector (#227) */}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setExcludeViewed(!criteria.excludeViewed)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
-                criteria.excludeViewed
-                  ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
-                  : 'border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <EyeOff className="h-3.5 w-3.5 text-blue-400" />
-              <span>Megtekintettek rejtése</span>
-            </button>
-
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown className="h-3.5 w-3.5 text-[var(--text-secondary)] shrink-0" />
-              <label htmlFor="listings-sort-select" className="text-[var(--text-secondary)] font-medium">
-                Rendezés:
-              </label>
-              <select
-                id="listings-sort-select"
-                aria-label="Rendezés"
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
-              >
-                <option value="price_asc">Ár: Növekvő (alapértelmezett)</option>
-                <option value="price_desc">Ár: Csökkenő</option>
-                <option value="sqm_price_asc">Ft/m²: Növekvő</option>
-                <option value="sqm_price_desc">Ft/m²: Csökkenő</option>
-                <option value="area_desc">Méret: Legnagyobb elöl</option>
-                <option value="date_desc">Felfedezés: Legfrissebb</option>
-              </select>
-            </div>
           </div>
         </div>
 

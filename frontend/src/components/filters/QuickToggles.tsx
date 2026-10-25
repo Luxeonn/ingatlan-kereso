@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { Sparkles, ExternalLink, Building2 } from 'lucide-react'
+import { Sparkles, Building2 } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
 interface QuickTogglesProps {
@@ -7,8 +7,6 @@ interface QuickTogglesProps {
   onToggleOnlyNew: (val: boolean) => void
   onlyNewConstruction?: boolean
   onToggleOnlyNewConstruction?: (val: boolean) => void
-  autoOpen: boolean
-  onToggleAutoOpen: (val: boolean) => void
 }
 
 export const QuickToggles: FC<QuickTogglesProps> = ({
@@ -16,8 +14,6 @@ export const QuickToggles: FC<QuickTogglesProps> = ({
   onToggleOnlyNew,
   onlyNewConstruction = false,
   onToggleOnlyNewConstruction,
-  autoOpen,
-  onToggleAutoOpen,
 }) => {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-color)] pt-3 text-xs">
@@ -54,22 +50,6 @@ export const QuickToggles: FC<QuickTogglesProps> = ({
             <span>Csak új építésű ingatlanok</span>
           </button>
         )}
-
-        {/* Auto open in browser */}
-        <button
-          type="button"
-          onClick={() => onToggleAutoOpen(!autoOpen)}
-          title="Keresés után az új találatok automatikusan megnyílnak a böngészőben"
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
-            autoOpen
-              ? 'border border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm'
-              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          )}
-        >
-          <ExternalLink className="h-3.5 w-3.5 text-amber-400" />
-          <span>Lapok azonnali nyitása</span>
-        </button>
       </div>
     </div>
   )
