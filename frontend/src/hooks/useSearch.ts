@@ -140,22 +140,22 @@ export function useSearch() {
     quickSearchQuery,
     selectedPortalFilter,
   } = useFilterStore()
-  const { dashboardTab, starredUrls, starredItemsCache } = useUiStore()
+  const { dashboardTab, listingSubView, starredUrls, starredItemsCache } = useUiStore()
   const [data, setData] = useState<DashboardResponseDto | null>(null)
 
   // Archive / History query (#157)
   const historyQuery = useQuery({
     queryKey: ['history', criteria.onlyNewConstruction],
     queryFn: () => apiGetHistory(undefined, false, criteria.onlyNewConstruction),
-    enabled: dashboardTab === 'archive' || dashboardTab === 'favorites',
+    enabled: listingSubView === 'archive' || listingSubView === 'favorites',
     staleTime: 30_000,
   })
 
   useEffect(() => {
-    if (dashboardTab === 'archive') {
+    if (dashboardTab === 'listings' && listingSubView === 'archive') {
       historyQuery.refetch()
     }
-  }, [dashboardTab]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dashboardTab, listingSubView]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const searchMutation = useMutation({
     mutationFn: (searchParams: SearchCriteria) => executeSearch(searchParams),

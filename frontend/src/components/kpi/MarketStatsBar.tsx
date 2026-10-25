@@ -2,15 +2,12 @@ import type { FC } from 'react'
 import { Building2, Sparkles, DollarSign, Ruler } from 'lucide-react'
 import { DashboardResponseDto } from '../../types/api'
 import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
-import { useUiStore } from '../../store/useUiStore'
 
 interface MarketStatsBarProps {
   data: DashboardResponseDto | null
 }
 
 export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
-  const { setDashboardTab } = useUiStore()
-
   if (!data) return null
 
   const stats = data.marketStats
@@ -20,7 +17,12 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
   const avgSqmPrice = stats?.averagePricePerM2
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div
+      data-testid="market-stats-bar"
+      role="region"
+      aria-label="Piaci gyorsösszegző mutatók"
+      className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
       {/* 1. Total count */}
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
@@ -44,11 +46,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
       </div>
 
       {/* 3. Average Price */}
-      <div
-        onClick={() => setDashboardTab('analytics')}
-        className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md cursor-pointer transition-all hover:border-amber-500/50"
-        title="Kattints a részletes piaci árdiagramokhoz"
-      >
+      <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
           <DollarSign className="h-5 w-5" />
         </div>
@@ -61,11 +59,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
       </div>
 
       {/* 4. Average Price per m² */}
-      <div
-        onClick={() => setDashboardTab('analytics')}
-        className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md cursor-pointer transition-all hover:border-purple-500/50"
-        title="Kattints a részletes fajlagos m² árdiagramokhoz"
-      >
+      <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
           <Ruler className="h-5 w-5" />
         </div>
