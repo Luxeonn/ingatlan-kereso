@@ -227,19 +227,27 @@ describe('PriceScatterCorrelationChart (#277)', () => {
     expect(screen.queryByTestId('category-help-popover')).toBeNull()
   })
 
-  it('renders tooltip with pointer-events-none to prevent flickering', () => {
-    render(<PriceScatterCorrelationChart scatterData={mockScatterData} />)
+  it('renders interactive tooltip and calls onOpenListing when tooltip open button is clicked', () => {
+    const onOpenListing = vi.fn()
+    render(
+      <PriceScatterCorrelationChart
+        scatterData={mockScatterData}
+        onOpenListing={onOpenListing}
+      />
+    )
 
     const tooltipWrapper = screen.getByTestId('recharts-tooltip-wrapper')
-    // Tooltip wrapper has pointerEvents: none
-    expect(tooltipWrapper.style.pointerEvents).toBe('none')
+    expect(tooltipWrapper.style.zIndex).toBe('100')
 
-    // The inner content card also has pointer-events-none class
-    const tooltipCard = tooltipWrapper.querySelector('.pointer-events-none')
-    expect(tooltipCard).toBeTruthy()
     expect(screen.getByText('Teszt lakás')).toBeTruthy()
     expect(screen.getByText('60 m²')).toBeTruthy()
-    expect(screen.getByText(/Kattints a megnyitáshoz/)).toBeTruthy()
+
+    const openButton = screen.getByRole('button', { name: /Hirdetés megnyitása/i })
+    expect(openButton).toBeTruthy()
+    fireEvent.click(openButton)
+
+    expect(onOpenListing).toHaveBeenCalledTimes(1)
+    expect(onOpenListing).toHaveBeenCalledWith('https://dh.hu/1')
   })
 
   it('calls onOpenListing with point url when scatter point is clicked', () => {

@@ -288,12 +288,18 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
               <ZAxis range={[50, 150]} />
               <Tooltip
                 cursor={{ strokeDasharray: '3 3' }}
-                wrapperStyle={{ pointerEvents: 'none', zIndex: 100 }}
+                wrapperStyle={{ zIndex: 100 }}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload as ScatterPoint
                     return (
-                      <div className="pointer-events-none select-none max-w-xs rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-xl backdrop-blur-md text-xs">
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePointClick(data)
+                        }}
+                        className="select-none max-w-xs rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-xl backdrop-blur-md text-xs cursor-pointer hover:border-blue-500/50 transition-colors"
+                      >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <p className="font-bold text-[var(--text-primary)] line-clamp-1">{data.title}</p>
                           {data.isNew && (
@@ -328,10 +334,17 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                             </p>
                           )}
                         </div>
-                        <p className="mt-2 flex items-center gap-1 text-[10px] text-blue-400 underline font-medium">
-                          <span>Kattints a megnyitáshoz</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </p>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handlePointClick(data)
+                          }}
+                          className="mt-2.5 flex items-center justify-center gap-1.5 w-full rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 font-semibold py-1.5 px-2 text-[11px] transition-colors border border-blue-500/20"
+                        >
+                          <span>Hirdetés megnyitása</span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     )
                   }
@@ -353,9 +366,9 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                       key={`scatter-cell-${entry.id || index}`}
                       fill={fill}
                       fillOpacity={0.8}
-                      stroke={entry.isNew ? '#ffffff' : undefined}
+                      stroke={entry.isNew ? '#ffffff' : '#1e293b'}
                       strokeWidth={entry.isNew ? 2 : 1}
-                      className="transition-all hover:scale-125 cursor-pointer"
+                      className="cursor-pointer transition-opacity hover:opacity-100"
                       onClick={() => handlePointClick(entry)}
                     />
                   )
