@@ -119,6 +119,17 @@ describe('UI Completeness (#157, #202, #227)', () => {
     fireEvent.click(ocChip)
     expect(useFilterStore.getState().selectedPortalFilter).toBe('oc')
 
+    // Only new and only new construction filter chips in BulkActionBar (#303)
+    const onlyNewBtn = screen.getByRole('button', { name: /Csak új találatok/i })
+    expect(onlyNewBtn).toBeTruthy()
+    fireEvent.click(onlyNewBtn)
+    expect(useFilterStore.getState().onlyNew).toBe(true)
+
+    const newConstructionBtn = screen.getByRole('button', { name: /Csak új építésű/i })
+    expect(newConstructionBtn).toBeTruthy()
+    fireEvent.click(newConstructionBtn)
+    expect(useFilterStore.getState().criteria.onlyNewConstruction).toBe(true)
+
     // Clear history confirmation flow
     const clearBtn = screen.getByRole('button', { name: /Előzmények törlése/i })
     fireEvent.click(clearBtn)
@@ -127,7 +138,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(handleClear).toHaveBeenCalledTimes(1)
   })
 
-  it('renders collapsed summary bar in SearchPanel and does not include Sort or ExcludeViewed in SearchPanel (#157, #202, #227)', () => {
+  it('renders collapsed summary bar in SearchPanel and does not include results filters in SearchPanel (#157, #202, #227, #303)', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
@@ -138,8 +149,9 @@ describe('UI Completeness (#157, #202, #227)', () => {
       </QueryClientProvider>,
     )
 
-    // New construction toggle is present in SearchPanel
-    expect(screen.getByRole('button', { name: /Csak új építésű ingatlanok/i })).toBeTruthy()
+    // OnlyNew and NewConstruction were moved out of SearchPanel to BulkActionBar (#303)
+    expect(screen.queryByText(/Csak új találatok/i)).toBeNull()
+    expect(screen.queryByText(/Csak új építésű/i)).toBeNull()
     // Sort and ExcludeViewed were moved out of SearchPanel (#227)
     expect(screen.queryByText('Megtekintettek rejtése')).toBeNull()
 
@@ -158,6 +170,35 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(summary.textContent).toContain('70 - 120 M Ft')
     expect(summary.textContent).toContain('90 - 200 m²')
     expect(summary.textContent).toContain('6/6 portál')
+  })
+
+  it('structures BulkActionBar in three logical tiers: Search/Actions, Filter Chips, and Portal Chips (#303)', () => {
+    render(
+      <BulkActionBar
+        items={sampleItems}
+        rawItems={sampleItems}
+        totalRawCount={2}
+        onOpenAll={() => {}}
+        onMarkAllViewed={() => {}}
+      />,
+    )
+
+    // Row 1: Search input and sort select
+    expect(screen.getByPlaceholderText(/Gyorskeresés a találatok között/i)).toBeTruthy()
+    expect(screen.getByLabelText('Rendezés')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Összes megnyitása/i })).toBeTruthy()
+
+    // Row 2: Filter chips row container with 5 filters in logical order (#303)
+    const filterChipsRow = screen.getByTestId('filter-chips-row')
+    expect(filterChipsRow).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Csak új találatok/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Csak új építésű/i })).toBeTruthy()
+    expect(screen.getByTestId('bargain-filter-toggle')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeTruthy()
+    expect(screen.getByTestId('quality-filter-select')).toBeTruthy()
+
+    // Row 3: Portal chips container
+    expect(screen.getByTestId('portal-quick-filter-chips')).toBeTruthy()
   })
 
   it('allows free numeric typing across min/max ranges and displays warning near search button when min > max (#255)', () => {

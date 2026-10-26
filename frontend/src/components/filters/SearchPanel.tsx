@@ -7,7 +7,6 @@ import { PropertyTypeTabs } from './PropertyTypeTabs'
 import { PriceStepper } from './PriceStepper'
 import { AreaStepper } from './AreaStepper'
 import { PortalToggleGroup } from './PortalToggleGroup'
-import { QuickToggles } from './QuickToggles'
 
 interface SearchPanelProps {
   onSearch: () => void
@@ -23,7 +22,6 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   const {
     criteria,
-    onlyNew,
     addCity,
     removeCity,
     setCities,
@@ -34,8 +32,6 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
     setMaxArea,
     togglePortal,
     setAllPortals,
-    setOnlyNewConstruction,
-    setOnlyNew,
   } = useFilterStore()
 
   const { isFiltersCollapsed, setFiltersCollapsed } = useUiStore()
@@ -126,11 +122,6 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
               {criteria.portals.length}/{DEFAULT_PORTALS.length} portál
             </span>
           </span>
-          {criteria.onlyNewConstruction && (
-            <span className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-1 font-semibold text-cyan-400">
-              <span>🏗️ Új építésű</span>
-            </span>
-          )}
         </div>
       )}
 
@@ -188,14 +179,6 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
             selectedPortals={criteria.portals}
             onToggle={togglePortal}
             onSelectAll={setAllPortals}
-          />
-
-          {/* Search-specific Quick toggles */}
-          <QuickToggles
-            onlyNew={onlyNew}
-            onToggleOnlyNew={setOnlyNew}
-            onlyNewConstruction={Boolean(criteria.onlyNewConstruction)}
-            onToggleOnlyNewConstruction={setOnlyNewConstruction}
           />
         </div>
       )}
