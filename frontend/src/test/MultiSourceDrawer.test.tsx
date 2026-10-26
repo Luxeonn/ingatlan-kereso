@@ -69,7 +69,7 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
   it('renders accessible drawer container with proper ARIA attributes', () => {
     render(<MultiSourceDrawer item={multiSourceItem} />)
 
-    const drawer = screen.getByRole('region', { name: 'Hirdetési források' })
+    const drawer = screen.getByRole('region', { name: 'Hirdetés részletei' })
     expect(drawer).toBeTruthy()
     expect(drawer.getAttribute('id')).toBe('drawer-prop-group-1')
     expect(screen.getByTestId('multi-source-drawer')).toBe(drawer)
@@ -133,9 +133,10 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
     }
 
     render(<MultiSourceDrawer item={fallbackItem} />)
-    expect(screen.getByRole('region', { name: 'Hirdetési források' })).toBeTruthy()
-    expect(screen.getByText('Elérhető források (1)')).toBeTruthy()
-    expect(screen.getByLabelText('Megnyitás: Duna House')).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Hirdetés részletei' })).toBeTruthy()
+    // For single source items, the sources comparison section is hidden (#301)
+    expect(screen.queryByTestId('sources-list-section')).toBeNull()
+    expect(screen.queryByText(/Elérhető források/)).toBeNull()
   })
 
   it('stress-tests high source counts (10 duplicate sources across portals)', () => {
@@ -224,9 +225,10 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
   })
 
   it('secures external link button with noopener noreferrer and proper target in window.open', () => {
-    const singleLinkItem: IngatlanItem = {
+    const multiLinkItem: IngatlanItem = {
       ...multiSourceItem,
       id: 'sec-link-item',
+      sourcesCount: 2,
       sourceListings: [
         {
           portal: 'Költözzbe',
@@ -234,10 +236,16 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
           priceHuf: 85000000,
           status: 'ACTIVE',
         },
+        {
+          portal: 'Jófogás',
+          url: 'https://jofogas.hu/ingatlan/safe-link-2',
+          priceHuf: 86000000,
+          status: 'ACTIVE',
+        },
       ],
     }
 
-    render(<MultiSourceDrawer item={singleLinkItem} />)
+    render(<MultiSourceDrawer item={multiLinkItem} />)
     const linkBtn = screen.getByRole('button', { name: 'Megnyitás: Költözzbe' })
     expect(linkBtn.getAttribute('aria-label')).toBe('Megnyitás: Költözzbe')
     expect(linkBtn.getAttribute('title')).toBe('Megnyitás: Költözzbe')
@@ -245,5 +253,59 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
     fireEvent.click(linkBtn)
     expect(window.open).toHaveBeenCalledTimes(1)
     expect(window.open).toHaveBeenCalledWith('https://koltozzbe.hu/ingatlan/safe-link', '_blank', 'noopener,noreferrer')
+  })
+
+  it('hides duplicate timestamps, m2 area, and single-source comparison row (#301)', () => {
+    const singleSourceItem: IngatlanItem = {
+      id: 'single-1',
+      portal: 'Otthon Centrum',
+      url: 'https://oc.hu/ingatlan/12345',
+      title: 'Szép lakás Debrecenben',
+      price: '55 M Ft',
+      location: 'Debrecen',
+      city: 'Debrecen',
+      propertyType: 'LAKAS',
+      details: 'Tégla építésű, 2. emelet',
+      discoveredAt: '2026-10-25T10:00:00Z',
+      lastPriceChangeAt: '2026-10-26T08:00:00Z',
+      viewedAt: '2026-10-26T09:00:00Z',
+      priceInfo: { amountHuf: 55000000, amountMillion: 55.0 },
+      detailsInfo: { areaSquareMeters: 65, roomCount: 2, pricePerSquareMeter: 846153 },
+      qualityScore: 95,
+      qualityDeductions: [],
+      sourcesCount: 1,
+      sourceListings: [
+        {
+          portal: 'Otthon Centrum',
+          url: 'https://oc.hu/ingatlan/12345',
+          priceHuf: 55000000,
+          status: 'ACTIVE',
+        },
+      ],
+    }
+
+    render(<MultiSourceDrawer item={singleSourceItem} />)
+
+    // Besorolás és Kategória is present
+    expect(screen.getByText('Besorolás és Kategória')).toBeTruthy()
+    expect(screen.getByText('Lakás')).toBeTruthy()
+    expect(screen.getByText('Tégla építésű, 2. emelet')).toBeTruthy()
+
+    // Data quality section is present
+    expect(screen.getByTestId('drawer-quality-section')).toBeTruthy()
+    expect(screen.getByText('95/100 pont')).toBeTruthy()
+
+    // 1. m² is NOT rendered in drawer (handled by card chip)
+    expect(screen.queryByText('65 m²')).toBeNull()
+
+    // 2. Timestamps section is removed
+    expect(screen.queryByText('Időbélyegek')).toBeNull()
+    expect(screen.queryByText(/Felfedezve:/)).toBeNull()
+    expect(screen.queryByText(/Árváltozás:/)).toBeNull()
+    expect(screen.queryByText(/Megtekintve:/)).toBeNull()
+
+    // 3. Redundant single-source portal and price row is removed
+    expect(screen.queryByTestId('sources-list-section')).toBeNull()
+    expect(screen.queryByTestId('source-item')).toBeNull()
   })
 })

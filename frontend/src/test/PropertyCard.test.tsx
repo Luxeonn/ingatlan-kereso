@@ -298,7 +298,9 @@ describe('PropertyCard component (#270)', () => {
     expect(screen.getByText('-11 pont: Enyhe adateltérés')).toBeTruthy()
     expect(screen.getByTestId('property-type-badge')).toBeTruthy()
     expect(screen.getByText('Lakás')).toBeTruthy()
-    expect(screen.getAllByText('Duna House').length).toBeGreaterThanOrEqual(2)
+    // In single-source item, redundant portal and price are removed from drawer (#301)
+    expect(screen.queryByTestId('sources-list-section')).toBeNull()
+    expect(screen.getAllByText('Duna House').length).toBe(1)
   })
 
   it('highlights starred property cards and overrides viewed grayscale styling (#289)', () => {
