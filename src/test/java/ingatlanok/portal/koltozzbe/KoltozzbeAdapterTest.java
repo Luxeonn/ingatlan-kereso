@@ -1,6 +1,7 @@
 package ingatlanok.portal.koltozzbe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.AdapterPortalEngine;
+import ingatlanok.portal.PortalSupport;
 
 class KoltozzbeAdapterTest {
 
@@ -76,5 +78,64 @@ class KoltozzbeAdapterTest {
     assertEquals(1, result.getItems().size());
     assertEquals("1002", result.getItems().get(0).getId());
     assertEquals(95_000_000L, result.getItems().get(0).getPriceInfo().getAmountHuf());
+  }
+
+  @Test
+  @DisplayName("Koltozzbe placeholder képek (nopic, app-banner) szűrése")
+  void testKoltozzbePlaceholderImageFiltering() {
+    String html = """
+        <html>
+        <head>
+          <script type="application/ld+json">
+          {"@context":"https://schema.org","@type":"ItemList","itemListElement":[{
+            "@type":"ListItem","item":{"@type":"Product",
+            "url":"https://koltozzbe.hu/elado-lakas-miskolc/h2001",
+            "name":"Miskolc eladó lakás",
+            "image":["/y/img/nopic_new.png"],
+            "offers":{"price":22000000}
+          }}]}
+          </script>
+        </head>
+        <body>
+          <div class="listing-card" data-lid="2002">
+            <a class="listing-item-link" href="/elado-lakas-miskolc/h2002" title="Lakas 2">
+              <div class="listing-thumbnail">
+                <img data-src="https://k2.koltozzbe.hu/img/nopic_200x150.png" class="lazy">
+              </div>
+            </a>
+          </div>
+          <div class="listing-card" data-lid="2003">
+            <a class="listing-item-link" href="/elado-lakas-miskolc/h2003" title="Lakas 3">
+              <div class="listing-thumbnail">
+                <img data-src="https://k1-cdn.koltozzbe.hu/img2/1920x1080/86/real-photo.jpg?class=th" class="lazy">
+              </div>
+            </a>
+          </div>
+        </body>
+        </html>
+        """;
+    Document doc = Jsoup.parse(html, KoltozzbeUrlBuilder.BASE_URL);
+
+    KoltozzbeRawParser rawParser = new KoltozzbeRawParser();
+    List<RawPropertyListing> jsonLd = rawParser.parseJsonLdListings(doc);
+    assertEquals(1, jsonLd.size());
+    assertNull(jsonLd.get(0).imageUrl(), "A JSON-LD nopic placeholder nem maradhat meg képként");
+
+    List<RawPropertyListing> htmlListings = rawParser.parseHtmlListings(doc);
+    assertEquals(2, htmlListings.size());
+    assertNull(htmlListings.get(0).imageUrl(), "A HTML kártya nopic_200x150.png placeholder képként kiszűrésre kerül");
+    assertEquals("https://k1-cdn.koltozzbe.hu/img2/1920x1080/86/real-photo.jpg?class=th",
+        htmlListings.get(1).imageUrl(), "A valós hirdetésfotó megmarad");
+  }
+
+  @Test
+  @DisplayName("PortalSupport placeholder szűrés egyéb általános mintákra")
+  void testPortalSupportPlaceholderFiltering() {
+    assertNull(PortalSupport.extractImageWithFallback(
+        Jsoup.parse("<img src='/y/img/app_banner/dog.png'>").body(), "https://koltozzbe.hu"));
+    assertNull(PortalSupport.extractImageWithFallback(
+        Jsoup.parse("<img data-src='https://cdn.example.com/no-image.jpg'>").body(), "https://koltozzbe.hu"));
+    assertEquals("https://cdn.example.com/real.jpg", PortalSupport.extractImageWithFallback(
+        Jsoup.parse("<img data-src='https://cdn.example.com/real.jpg'>").body(), "https://koltozzbe.hu"));
   }
 }
