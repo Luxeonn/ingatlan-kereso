@@ -8,9 +8,9 @@ buildscript {
             force("org.apache.httpcomponents.core5:httpcore5:5.4.4")
             force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
             force("org.apache.commons:commons-lang3:3.21.0")
-            force("org.springframework:spring-core:7.0.9")
-            force("tools.jackson.core:jackson-core:3.2.3")
-            force("tools.jackson.core:jackson-databind:3.2.3")
+            force("org.springframework:spring-core:7.0.10")
+            force("tools.jackson.core:jackson-core:3.2.4")
+            force("tools.jackson.core:jackson-databind:3.2.4")
         }
     }
 }
@@ -20,7 +20,7 @@ plugins {
     application
     jacoco
     checkstyle
-    id("org.springframework.boot") version "4.1.1"
+    id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -54,8 +54,8 @@ val caffeineVersion = "3.3.1"
 dependencies {
     constraints {
         implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.27")
-        implementation("tools.jackson.core:jackson-core:3.2.3")
-        implementation("tools.jackson.core:jackson-databind:3.2.3")
+        implementation("tools.jackson.core:jackson-core:3.2.4")
+        implementation("tools.jackson.core:jackson-databind:3.2.4")
         implementation("org.postgresql:postgresql:42.7.14")
         implementation("org.apache.logging.log4j:log4j-api:2.26.1")
         implementation("org.apache.httpcomponents.client5:httpclient5:5.6.5")
