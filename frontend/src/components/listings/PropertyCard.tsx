@@ -90,7 +90,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
           viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-5' : ''
         )}
       >
-        {/* Thumbnail / Cover Image (#157, #202, #270) */}
+        {/* Thumbnail / Cover Image (#157, #202, #270, #302) */}
         <div
           onClick={handleOpen}
           className={cn(
@@ -121,6 +121,19 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
             </div>
           )}
 
+          {/* Portal overlay badge on thumbnail top-left (#302) */}
+          {item.portal && (
+            <span
+              data-testid="property-portal-badge"
+              className={cn(
+                'absolute top-2 left-2 rounded-md px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase backdrop-blur-md shadow-sm',
+                portalStyle.bg
+              )}
+            >
+              {item.portal}
+            </span>
+          )}
+
           {/* New construction overlay badge on thumbnail (#202) */}
           {item.newConstruction && (
             <span
@@ -134,34 +147,20 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
         </div>
 
         {/* Top / Middle section: Badges, Title, Location */}
-        <div className={cn('flex flex-col gap-2', viewMode === 'list' ? 'flex-1' : '')}>
-          {/* Header row: Critical market highlights (left) + Action buttons (right) */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {/* Portal badge (#288) */}
-              {item.portal && (
-                <span
-                  data-testid="property-portal-badge"
-                  className={cn(
-                    'rounded-md px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase',
-                    portalStyle.bg
-                  )}
-                >
-                  {item.portal}
-                </span>
-              )}
-
-
+        <div className={cn('flex flex-col gap-2 min-w-0', viewMode === 'list' ? 'flex-1' : '')}>
+          {/* Header row: Critical market highlights (left) + Action buttons (right) (#302: stable single row) */}
+          <div className="flex items-center justify-between gap-2 min-h-[28px]">
+            <div className="flex items-center gap-1.5 flex-nowrap overflow-hidden">
               {/* New item badge */}
               {item.isNew && (
-                <span className="flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400 animate-pulse">
+                <span className="flex shrink-0 items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400 animate-pulse">
                   <Sparkles className="h-3 w-3" /> ÚJ
                 </span>
               )}
 
               {/* Price drop badge */}
               {item.priceDelta != null && item.priceDelta < 0 && (
-                <span className="flex items-center gap-1 rounded-md bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[11px] font-bold text-rose-400">
+                <span className="flex shrink-0 items-center gap-1 rounded-md bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[11px] font-bold text-rose-400">
                   <TrendingDown className="h-3 w-3" />
                   {Math.abs(Math.round(item.priceChangePercent || 0))}%
                 </span>
@@ -172,7 +171,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
             </div>
 
             {/* Right action controls: Details drawer button (#270) & Favorite star (#157) */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5 ml-auto">
               {/* Details Drawer Toggle Button (#270) */}
               <button
                 type="button"

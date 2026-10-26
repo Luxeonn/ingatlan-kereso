@@ -45,8 +45,12 @@ describe('PropertyCard component (#270)', () => {
     expect(screen.getByTestId('new-construction-badge')).toBeTruthy()
 
     // Details drawer button is present on the card face (#270)
-    // Portal badge is present on the card face (#288)
-    expect(screen.getByTestId('property-portal-badge').textContent).toContain('Duna House')
+    // Portal badge is present on thumbnail overlay (#288, #302)
+    const portalBadge = screen.getByTestId('property-portal-badge')
+    expect(portalBadge.textContent).toContain('Duna House')
+    expect(portalBadge.className).toContain('absolute')
+    expect(portalBadge.className).toContain('top-2')
+    expect(portalBadge.className).toContain('left-2')
 
     // Details drawer button is present on the card face (#270, #288)
     const detailsBtn = screen.getByTestId('details-button')
@@ -86,6 +90,28 @@ describe('PropertyCard component (#270)', () => {
     const card = screen.getByTestId('property-card')
     expect(card.className).toContain('opacity-70')
     expect(card.className).toContain('grayscale-[15%]')
+  })
+
+  it('renders stable single-row header with market badges on left and action controls on right (#302)', () => {
+    const itemWithHighlights: IngatlanItem = {
+      ...mockItem,
+      portal: 'Jófogás Ingatlan',
+      isNew: true,
+      priceDelta: -1000000,
+      priceChangePercent: -5.5,
+    }
+    render(<PropertyCard item={itemWithHighlights} onMarkViewed={() => {}} />)
+
+    // Portal badge is placed on the thumbnail overlay, not in the text header row
+    const portalBadge = screen.getByTestId('property-portal-badge')
+    expect(portalBadge.textContent).toContain('Jófogás Ingatlan')
+    expect(portalBadge.parentElement?.getAttribute('class')).toContain('relative')
+
+    // Header row contains highlights and actions without wrapping
+    expect(screen.getByText('ÚJ')).toBeTruthy()
+    expect(screen.getByText(/5%/)).toBeTruthy()
+    expect(screen.getByTestId('details-button')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Hozzáadás a kedvencekhez/i })).toBeTruthy()
   })
 
   it('clicking card title or thumbnail opens advertisement in new window and marks as viewed (#270)', () => {
