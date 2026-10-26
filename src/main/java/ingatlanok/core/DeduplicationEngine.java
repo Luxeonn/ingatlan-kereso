@@ -8,8 +8,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import ingatlanok.common.CityUtils;
+import ingatlanok.core.dedup.LocationConflictDetector;
+import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
+import ingatlanok.core.dedup.SemanticConflictDetector;
+import ingatlanok.core.dedup.TextualSimilarityMatcher;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
@@ -139,7 +144,39 @@ public class DeduplicationEngine {
       return false;
     }
 
-    // Room count check (identical or within ±0.5 rooms; conflict if >= 1)
+    // Price sanity: within ±20% price band
+    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
+    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
+    if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
+      return false;
+    }
+    long maxPrice = Math.max(priceA, priceB);
+    double priceDiffRatio = (double) Math.abs(priceA - priceB) / (double) maxPrice;
+    if (priceDiffRatio > MAX_PRICE_BAND_RATIO) {
+      return false;
+    }
+
+    // 1. Location conflict check (Budapest district, city quarter, street name)
+    ExtractedLocation locA = LocationConflictDetector.extractLocation(a, normCityA);
+    ExtractedLocation locB = LocationConflictDetector.extractLocation(b, normCityB);
+    if (LocationConflictDetector.hasConflict(locA, locB, normCityA)) {
+      return false;
+    }
+    boolean hasAffirmativeLocation = LocationConflictDetector.hasAffirmativeMatch(locA, locB);
+
+    // 2. Semantic and condition conflict check (New construction vs Renovation, Panel vs Brick, Floor, Lot size)
+    if (SemanticConflictDetector.hasConflict(a, b)) {
+      return false;
+    }
+
+    // 3. Textual tokens and title divergence conflict check
+    Set<String> tokensA = TextualSimilarityMatcher.extractDistinctiveTokens(a);
+    Set<String> tokensB = TextualSimilarityMatcher.extractDistinctiveTokens(b);
+    if (TextualSimilarityMatcher.hasDirectTitleConflict(a, b, tokensA, tokensB, hasAffirmativeLocation)) {
+      return false;
+    }
+
+    // 4. Room count check (adaptive tolerance for multi-generation / separate units #298, conflict guard otherwise)
     if (typeA == PropertyType.TELEK) {
       Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
       Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
@@ -151,25 +188,24 @@ public class DeduplicationEngine {
     } else {
       Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
       Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
-      if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
-        return false;
-      }
-      double roomDiff = Math.abs(roomsA - roomsB);
-      if (roomDiff > MAX_ROOM_DIFFERENCE) {
-        return false;
-      }
-    }
 
-    // Price sanity: within ±20% price band
-    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
-    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
-    if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
-      return false;
-    }
-    long maxPrice = Math.max(priceA, priceB);
-    double priceDiffRatio = (double) Math.abs(priceA - priceB) / (double) maxPrice;
-    if (priceDiffRatio > MAX_PRICE_BAND_RATIO) {
-      return false;
+      if (roomsA != null && roomsB != null && roomsA > 0 && roomsB > 0) {
+        double roomDiff = Math.abs(roomsA - roomsB);
+        if (roomDiff > MAX_ROOM_DIFFERENCE) {
+          boolean multiGen = TextualSimilarityMatcher.isMultiGeneration(a)
+              || TextualSimilarityMatcher.isMultiGeneration(b);
+          boolean keywordOverlap = TextualSimilarityMatcher.hasDistinctiveKeywordOverlap(tokensA, tokensB);
+          boolean largeOrHouse = typeA == PropertyType.HAZ || maxArea >= 120.0;
+          double maxAllowedDiff = maxArea >= 150.0 ? 3.0 : 2.5;
+
+          if (largeOrHouse && roomDiff <= maxAllowedDiff && areaDiffRatio <= 0.035
+              && (multiGen || keywordOverlap || hasAffirmativeLocation)) {
+            // Permitted adaptive room difference for large / multi-generation homes (#298)
+          } else {
+            return false;
+          }
+        }
+      }
     }
 
     return true;
