@@ -74,12 +74,12 @@ ingatlan-kereso/
 │       ├── ci.yml                               # CI Build: backend, frontend, and minimal result gate
 │       ├── dependency-submission.yml            # Gradle dependency graph submission with scoped cache policy
 │       ├── pr-build.yml                         # Required Conventional Commit PR title check
-│       ├── release.yml                          # Main-only Docker Release with tag-derived SemVer
+│       ├── release.yml                          # Docker Release with tag-derived SemVer
 │       └── images.yml                           # Automatic develop push and latest image publication
 ├── config/
 │   └── checkstyle/checkstyle.xml                # Checkstyle 10.21.4 ruleset
 ├── scripts/
-│   ├── start-docker.bat                         # Windows launcher (local build or GHCR latest)
+│   ├── start-docker.bat                         # Windows launcher (local build, GHCR latest, or custom tag)
 │   ├── smoke-test-docker-compose.sh             # Manual Compose integration smoke test
 │   └── validate-skills.sh                       # Offline specialist-skill validation used by CI
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 25, Spring Boot 4.1.1, 1.0.0)
@@ -229,7 +229,7 @@ ingatlan-kereso/
 > 12. **Never Auto-Merge:** The AI assistant must never run `gh pr merge` or merge branches. Merging is strictly reserved for the human repository owner.
 > 13. **Auto-Closing Linked Issues:** Always include official GitHub issue keywords (`Closes #<id>`, `Fixes #<id>`) in the PR description.
 > 14. **Docker Release & Build:**
->     - `Docker Release` runs manually from `main`, calculates a semantic version from the latest Git tag plus a requested bump/custom input, publishes both images, and only then creates the `vX.Y.Z` Git tag and GitHub Release.
+>     - `Docker Release` runs manually from a branch, calculates a semantic version from the latest Git tag plus a requested bump/custom input, publishes both images, and only then creates the `vX.Y.Z` Git tag and GitHub Release.
 >     - `Docker Build` runs automatically on pushes to `develop` and publishes backend and frontend `latest` images; it has no manual trigger.
 > 15. **Standardized Issue Templates as Single Source of Truth:**
 >     - Whenever creating new issues (manually or via `gh issue create`), always use the repository issue templates in `.github/ISSUE_TEMPLATE/` as the foundational baseline.

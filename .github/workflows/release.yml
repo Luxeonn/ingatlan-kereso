@@ -31,13 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require main branch
+      - name: Require branch
         env:
           REF_TYPE: ${{ github.ref_type }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          if [ "$REF_TYPE" != "branch" ] || [ "$BRANCH" != "main" ]; then
-            echo "Docker Release must be started from the main branch."
+          if [ "$REF_TYPE" != "branch" ]; then
+            echo "Docker Release must be started from a branch."
             exit 1
           fi
 

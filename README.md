@@ -78,7 +78,7 @@ docker compose up -d --no-build
 
 The stack starts PostgreSQL 17, the headless Spring Boot backend, and Nginx reverse proxy serving the React 19 SPA. Open [http://localhost:8080](http://localhost:8080) when the containers are healthy.
 
-On Windows, `scripts/start-docker.bat` presents both options interactively.
+On Windows, `scripts/start-docker.bat` presents these options interactively (local build, GHCR latest, or a specific release version tag).
 
 ---
 
