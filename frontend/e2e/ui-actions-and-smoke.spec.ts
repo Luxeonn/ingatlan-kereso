@@ -227,15 +227,6 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     await dhToggle.click() // toggle off
     await dhToggle.click() // toggle back on
 
-    // Quick Toggles
-    const onlyNewToggle = page.getByRole('button', { name: /Csak új találatok/i })
-    await expect(onlyNewToggle).toBeVisible()
-    await onlyNewToggle.click()
-    await onlyNewToggle.click() // toggle back off
-
-    const newConstructionToggle = page.getByRole('button', { name: /Csak új építésű ingatlanok/i })
-    await expect(newConstructionToggle).toBeVisible()
-
     // Collapse filter panel and verify summary bar (#157)
     const collapseBtn = page.getByRole('button', { name: /Összecsukás/i })
     await collapseBtn.click()
@@ -265,6 +256,19 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
 
     await searchBtn.click()
     await searchPromise
+
+    // Verify BulkActionBar 3-tier structure & filter chips (#303)
+    const filterChipsRow = page.getByTestId('filter-chips-row')
+    await expect(filterChipsRow).toBeVisible()
+    const onlyNewToggle = filterChipsRow.getByRole('button', { name: /Csak új találatok/i })
+    await expect(onlyNewToggle).toBeVisible()
+    await onlyNewToggle.click()
+    await onlyNewToggle.click() // toggle back off
+
+    const newConstructionToggle = filterChipsRow.getByRole('button', { name: /Csak új építésű/i })
+    await expect(newConstructionToggle).toBeVisible()
+    await newConstructionToggle.click()
+    await newConstructionToggle.click() // toggle back off
 
     // Verify static MarketStatsBar cards (#R3)
     const statsBar = page.getByTestId('market-stats-bar')
