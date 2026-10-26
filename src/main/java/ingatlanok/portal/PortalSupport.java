@@ -104,25 +104,39 @@ public final class PortalSupport {
     return TIMESTAMP_FORMATTER.format(LocalDateTime.now());
   }
 
+  public static boolean isPlaceholderImageUrl(String url) {
+    if (url == null || url.isBlank()) {
+      return true;
+    }
+    String lower = url.toLowerCase(java.util.Locale.ROOT);
+    return lower.contains("nopic")
+        || lower.contains("no-pic")
+        || lower.contains("placeholder")
+        || lower.contains("default-image")
+        || lower.contains("no-image")
+        || lower.contains("noimage")
+        || lower.contains("/y/img/app_banner/")
+        || lower.contains("/y/img/foot-logo")
+        || lower.contains("/y/img/sale_icon");
+  }
+
   public static String extractImageWithFallback(Element element, String baseUrl) {
     if (element == null) {
       return null;
     }
     String imageUrl = null;
-    Element lazyImg = element.selectFirst("img.lazyload[data-src], img[data-src]");
+    Element lazyImg = element.selectFirst("img.lazyload[data-src], img.lazy[data-src], img[data-src]");
     if (lazyImg != null && !lazyImg.attr("data-src").isBlank()) {
       imageUrl = lazyImg.attr("data-src");
     }
     if (imageUrl == null || imageUrl.isBlank()) {
       imageUrl = PropertyParser.extractImageUrl(element);
     }
-    if ((imageUrl == null || imageUrl.isBlank()) && element.parent() != null) {
-      imageUrl = PropertyParser.extractImageUrl(element.parent());
-    }
     if (imageUrl == null || imageUrl.isBlank()) {
       return null;
     }
-    return resolveUrl(baseUrl, imageUrl);
+    String resolved = resolveUrl(baseUrl, imageUrl);
+    return isPlaceholderImageUrl(resolved) ? null : resolved;
   }
 
   public static boolean isCommonBotChallenge(Document document) {

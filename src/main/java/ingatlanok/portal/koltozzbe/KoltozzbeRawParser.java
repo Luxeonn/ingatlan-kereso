@@ -190,13 +190,13 @@ public class KoltozzbeRawParser {
     if (!product.has("image")) {
       return null;
     }
+    String resolved = null;
     JsonNode imageNode = product.get("image");
     if (imageNode.isArray() && !imageNode.isEmpty()) {
-      return PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asText());
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asText());
+    } else if (imageNode.isValueNode()) {
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asText());
     }
-    if (imageNode.isValueNode()) {
-      return PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asText());
-    }
-    return null;
+    return (resolved != null && !PortalSupport.isPlaceholderImageUrl(resolved)) ? resolved : null;
   }
 }
