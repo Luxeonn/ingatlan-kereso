@@ -74,7 +74,7 @@ public final class HttpFetcher {
 
       CIRCUIT_BREAKER.recordSuccess(circuitKey);
       long elapsed = System.currentTimeMillis() - startTime;
-      LOGGER.debug(
+      LOGGER.info(
           "HTTP GET Document sikeres [{} ms] (cím: '{}'): {}",
           elapsed,
           document.title(),
@@ -150,7 +150,7 @@ public final class HttpFetcher {
       CIRCUIT_BREAKER.recordSuccess(circuitKey);
       long elapsed = System.currentTimeMillis() - startTime;
       int length = body != null ? body.length() : 0;
-      LOGGER.debug("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
+      LOGGER.info("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
       return body;
     } catch (HttpStatusException e) {
       CIRCUIT_BREAKER.recordFailure(circuitKey);

@@ -177,6 +177,16 @@ public class SearchExecutionEngine {
 
       dedupEngine.applyNewStatus(currentCity, relevantCityItems, isFirstSearch);
       List<IngatlanItem> uniqueCityItems = dedupEngine.deduplicateByUrl(relevantCityItems);
+      LOGGER.info(
+          "  ├─ [{}] Adattisztítás: {} letöltve -> {} releváns (ár: {}, méret: {}, város: {}) -> {}"
+              + " egyedi URL",
+          currentCity,
+          scrapeOutput.items().size(),
+          relevantCityItems.size(),
+          relevanceResult.filteredByPriceCount(),
+          relevanceResult.filteredByAreaCount(),
+          relevanceResult.filteredByCityCount(),
+          uniqueCityItems.size());
       listingStorage.saveCityItems(currentCity, uniqueCityItems);
       enrichWithPersistedState(uniqueCityItems);
       qualityEngine.evaluateAll(uniqueCityItems);
@@ -204,6 +214,21 @@ public class SearchExecutionEngine {
 
     List<IngatlanItem> uniqueAggregatedList = dedupEngine.deduplicateMultiSignal(allAggregatedItems);
     qualityEngine.evaluateAll(uniqueAggregatedList);
+    long lowQuality =
+        uniqueAggregatedList.stream()
+            .filter(
+                i ->
+                    i.getQualityScore() != null
+                        && i.getQualityScore() < DataQualityEngine.PASSING_THRESHOLD)
+            .count();
+    LOGGER.info(
+        "Deduplikáció és minőségellenőrzés: {} -> {} egyedi ingatlan ({} összevonva), {} db {} pont"
+            + " alatti minőségű",
+        allAggregatedItems.size(),
+        uniqueAggregatedList.size(),
+        allAggregatedItems.size() - uniqueAggregatedList.size(),
+        lowQuality,
+        DataQualityEngine.PASSING_THRESHOLD);
     recalculateRelevantPortalCounts(portalCounts, uniqueAggregatedList);
     List<PortalScrapeResult> aggregatedPortalResults =
         aggregatePortalResultsByPortal(allScrapeResults, uniqueAggregatedList);

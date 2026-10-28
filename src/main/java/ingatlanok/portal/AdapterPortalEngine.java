@@ -49,6 +49,7 @@ public class AdapterPortalEngine implements PortalEngine {
         : descriptor.homepageUrl();
 
     List<ExtractionStrategy> strategies = adapter.getStrategies();
+    LOGGER.info("[{}] Portál lekérdezés: {}", descriptor.name(), defaultSearchUrl);
     if (strategies == null || strategies.isEmpty()) {
       long elapsed = System.currentTimeMillis() - startTime;
       return PortalScrapeResult.empty(descriptor.id(), descriptor.name(), defaultSearchUrl, elapsed);
@@ -68,16 +69,30 @@ public class AdapterPortalEngine implements PortalEngine {
           List<IngatlanItem> normalizedItems = new ArrayList<>();
           Set<String> processedUrls = new HashSet<>();
           String now = PortalSupport.nowTimestamp();
+          int rejected = 0;
+          int duplicates = 0;
 
           for (RawPropertyListing raw : result.listings()) {
             if (raw == null) {
               continue;
             }
             IngatlanItem item = normalizer.normalize(raw, descriptor, safeCriteria, now);
-            if (item != null && PortalSupport.markProcessed(processedUrls, item.getUrl())) {
+            if (item == null) {
+              rejected++;
+              LOGGER.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
+            } else if (PortalSupport.markProcessed(processedUrls, item.getUrl())) {
               normalizedItems.add(item);
+            } else {
+              duplicates++;
             }
           }
+          LOGGER.info(
+              "[{}] Adattisztítás: {} nyers -> {} érvényes (elutasítva: {}, duplikált URL: {})",
+              descriptor.name(),
+              result.listings().size(),
+              normalizedItems.size(),
+              rejected,
+              duplicates);
 
           long elapsed = System.currentTimeMillis() - startTime;
           PortalScrapeResult scrapeResult = PortalScrapeResult.success(
