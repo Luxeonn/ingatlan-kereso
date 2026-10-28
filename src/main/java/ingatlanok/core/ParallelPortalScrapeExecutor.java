@@ -42,8 +42,17 @@ public class ParallelPortalScrapeExecutor {
 
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       Map<PortalEngine, Future<PortalScrapeResult>> futures = new LinkedHashMap<>();
+      java.util.Map<String, String> mdc = org.slf4j.MDC.getCopyOfContextMap();
       for (PortalEngine engine : activeEngines) {
-        futures.put(engine, executor.submit(() -> engine.scrape(cityCriteria)));
+        futures.put(
+            engine,
+            executor.submit(
+                () -> {
+                  if (mdc != null) {
+                    org.slf4j.MDC.setContextMap(mdc);
+                  }
+                  return engine.scrape(cityCriteria);
+                }));
       }
 
       for (Map.Entry<PortalEngine, Future<PortalScrapeResult>> entry : futures.entrySet()) {
@@ -81,10 +90,10 @@ public class ParallelPortalScrapeExecutor {
         } catch (Exception e) {
           LOGGER.error(
               "Hiba a(z) {} keresésekor ({}): {}",
+              e,
               engine.getName(),
               currentCity,
-              e.getMessage(),
-              e);
+              e.getMessage());
           PortalScrapeResult failResult =
               PortalScrapeResult.failure(engine.getId(), engine.getName(), e.getMessage(), 0);
           scrapeResults.add(failResult);

@@ -221,6 +221,7 @@ public class SearchExecutionEngine {
     LOGGER.info("Keresés befejeződött: {}", result.getExecutedAt());
     LOGGER.info("Összes találat: {} | Új: {}", result.getTotalFound(), result.getNewCount());
     LOGGER.info("Városok szerint: {}", result.getCityCounts());
+    LOGGER.info("Portálok szerint: {}", result.getPortalCounts());
     if (!result.getNewCitiesInitialized().isEmpty()) {
       LOGGER.info("Új város(ok) baseline mentve: {}", result.getNewCitiesInitialized());
     }
