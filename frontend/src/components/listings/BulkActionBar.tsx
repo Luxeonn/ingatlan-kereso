@@ -16,8 +16,9 @@ import {
 } from 'lucide-react'
 import { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
-import { useFilterStore, type SortOption } from '../../store/useFilterStore'
-import { normalizePortalKey, isItemBargain } from '../../hooks/useSearch'
+import { useFilterStore, SORT_OPTIONS, type SortOption } from '../../store/useFilterStore'
+import { isItemBargain } from '../../hooks/useSearch'
+import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 interface BulkActionBarProps {
@@ -30,16 +31,6 @@ interface BulkActionBarProps {
   isClearingHistory?: boolean
   visibleCount?: number
 }
-
-const PORTAL_CHIPS = [
-  { id: 'all', label: 'Összes' },
-  { id: 'dh', label: 'Duna House' },
-  { id: 'oc', label: 'Otthon Centrum' },
-  { id: 'jofogas', label: 'Jófogás' },
-  { id: 'ingatlancom', label: 'Ingatlan.com' },
-  { id: 'ingatlanbazar', label: 'Ingatlanbazár' },
-  { id: 'koltozzbe', label: 'Költözzbe' },
-]
 
 export const BulkActionBar: FC<BulkActionBarProps> = ({
   items,
@@ -135,12 +126,11 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
               onChange={(e) => setSortOption(e.target.value as SortOption)}
               className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
             >
-              <option value="price_asc">Ár: Növekvő (alapértelmezett)</option>
-              <option value="price_desc">Ár: Csökkenő</option>
-              <option value="sqm_price_asc">Ft/m²: Növekvő</option>
-              <option value="sqm_price_desc">Ft/m²: Csökkenő</option>
-              <option value="area_desc">Méret: Legnagyobb elöl</option>
-              <option value="date_desc">Felfedezés: Legfrissebb</option>
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
 

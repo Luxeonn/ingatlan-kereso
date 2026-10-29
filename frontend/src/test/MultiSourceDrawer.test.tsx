@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MultiSourceDrawer } from '../components/listings/MultiSourceDrawer'
+import { PropertyDetailsDrawer as MultiSourceDrawer } from '../components/listings/PropertyDetailsDrawer'
 import { IngatlanItem } from '../types/property'
 
 describe('MultiSourceDrawer component (#260, #261)', () => {

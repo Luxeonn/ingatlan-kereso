@@ -17,6 +17,8 @@ import {
   formatRooms,
   getPortalStyle,
   getPropertyTypeConfig,
+  getEffectivePrice,
+  openExternalUrl,
 } from '../../utils/formatters'
 import { BargainBadge } from './BargainBadge'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
@@ -37,26 +39,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
 
   const sourcesCount = item.sourcesCount ?? (item.sourceListings?.length || 1)
   const portalStyle = getPortalStyle(item.portal || item.source?.portalId || '')
-
-  // Calculate lowest active source price (#260, #261)
-  const activeSources = (item.sourceListings || []).filter(
-    (s) => !s.status || s.status.toUpperCase() === 'ACTIVE'
-  )
-  const lowestActivePriceFt =
-    activeSources.length > 0
-      ? activeSources.reduce((min, s) => {
-          if (s.priceHuf != null && s.priceHuf > 0) {
-            return min == null || s.priceHuf < min ? s.priceHuf : min
-          }
-          return min
-        }, null as number | null)
-      : null
-
-  const priceFt = lowestActivePriceFt ?? item.priceInfo?.amountHuf
-  const priceMillion =
-    priceFt != null
-      ? priceFt / 1_000_000
-      : item.priceInfo?.amountMillion
+  const { priceMillion } = getEffectivePrice(item)
 
   const sqmPrice = item.detailsInfo?.pricePerSquareMeter
   const floorArea = item.detailsInfo?.areaSquareMeters
@@ -65,7 +48,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
   const hasValidImage = Boolean(item.imageUrl && item.imageUrl.trim().length > 0 && !imageError)
 
   const handleOpen = () => {
-    window.open(item.url, '_blank', 'noopener,noreferrer')
+    openExternalUrl(item.url)
     if (!item.viewed) {
       onMarkViewed(item.url)
     }

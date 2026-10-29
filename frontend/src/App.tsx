@@ -6,9 +6,10 @@ import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { useSearch } from './hooks/useSearch'
-import { useFilterStore, SortOption } from './store/useFilterStore'
+import { useFilterStore, SORT_OPTIONS, SortOption } from './store/useFilterStore'
 import { useUiStore } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
+import { openExternalUrl } from './utils/formatters'
 import { cn } from './utils/cn'
 
 const MarketAnalyticsPanel = lazy(() =>
@@ -179,12 +180,11 @@ export const App: FC = () => {
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
                 className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
               >
-                <option value="price_asc">Ár: Növekvő (alapértelmezett)</option>
-                <option value="price_desc">Ár: Csökkenő</option>
-                <option value="sqm_price_asc">Ft/m²: Növekvő</option>
-                <option value="sqm_price_desc">Ft/m²: Csökkenő</option>
-                <option value="area_desc">Méret: Legnagyobb elöl</option>
-                <option value="date_desc">Felfedezés: Legfrissebb</option>
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -222,7 +222,7 @@ export const App: FC = () => {
               items={items}
               onMarkViewed={markAsViewed}
               onOpenListing={(url) => {
-                window.open(url, '_blank', 'noopener,noreferrer')
+                openExternalUrl(url)
                 markAsViewed(url)
               }}
             />
