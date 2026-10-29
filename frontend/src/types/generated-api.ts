@@ -158,6 +158,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/properties/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ingatlan idősoros megfigyelések lekérdezése paraméter alapján */
+        get: operations["getListingObservationsByParam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/properties/{id}/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ingatlan idősoros megfigyelések lekérdezése útvonal azonosító alapján */
+        get: operations["getListingObservationsById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/properties/discounted": {
         parameters: {
             query?: never;
@@ -352,6 +386,29 @@ export interface components {
             changedAt?: string;
             note?: string;
         };
+        SourceListing: {
+            portal?: string;
+            externalListingId?: string;
+            url?: string;
+            title?: string;
+            imageUrl?: string;
+            firstSeenAt?: string;
+            lastSeenAt?: string;
+            status?: string;
+            priceHuf?: number;
+            pricePerM2?: number;
+            viewed?: boolean;
+            viewedAt?: string;
+        };
+        ListingObservation: {
+            observedAt?: string;
+            priceHuf?: number;
+            pricePerM2?: number;
+            /** @enum {string} */
+            statusEvent?: "NEW" | "UNCHANGED" | "PRICE_CHANGED" | "RELISTED";
+            priceDelta?: number;
+            changePercent?: number;
+        };
         SearchCriteria: {
             city?: string;
             /** @default [] */
@@ -375,6 +432,8 @@ export interface components {
             excludeViewed: boolean;
             /** @default false */
             onlyDiscounted: boolean;
+            /** @default false */
+            onlyNewConstruction: boolean;
         };
         MarketStatsDto: {
             averagePriceMillion?: number;
@@ -385,6 +444,25 @@ export interface components {
             cityBreakdown?: {
                 [key: string]: number;
             };
+            medianPricePerM2?: number;
+            totalSampleSize?: number;
+            insufficientData?: boolean;
+            residentialMedianPricePerM2?: number;
+            residentialAveragePricePerM2?: number;
+            residentialSampleSize?: number;
+            residentialInsufficientData?: boolean;
+            plotMedianPricePerM2?: number;
+            plotAveragePricePerM2?: number;
+            plotSampleSize?: number;
+            plotInsufficientData?: boolean;
+            segments?: components["schemas"]["MarketSegmentStatsDto"][];
+            priceDropCount?: number;
+            priceDropRatePercent?: number;
+            averagePriceDropAmountHuf?: number;
+            averagePriceDropPercent?: number;
+            topPriceDrops?: components["schemas"]["PriceDropItemDto"][];
+            bargainCount?: number;
+            bargainRatePercent?: number;
         };
         IngatlanItem: {
             id: string;
@@ -400,6 +478,7 @@ export interface components {
             viewed?: boolean;
             viewedAt?: string;
             imageUrl?: string;
+            newConstruction?: boolean;
             status?: string;
             priceDelta?: number;
             priceChangePercent?: number;
@@ -407,7 +486,24 @@ export interface components {
             priceInfo?: components["schemas"]["PriceInfo"];
             detailsInfo?: components["schemas"]["PropertyDetails"];
             source?: components["schemas"]["PortalSource"];
+            propertyType?: components["schemas"]["PropertyType"];
+            /** @default 1 */
+            sourcesCount: number;
+            sourceListings?: components["schemas"]["SourceListing"][];
+            isBargain?: boolean;
+            referenceMedianPricePerSquareMeter?: number;
+            percentageBelowMedian?: number;
+            referenceSampleSize?: number;
+            /** @description Adatminőségi pontszám (0-100) */
+            qualityScore?: number | null;
+            /** @description Minőségi levonási okok listája */
+            qualityDeductions?: string[];
         };
+        /**
+         * @description Kanonikus ingatlantípus
+         * @enum {string}
+         */
+        PropertyType: "LAKAS" | "HAZ" | "TELEK" | "GARAZS" | "IPARI_KERESKEDELMI" | "EGYEB_ISMERETLEN";
         DashboardResponseDto: {
             items: components["schemas"]["IngatlanItem"][];
             newCount: number;
@@ -422,6 +518,37 @@ export interface components {
             newCitiesInitialized?: string[];
             marketStats?: components["schemas"]["MarketStatsDto"];
             portalStatuses?: components["schemas"]["PortalStatusDto"][];
+        };
+        MarketSegmentStatsDto: {
+            city?: string;
+            propertyType?: components["schemas"]["PropertyType"];
+            propertyTypeName?: string;
+            residential?: boolean;
+            plot?: boolean;
+            sampleSize?: number;
+            insufficientData?: boolean;
+            medianPricePerM2?: number;
+            averagePricePerM2?: number;
+            medianPriceMillion?: number;
+            averagePriceMillion?: number;
+            minPriceMillion?: number;
+            maxPriceMillion?: number;
+            bargainCount?: number;
+        };
+        PriceDropItemDto: {
+            id?: string;
+            url?: string;
+            title?: string;
+            city?: string;
+            portal?: string;
+            propertyType?: components["schemas"]["PropertyType"];
+            currentPriceHuf?: number;
+            currentPriceMillion?: number;
+            priceDelta?: number;
+            changePercent?: number;
+            pricePerM2?: number;
+            imageUrl?: string;
+            lastPriceChangeAt?: string;
         };
     };
     responses: never;
@@ -559,6 +686,8 @@ export interface operations {
                 maxRooms?: number;
                 /** @description Megtekintett hirdetések kizárása */
                 excludeViewed?: boolean;
+                /** @description Csak új építésű ingatlanok */
+                onlyNewConstruction?: boolean;
                 /** @description Rendezési sorrend (pl. DISCOVERED_DESC, PRICE_ASC, PRICE_PER_M2_ASC) */
                 sortBy?: string;
                 /** @description Maximális találati szám lapozáshoz */
@@ -702,6 +831,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatusLogEntry"][];
+                };
+            };
+            /** @description Hiányzó id paraméter */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getListingObservationsByParam: {
+        parameters: {
+            query?: {
+                /** @description Ingatlan egyedi azonosítója */
+                id?: string;
+                /** @description Ingatlan közvetlen URL-je */
+                url?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Az ingatlan idősoros megfigyelési naplója */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingObservation"][];
+                };
+            };
+            /** @description Hiányzó id vagy url paraméter */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getListingObservationsById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ingatlan egyedi azonosítója */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Az ingatlan idősoros megfigyelési naplója */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingObservation"][];
                 };
             };
             /** @description Hiányzó id paraméter */

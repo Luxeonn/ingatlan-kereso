@@ -11,12 +11,17 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.PropertyType;
+import ingatlanok.model.SourceListing;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.entity.StatusLogEntity;
@@ -28,7 +33,7 @@ class JpaEntityMapperTest {
 
   @BeforeEach
   void setUp() {
-    mapper = new JpaEntityMapper();
+    mapper = Mappers.getMapper(JpaEntityMapper.class);
   }
 
   @Test
@@ -57,6 +62,7 @@ class JpaEntityMapperTest {
     entity.setViewedAt("2026-03-01 11:00:00");
     entity.setImageUrl("https://dh.hu/img.jpg");
     entity.setStatus("ACTIVE");
+    entity.setPropertyType(PropertyType.LAKAS);
     entity.setPriceDelta(-1_000_000L);
     entity.setPriceChangePercent(-1.79);
     entity.setLastPriceChangeAt("2026-03-01 10:30:00");
@@ -69,6 +75,7 @@ class JpaEntityMapperTest {
     assertEquals("Kiadó lakás", item.getTitle());
     assertEquals("55 M Ft", item.getPrice());
     assertEquals("Budapest", item.getCity());
+    assertEquals(PropertyType.LAKAS, item.getPropertyType());
     assertTrue(item.isNew());
     assertTrue(item.isViewed());
     assertEquals("2026-03-01 11:00:00", item.getViewedAt());
@@ -220,4 +227,71 @@ class JpaEntityMapperTest {
     assertEquals("ACTIVE", slEntry.status());
     assertEquals("Kezdeti állapot", slEntry.note());
   }
-}
+
+  @Test
+  @DisplayName("PropertyType maps bidirectionally with safe fallback for nulls")
+  void testPropertyTypeMappingAndNullFallback() {
+    PropertyEntity entity = new PropertyEntity();
+    entity.setPropertyType(PropertyType.GARAZS);
+    IngatlanItem item = mapper.toItem(entity);
+    assertEquals(PropertyType.GARAZS, item.getPropertyType());
+
+    entity.setPropertyType(null);
+    IngatlanItem itemNull = mapper.toItem(entity);
+    assertEquals(PropertyType.EGYEB_ISMERETLEN, itemNull.getPropertyType());
+
+    IngatlanItem item2 = new IngatlanItem();
+    item2.setPropertyType(PropertyType.IPARI_KERESKEDELMI);
+    PropertyEntity entity2 = mapper.toEntity(item2, null, "now", 0L, 0.0, null, "ACTIVE");
+    assertEquals(PropertyType.IPARI_KERESKEDELMI, entity2.getPropertyType());
+
+    item2.setPropertyType((PropertyType) null);
+    PropertyEntity entityNull = mapper.toEntity(item2, null, "now", 0L, 0.0, null, "ACTIVE");
+    assertEquals(PropertyType.EGYEB_ISMERETLEN, entityNull.getPropertyType());
+  }
+
+  @Test
+  @DisplayName("toSourceListing falls back to discovered/updated timestamps and maps renamed fields")
+  void testSourceListingFallbacksAndNull() {
+    assertNull(mapper.toSourceListing(null));
+
+    PropertyEntity entity = new PropertyEntity();
+    entity.setPropertyId("P1");
+    entity.setDiscoveredAt("disc");
+    entity.setUpdatedAt("upd");
+    entity.setPriceAmount(42L);
+    entity.setPricePerSqm(7L);
+    SourceListing sl = mapper.toSourceListing(entity);
+    assertEquals("P1", sl.getExternalListingId());
+    assertEquals("disc", sl.getFirstSeenAt());
+    assertEquals("upd", sl.getLastSeenAt());
+    assertEquals(42L, sl.getPriceHuf());
+    assertEquals(7L, sl.getPricePerM2());
+
+    entity.setFirstSeenAt("first");
+    entity.setLastSeenAt("last");
+    sl = mapper.toSourceListing(entity);
+    assertEquals("first", sl.getFirstSeenAt());
+    assertEquals("last", sl.getLastSeenAt());
+  }
+
+  @Test
+  @DisplayName("Observation, history and status log mappings handle nulls and unknown events")
+  void testObservationAndLogNullSafety() {
+    assertNull(mapper.toListingObservation(null));
+    assertNull(mapper.toPriceHistoryEntry(null));
+    assertNull(mapper.toStatusLogEntry(null));
+
+    ListingObservationEntity lo =
+        mapper.createListingObservationEntity("p", "u", "c", "t", 1L, 2L, "BOGUS", 3L, 4.0);
+    assertNull(lo.getId());
+    assertEquals("c", lo.getCanonicalId());
+    ListingObservation obs = mapper.toListingObservation(lo);
+    assertEquals(ListingObservation.StatusEvent.UNCHANGED, obs.getStatusEvent());
+    assertEquals(1L, obs.getPriceHuf());
+
+    PriceHistoryEntry entry = mapper.toPriceHistoryEntry(new PriceHistoryEntity());
+    assertEquals(0, entry.id());
+    assertEquals(0L, entry.priceAmount());
+    assertEquals(0.0, entry.priceMillions());
+  }}

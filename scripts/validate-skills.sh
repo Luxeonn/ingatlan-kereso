@@ -173,6 +173,7 @@ echo "--- [4/5] Validating relative Markdown links and file paths ---"
 
 DOC_FILES=(
   "README.md"
+  "AGENTS.md"
   "gemini.md"
   "GEMINI.md"
   ".github/pull_request_template.md"
@@ -290,6 +291,13 @@ while IFS= read -r match; do
   l=$(echo "$match" | cut -d: -f2)
   log_fail "Banned persistence keyword found in source code / build script" "$f" "$l"
 done < <(grep -rniI -E '(sqlite|nitrite)' src/main/ build.gradle.kts 2>/dev/null || true)
+
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Forbidden Lombok annotation/import (@Data, @EqualsAndHashCode, @ToString, @SneakyThrows) found in Java source" "$f" "$l"
+done < <(grep -rnI -E '^[[:space:]]*(import[[:space:]]+lombok\.(Data|EqualsAndHashCode|ToString|SneakyThrows);|@(lombok\.)?(Data|EqualsAndHashCode|ToString|SneakyThrows)\b)' src/ 2>/dev/null || true)
 
 echo ""
 echo "=============================================================================="

@@ -40,7 +40,7 @@ public final class IngatlanBazarLocationResolver {
     registerLocation("eger", 1745);
     registerLocation("salgotarjan", 1870);
     registerLocation("szekszard", 2624);
-    registerLocation("hajduszoboszlo", 1445);
+    registerLocation("hajduszoboszlo", 1462);
     registerLocation("dunaujvaros", 1000000001);
     registerLocation("nagykanizsa", 1000000003);
     registerLocation("sopron", 1260);

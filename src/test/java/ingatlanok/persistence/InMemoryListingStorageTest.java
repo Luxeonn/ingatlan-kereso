@@ -108,5 +108,8 @@ class InMemoryListingStorageTest {
     assertFalse(storage.markAsViewed(null));
     assertFalse(storage.isViewed(null));
     assertEquals(Collections.emptyList(), storage.getItemsByCity(null));
+    assertEquals(Map.of(), storage.findByUrls(null));
+    assertEquals(Map.of(), storage.findByUrls(List.of()));
+    assertEquals(Map.of(), storage.findByUrls(List.of(" ", "")));
   }
 }

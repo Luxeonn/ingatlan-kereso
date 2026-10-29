@@ -55,15 +55,18 @@ class PortalStatusDiagnosticTest {
     assertEquals(500, dto.getHttpStatusCode());
     assertEquals("Read timed out after 15000ms", dto.getTechnicalDetails());
 
-    dto.setPortalId("dh");
-    dto.setPortalName("Duna House");
-    dto.setStatus("SUCCESS");
-    dto.setFoundCount(15);
-    dto.setLatencyMs(420L);
-    dto.setFallbackUrl("https://dh.hu");
-    dto.setMessage("Sikeres");
-    dto.setHttpStatusCode(200);
-    dto.setTechnicalDetails("Minden rendben");
+    dto =
+        dto.toBuilder()
+            .portalId("dh")
+            .portalName("Duna House")
+            .status("SUCCESS")
+            .foundCount(15)
+            .latencyMs(420L)
+            .fallbackUrl("https://dh.hu")
+            .message("Sikeres")
+            .httpStatusCode(200)
+            .technicalDetails("Minden rendben")
+            .build();
 
     assertEquals("dh", dto.getPortalId());
     assertEquals("Duna House", dto.getPortalName());
@@ -151,5 +154,125 @@ class PortalStatusDiagnosticTest {
     assertNotNull(first.getPortalId());
     assertNotNull(first.getPortalName());
     assertNotNull(first.getStatus());
+  }
+
+  @Test
+  @DisplayName(
+      "Többvárosos keresésnél a portalStatuses minden aktív portált pontosan egyszer tartalmaz"
+          + " aggregált találatszámmal (#251)")
+  void testMultiCitySearchAggregatesPortalStatusesWithoutDuplicates() {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen", "Hajdúböszörmény"));
+    criteria.setPortals(List.of("dh", "ingatlancom", "oc"));
+    criteria.setMinPriceMillion(30);
+    criteria.setMaxPriceMillion(80);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(120);
+
+    PortalEngine dhEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "dh", "Duna House", "#008638", "https://dh.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria searchCriteria) {
+            String city = searchCriteria.getCity();
+            String slug = "Debrecen".equals(city) ? "debrecen-1" : "hb-1";
+            IngatlanItem item =
+                new IngatlanItem(
+                    slug,
+                    PortalSource.of("Duna House"),
+                    "https://dh.hu/ingatlan/" + slug,
+                    city + " lakás",
+                    new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                    city,
+                    new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                    "2026-10-20 10:00:00",
+                    false);
+            return PortalScrapeResult.success("dh", "Duna House", List.of(item), 110);
+          }
+        };
+
+    PortalEngine icEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "ingatlancom",
+                "Ingatlan.com",
+                "#0284c7",
+                "https://ingatlan.com",
+                true,
+                List.of("lakas"),
+                false);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria searchCriteria) {
+            return PortalScrapeResult.botProtected(
+                "ingatlancom", "Ingatlan.com", "https://ingatlan.com/lista", 50);
+          }
+        };
+
+    PortalEngine ocEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "oc", "Otthon Centrum", "#ea580c", "https://oc.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria searchCriteria) {
+            if ("Debrecen".equals(searchCriteria.getCity())) {
+              return PortalScrapeResult.empty("oc", "Otthon Centrum", "https://oc.hu/debrecen", 40);
+            }
+            return PortalScrapeResult.failure(
+                "oc", "Otthon Centrum", "HTTP 503", 60, 503, "https://oc.hu/hb");
+          }
+        };
+
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
+    SearchExecutionEngine search =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine, icEngine, ocEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            analytics);
+
+    DashboardResponseDto response =
+        new DashboardPresentationService(search, analytics).executeSearch(criteria);
+
+    List<PortalStatusDto> statuses = response.getPortalStatuses();
+    assertEquals(3, statuses.size(), "Minden aktív portál pontosan egyszer szerepelhet");
+    long uniquePortalIds = statuses.stream().map(PortalStatusDto::getPortalId).distinct().count();
+    assertEquals(3L, uniquePortalIds);
+
+    PortalStatusDto dhStatus =
+        statuses.stream().filter(s -> "dh".equals(s.getPortalId())).findFirst().orElseThrow();
+    assertEquals("SUCCESS", dhStatus.getStatus());
+    assertEquals(2, dhStatus.getFoundCount());
+    assertEquals(220L, dhStatus.getLatencyMs());
+
+    PortalStatusDto icStatus =
+        statuses.stream()
+            .filter(s -> "ingatlancom".equals(s.getPortalId()))
+            .findFirst()
+            .orElseThrow();
+    assertEquals("BOT_PROTECTED", icStatus.getStatus());
+    assertEquals(0, icStatus.getFoundCount());
+    assertEquals(100L, icStatus.getLatencyMs());
+
+    PortalStatusDto ocStatus =
+        statuses.stream().filter(s -> "oc".equals(s.getPortalId())).findFirst().orElseThrow();
+    assertEquals("FAILED", ocStatus.getStatus());
+    assertEquals(0, ocStatus.getFoundCount());
+    assertEquals(100L, ocStatus.getLatencyMs());
   }
 }

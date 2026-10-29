@@ -6,11 +6,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class SidecarResponse implements Serializable {
 
   private String portalId;
@@ -23,50 +30,12 @@ public class SidecarResponse implements Serializable {
 
   private long elapsedMs;
 
-  public SidecarResponse() {}
-
   public boolean isSuccess() {
     return "SUCCESS".equalsIgnoreCase(status);
   }
 
-  public String getPortalId() {
-    return portalId;
-  }
-
-  public void setPortalId(String portalId) {
-    this.portalId = portalId;
-  }
-
-  public String getStatus() {
-    return status;
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
-  }
-
   public List<SidecarItem> getItems() {
     return items != null ? items : new ArrayList<>();
-  }
-
-  public void setItems(List<SidecarItem> items) {
-    this.items = items;
-  }
-
-  public String getErrorMessage() {
-    return errorMessage;
-  }
-
-  public void setErrorMessage(String errorMessage) {
-    this.errorMessage = errorMessage;
-  }
-
-  public long getElapsedMs() {
-    return elapsedMs;
-  }
-
-  public void setElapsedMs(long elapsedMs) {
-    this.elapsedMs = elapsedMs;
   }
 
   public static class SidecarItem implements Serializable {
@@ -162,11 +131,16 @@ public class SidecarResponse implements Serializable {
         long priceHuf = Math.round(priceMillion * 1_000_000L);
         NumberFormat nf = NumberFormat.getInstance(new Locale("hu", "HU"));
         String formatted = nf.format(priceHuf) + " Ft";
-        priceInfo = new PriceInfo(formatted, priceHuf, priceMillion);
+        priceInfo =
+            PriceInfo.builder()
+                .rawText(formatted)
+                .amountHuf(priceHuf)
+                .amountMillion(priceMillion)
+                .build();
       } else if (priceRaw != null && !priceRaw.isBlank()) {
-        priceInfo = new PriceInfo(priceRaw, null, null);
+        priceInfo = PriceInfo.builder().rawText(priceRaw).build();
       } else {
-        priceInfo = new PriceInfo("Ár a hirdetésben", null, null);
+        priceInfo = PriceInfo.builder().rawText("Ár a hirdetésben").build();
       }
 
       StringBuilder detailsSb = new StringBuilder();
@@ -190,17 +164,29 @@ public class SidecarResponse implements Serializable {
       }
 
       PropertyDetails detailsInfo =
-          new PropertyDetails(detailsSb.toString(), areaSquareMeters, roomCount, sqmPrice);
+          PropertyDetails.builder()
+              .rawText(detailsSb.toString())
+              .areaSquareMeters(areaSquareMeters)
+              .roomCount(roomCount)
+              .pricePerSquareMeter(sqmPrice)
+              .build();
 
       String displayTitle =
           (title != null && !title.isBlank()) ? title : (city + " - Ingatlan (" + id + ")");
 
-      IngatlanItem item =
-          new IngatlanItem(
-              id, source, url, displayTitle, priceInfo, city, detailsInfo, discoveredAt, isNew);
-      item.setLocation(city);
-      item.setImageUrl(imageUrl);
-      return item;
+      return IngatlanItem.builder()
+          .id(id)
+          .source(source)
+          .url(url)
+          .title(displayTitle)
+          .priceInfo(priceInfo)
+          .city(city)
+          .location(city)
+          .detailsInfo(detailsInfo)
+          .discoveredAt(discoveredAt)
+          .isNew(isNew)
+          .imageUrl(imageUrl)
+          .build();
     }
   }
 }

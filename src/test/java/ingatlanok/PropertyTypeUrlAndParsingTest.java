@@ -13,6 +13,7 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.dh.DunaHouseUrlBuilder;
+import ingatlanok.portal.ingatlanbazar.IngatlanBazarQueryBuilder;
 import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
 import ingatlanok.portal.jofogas.JofogasUrlBuilder;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
@@ -23,6 +24,7 @@ class PropertyTypeUrlAndParsingTest {
   private final OtthonCentrumUrlBuilder ocScraper = new OtthonCentrumUrlBuilder();
   private final JofogasUrlBuilder jfScraper = new JofogasUrlBuilder();
   private final IngatlanComUrlBuilder icScraper = new IngatlanComUrlBuilder();
+  private final IngatlanBazarQueryBuilder ibScraper = new IngatlanBazarQueryBuilder();
 
   @ParameterizedTest
   @ValueSource(strings = {"lakas", "haz", "telek"})
@@ -30,26 +32,18 @@ class PropertyTypeUrlAndParsingTest {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCity("Hajdúszoboszló");
     criteria.setPropertyType(type);
-    criteria.setMinPriceMillion(100);
-    criteria.setMaxPriceMillion(120);
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
 
     String url = dhScraper.buildSearchUrl(criteria);
     assertNotNull(url);
-    assertTrue(url.startsWith("https://dh.hu/elado-ingatlan/"), "DH URL prefix hibás: " + url);
-    assertTrue(
-        url.contains("hajdu-bihar/hajduszoboszlo"),
-        "DH URL-nek tartalmaznia kell a megye/város slugot: " + url);
-    assertTrue(url.contains("/100-120-mFt"), "DH URL-nek tartalmaznia kell az ársávot: " + url);
-
-    String expectedTypeSlug =
-        switch (type) {
-          case "haz" -> "haz";
-          case "telek" -> "telek";
-          default -> "lakas";
-        };
-    assertTrue(
-        url.contains("/" + expectedTypeSlug + "/"),
-        "DH URL-nek tartalmaznia kell a típust (" + expectedTypeSlug + "): " + url);
+    assertEquals(
+        "https://dh.hu/elado-ingatlan/"
+            + type
+            + "/hajdu-bihar-megye/hajduszoboszlo/-/80-100-mFt/90-200-m2",
+        url);
   }
 
   @ParameterizedTest
@@ -58,22 +52,18 @@ class PropertyTypeUrlAndParsingTest {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCity("Hajdúszoboszló");
     criteria.setPropertyType(type);
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
 
     String url = ocScraper.buildSearchUrl(criteria);
     assertNotNull(url);
-    assertTrue(url.startsWith("https://www.oc.hu/elado/"), "OC URL prefix hibás: " + url);
-    assertTrue(
-        url.contains("hajduszoboszlo"), "OC URL-nek tartalmaznia kell a város slugot: " + url);
-
-    String expectedType =
-        switch (type) {
-          case "haz" -> "haz";
-          case "telek" -> "telek";
-          default -> "lakas";
-        };
-    assertTrue(
-        url.contains("/" + expectedType + "/"),
-        "OC URL-nek tartalmaznia kell a típust (" + expectedType + "): " + url);
+    assertEquals(
+        "https://www.oc.hu/ingatlanok/lista/jelleg:"
+            + type
+            + ";ertekesites:elado;ar:80~100;elhelyezkedes:hajduszoboszlo;meret:90~200",
+        url);
   }
 
   @ParameterizedTest
@@ -114,27 +104,35 @@ class PropertyTypeUrlAndParsingTest {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCity("Hajdúszoboszló");
     criteria.setPropertyType(type);
-    criteria.setMinPriceMillion(100);
-    criteria.setMaxPriceMillion(120);
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
 
     String url = icScraper.buildSearchUrl(criteria);
     assertNotNull(url);
-    assertTrue(
-        url.startsWith("https://ingatlan.com/lista/elado+"),
-        "Ingatlan.com URL prefix hibás: " + url);
-    assertTrue(
-        url.contains("+hajduszoboszlo"), "Ingatlan.com URL-nek tartalmaznia kell a várost: " + url);
-    assertTrue(
-        url.contains("+100-120-mFt"), "Ingatlan.com URL-nek tartalmaznia kell az ársávot: " + url);
-    String expectedTypeSlug =
-        switch (type) {
-          case "haz" -> "haz";
-          case "telek" -> "telek";
-          default -> "lakas";
-        };
-    assertTrue(
-        url.contains("+" + expectedTypeSlug + "+"),
-        "Ingatlan.com URL-nek tartalmaznia kell a típust (" + expectedTypeSlug + "): " + url);
+    assertEquals(
+        "https://ingatlan.com/lista/elado+"
+            + type
+            + "+90-200-m2+80-100-mFt+hajduszoboszlo",
+        url);
+  }
+
+  @Test
+  void testIngatlanBazarOfficialUrlGenerationHajduszoboszlo() {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(80);
+    criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
+
+    String url = ibScraper.buildSearchUrl(criteria);
+    assertEquals(
+        "https://www.ingatlanbazar.hu/ingatlan-Hajduszoboszlo-Elado-Haz-80-100-millio-Ft-90m2-tol-200m2-ig"
+            + "?property_location=1462&price_min=80&price_max=100&property_floor_area=90-200&property__2=2",
+        url);
   }
 
   @Test
@@ -195,7 +193,7 @@ class PropertyTypeUrlAndParsingTest {
 
     String url = dhScraper.buildSearchUrl(criteriaBp);
     assertTrue(
-        url.contains("/lakas/budapest"),
+        url.contains("/lakas/budapest/-/"),
         "Budapest esetén a DH URL-nek közvetlenül /budapest formátumúnak kell lennie: " + url);
   }
 }

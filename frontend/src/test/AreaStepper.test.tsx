@@ -26,15 +26,29 @@ describe('AreaStepper component', () => {
     expect(handleChange).toHaveBeenCalledWith(62)
   })
 
-  it('allows arbitrary numeric manual input', () => {
+  it('allows arbitrary numeric manual input without mid-typing clamping', () => {
     const handleChange = vi.fn()
-    render(<AreaStepper label="Minimális alapterület" value={50} onChange={handleChange} />)
-    const input = screen.getByDisplayValue('50')
-    fireEvent.change(input, { target: { value: '77' } })
-    expect(handleChange).toHaveBeenCalledWith(77)
+    render(<AreaStepper label="Maximális alapterület" value={120} onChange={handleChange} min={1} />)
+    const input = screen.getByDisplayValue('120')
+    fireEvent.change(input, { target: { value: '2' } })
+    expect(handleChange).toHaveBeenCalledWith(2)
+    fireEvent.change(input, { target: { value: '200' } })
+    expect(handleChange).toHaveBeenCalledWith(200)
   })
 
-  it('respects min and max bounds', () => {
+  it('allows temporarily clearing input while typing and restores on blur if left empty', () => {
+    const handleChange = vi.fn()
+    render(<AreaStepper label="Maximális alapterület" value={150} onChange={handleChange} />)
+    const input = screen.getByDisplayValue('150') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input.value).toBe('')
+    expect(handleChange).not.toHaveBeenCalled()
+
+    fireEvent.blur(input)
+    expect(input.value).toBe('150')
+  })
+
+  it('respects min and max bounds on stepper buttons', () => {
     const handleChange = vi.fn()
     const { rerender } = render(
       <AreaStepper label="Minimális alapterület" value={1} onChange={handleChange} min={1} max={500} step={1} />

@@ -16,28 +16,20 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalHtmlParser;
+import ingatlanok.portal.PortalSupport;
 
-public class IngatlanComParser {
+public class IngatlanComParser implements PortalHtmlParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/(\\d+)");
   private static final PortalSource SOURCE = PortalSource.of("Ingatlan.com");
 
+  @Override
   public boolean isBotChallenge(Document document) {
-    if (document == null) {
-      return false;
-    }
-    return (document.title() != null
-            && (document.title().contains("ellenőrzés")
-                || document.title().contains("Cloudflare")
-                || document.title().contains("Just a moment")
-                || document.title().contains("Attention Required")))
-        || !document
-            .select(
-                "#challenge-error-text, #robot-protection-illustration,"
-                    + " script[src*='challenge-platform']")
-            .isEmpty();
+    return PortalSupport.isCommonBotChallenge(document);
   }
 
+  @Override
   public List<IngatlanItem> parseItems(
       Document document, SearchCriteria criteria, String executionTime, Set<String> processedUrls) {
     List<IngatlanItem> items = new ArrayList<>();
@@ -61,18 +53,12 @@ public class IngatlanComParser {
         continue;
       }
 
-      String fullLink =
-          href.startsWith("http")
-              ? href
-              : IngatlanComUrlBuilder.BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+      String fullLink = PortalSupport.resolveUrl(IngatlanComUrlBuilder.BASE_URL, href);
       if (!fullLink.matches(".*/ingatlan/\\d+.*")) {
         continue;
       }
-      if (processedUrls != null && processedUrls.contains(fullLink)) {
+      if (!PortalSupport.markProcessed(processedUrls, fullLink)) {
         continue;
-      }
-      if (processedUrls != null) {
-        processedUrls.add(fullLink);
       }
 
       String cardText = card.text().replaceAll("\\s+", " ").trim();
@@ -90,7 +76,7 @@ public class IngatlanComParser {
       }
 
       PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
-      String city = criteria != null ? criteria.getCity() : "Debrecen";
+      String city = PortalSupport.resolveDefaultCity(criteria);
 
       String title;
       Element titleEl = card.selectFirst(".listing-card__title, .address, h2, h3");
@@ -101,17 +87,22 @@ public class IngatlanComParser {
       }
 
       IngatlanItem item =
-          new IngatlanItem(
-              id, SOURCE, fullLink, title, priceInfo, city, detailsInfo, executionTime, false);
-      item.setLocation(city);
+          IngatlanItem.builder()
+              .id(id)
+              .source(SOURCE)
+              .url(fullLink)
+              .title(title)
+              .priceInfo(priceInfo)
+              .city(city)
+              .location(city)
+              .detailsInfo(detailsInfo)
+              .discoveredAt(executionTime)
+              .imageUrl(
+                  PortalSupport.extractImageWithFallback(card, IngatlanComUrlBuilder.BASE_URL))
+              .newConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink))
+              .build();
 
-      String imageUrl = PropertyParser.extractImageUrl(card);
-      if ((imageUrl == null || imageUrl.isBlank()) && card.parent() != null) {
-        imageUrl = PropertyParser.extractImageUrl(card.parent());
-      }
-      item.setImageUrl(imageUrl);
-
-      if (criteria != null && !criteria.matches(item)) {
+      if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
       }
 

@@ -16,12 +16,15 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalHtmlParser;
+import ingatlanok.portal.PortalSupport;
 
-public class DunaHouseParser {
+public class DunaHouseParser implements PortalHtmlParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/([A-Za-z0-9\\-]+)");
   private static final PortalSource SOURCE = PortalSource.of("Duna House");
 
+  @Override
   public List<IngatlanItem> parseItems(
       Document document, SearchCriteria criteria, String executionTime, Set<String> processedUrls) {
     List<IngatlanItem> items = new ArrayList<>();
@@ -36,19 +39,13 @@ public class DunaHouseParser {
         continue;
       }
 
-      String fullLink =
-          href.startsWith("http")
-              ? href
-              : DunaHouseUrlBuilder.BASE_URL + (href.startsWith("/") ? "" : "/") + href;
+      String fullLink = PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href);
       if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+/.*")
           && !fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+$")) {
         continue;
       }
-      if (processedUrls != null && processedUrls.contains(fullLink)) {
+      if (!PortalSupport.markProcessed(processedUrls, fullLink)) {
         continue;
-      }
-      if (processedUrls != null) {
-        processedUrls.add(fullLink);
       }
 
       String cardText = a.text().replaceAll("\\s+", " ").trim();
@@ -74,30 +71,27 @@ public class DunaHouseParser {
       String actualCity =
           (extractedCity != null && !extractedCity.isBlank())
               ? extractedCity
-              : (criteria != null ? criteria.getCity() : "Debrecen");
+              : PortalSupport.resolveDefaultCity(criteria);
 
       String title = cleanTitle(cardText, actualCity, id);
 
       IngatlanItem item =
-          new IngatlanItem(
-              id,
-              SOURCE,
-              fullLink,
-              title,
-              priceInfo,
-              actualCity,
-              detailsInfo,
-              executionTime,
-              false);
-      item.setLocation(actualCity);
+          IngatlanItem.builder()
+              .id(id)
+              .source(SOURCE)
+              .url(fullLink)
+              .title(title)
+              .priceInfo(priceInfo)
+              .city(actualCity)
+              .location(actualCity)
+              .detailsInfo(detailsInfo)
+              .discoveredAt(executionTime)
+              .imageUrl(
+                  PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL))
+              .newConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink))
+              .build();
 
-      String imageUrl = PropertyParser.extractImageUrl(a);
-      if (imageUrl == null && a.parent() != null) {
-        imageUrl = PropertyParser.extractImageUrl(a.parent());
-      }
-      item.setImageUrl(imageUrl);
-
-      if (criteria != null && !criteria.matches(item)) {
+      if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
       }
 
@@ -111,7 +105,7 @@ public class DunaHouseParser {
     if (text != null && text.contains("|")) {
       String[] parts = text.split("\\|");
       if (parts.length > 0 && !parts[0].isBlank()) {
-        return parts[0].replace("Új ", "").trim();
+        return parts[0].replaceFirst("(?i)^Új\\s+(?!építés)", "").trim();
       }
     }
     return defaultCity + " - Eladó ingatlan (" + id + ")";

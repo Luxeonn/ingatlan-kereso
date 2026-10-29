@@ -141,6 +141,13 @@ paths:
             type: boolean
             default: false
           description: Megtekintett hirdetések kizárása
+        - name: onlyNewConstruction
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Csak új építésű ingatlanok
         - name: sortBy
           in: query
           required: false
@@ -283,6 +290,66 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/StatusLogEntry'
+        '400':
+          description: Hiányzó id paraméter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties/observations:
+    get:
+      summary: Ingatlan idősoros megfigyelések lekérdezése paraméter alapján
+      operationId: getListingObservationsByParam
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ingatlan egyedi azonosítója
+        - name: url
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Ingatlan közvetlen URL-je
+      responses:
+        '200':
+          description: Az ingatlan idősoros megfigyelési naplója
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ListingObservation'
+        '400':
+          description: Hiányzó id vagy url paraméter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties/{id}/observations:
+    get:
+      summary: Ingatlan idősoros megfigyelések lekérdezése útvonal azonosító alapján
+      operationId: getListingObservationsById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Ingatlan egyedi azonosítója
+      responses:
+        '200':
+          description: Az ingatlan idősoros megfigyelési naplója
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ListingObservation'
         '400':
           description: Hiányzó id paraméter
           content:
@@ -657,6 +724,55 @@ components:
         note:
           type: string
 
+    SourceListing:
+      type: object
+      properties:
+        portal:
+          type: string
+        externalListingId:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        imageUrl:
+          type: string
+        firstSeenAt:
+          type: string
+        lastSeenAt:
+          type: string
+        status:
+          type: string
+        priceHuf:
+          type: integer
+        pricePerM2:
+          type: integer
+        viewed:
+          type: boolean
+        viewedAt:
+          type: string
+
+    ListingObservation:
+      type: object
+      properties:
+        observedAt:
+          type: string
+        priceHuf:
+          type: integer
+        pricePerM2:
+          type: integer
+        statusEvent:
+          type: string
+          enum:
+            - NEW
+            - UNCHANGED
+            - PRICE_CHANGED
+            - RELISTED
+        priceDelta:
+          type: integer
+        changePercent:
+          type: number
+
     SearchCriteria:
       type: object
       properties:
@@ -698,6 +814,9 @@ components:
         onlyDiscounted:
           type: boolean
           default: false
+        onlyNewConstruction:
+          type: boolean
+          default: false
 
     MarketStatsDto:
       type: object
@@ -716,6 +835,48 @@ components:
           type: object
           additionalProperties:
             type: integer
+        medianPricePerM2:
+          type: integer
+        totalSampleSize:
+          type: integer
+        insufficientData:
+          type: boolean
+        residentialMedianPricePerM2:
+          type: integer
+        residentialAveragePricePerM2:
+          type: integer
+        residentialSampleSize:
+          type: integer
+        residentialInsufficientData:
+          type: boolean
+        plotMedianPricePerM2:
+          type: integer
+        plotAveragePricePerM2:
+          type: integer
+        plotSampleSize:
+          type: integer
+        plotInsufficientData:
+          type: boolean
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketSegmentStatsDto'
+        priceDropCount:
+          type: integer
+        priceDropRatePercent:
+          type: number
+        averagePriceDropAmountHuf:
+          type: integer
+        averagePriceDropPercent:
+          type: number
+        topPriceDrops:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceDropItemDto'
+        bargainCount:
+          type: integer
+        bargainRatePercent:
+          type: number
 
     IngatlanItem:
       type: object
@@ -754,6 +915,8 @@ components:
           type: string
         imageUrl:
           type: string
+        newConstruction:
+          type: boolean
         status:
           type: string
         priceDelta:
@@ -768,6 +931,43 @@ components:
           $ref: '#/components/schemas/PropertyDetails'
         source:
           $ref: '#/components/schemas/PortalSource'
+        propertyType:
+          $ref: '#/components/schemas/PropertyType'
+        sourcesCount:
+          type: integer
+          default: 1
+        sourceListings:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceListing'
+        isBargain:
+          type: boolean
+        referenceMedianPricePerSquareMeter:
+          type: integer
+        percentageBelowMedian:
+          type: number
+        referenceSampleSize:
+          type: integer
+        qualityScore:
+          type: integer
+          nullable: true
+          description: Adatminőségi pontszám (0-100)
+        qualityDeductions:
+          type: array
+          items:
+            type: string
+          description: Minőségi levonási okok listája
+
+    PropertyType:
+      type: string
+      enum:
+        - LAKAS
+        - HAZ
+        - TELEK
+        - GARAZS
+        - IPARI_KERESKEDELMI
+        - EGYEB_ISMERETLEN
+      description: Kanonikus ingatlantípus
 
     DashboardResponseDto:
       type: object
@@ -804,3 +1004,65 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PortalStatusDto'
+
+    MarketSegmentStatsDto:
+      type: object
+      properties:
+        city:
+          type: string
+        propertyType:
+          $ref: '#/components/schemas/PropertyType'
+        propertyTypeName:
+          type: string
+        residential:
+          type: boolean
+        plot:
+          type: boolean
+        sampleSize:
+          type: integer
+        insufficientData:
+          type: boolean
+        medianPricePerM2:
+          type: integer
+        averagePricePerM2:
+          type: integer
+        medianPriceMillion:
+          type: number
+        averagePriceMillion:
+          type: number
+        minPriceMillion:
+          type: number
+        maxPriceMillion:
+          type: number
+        bargainCount:
+          type: integer
+
+    PriceDropItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        city:
+          type: string
+        portal:
+          type: string
+        propertyType:
+          $ref: '#/components/schemas/PropertyType'
+        currentPriceHuf:
+          type: integer
+        currentPriceMillion:
+          type: number
+        priceDelta:
+          type: integer
+        changePercent:
+          type: number
+        pricePerM2:
+          type: integer
+        imageUrl:
+          type: string
+        lastPriceChangeAt:
+          type: string

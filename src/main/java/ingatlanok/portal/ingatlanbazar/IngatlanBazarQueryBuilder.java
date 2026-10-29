@@ -1,28 +1,25 @@
 package ingatlanok.portal.ingatlanbazar;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalSupport;
+import ingatlanok.portal.PortalUrlBuilder;
 
-public class IngatlanBazarQueryBuilder {
+public class IngatlanBazarQueryBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://www.ingatlanbazar.hu";
   public static final String API_SEARCH_URL = "https://www.ingatlanbazar.hu/api/property-search";
 
+  @Override
   public String buildSearchUrl(SearchCriteria criteria) {
-    if (criteria == null) {
-      criteria = new SearchCriteria();
-    }
-    String city = criteria.getCity();
-    if (city == null || city.isBlank()) {
-      city = "Debrecen";
-    }
-    String displayCity = Character.toUpperCase(city.charAt(0)) + city.substring(1);
+    SearchCriteria safe = PortalSupport.normalizeCriteria(criteria);
+    String city = PortalSupport.resolveDefaultCity(safe);
+    String displayCity = PortalSupport.resolveAsciiCapitalizedCity(city);
 
-    String rawType =
-        criteria.getPropertyType() != null
-            ? criteria.getPropertyType().toLowerCase().trim()
-            : "lakas";
+    String rawType = PortalSupport.resolvePropertyTypeSlug(safe);
     String typeSlug =
         switch (rawType) {
           case "haz" -> "Haz";
@@ -30,64 +27,115 @@ public class IngatlanBazarQueryBuilder {
           default -> "Lakas";
         };
 
-    StringBuilder query = new StringBuilder("?");
+    StringBuilder path =
+        new StringBuilder(BASE_URL)
+            .append("/ingatlan-")
+            .append(displayCity)
+            .append("-Elado-")
+            .append(typeSlug);
+
+    path.append(buildPricePathSlug(safe));
+    path.append(buildAreaPathSlug(safe));
+
+    List<String> queryParams = new ArrayList<>();
     Optional<Integer> locId = IngatlanBazarLocationResolver.resolveLocationId(city);
-    locId.ifPresent(id -> query.append("property_location=").append(id).append("&"));
+    locId.ifPresent(id -> queryParams.add("property_location=" + id));
 
-    if (criteria.getMinPriceMillion() != null) {
-      query.append("price_min=").append(criteria.getMinPriceMillion()).append("&");
+    if (safe.getMinPriceMillion() != null) {
+      queryParams.add("price_min=" + safe.getMinPriceMillion());
     }
-    if (criteria.getMaxPriceMillion() != null) {
-      query.append("price_max=").append(criteria.getMaxPriceMillion()).append("&");
-    }
-
-    if ("haz".equals(rawType)) {
-      query.append("property__2=2&");
-    } else if ("telek".equals(rawType)) {
-      query.append("property__2=5&");
-    } else {
-      query.append("property__2=3&");
+    if (safe.getMaxPriceMillion() != null) {
+      queryParams.add("price_max=" + safe.getMaxPriceMillion());
     }
 
-    String q = query.toString();
-    if (q.endsWith("&") || q.endsWith("?")) {
-      q = q.substring(0, q.length() - 1);
+    String floorAreaParam = buildFloorAreaQueryValue(safe);
+    if (!floorAreaParam.isEmpty()) {
+      queryParams.add("property_floor_area=" + floorAreaParam);
     }
 
-    return BASE_URL + "/ingatlan-" + displayCity + "-Elado-" + typeSlug + q;
+    queryParams.add("property__2=" + resolveTypeCode(rawType));
+
+    return path.append("?").append(String.join("&", queryParams)).toString();
   }
 
   public String buildApiSearchUrl(SearchCriteria criteria, int page) {
-    if (criteria == null) {
-      criteria = new SearchCriteria();
-    }
+    SearchCriteria safe = PortalSupport.normalizeCriteria(criteria);
     StringBuilder sb = new StringBuilder(API_SEARCH_URL);
     sb.append("?property__1=1");
 
-    String city = criteria.getCity();
+    String city = PortalSupport.resolveDefaultCity(safe);
     Optional<Integer> locId = IngatlanBazarLocationResolver.resolveLocationId(city);
     locId.ifPresent(id -> sb.append("&property_location=").append(id));
 
-    String rawType =
-        criteria.getPropertyType() != null
-            ? criteria.getPropertyType().toLowerCase().trim()
-            : "lakas";
-    if ("haz".equals(rawType)) {
-      sb.append("&property__2=2");
-    } else if ("telek".equals(rawType)) {
-      sb.append("&property__2=5");
-    } else {
-      sb.append("&property__2=3");
+    String rawType = PortalSupport.resolvePropertyTypeSlug(safe);
+    sb.append("&property__2=").append(resolveTypeCode(rawType));
+
+    if (safe.getMinPriceMillion() != null) {
+      sb.append("&price_min=").append(safe.getMinPriceMillion());
+    }
+    if (safe.getMaxPriceMillion() != null) {
+      sb.append("&price_max=").append(safe.getMaxPriceMillion());
     }
 
-    if (criteria.getMinPriceMillion() != null) {
-      sb.append("&price_min=").append(criteria.getMinPriceMillion());
-    }
-    if (criteria.getMaxPriceMillion() != null) {
-      sb.append("&price_max=").append(criteria.getMaxPriceMillion());
+    String floorAreaParam = buildFloorAreaQueryValue(safe);
+    if (!floorAreaParam.isEmpty()) {
+      sb.append("&property_floor_area=").append(floorAreaParam);
     }
 
     sb.append("&limit=50&page=").append(page);
     return sb.toString();
+  }
+
+  private String buildPricePathSlug(SearchCriteria criteria) {
+    Integer minPrice = criteria.getMinPriceMillion();
+    Integer maxPrice = criteria.getMaxPriceMillion();
+    if (minPrice != null && maxPrice != null) {
+      return "-" + minPrice + "-" + maxPrice + "-millio-Ft";
+    }
+    if (minPrice != null) {
+      return "-" + minPrice + "-millio-Ft-tol";
+    }
+    if (maxPrice != null) {
+      return "-" + maxPrice + "-millio-Ft-ig";
+    }
+    return "";
+  }
+
+  private String buildAreaPathSlug(SearchCriteria criteria) {
+    Integer minArea = criteria.getMinArea();
+    Integer maxArea = criteria.getMaxArea();
+    if (minArea != null && maxArea != null) {
+      return "-" + minArea + "m2-tol-" + maxArea + "m2-ig";
+    }
+    if (minArea != null) {
+      return "-" + minArea + "m2-tol";
+    }
+    if (maxArea != null) {
+      return "-" + maxArea + "m2-ig";
+    }
+    return "";
+  }
+
+  private String buildFloorAreaQueryValue(SearchCriteria criteria) {
+    Integer minArea = criteria.getMinArea();
+    Integer maxArea = criteria.getMaxArea();
+    if (minArea != null && maxArea != null) {
+      return minArea + "-" + maxArea;
+    }
+    if (minArea != null) {
+      return minArea + "-";
+    }
+    if (maxArea != null) {
+      return "-" + maxArea;
+    }
+    return "";
+  }
+
+  private int resolveTypeCode(String rawType) {
+    return switch (rawType) {
+      case "haz" -> 2;
+      case "telek" -> 5;
+      default -> 3;
+    };
   }
 }

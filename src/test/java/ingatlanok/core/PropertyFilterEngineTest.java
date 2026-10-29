@@ -19,6 +19,7 @@ class PropertyFilterEngineTest {
     PropertyFilterEngine filterEngine = new PropertyFilterEngine();
 
     SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
     criteria.setMinPriceMillion(40);
     criteria.setMaxPriceMillion(80);
     criteria.setMinArea(50);
@@ -291,5 +292,69 @@ class PropertyFilterEngineTest {
         result.matchingItems().stream().anyMatch(i -> "http://matchUpper".equals(i.getUrl())));
     assertEquals(2, result.filteredByPriceCount());
     assertEquals(2, result.filteredByAreaCount());
+  }
+
+  @Test
+  @DisplayName("Szűrés kizárólag új építésű (onlyNewConstruction) ingatlanokra")
+  void testOnlyNewConstructionFilter() {
+    PropertyFilterEngine filterEngine = new PropertyFilterEngine();
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(120);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(150);
+    criteria.setOnlyNewConstruction(true);
+
+    IngatlanItem usedHome =
+        new IngatlanItem(
+            "1",
+            "dh",
+            "http://used",
+            "Használt lakás",
+            "60 M Ft",
+            "Debrecen",
+            "Debrecen",
+            "70 m²",
+            "2026-10-18",
+            false);
+    usedHome.setNewConstruction(false);
+
+    IngatlanItem newBuild =
+        new IngatlanItem(
+            "2",
+            "dh",
+            "http://newbuild",
+            "Új építésű penthouse",
+            "95 M Ft",
+            "Debrecen",
+            "Debrecen",
+            "85 m²",
+            "2026-10-18",
+            true);
+    newBuild.setNewConstruction(true);
+
+    PropertyFilterEngine.FilterResult result =
+        filterEngine.filter(List.of(usedHome, newBuild), criteria, "Debrecen");
+    assertEquals(1, result.matchingItems().size());
+    assertEquals("http://newbuild", result.matchingItems().get(0).getUrl());
+    assertEquals(1, result.filteredByNewConstructionCount());
+    org.junit.jupiter.api.Assertions.assertFalse(criteria.matches(usedHome));
+    assertTrue(criteria.matches(newBuild));
+    assertTrue(criteria.matchesRelevance(usedHome));
+    assertTrue(criteria.matchesRelevance(newBuild));
+    org.junit.jupiter.api.Assertions.assertFalse(criteria.matchesView(usedHome));
+    assertTrue(criteria.matchesView(newBuild));
+
+    PropertyFilterEngine.FilterResult relevanceOnly =
+        filterEngine.filterRelevance(List.of(usedHome, newBuild), criteria, "Debrecen");
+    assertEquals(2, relevanceOnly.matchingItems().size());
+    assertEquals(0, relevanceOnly.filteredByNewConstructionCount());
+
+    PropertyFilterEngine.FilterResult viewOnly =
+        filterEngine.filterView(relevanceOnly.matchingItems(), criteria);
+    assertEquals(1, viewOnly.matchingItems().size());
+    assertEquals(1, viewOnly.filteredByNewConstructionCount());
   }
 }

@@ -11,6 +11,7 @@ import tools.jackson.databind.JsonNode;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
+import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
@@ -83,9 +84,14 @@ public class IngatlanBazarJsonParser {
           NumberFormat nf = NumberFormat.getInstance(new Locale("hu", "HU"));
           String formatted = nf.format(priceHuf) + " Ft";
           double million = Math.round((priceHuf / 1_000_000.0) * 100.0) / 100.0;
-          priceInfo = new PriceInfo(formatted, priceHuf, million);
+          priceInfo =
+              PriceInfo.builder()
+                  .rawText(formatted)
+                  .amountHuf(priceHuf)
+                  .amountMillion(million)
+                  .build();
         } else {
-          priceInfo = new PriceInfo("Ár a hirdetésben", null, null);
+          priceInfo = PriceInfo.builder().rawText("Ár a hirdetésben").build();
         }
 
         Double area = null;
@@ -129,7 +135,12 @@ public class IngatlanBazarJsonParser {
         }
 
         PropertyDetails detailsInfo =
-            new PropertyDetails(detailsSb.toString(), area, rooms, sqmPrice);
+            PropertyDetails.builder()
+                .rawText(detailsSb.toString())
+                .areaSquareMeters(area)
+                .roomCount(rooms)
+                .pricePerSquareMeter(sqmPrice)
+                .build();
 
         String defaultCity = criteria != null ? criteria.getCity() : "Debrecen";
         String settlement =
@@ -151,45 +162,33 @@ public class IngatlanBazarJsonParser {
                 ? hit.get("createdAt").asText().trim()
                 : now;
 
-        IngatlanItem item =
-            new IngatlanItem(
-                propertyId,
-                SOURCE,
-                fullUrl,
-                title,
-                priceInfo,
-                settlement,
-                detailsInfo,
-                discoveredAt,
-                true);
-        item.setLocation(location);
+        String imageUrl = IngatlanBazarRawParser.extractImageUrl(hit);
 
-        String imageUrl = null;
-        if (hit.has("photo") && !hit.get("photo").isNull()) {
-          JsonNode p = hit.get("photo");
-          if (p.isValueNode()) {
-            imageUrl = p.asText();
-          } else if (p.isObject() && p.has("url")) {
-            imageUrl = p.get("url").asText();
-          }
-        } else if (hit.has("picture") && !hit.get("picture").isNull()) {
-          imageUrl = hit.get("picture").asText();
-        } else if (hit.has("images") && hit.get("images").isArray()) {
-          JsonNode imgs = hit.get("images");
-          if (!imgs.isEmpty()) {
-            JsonNode first = imgs.get(0);
-            if (first.isValueNode()) {
-              imageUrl = first.asText();
-            } else if (first.isObject() && first.has("url")) {
-              imageUrl = first.get("url").asText();
-            }
-          }
-        }
-        if (imageUrl != null && !imageUrl.isBlank()) {
-          if (imageUrl.startsWith("//")) {
-            imageUrl = "https:" + imageUrl;
-          }
-          item.setImageUrl(imageUrl);
+        boolean isNewBuild =
+            (hit.has("isNewConstruction") && hit.get("isNewConstruction").asBoolean(false))
+                || (hit.has("newConstruction") && hit.get("newConstruction").asBoolean(false))
+                || (hit.has("condition")
+                    && PropertyParser.isNewConstructionText(hit.get("condition").asText("")))
+                || PropertyParser.isNewConstructionText(title, fullUrl);
+
+        IngatlanItem item =
+            IngatlanItem.builder()
+                .id(propertyId)
+                .source(SOURCE)
+                .url(fullUrl)
+                .title(title)
+                .priceInfo(priceInfo)
+                .city(settlement)
+                .location(location)
+                .detailsInfo(detailsInfo)
+                .discoveredAt(discoveredAt)
+                .isNew(true)
+                .imageUrl(imageUrl)
+                .newConstruction(isNewBuild)
+                .build();
+
+        if (criteria != null && !criteria.matchesRelevance(item)) {
+          continue;
         }
 
         result.add(item);

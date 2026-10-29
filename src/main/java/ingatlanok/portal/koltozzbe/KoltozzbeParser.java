@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jsoup.nodes.Document;
@@ -19,13 +20,17 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalHtmlParser;
+import ingatlanok.portal.PortalSupport;
 
-public class KoltozzbeParser {
+public class KoltozzbeParser implements PortalHtmlParser {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbeParser.class);
   private static final Pattern ID_PATTERN = Pattern.compile("/h([0-9]+)");
+  private static final Pattern PAGE_PARAM_PATTERN = Pattern.compile("[?&]page=(\\d+)");
   private static final PortalSource SOURCE = PortalSource.of("Költözzbe");
 
+  @Override
   public List<IngatlanItem> parseItems(
       Document doc, SearchCriteria criteria, String now, Set<String> processedUrls) {
     List<IngatlanItem> items = new ArrayList<>();
@@ -33,76 +38,144 @@ public class KoltozzbeParser {
       return items;
     }
 
-    Elements cards = doc.select(".listing-card, div[data-lid]");
-    if (!cards.isEmpty()) {
-      for (Element card : cards) {
-        Element linkElem = card.selectFirst("a.listing-item-link, a[href*=/elado-]");
-        if (linkElem == null) {
-          continue;
-        }
-
-        String href = linkElem.attr("href");
-        if (href == null || href.isBlank()) {
-          continue;
-        }
-
-        String fullUrl =
-            href.startsWith("http")
-                ? href
-                : KoltozzbeUrlBuilder.BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-        if (processedUrls != null && processedUrls.contains(fullUrl)) {
-          continue;
-        }
-        if (processedUrls != null) {
-          processedUrls.add(fullUrl);
-        }
-
-        String lid = card.attr("data-lid");
-        if (lid.isBlank()) {
-          lid =
-              PropertyParser.extractFirstGroup(
-                  fullUrl, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
-        }
-
-        String city = criteria != null ? criteria.getCity() : "Debrecen";
-        String title = linkElem.attr("title");
-        if (title == null || title.isBlank()) {
-          Element priceHeader = card.selectFirst(".item-price");
-          title = (priceHeader != null) ? priceHeader.text().trim() : city + " - Eladó ingatlan";
-        }
-
-        Element priceElem = card.selectFirst(".item-type.h2");
-        String rawPriceText = (priceElem != null) ? priceElem.text() : card.text();
-        PriceInfo priceInfo = PropertyParser.parsePrice(rawPriceText);
-
-        Element paramsElem = card.selectFirst(".listing-parameters");
-        String detailsText = (paramsElem != null) ? paramsElem.text() : card.text();
-        PropertyDetails details = PropertyParser.parseDetails(detailsText, priceInfo);
-
-        Element imgElem = card.selectFirst(".listing-thumbnail img, img");
-        String imageUrl = null;
-        if (imgElem != null) {
-          imageUrl = imgElem.hasAttr("data-src") ? imgElem.attr("data-src") : imgElem.attr("src");
-          if (imageUrl != null && imageUrl.startsWith("/")) {
-            imageUrl = KoltozzbeUrlBuilder.BASE_URL + imageUrl;
-          }
-        }
-
-        IngatlanItem item =
-            new IngatlanItem(lid, SOURCE, fullUrl, title, priceInfo, city, details, now, false);
-        item.setLocation(city);
-        item.setImageUrl(imageUrl);
-
-        if (criteria != null && !criteria.matches(item)) {
-          continue;
-        }
-        items.add(item);
-      }
-    } else {
-      parseJsonLd(doc, criteria, items, processedUrls, now);
+    Elements cards =
+        doc.select(
+            ".listing-card, .property-box, .property-card, .listing-item,"
+                + " article[data-id], div[data-lid], div[data-id]");
+    if (cards.isEmpty()) {
+      cards = doc.select("a.listing-item-link, a[href*=/elado-]");
     }
 
+    for (Element card : cards) {
+      Element linkElem =
+          card.is("a")
+              ? card
+              : card.selectFirst(
+                  "a.listing-item-link, a[href*=/elado-], a[href*=/h], a[href*=/ingatlan]");
+      if (linkElem == null) {
+        continue;
+      }
+
+      String href = linkElem.attr("href");
+      if (href == null || href.isBlank()) {
+        continue;
+      }
+
+      String fullUrl = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, href);
+      if (!PortalSupport.markProcessed(processedUrls, fullUrl)) {
+        continue;
+      }
+
+      String lid = card.attr("data-lid");
+      if (lid.isBlank()) {
+        lid = card.attr("data-id");
+      }
+      if (lid.isBlank()) {
+        lid =
+            PropertyParser.extractFirstGroup(
+                fullUrl, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
+      }
+
+      String city = PortalSupport.resolveDefaultCity(criteria);
+      String title = extractTitle(card, linkElem, city);
+
+      PriceInfo priceInfo = extractPrice(card);
+      PropertyDetails details = extractDetails(card, priceInfo);
+      String imageUrl =
+          PortalSupport.extractImageWithFallback(card, KoltozzbeUrlBuilder.BASE_URL);
+
+      IngatlanItem item =
+          IngatlanItem.builder()
+              .id(lid)
+              .source(SOURCE)
+              .url(fullUrl)
+              .title(title)
+              .priceInfo(priceInfo)
+              .city(city)
+              .location(city)
+              .detailsInfo(details)
+              .discoveredAt(now)
+              .imageUrl(imageUrl)
+              .newConstruction(PropertyParser.isNewConstructionText(card.text(), title, fullUrl))
+              .build();
+
+      if (criteria != null && !criteria.matchesRelevance(item)) {
+        continue;
+      }
+      items.add(item);
+    }
+
+    parseJsonLd(doc, criteria, items, processedUrls, now);
+
     return items;
+  }
+
+  @Override
+  public boolean hasNextPage(Document doc, int currentPage) {
+    if (doc == null) {
+      return false;
+    }
+    int nextPage = currentPage + 1;
+    if (!doc.select("a[rel=next], .pagination .next:not(.disabled) a").isEmpty()) {
+      return true;
+    }
+
+    Elements pageLinks = doc.select(".pagination a[href], a[href*=page=]");
+    if (pageLinks.isEmpty()) {
+      return doc.select(".pagination").isEmpty();
+    }
+
+    for (Element link : pageLinks) {
+      String href = link.attr("href");
+      Matcher matcher = PAGE_PARAM_PATTERN.matcher(href);
+      if (matcher.find()) {
+        try {
+          int targetPage = Integer.parseInt(matcher.group(1));
+          if (targetPage >= nextPage) {
+            return true;
+          }
+        } catch (NumberFormatException ignored) {
+          // Ignore malformed page numbers in pagination links.
+        }
+      }
+    }
+    return false;
+  }
+
+  private String extractTitle(Element card, Element linkElem, String city) {
+    String title = linkElem.attr("title");
+    if (title != null && !title.isBlank()) {
+      return title.trim();
+    }
+    Element heading = card.selectFirst(".item-title, .listing-title, h2, h3, h4, .item-price");
+    if (heading != null && !heading.text().isBlank()) {
+      return heading.text().trim();
+    }
+    return city + " - Eladó ingatlan";
+  }
+
+  private PriceInfo extractPrice(Element card) {
+    Elements priceCandidates =
+        card.select(".item-type.h2, .item-price, .price, .listing-price");
+    for (Element candidate : priceCandidates) {
+      PriceInfo parsed = PropertyParser.parsePrice(candidate.text());
+      if (parsed != null && parsed.getAmountHuf() != null) {
+        return parsed;
+      }
+    }
+    return PropertyParser.parsePrice(card.text());
+  }
+
+  private PropertyDetails extractDetails(Element card, PriceInfo priceInfo) {
+    Element paramsElem =
+        card.selectFirst(".listing-parameters, .property-parameters, .item-parameters");
+    if (paramsElem != null) {
+      PropertyDetails parsed = PropertyParser.parseDetails(paramsElem.text(), priceInfo);
+      if (parsed.getAreaSquareMeters() != null) {
+        return parsed;
+      }
+    }
+    return PropertyParser.parseDetails(card.text(), priceInfo);
   }
 
   public void parseJsonLd(
@@ -114,77 +187,67 @@ public class KoltozzbeParser {
     Elements scripts = doc.select("script[type=application/ld+json]");
     for (Element script : scripts) {
       String jsonText = script.data();
-      if (jsonText == null || !jsonText.contains("ListItem") || !jsonText.contains("Product")) {
+      if (jsonText == null
+          || (!jsonText.contains("ListItem") && !jsonText.contains("itemListElement"))) {
         continue;
       }
       try {
         JsonNode root = JsonSupport.parse(jsonText);
-        if (!root.isObject()) {
-          continue;
-        }
-        JsonNode obj = root;
-        if (!obj.has("itemListElement")) {
+        if (!root.isObject() || !root.has("itemListElement")) {
           continue;
         }
 
-        JsonNode elements = obj.get("itemListElement");
+        JsonNode elements = root.get("itemListElement");
         for (JsonNode el : elements) {
           if (!el.isObject()) {
             continue;
           }
-          JsonNode itemObj = el;
-          if (!itemObj.has("item")) {
+          JsonNode product = el.has("item") ? el.get("item") : el;
+
+          String rawUrl = product.has("url") ? product.get("url").asText() : null;
+          String url = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, rawUrl);
+          if (url.isEmpty() || !PortalSupport.markProcessed(processedUrls, url)) {
             continue;
           }
-          JsonNode product = itemObj.get("item");
 
-          String url = product.has("url") ? product.get("url").asText() : null;
-          if (url == null || (processedUrls != null && processedUrls.contains(url))) {
-            continue;
-          }
-          if (processedUrls != null) {
-            processedUrls.add(url);
-          }
-
-          String city = criteria != null ? criteria.getCity() : "Debrecen";
+          String city = PortalSupport.resolveDefaultCity(criteria);
           String name =
               product.has("name") ? product.get("name").asText() : city + " - Eladó ingatlan";
+          String description =
+              product.has("description") ? product.get("description").asText("") : "";
           String id =
               PropertyParser.extractFirstGroup(
                   url, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
 
-          long rawPrice = 0;
-          if (product.has("offers")) {
-            JsonNode offers = product.get("offers");
-            if (offers.has("priceSpecification")) {
-              JsonNode ps = offers.get("priceSpecification");
-              if (ps.has("price")) {
-                rawPrice = ps.get("price").asLong();
-              }
-            }
-          }
-
+          long rawPrice = extractJsonLdPrice(product);
           PriceInfo priceInfo =
               (rawPrice > 0)
                   ? PropertyParser.parsePrice(rawPrice + " Ft")
-                  : PropertyParser.parsePrice(name);
+                  : PropertyParser.parsePrice(name + " " + description);
 
           PropertyDetails details = PropertyParser.parseDetails(name, priceInfo);
-
-          String imageUrl = null;
-          if (product.has("image") && product.get("image").isArray()) {
-            JsonNode imgArr = product.get("image");
-            if (!imgArr.isEmpty()) {
-              imageUrl = imgArr.get(0).asText();
-            }
+          if (details.getAreaSquareMeters() == null && !description.isBlank()) {
+            details = PropertyParser.parseDetails(name + " " + description, priceInfo);
           }
 
-          IngatlanItem item =
-              new IngatlanItem(id, SOURCE, url, name, priceInfo, city, details, now, false);
-          item.setLocation(city);
-          item.setImageUrl(imageUrl);
+          String imageUrl = extractJsonLdImage(product);
 
-          if (criteria == null || criteria.matches(item)) {
+          IngatlanItem item =
+              IngatlanItem.builder()
+                  .id(id)
+                  .source(SOURCE)
+                  .url(url)
+                  .title(name)
+                  .priceInfo(priceInfo)
+                  .city(city)
+                  .location(city)
+                  .detailsInfo(details)
+                  .discoveredAt(now)
+                  .imageUrl(imageUrl)
+                  .newConstruction(PropertyParser.isNewConstructionText(name, description, url))
+                  .build();
+
+          if (criteria == null || criteria.matchesRelevance(item)) {
             items.add(item);
           }
         }
@@ -192,5 +255,33 @@ public class KoltozzbeParser {
         LOGGER.debug("JSON-LD parse warning: {}", ex.getMessage());
       }
     }
+  }
+
+  private long extractJsonLdPrice(JsonNode product) {
+    if (!product.has("offers")) {
+      return 0;
+    }
+    JsonNode offers = product.get("offers");
+    if (offers.has("priceSpecification") && offers.get("priceSpecification").has("price")) {
+      return offers.get("priceSpecification").get("price").asLong(0);
+    }
+    if (offers.has("price")) {
+      return offers.get("price").asLong(0);
+    }
+    return 0;
+  }
+
+  private String extractJsonLdImage(JsonNode product) {
+    if (!product.has("image")) {
+      return null;
+    }
+    String resolved = null;
+    JsonNode imageNode = product.get("image");
+    if (imageNode.isArray() && !imageNode.isEmpty()) {
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asText());
+    } else if (imageNode.isValueNode()) {
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asText());
+    }
+    return (resolved != null && !PortalSupport.isPlaceholderImageUrl(resolved)) ? resolved : null;
   }
 }

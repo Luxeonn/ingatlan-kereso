@@ -18,12 +18,15 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalHtmlParser;
+import ingatlanok.portal.PortalSupport;
 
-public class OtthonCentrumParser {
+public class OtthonCentrumParser implements PortalHtmlParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlanok/([A-Za-z0-9]+)");
   private static final PortalSource SOURCE = PortalSource.of("Otthon Centrum");
 
+  @Override
   public List<IngatlanItem> parseItems(
       Document document, SearchCriteria criteria, String executionTime, Set<String> processedUrls) {
     List<IngatlanItem> items = new ArrayList<>();
@@ -52,15 +55,9 @@ public class OtthonCentrumParser {
       }
 
       if (href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
-        String fullLink =
-            href.startsWith("http")
-                ? href
-                : OtthonCentrumUrlBuilder.BASE_URL + (href.startsWith("/") ? "" : "/") + href;
-        if (processedUrls != null && processedUrls.contains(fullLink)) {
+        String fullLink = PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href);
+        if (!PortalSupport.markProcessed(processedUrls, fullLink)) {
           continue;
-        }
-        if (processedUrls != null) {
-          processedUrls.add(fullLink);
         }
 
         String cardText = card.text().replaceAll("\\s+", " ").trim();
@@ -104,14 +101,19 @@ public class OtthonCentrumParser {
         PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
         if (jsonPriceHuf != null && (priceInfo == null || priceInfo.getAmountHuf() == null)) {
           double million = Math.round((jsonPriceHuf / 1_000_000.0) * 100.0) / 100.0;
-          priceInfo = new PriceInfo(jsonPriceHuf + " Ft", jsonPriceHuf, million);
+          priceInfo =
+              PriceInfo.builder()
+                  .rawText(jsonPriceHuf + " Ft")
+                  .amountHuf(jsonPriceHuf)
+                  .amountMillion(million)
+                  .build();
         }
 
         PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
         String actualCity =
             (locationCity != null && !locationCity.isBlank())
                 ? locationCity
-                : (criteria != null ? criteria.getCity() : "Debrecen");
+                : PortalSupport.resolveDefaultCity(criteria);
 
         String title;
         Element headingEl =
@@ -123,32 +125,24 @@ public class OtthonCentrumParser {
         }
 
         IngatlanItem item =
-            new IngatlanItem(
-                id,
-                SOURCE,
-                fullLink,
-                title,
-                priceInfo,
-                actualCity,
-                detailsInfo,
-                executionTime,
-                false);
-        item.setLocation(actualCity);
+            IngatlanItem.builder()
+                .id(id)
+                .source(SOURCE)
+                .url(fullLink)
+                .title(title)
+                .priceInfo(priceInfo)
+                .city(actualCity)
+                .location(actualCity)
+                .detailsInfo(detailsInfo)
+                .discoveredAt(executionTime)
+                .imageUrl(
+                    PortalSupport.extractImageWithFallback(
+                        card, OtthonCentrumUrlBuilder.BASE_URL))
+                .newConstruction(
+                    PropertyParser.isNewConstructionText(cardText, title, fullLink, seoAttr))
+                .build();
 
-        String imageUrl = null;
-        Element imgEl = card.selectFirst("img.lazyload[data-src], img[data-src]");
-        if (imgEl != null && !imgEl.attr("data-src").isBlank()) {
-          imageUrl = imgEl.attr("data-src");
-        }
-        if (imageUrl == null || imageUrl.isBlank()) {
-          imageUrl = PropertyParser.extractImageUrl(card);
-        }
-        if ((imageUrl == null || imageUrl.isBlank()) && card.parent() != null) {
-          imageUrl = PropertyParser.extractImageUrl(card.parent());
-        }
-        item.setImageUrl(imageUrl);
-
-        if (criteria != null && !criteria.matches(item)) {
+        if (criteria != null && !criteria.matchesRelevance(item)) {
           continue;
         }
 

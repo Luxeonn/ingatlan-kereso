@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo, type FC, type KeyboardEvent } from 'react'
+import { useState, useRef, useMemo, useCallback, type FC, type KeyboardEvent } from 'react'
 import { MapPin, X, ChevronDown } from 'lucide-react'
 import { useCities } from '../../hooks/useCities'
+import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 import { PresetButtons } from './PresetButtons'
 
 interface CitySelectorProps {
@@ -26,6 +27,9 @@ export const CitySelector: FC<CitySelectorProps> = ({
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const closeDropdown = useCallback(() => setIsOpen(false), [])
+
+  useOutsideDismiss(containerRef, isOpen, closeDropdown)
 
   const allCities = useMemo(() => {
     if (!citiesData?.predefined || !Array.isArray(citiesData.predefined)) {
@@ -67,17 +71,6 @@ export const CitySelector: FC<CitySelectorProps> = ({
     }
     return null
   }
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const handleSelect = (city: string) => {
     onAddCity(city)

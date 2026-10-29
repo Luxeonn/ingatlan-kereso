@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.StatusLogEntry;
@@ -136,6 +137,8 @@ public class RestApiController {
       @RequestParam(value = "minRooms", required = false) Double minRooms,
       @RequestParam(value = "maxRooms", required = false) Double maxRooms,
       @RequestParam(value = "excludeViewed", defaultValue = "false") boolean excludeViewed,
+      @RequestParam(value = "onlyNewConstruction", defaultValue = "false")
+          boolean onlyNewConstruction,
       @RequestParam(value = "sortBy", defaultValue = "DISCOVERED_DESC") String sortBy,
       @RequestParam(value = "limit", required = false) Integer limit,
       @RequestParam(value = "offset", required = false) Integer offset) {
@@ -155,6 +158,7 @@ public class RestApiController {
             maxRooms,
             excludeViewed,
             onlyDiscounted,
+            onlyNewConstruction,
             sortBy,
             offset == null || offset <= 0 ? 0 : offset,
             pageSize);
@@ -195,6 +199,23 @@ public class RestApiController {
     }
     List<StatusLogEntry> log = listingStorage.getStatusLog(key);
     return ResponseEntity.ok(log);
+  }
+
+  @GetMapping({"/properties/observations", "/properties/{id}/observations"})
+  public ResponseEntity<?> getListingObservations(
+      @PathVariable(value = "id", required = false) String pathId,
+      @RequestParam(value = "id", required = false) String paramId,
+      @RequestParam(value = "url", required = false) String paramUrl) {
+    String key =
+        pathId != null && !pathId.isBlank()
+            ? pathId
+            : (paramId != null && !paramId.isBlank() ? paramId : paramUrl);
+    if (key == null || key.isBlank()) {
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "Hiányzó 'id' vagy 'url' paraméter!"));
+    }
+    List<ListingObservation> observations = listingStorage.getListingObservations(key);
+    return ResponseEntity.ok(observations);
   }
 
   @GetMapping("/properties/discounted")

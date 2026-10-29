@@ -4,15 +4,20 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
 
+@Getter
+@Setter
 public class SearchCriteria implements Serializable {
 
-  private String city = "Debrecen";
+  private String city = "Hajdúszoboszló";
   private List<String> cities = new ArrayList<>();
-  private String propertyType = "lakas";
+  private String propertyType = "haz";
   private Integer minPriceMillion = 70;
   private Integer maxPriceMillion = 120;
   private Integer minArea = 90;
@@ -22,11 +27,12 @@ public class SearchCriteria implements Serializable {
   private boolean autoOpenBrowser = false;
   private boolean excludeViewed = false;
   private boolean onlyDiscounted = false;
+  private boolean onlyNewConstruction = false;
 
   public SearchCriteria() {
 
     if (cities.isEmpty()) {
-      cities.add("Debrecen");
+      cities.add("Hajdúszoboszló");
     }
     portals.add("dh");
     portals.add("oc");
@@ -43,7 +49,7 @@ public class SearchCriteria implements Serializable {
         return first.trim();
       }
     }
-    return city != null && !city.isBlank() ? city.trim() : "Debrecen";
+    return city != null && !city.isBlank() ? city.trim() : "Hajdúszoboszló";
   }
 
   public void setCity(String city) {
@@ -96,87 +102,12 @@ public class SearchCriteria implements Serializable {
     clone.setAutoOpenBrowser(this.autoOpenBrowser);
     clone.setExcludeViewed(this.excludeViewed);
     clone.setOnlyDiscounted(this.onlyDiscounted);
+    clone.setOnlyNewConstruction(this.onlyNewConstruction);
     return clone;
-  }
-
-  public boolean isOnlyDiscounted() {
-    return onlyDiscounted;
-  }
-
-  public void setOnlyDiscounted(boolean onlyDiscounted) {
-    this.onlyDiscounted = onlyDiscounted;
   }
 
   public String getPropertyType() {
     return propertyType != null ? propertyType : "lakas";
-  }
-
-  public void setPropertyType(String propertyType) {
-    this.propertyType = propertyType;
-  }
-
-  public Integer getMinPriceMillion() {
-    return minPriceMillion;
-  }
-
-  public void setMinPriceMillion(Integer minPriceMillion) {
-    this.minPriceMillion = minPriceMillion;
-  }
-
-  public Integer getMaxPriceMillion() {
-    return maxPriceMillion;
-  }
-
-  public void setMaxPriceMillion(Integer maxPriceMillion) {
-    this.maxPriceMillion = maxPriceMillion;
-  }
-
-  public Integer getMinRooms() {
-    return minRooms;
-  }
-
-  public void setMinRooms(Integer minRooms) {
-    this.minRooms = minRooms;
-  }
-
-  public Integer getMinArea() {
-    return minArea;
-  }
-
-  public void setMinArea(Integer minArea) {
-    this.minArea = minArea;
-  }
-
-  public Integer getMaxArea() {
-    return maxArea;
-  }
-
-  public void setMaxArea(Integer maxArea) {
-    this.maxArea = maxArea;
-  }
-
-  public List<String> getPortals() {
-    return portals;
-  }
-
-  public void setPortals(List<String> portals) {
-    this.portals = portals;
-  }
-
-  public boolean isAutoOpenBrowser() {
-    return autoOpenBrowser;
-  }
-
-  public void setAutoOpenBrowser(boolean autoOpenBrowser) {
-    this.autoOpenBrowser = autoOpenBrowser;
-  }
-
-  public boolean isExcludeViewed() {
-    return excludeViewed;
-  }
-
-  public void setExcludeViewed(boolean excludeViewed) {
-    this.excludeViewed = excludeViewed;
   }
 
   public boolean isPortalEnabled(String portalKey) {
@@ -195,15 +126,11 @@ public class SearchCriteria implements Serializable {
   }
 
   public boolean matches(IngatlanItem item) {
+    return matchesRelevance(item) && matchesView(item);
+  }
+
+  public boolean matchesRelevance(IngatlanItem item) {
     if (item == null) {
-      return false;
-    }
-
-    if (excludeViewed && item.isViewed()) {
-      return false;
-    }
-
-    if (onlyDiscounted && !item.isDiscounted()) {
       return false;
     }
 
@@ -224,6 +151,26 @@ public class SearchCriteria implements Serializable {
     String targetCity = getCity();
     if (targetCity != null && !targetCity.isBlank()) {
       return matchesCity(item, targetCity);
+    }
+
+    return true;
+  }
+
+  public boolean matchesView(IngatlanItem item) {
+    if (item == null) {
+      return false;
+    }
+
+    if (excludeViewed && item.isViewed()) {
+      return false;
+    }
+
+    if (onlyDiscounted && !item.isDiscounted()) {
+      return false;
+    }
+
+    if (onlyNewConstruction && !item.isNewConstruction()) {
+      return false;
     }
 
     return true;

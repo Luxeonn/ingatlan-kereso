@@ -10,12 +10,49 @@ export type SortOption =
   | 'area_desc'
   | 'date_desc'
 
+export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
+  { value: 'price_asc', label: 'Ár: Növekvő (alapértelmezett)' },
+  { value: 'price_desc', label: 'Ár: Csökkenő' },
+  { value: 'sqm_price_asc', label: 'Ft/m²: Növekvő' },
+  { value: 'sqm_price_desc', label: 'Ft/m²: Csökkenő' },
+  { value: 'area_desc', label: 'Méret: Legnagyobb elöl' },
+  { value: 'date_desc', label: 'Felfedezés: Legfrissebb' },
+]
+
 export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe']
 
+const VALID_SORTS: SortOption[] = SORT_OPTIONS.map((o) => o.value)
+
+function safeGetStorageItem(key: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function safeSetStorageItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getStoredSortOption(): SortOption {
+  const saved = safeGetStorageItem('preferred_sort_option') as SortOption | null
+  return saved && VALID_SORTS.includes(saved) ? saved : 'price_asc'
+}
+
+function getStoredExcludeViewed(): boolean {
+  return safeGetStorageItem('preferred_exclude_viewed') === 'true'
+}
+
 const DEFAULT_CRITERIA: SearchCriteria = {
-  cities: ['Debrecen'],
-  city: 'Debrecen',
-  propertyType: 'lakas',
+  cities: ['Hajdúszoboszló'],
+  city: 'Hajdúszoboszló',
+  propertyType: 'haz',
   minPriceMillion: 70,
   maxPriceMillion: 120,
   minArea: 90,
@@ -24,6 +61,7 @@ const DEFAULT_CRITERIA: SearchCriteria = {
   autoOpenBrowser: false,
   excludeViewed: false,
   onlyDiscounted: false,
+  onlyNewConstruction: false,
 }
 
 const urlSchema = z.object({
@@ -37,16 +75,22 @@ const urlSchema = z.object({
   portals: z.string().max(500).optional(),
   autoOpen: z.enum(['true', 'false']).optional(),
   excludeViewed: z.enum(['true', 'false']).optional(),
+  onlyNewConstruction: z.enum(['true', 'false']).optional(),
   sort: z.enum(['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc']).optional(),
   onlyNew: z.enum(['true', 'false']).optional(),
+  onlyBargain: z.enum(['true', 'false']).optional(),
+  minQuality: z.coerce.number().finite().min(0).max(100).optional(),
 })
 
 interface FilterState {
   criteria: SearchCriteria
   sortOption: SortOption
   onlyNew: boolean
-  
-  // Actions
+  onlyBargain: boolean
+  minQualityScore: number
+  quickSearchQuery: string
+  selectedPortalFilter: string
+
   setCriteria: (criteria: Partial<SearchCriteria>) => void
   addCity: (city: string) => void
   removeCity: (city: string) => void
@@ -60,200 +104,139 @@ interface FilterState {
   setAllPortals: (portals: string[]) => void
   setAutoOpen: (auto: boolean) => void
   setExcludeViewed: (exclude: boolean) => void
+  setOnlyNewConstruction: (onlyNewConstruction: boolean) => void
   setSortOption: (sort: SortOption) => void
   setOnlyNew: (onlyNew: boolean) => void
+  setOnlyBargain: (onlyBargain: boolean) => void
+  setMinQualityScore: (score: number) => void
+  setQuickSearchQuery: (query: string) => void
+  setSelectedPortalFilter: (portal: string) => void
   resetToDefaults: () => void
   syncFromUrl: () => void
   syncToUrl: () => void
 }
 
-function parseUrlParams(): { criteria?: Partial<SearchCriteria>; sort?: SortOption; onlyNew?: boolean } {
+function parseUrlParams(): {
+  criteria?: Partial<SearchCriteria>
+  sort?: SortOption
+  onlyNew?: boolean
+  onlyBargain?: boolean
+  minQualityScore?: number
+} {
   if (typeof window === 'undefined') return {}
   const parsedUrl = urlSchema.safeParse(Object.fromEntries(new URLSearchParams(window.location.search)))
   if (!parsedUrl.success) return {}
   const params = parsedUrl.data
   const result: Partial<SearchCriteria> = {}
-  
+
   const citiesParam = params.cities || params.city
   if (citiesParam) {
-    const list = citiesParam.split(',').map((c) => c.trim()).filter((c) => c.length > 0 && c.length <= 100).slice(0, 20)
+    const list = citiesParam
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0 && c.length <= 100)
+      .slice(0, 20)
     if (list.length > 0) {
       result.cities = list
       result.city = list[0]
     }
   }
 
-  const type = params.type
-  if (type) result.propertyType = type
+  if (params.type) result.propertyType = params.type
+  if (params.minPrice !== undefined) result.minPriceMillion = params.minPrice
+  if (params.maxPrice !== undefined) result.maxPriceMillion = params.maxPrice
+  if (params.minArea !== undefined) result.minArea = params.minArea
+  if (params.maxArea !== undefined) result.maxArea = params.maxArea
 
-  const minPrice = params.minPrice
-  if (minPrice !== undefined) result.minPriceMillion = minPrice
-
-  const maxPrice = params.maxPrice
-  if (maxPrice !== undefined) result.maxPriceMillion = maxPrice
-
-  const minArea = params.minArea
-  if (minArea !== undefined) result.minArea = minArea
-
-  const maxArea = params.maxArea
-  if (maxArea !== undefined) result.maxArea = maxArea
-
-  const portalsParam = params.portals
-  if (portalsParam) {
-    const validPortals = portalsParam.split(',').map((p) => p.trim()).filter((p) => DEFAULT_PORTALS.includes(p))
+  if (params.portals) {
+    const validPortals = params.portals
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => DEFAULT_PORTALS.includes(p))
     if (validPortals.length > 0) result.portals = validPortals
   }
 
-  const autoOpen = params.autoOpen
-  if (autoOpen != null) result.autoOpenBrowser = autoOpen === 'true'
+  if (params.autoOpen != null) result.autoOpenBrowser = params.autoOpen === 'true'
+  if (params.excludeViewed != null) result.excludeViewed = params.excludeViewed === 'true'
+  if (params.onlyNewConstruction != null) result.onlyNewConstruction = params.onlyNewConstruction === 'true'
 
-  const excludeViewed = params.excludeViewed
-  if (excludeViewed != null) result.excludeViewed = excludeViewed === 'true'
-
-  let sort: SortOption | undefined
-  const sortParam = params.sort
-  if (sortParam) sort = sortParam
-
-  const onlyNewParam = params.onlyNew
-  const onlyNew = onlyNewParam === 'true'
-
-  return { criteria: result, sort, onlyNew }
+  return {
+    criteria: result,
+    sort: params.sort,
+    onlyNew: params.onlyNew === 'true',
+    onlyBargain: params.onlyBargain === 'true',
+    minQualityScore: params.minQuality ?? 0,
+  }
 }
 
 export const useFilterStore = create<FilterState>((set, get) => {
   const initial = parseUrlParams()
-  const initialCriteria: SearchCriteria = {
-    ...DEFAULT_CRITERIA,
-    ...(initial.criteria || {}),
+  const updateCriteria = (partial: Partial<SearchCriteria>) => {
+    set((state) => ({ criteria: { ...state.criteria, ...partial } }))
+    get().syncToUrl()
   }
 
   return {
-    criteria: initialCriteria,
-    sortOption: initial.sort || 'price_asc',
-    onlyNew: initial.onlyNew || false,
-
-    setCriteria: (partial) => {
-      set((state) => {
-        const next = { ...state.criteria, ...partial }
-        return { criteria: next }
-      })
-      get().syncToUrl()
+    criteria: {
+      ...DEFAULT_CRITERIA,
+      excludeViewed: getStoredExcludeViewed(),
+      ...(initial.criteria || {}),
     },
+    sortOption: initial.sort || getStoredSortOption(),
+    onlyNew: initial.onlyNew || false,
+    onlyBargain: initial.onlyBargain || false,
+    minQualityScore: initial.minQualityScore || 0,
+    quickSearchQuery: '',
+    selectedPortalFilter: 'all',
+
+    setCriteria: updateCriteria,
 
     addCity: (city) => {
       const trimmed = city.trim()
       if (!trimmed) return
-      set((state) => {
-        const existing = state.criteria.cities || []
-        if (existing.includes(trimmed)) return state
-        const updated = [...existing, trimmed]
-        return {
-          criteria: {
-            ...state.criteria,
-            cities: updated,
-            city: updated[0],
-          },
-        }
-      })
-      get().syncToUrl()
+      const existing = get().criteria.cities || []
+      if (existing.includes(trimmed)) return
+      const updated = [...existing, trimmed]
+      updateCriteria({ cities: updated, city: updated[0] })
     },
 
     removeCity: (city) => {
-      set((state) => {
-        const updated = (state.criteria.cities || []).filter((c) => c !== city)
-        return {
-          criteria: {
-            ...state.criteria,
-            cities: updated,
-            city: updated.length > 0 ? updated[0] : 'Debrecen',
-          },
-        }
-      })
-      get().syncToUrl()
+      const updated = (get().criteria.cities || []).filter((c) => c !== city)
+      updateCriteria({ cities: updated, city: updated[0] || 'Hajdúszoboszló' })
     },
 
     setCities: (cities) => {
       const list = cities.map((c) => c.trim()).filter(Boolean)
-      set((state) => ({
-        criteria: {
-          ...state.criteria,
-          cities: list,
-          city: list.length > 0 ? list[0] : 'Debrecen',
-        },
-      }))
-      get().syncToUrl()
+      updateCriteria({ cities: list, city: list[0] || 'Hajdúszoboszló' })
     },
 
-    setPropertyType: (type) => {
-      set((state) => ({
-        criteria: { ...state.criteria, propertyType: type },
-      }))
-      get().syncToUrl()
-    },
-
-    setMinPriceMillion: (min) => {
-      set((state) => ({
-        criteria: { ...state.criteria, minPriceMillion: min },
-      }))
-      get().syncToUrl()
-    },
-
-    setMaxPriceMillion: (max) => {
-      set((state) => ({
-        criteria: { ...state.criteria, maxPriceMillion: max },
-      }))
-      get().syncToUrl()
-    },
-
-    setMinArea: (min) => {
-      set((state) => ({
-        criteria: { ...state.criteria, minArea: min },
-      }))
-      get().syncToUrl()
-    },
-
-    setMaxArea: (max) => {
-      set((state) => ({
-        criteria: { ...state.criteria, maxArea: max },
-      }))
-      get().syncToUrl()
-    },
+    setPropertyType: (propertyType) => updateCriteria({ propertyType }),
+    setMinPriceMillion: (minPriceMillion) => updateCriteria({ minPriceMillion }),
+    setMaxPriceMillion: (maxPriceMillion) => updateCriteria({ maxPriceMillion }),
+    setMinArea: (minArea) => updateCriteria({ minArea }),
+    setMaxArea: (maxArea) => updateCriteria({ maxArea }),
 
     togglePortal: (portalId) => {
-      set((state) => {
-        const current = state.criteria.portals || []
-        const exists = current.includes(portalId)
-        const updated = exists ? current.filter((p) => p !== portalId) : [...current, portalId]
-        return {
-          criteria: { ...state.criteria, portals: updated },
-        }
-      })
-      get().syncToUrl()
+      const current = get().criteria.portals || []
+      const portals = current.includes(portalId)
+        ? current.filter((p) => p !== portalId)
+        : [...current, portalId]
+      updateCriteria({ portals })
     },
 
-    setAllPortals: (portals) => {
-      set((state) => ({
-        criteria: { ...state.criteria, portals },
-      }))
-      get().syncToUrl()
+    setAllPortals: (portals) => updateCriteria({ portals }),
+    setAutoOpen: (autoOpenBrowser) => updateCriteria({ autoOpenBrowser }),
+
+    setExcludeViewed: (excludeViewed) => {
+      safeSetStorageItem('preferred_exclude_viewed', String(excludeViewed))
+      updateCriteria({ excludeViewed })
     },
 
-    setAutoOpen: (auto) => {
-      set((state) => ({
-        criteria: { ...state.criteria, autoOpenBrowser: auto },
-      }))
-      get().syncToUrl()
-    },
+    setOnlyNewConstruction: (onlyNewConstruction) => updateCriteria({ onlyNewConstruction }),
 
-    setExcludeViewed: (exclude) => {
-      set((state) => ({
-        criteria: { ...state.criteria, excludeViewed: exclude },
-      }))
-      get().syncToUrl()
-    },
-
-    setSortOption: (sort) => {
-      set({ sortOption: sort })
+    setSortOption: (sortOption) => {
+      safeSetStorageItem('preferred_sort_option', sortOption)
+      set({ sortOption })
       get().syncToUrl()
     },
 
@@ -262,11 +245,28 @@ export const useFilterStore = create<FilterState>((set, get) => {
       get().syncToUrl()
     },
 
+    setOnlyBargain: (onlyBargain) => {
+      set({ onlyBargain })
+      get().syncToUrl()
+    },
+
+    setMinQualityScore: (minQualityScore) => {
+      set({ minQualityScore })
+      get().syncToUrl()
+    },
+
+    setQuickSearchQuery: (quickSearchQuery) => set({ quickSearchQuery }),
+    setSelectedPortalFilter: (selectedPortalFilter) => set({ selectedPortalFilter }),
+
     resetToDefaults: () => {
       set({
         criteria: { ...DEFAULT_CRITERIA },
         sortOption: 'price_asc',
         onlyNew: false,
+        onlyBargain: false,
+        minQualityScore: 0,
+        quickSearchQuery: '',
+        selectedPortalFilter: 'all',
       })
       if (typeof window !== 'undefined') {
         window.history.replaceState(null, '', window.location.pathname)
@@ -277,49 +277,38 @@ export const useFilterStore = create<FilterState>((set, get) => {
       const parsed = parseUrlParams()
       set({
         criteria: { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) },
-        sortOption: parsed.sort || 'price_asc',
+        sortOption: parsed.sort || getStoredSortOption(),
         onlyNew: parsed.onlyNew ?? false,
+        onlyBargain: parsed.onlyBargain ?? false,
+        minQualityScore: parsed.minQualityScore ?? 0,
       })
     },
 
     syncToUrl: () => {
       if (typeof window === 'undefined') return
-      const { criteria, sortOption, onlyNew } = get()
+      const { criteria, sortOption, onlyNew, onlyBargain, minQualityScore } = get()
       const params = new URLSearchParams()
 
-      if (criteria.cities && criteria.cities.length > 0) {
-        params.set('cities', criteria.cities.join(','))
-      }
-      if (criteria.propertyType && criteria.propertyType !== 'lakas') {
-        params.set('type', criteria.propertyType)
-      }
+      if (criteria.cities && criteria.cities.length > 0) params.set('cities', criteria.cities.join(','))
+      if (criteria.propertyType && criteria.propertyType !== 'lakas') params.set('type', criteria.propertyType)
       if (criteria.minPriceMillion != null && criteria.minPriceMillion !== 70) {
         params.set('minPrice', String(criteria.minPriceMillion))
       }
       if (criteria.maxPriceMillion != null && criteria.maxPriceMillion !== 120) {
         params.set('maxPrice', String(criteria.maxPriceMillion))
       }
-      if (criteria.minArea != null && criteria.minArea !== 90) {
-        params.set('minArea', String(criteria.minArea))
-      }
-      if (criteria.maxArea != null && criteria.maxArea !== 200) {
-        params.set('maxArea', String(criteria.maxArea))
-      }
+      if (criteria.minArea != null && criteria.minArea !== 90) params.set('minArea', String(criteria.minArea))
+      if (criteria.maxArea != null && criteria.maxArea !== 200) params.set('maxArea', String(criteria.maxArea))
       if (criteria.portals && criteria.portals.length < DEFAULT_PORTALS.length) {
         params.set('portals', criteria.portals.join(','))
       }
-      if (sortOption !== 'price_asc') {
-        params.set('sort', sortOption)
-      }
-      if (onlyNew) {
-        params.set('onlyNew', 'true')
-      }
-      if (criteria.autoOpenBrowser) {
-        params.set('autoOpen', 'true')
-      }
-      if (criteria.excludeViewed) {
-        params.set('excludeViewed', 'true')
-      }
+      if (sortOption !== 'price_asc') params.set('sort', sortOption)
+      if (onlyNew) params.set('onlyNew', 'true')
+      if (onlyBargain) params.set('onlyBargain', 'true')
+      if (minQualityScore > 0) params.set('minQuality', String(minQualityScore))
+      if (criteria.autoOpenBrowser) params.set('autoOpen', 'true')
+      if (criteria.excludeViewed) params.set('excludeViewed', 'true')
+      if (criteria.onlyNewConstruction) params.set('onlyNewConstruction', 'true')
 
       const queryString = params.toString()
       const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname

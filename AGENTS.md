@@ -12,17 +12,27 @@ The backend is a Java 25 Spring Boot application. Production code lives in `src/
 - `cd frontend && npm run lint && npm run typecheck && npm run test && npm run build` runs frontend CI checks.
 - `cd frontend && npm run test:e2e` runs Playwright browser tests.
 
-Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`), which runs on pushes to `develop`, and `.github/workflows/release.yml` (`Docker Release`), which is manually started from `main`. Releases derive their version from the latest Git release tag and a patch/minor/major/custom input; GHCR publication must succeed before the Git tag and GitHub Release are created.
+Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`), which runs on pushes to `develop`, and `.github/workflows/release.yml` (`Docker Release`), which is manually started from a branch (such as `main` or `develop`). Releases derive their version from the latest Git release tag and a patch/minor/major/custom input; GHCR publication must succeed before the Git tag and GitHub Release are created.
+
+## Code Generation & Frontend Deduplication Conventions (Mandatory)
+
+- **Lombok:** use `@Getter`/`@Builder`/`@NoArgsConstructor` (and `@Setter` only where post-construction mutation is needed) across models, presentation DTOs, and JPA entities. Prefer `@Builder` (with `@Builder.Default` or constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` where copy-updates are needed) over setter chains across portal parsers, normalizers, core engines, and presentation services, and omit `@Setter` on read-only DTOs/value objects (`MarketStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`). Do not use `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` (enforced by Checkstyle), and do not generate `equals`/`hashCode`/`toString` on JPA entities. Keep hand-written `equals`/`hashCode` where they encode business identity.
+- **MapStruct:** use it for entity ↔ DTO/domain mappings (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`. Use `@AfterMapping` and `@MappingTarget` where post-mapping enrichment or merge semantics apply (`toItem`, `toProperty`, `updateEntityFromItem`), keeping only genuine stateful merge orchestration in Java. Add targeted unit tests for mapper null/fallback branches.
+- **Records:** prefer `record` for immutable value carriers; classes with `@Builder` remain where Jackson/JPA or custom normalizing constructors apply.
+- **Frontend OpenAPI Single Source of Truth:** derive all frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) directly from `generated-api.ts` (`components['schemas']`) generated via `npm run generate-api`. Never duplicate OpenAPI schema interfaces by hand, and promptly remove unreferenced DTO types or unused API client functions (`api/propertyApi.ts`, `api/searchApi.ts`).
+- **Frontend Domain & UI Deduplication:** centralize domain calculations, portal metadata (`normalizePortalKey`, `PORTAL_CHIPS`), quality-tier helpers (`clampQualityScore`, `getQualityConfig`), effective price/sqm helpers (`getEffectivePrice`, `getEffectiveSqmPrice`), and safe external link opening (`openExternalUrl` with `noopener,noreferrer`) in `frontend/src/utils/formatters.ts`. Reuse shared UI primitives (`NumericStepper` for `AreaStepper`/`PriceStepper`, `useOutsideDismiss` for popovers/dropdowns, `SORT_OPTIONS` and `updateCriteria` in `useFilterStore`) and avoid redundant pass-through wrapper components.
 
 ## Style & Naming
 
-Follow the existing Java package and class structure. Checkstyle 10.21.4 is strict: use spaces (no tabs), keep Java lines within 120 characters, group and sort imports, and avoid wildcard imports, `System.out`/`System.err`, and `printStackTrace()`. Use descriptive PascalCase Java type names and camelCase members. Frontend components use `.tsx` with PascalCase names; hooks use `use`-prefixed camelCase. Keep generated API types generated from the OpenAPI spec rather than editing them by hand.
+Follow the existing Java package and class structure. Checkstyle 10.21.4 is strict: use spaces (no tabs), keep Java lines within 120 characters, group and sort imports, and avoid wildcard imports, `System.out`/`System.err`, `printStackTrace()`, and forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`). Use descriptive PascalCase Java type names and camelCase members. Frontend components use `.tsx` with PascalCase names; hooks use `use`-prefixed camelCase. Keep generated API types generated from the OpenAPI spec rather than editing them by hand.
 
 ## Testing
 
 Add JUnit 5 tests under the matching `src/test/java` package and Vitest tests in `frontend/src/test/` (typically `*.test.ts` or `*.test.tsx`). Add Playwright coverage in `frontend/e2e/` for user flows. Backend `check` excludes `live` tests; CI requires at least 80% Java line coverage. Keep ordinary tests deterministic and offline.
 
 ## Commits & Pull Requests
+
+Request GitHub Copilot as reviewer on every PR you create (`gh pr edit <id> --add-reviewer "@copilot"`). Agents must always set Copilot as a reviewer.
 
 Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, or `docs/`; target `develop` by default. PRs must use concise, high-signal Hungarian descriptions adhering strictly to the template's 4 core sections (Context/Goal, Key changes, Verification, and Thematic Agent Approval Gate with 1-sentence rationales), link related issues with closing keywords (`Closes #<id>`), and strictly enforce clean UTF-8 encoding (`gh pr create --body-file ...`) without BOM to prevent mojibake. All required CI checks must pass before merge.
 

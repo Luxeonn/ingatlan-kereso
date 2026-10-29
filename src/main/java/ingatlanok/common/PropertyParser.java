@@ -39,7 +39,7 @@ public final class PropertyParser {
   public static PriceInfo parsePrice(String text) {
     String raw = extractPrice(text);
     if ("Ár a hirdetésben".equals(raw)) {
-      return new PriceInfo(raw, null, null);
+      return PriceInfo.builder().rawText(raw).build();
     }
 
     Matcher mMillion = MILLION_PRICE_PATTERN.matcher(raw);
@@ -47,7 +47,7 @@ public final class PropertyParser {
       try {
         double million = Double.parseDouble(mMillion.group(1).replace(",", "."));
         long huf = Math.round(million * 1_000_000.0);
-        return new PriceInfo(raw, huf, million);
+        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and continue with the next supported price format.
       }
@@ -59,13 +59,13 @@ public final class PropertyParser {
         String cleanDigits = mHuf.group(1).replaceAll("\\s+", "");
         long huf = Long.parseLong(cleanDigits);
         double million = Math.round((huf / 1_000_000.0) * 100.0) / 100.0;
-        return new PriceInfo(raw, huf, million);
+        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and return an unknown price below.
       }
     }
 
-    return new PriceInfo(raw, null, null);
+    return PriceInfo.builder().rawText(raw).build();
   }
 
   public static String extractDetails(String text) {
@@ -106,7 +106,12 @@ public final class PropertyParser {
       pricePerM2 = Math.round((double) priceInfo.getAmountHuf() / area);
     }
 
-    return new PropertyDetails(raw, area, rooms, pricePerM2);
+    return PropertyDetails.builder()
+        .rawText(raw)
+        .areaSquareMeters(area)
+        .roomCount(rooms)
+        .pricePerSquareMeter(pricePerM2)
+        .build();
   }
 
   public static String extractFirstGroup(String text, Pattern pattern, String fallback) {
@@ -193,10 +198,16 @@ public final class PropertyParser {
     if (img == null) {
       return null;
     }
-    String[] attrs = {"data-src", "data-original", "data-lazy-src", "src"};
+    String[] attrs = {"data-src", "data-original", "data-lazy-src", "src", "data-srcset", "srcset"};
     for (String attr : attrs) {
       String src = img.attr(attr);
       if (src != null && !src.isBlank() && !src.startsWith("data:image")) {
+        if (attr.endsWith("srcset")) {
+          src = src.split(",")[0].trim().split("\\s+")[0].trim();
+        }
+        if (src.isBlank() || src.startsWith("data:image")) {
+          continue;
+        }
         if (src.startsWith("//")) {
           return "https:" + src;
         }
@@ -204,5 +215,26 @@ public final class PropertyParser {
       }
     }
     return null;
+  }
+
+  public static boolean isNewConstructionText(String... texts) {
+    if (texts == null) {
+      return false;
+    }
+    for (String text : texts) {
+      if (text == null || text.isBlank()) {
+        continue;
+      }
+      String slug = SlugUtils.toSlug(text);
+      if (slug.contains("uj-epitesu")
+          || slug.contains("ujepitesu")
+          || slug.contains("szerkezetkesz")
+          || slug.contains("kulcsrakesz-uj")
+          || slug.contains("uj-projekt")
+          || slug.contains("lakopark-projekt")) {
+        return true;
+      }
+    }
+    return false;
   }
 }
