@@ -1,4 +1,4 @@
-# Ingatlan Kereső
+# 🏡 Ingatlan Kereső
 
 [![CI Build](https://img.shields.io/github/actions/workflow/status/Luxeonn/ingatlan-kereso/ci.yml?branch=develop&style=flat-square&label=CI%20Build)](https://github.com/Luxeonn/ingatlan-kereso/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Luxeonn/ingatlan-kereso?style=flat-square&label=Verzi%C3%B3&color=007ec6)](https://github.com/Luxeonn/ingatlan-kereso/releases)
@@ -12,66 +12,96 @@
 ![Node.js](https://img.shields.io/badge/Node.js-22%2B-4c1?style=flat-square)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square)
 
-Modern, hibatűrő magyar ingatlankereső, piaci elemző és árfigyelő alkalmazás. Párhuzamosan gyűjti és egységesíti a legnagyobb hazai ingatlanportálok hirdetéseit, kiszűri a duplikációkat és adathibákat, követi az árváltozásokat, valamint valós idejű statisztikai (medián Ft/m²) elemzést nyújt.
+<br />
+
+> **Láss át a hazai ingatlanpiaci zajon.**  
+> Egyetlen felület, amely helyetted fésüli át a legnagyobb magyar ingatlanportálokat, kiszűri a trükkös duplikációkat, leleplezi a rejtett árcsökkenéseket, és megmutatja, hol vannak a valódi piaci lehetőségek.
+
+<br />
 
 ---
 
-## Főbb funkciók
+<br />
 
-- **Multi-portál keresés (Virtual Threads):** Párhuzamos adatgyűjtés 6 portálról: **Duna House**, **Otthon Centrum**, **Jófogás**, **Költözzbe**, **Ingatlanbazár** és **Ingatlan.com** (utóbbi Cloudflare védelem esetén közvetlen keresőlink fallbackkel).
-- **Kereszt-portál deduplikáció:** A több ügynökségnél is meghirdetett azonos ingatlanokat egyetlen kártyára vonja össze a legolcsóbb aktív árral, lenyitható részletező és forrás-összehasonlító panellel (`PropertyDetailsDrawer`).
-- **Egységes típus-normalizáció:** Automatikus besorolás kanonikus kategóriákba (`LAKAS`, `HAZ`, `TELEK`, `GARAZS`, `IPARI_KERESKEDELMI`, `EGYEB_ISMERETLEN`).
-- **Piaci analitika és „Alkalmi vétel” detektálás:** Településenkénti és típusonkénti **medián Ft/m²** számítás (különválasztva a lakóterületet és a telekméretet, minimum 5 mintás küszöbbel). A referencia mediánnál legalább 20%-kal olcsóbb hirdetéseket **Alkalmi vétel** jelvénnyel emeli ki.
-- **Adatminőség-motor (0–100 pont):** 10 szabályból álló determinisztikus szűrő, amely kizárja az irreális vagy hibás hirdetéseket (`< 70` pont) a statisztikákból, és 3 szintű pajzzsal (`<QualityScoreShield />`) jelzi a megbízhatóságot.
-- **Ártörténet és szerződésvezérelt architektúra:** 3 rétegű adatmodell (`Property` → `SourceListing` → `ListingObservation`), fordítási idejű MapStruct mapperekkel (`JpaEntityMapper`, `PresentationMapper`) és OpenAPI 3.1-ből generált frontend típusokkal (`generated-api.ts`).
+## ✨ Miért más az Ingatlan Kereső?
+
+A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti eltérő áron, pontatlan adatokkal és mesterségesen felpumpált kínálattal. Az **Ingatlan Kereső** a háttérben elvégzi a piszkos munkát, hogy neked már csak a tiszta képpel kelljen foglalkoznod:
+
+- 🚀 **Villámgyors, párhuzamos portál-aggregáció**  
+  Egyetlen kereséssel valós időben gyűjti össze a legfontosabb hazai ingatlanportálok kínálatát – több tucat megnyitott böngészőfül nélkül.
+
+- 🧩 **Intelligens duplikáció-szűrés és ár-összevetés**  
+  Felismeri, ha ugyanazt az ingatlant több helyen is hirdetik, egyetlen tiszta kártyára vonja össze őket, és azonnal a **legkedvezőbb elérhető árat** teszi eléd.
+
+- 💎 **Piaci radar és „Alkalmi vétel” vadász**  
+  Saját statisztikai elemzőmotorja folyamatosan méri a helyi piaci árszintet, és automatikusan megjelöli azokat az ingatlanokat, amelyek érdemben a piaci érték alatt érhetők el.
+
+- 🛡️ **Beépített adatminőség-védelem**  
+  Kiszűri a gyanús, hiányos vagy megtévesztő hirdetéseket, így sem a találati listádat, sem a piaci elemzéseket nem torzítják a hibás adatok.
+
+- 📉 **Ártörténet és árváltozás-követés**  
+  Nem felejt: rögzíti az árváltozásokat és az újrahirdetéseket, így pontosan látod, melyik eladó engedett az árból az elmúlt időszakban.
+
+<br />
 
 ---
 
-## Rendszerkomponensek
+<br />
 
-| Réteg / Komponens | Technológia | Szerepkör |
+## 🏗️ Milyen komponensekből épül fel?
+
+A rendszer modern, egymástól függetlenül skálázható rétegekre épül:
+
+| Komponens | Technológiai alap | Mit csinál? |
 | :--- | :--- | :--- |
-| **Frontend (SPA)** | React 19, TypeScript, Tailwind CSS, Zustand, TanStack Query | Keresőpanel (`SearchPanel`), találati lista (`ListingsPanel`) és piaci elemző nézet (`MarketAnalyticsPanel`). |
-| **Backend API** | Java 25 LTS, Spring Boot 4.1.2, Spring MVC, MapStruct, Lombok | Headless JSON REST API (`/api/*`), Virtual Threads alapú párhuzamos kiszolgálás. |
-| **Core Engine-ek** | `SearchExecutionEngine`, `DeduplicationEngine`, `DataQualityEngine`, `MarketAnalyticsEngine` | Keresés-koordináció, klaszterező deduplikáció, minőségpontozás és medián árstatisztika. |
-| **Portal Scraperek** | Jsoup DOM, JSON-LD, belső REST API + `HttpFetcher` | Portálspecifikus kinyerő motorok Rate Limiter és Circuit Breaker védelemmel. |
-| **Perzisztencia** | Spring Data JPA, Hibernate, H2 (dev/CLI) / PostgreSQL 17 (prod) | Ingatlanok, portálhirdetések és idősoros ármegfigyelések tárolása. |
+| 🎨 **Webes Felület (SPA)** | React 19, TypeScript, Tailwind CSS | Gyors, letisztult keresőfelület, interaktív szűrők és vizuális piaci elemző dashboard. |
+| ⚡ **Központi API Szerver** | Java 25 LTS, Spring Boot | Nagy teljesítményű, virtuális szálakra épülő háttérszolgáltatás a kérések azonnali kiszolgálására. |
+| 🧠 **Elemző és Normalizáló Motor** | Saját üzleti algoritmusok | Hirdetések egységesítése, kereszt-portál összevonás, minőségellenőrzés és piaci statisztikák. |
+| 🕷️ **Portál Konnektorok** | Hibatűrő adatgyűjtő modulok | Párhuzamos és védett kapcsolat a hazai ingatlanportálokkal, automatikus tartalék-stratégiákkal. |
+| 🗄️ **Adattár (Perzisztencia)** | Spring Data JPA, H2 / PostgreSQL | Az ingatlanok, forráshirdetések és történeti ármozgások megbízható tárolása. |
+
+<br />
 
 ---
 
-## Indítás és futtatás
+<br />
 
-### 1. Docker Compose (Ajánlott – teljes stack)
+## 🚀 Hogyan indítsd el?
 
-Elindítja a **PostgreSQL 17** adatbázist, a **Spring Boot** backendet és az **Nginx** reverse proxy mögött futó **React SPA** frontendet:
+### 🐳 1. Indítás Dockerrel (A legegyszerűbb mód)
+
+Egyetlen lépésben elindítja a teljes rendszert (adatbázis, háttérszerver és webes felület):
 
 ```bash
-# Indítás előre elkészített GHCR image-ekkel:
+# Előre felépített csomagok letöltése és indítása:
 docker compose pull backend frontend
 docker compose up -d --no-build
 
-# VAGY helyi builddel:
+# VAGY teljes felépítés helyi forráskódból:
 docker compose up -d --build
 ```
 
-- **Windows gyorsindító:** A `scripts/start-docker.bat` interaktív menüt kínál (helyi build, GHCR `latest`, vagy konkrét verzió).
-- **Elérés:** [http://localhost:8080](http://localhost:8080)
+> 💡 **Tipp Windows felhasználóknak:** Indítsd el a `scripts/start-docker.bat` fájlt, amely egy kényelmes menüből kínálja fel az indítási opciókat!
 
-### 2. Lokális fejlesztői mód
+👉 Indítás után nyisd meg a böngészőben: **[http://localhost:8080](http://localhost:8080)**
 
-**Előfeltételek:** JDK 25, Node.js 22+, npm.
+<br />
 
-**Backend indítása** (a projekt gyökérkönyvtárából, beágyazott H2 adatbázissal):
+### 💻 2. Lokális fejlesztői indítás
+
+Ha közvetlenül a forráskódból szeretnéd futtatni (**JDK 25** és **Node.js 22+** szükséges):
+
+**1. Háttérszerver (Backend) indítása:**
 
 ```bash
 # Linux / macOS
 ./gradlew bootRun
 
-# Windows (PowerShell / CMD)
+# Windows
 .\gradlew.bat bootRun
 ```
 
-**Frontend indítása** (külön terminálban, Vite `/api` proxyval):
+**2. Webes felület (Frontend) indítása** *(külön terminálban)*:
 
 ```bash
 cd frontend
@@ -79,27 +109,34 @@ npm ci
 npm run dev
 ```
 
-- **Frontend UI:** [http://localhost:5173](http://localhost:5173)
-- **Backend REST API állapot:** [http://localhost:8080/api/status](http://localhost:8080/api/status)
+👉 Fejlesztői felület: **[http://localhost:5173](http://localhost:5173)** *(automatikusan kapcsolódik a `localhost:8080`-on futó szerverhez)*.
+
+<br />
 
 ---
 
-## Tesztelés és ellenőrzés
+<br />
+
+## 🧪 Minőségellenőrzés
 
 ```bash
-# Backend (Checkstyle, JUnit 5, JaCoCo >= 80% lefedettség, JAR csomagolás)
+# Backend ellenőrzés és csomagolás
 ./gradlew check bootJar
 
-# Frontend (ESLint, TypeScript, Vitest, Vite build, Playwright E2E)
-cd frontend && npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e
+# Frontend ellenőrzés, tesztek és build
+cd frontend && npm run lint && npm run typecheck && npm run test && npm run build
 ```
+
+<br />
 
 ---
 
-## Dokumentáció és hivatkozások
+<br />
 
-- [Rendszerarchitektúra](docs/architecture.md)
-- [REST API Specifikáció (OpenAPI 3.1)](openapi/api-spec.yaml)
-- [Biztonsági irányelvek](SECURITY.md)
-- [Fejlesztői és AI Agent irányelvek](AGENTS.md)
-- [Licenc (GPL-3.0)](LICENSE)
+## 📚 További tudnivalók
+
+- 🏛️ [Rendszerarchitektúra részletesen](docs/architecture.md)
+- 🔌 [REST API Specifikáció (OpenAPI)](openapi/api-spec.yaml)
+- 🔒 [Biztonsági irányelvek](SECURITY.md)
+- 🤝 [Fejlesztői irányelvek](AGENTS.md)
+- ⚖️ [Licenc (GPL-3.0)](LICENSE)
