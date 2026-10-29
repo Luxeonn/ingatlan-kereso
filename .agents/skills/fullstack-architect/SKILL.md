@@ -13,7 +13,7 @@ This specialist skill owns **system architecture**, **layer-boundary integrity**
 
 ### Primary Mission
 
-Maintain the application's layered, loosely coupled architecture; correct Java 21 virtual-thread concurrency; a clean headless REST API contract; type-safe, dialect-independent Spring Data JPA persistence; and high-quality React 19 + TypeScript frontend integrity.
+Maintain the application's layered, loosely coupled architecture; correct Java 25 virtual-thread concurrency; clean Lombok `@Builder` and MapStruct (`ReportingPolicy.ERROR`) object-mapping conventions; a clean headless REST API contract; type-safe, dialect-independent Spring Data JPA persistence; and high-quality, deduplicated React 19 + TypeScript frontend integrity anchored to the OpenAPI schema.
 
 ### Activation Triggers
 
@@ -42,8 +42,16 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Embedded file-based H2 storage (`jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1`) in CLI/development mode.
    - PostgreSQL 17 in the production Docker environment.
    - Keep persistence decoupled: direct JDBC calls and obsolete embedded or NoSQL engines are prohibited.
-4. **Modern standalone React 19 frontend**:
+4. **Code generation and mapping conventions (Lombok & MapStruct)**:
+   - Use Lombok `@Getter`, `@Builder`, and `@NoArgsConstructor` (plus `@Setter` only where post-construction mutation is required) across domain models, presentation DTOs, and JPA entities.
+   - Prefer `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates) over multi-line setter chains. Omit `@Setter` on read-only DTOs and value objects (`MarketStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`).
+   - Do not use `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows`; preserve hand-written `equals`/`hashCode` where they encode business identity and never generate `equals`/`hashCode`/`toString` on JPA entities. Prefer `record` for pure immutable value carriers.
+   - Use MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` (plus `@AfterMapping` and `@MappingTarget` where enrichment or merge semantics apply) instead of repetitive hand-written entity ↔ DTO/domain field copying.
+5. **Modern standalone React 19 frontend & deduplication rules**:
    - React 19, TypeScript 5.9, Tailwind CSS v4, and Vite 8.3.
+   - Derive frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) directly from OpenAPI-generated `generated-api.ts` (`components['schemas']`). Hand-duplicated DTO interfaces, unused DTO types, and unreferenced API client functions are prohibited.
+   - Centralize shared domain calculations and helpers in `utils/formatters.ts` (`normalizePortalKey`, `PORTAL_CHIPS`, `clampQualityScore`, `getQualityConfig`, `getEffectivePrice`, `getEffectiveSqmPrice`, `openExternalUrl`) and shared histogram/type-normalization utilities in `hooks/useMarketAnalytics.ts`.
+   - Reuse shared UI primitives (`NumericStepper` for `AreaStepper`/`PriceStepper`, `useOutsideDismiss` for popovers/dropdowns, `SORT_OPTIONS` and `updateCriteria` in `useFilterStore`) and forbid redundant pass-through wrapper components.
    - Client state management (Zustand) and server-state synchronization (TanStack Query).
    - Responsive layout (360px through 4K), light/dark themes, skeleton loading, and Google Fonts CDN typography (Plus Jakarta Sans).
 
@@ -111,17 +119,21 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] No calls block carrier threads (for example, synchronized blocks around I/O or `ThreadLocal` memory leaks).
 - [ ] Parallel scraping and aggregation use `Executors.newVirtualThreadPerTaskExecutor()` or a Spring asynchronous mechanism.
 
-### C. Persistence and Spring Data JPA
+### C. Persistence, Lombok, and MapStruct Conventions
 
 - [ ] The persistence layer uses Spring Data JPA entities and repositories exclusively.
 - [ ] All persistence access goes through the `ListingStorage` or `ConfigStorage` interfaces.
 - [ ] No direct JDBC/SQL calls exist in business logic.
 - [ ] No obsolete persistence engines or unsupported database drivers are present in the codebase.
 - [ ] Indexes on entities (`PropertyEntity`, `PriceHistoryEntity`) support O(1) deduplication and fast queries.
+- [ ] Models, DTOs, and entities use `@Getter`/`@Builder`/`@NoArgsConstructor` (and `@Setter` only where post-construction mutation is needed); read-only DTOs/value objects omit `@Setter`, and `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` are never used.
+- [ ] Entity ↔ domain/DTO conversions are handled via MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` rather than manual field-copy boilerplate.
 
-### D. Frontend Integrity and UI/UX
+### D. Frontend Integrity, OpenAPI Types, and Deduplication
 
-- [ ] The frontend is type-safe (`tsc --noEmit` completes with zero errors).
+- [ ] The frontend is type-safe (`tsc --noEmit` completes with zero errors), and DTO types in `types/` derive directly from `generated-api.ts` (`components['schemas']`) without hand-written schema duplication or dead API functions.
+- [ ] Shared domain calculations (`getEffectivePrice`, `getEffectiveSqmPrice`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, `openExternalUrl`) and UI primitives (`NumericStepper`, `useOutsideDismiss`, `SORT_OPTIONS`) are reused rather than duplicated across components, hooks, or stores.
+- [ ] No redundant pass-through wrapper components or orphaned configuration entries exist.
 - [ ] Components use standard React 19 hooks, with no memory leaks or unnecessary re-renders.
 - [ ] Server state is managed with TanStack Query and appropriate error and loading-skeleton states.
 - [ ] The UI is fully responsive on mobile (360px) and desktop (4K) viewports.
@@ -166,8 +178,9 @@ The specialist must stop immediately and reject approval with a `FINDING` status
 2. **Virtual-thread blocking**: A synchronized block or blocking call is used around long-running I/O.
 3. **Reintroduction of obsolete database technology**: Unapproved database drivers or obsolete embedded storage libraries appear in dependencies or source code.
 4. **Bypassing storage abstraction**: Direct SQL or DataSource access occurs in web controllers or core modules.
-5. **Frontend type or compilation error**: `tsc --noEmit` reports an error, or React components contain syntax errors.
+5. **Frontend type, OpenAPI duplication, or compilation error**: `tsc --noEmit` reports an error, React components contain syntax errors, DTO interfaces duplicate `generated-api.ts` schemas by hand, or domain calculations/UI primitives are copy-pasted instead of reusing shared utilities.
 6. **Serving static files from the backend**: HTML/JS/CSS is packaged into the Spring Boot JAR instead of being served by the independent frontend container.
+7. **Lombok or MapStruct policy violation**: `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` is introduced, `@Setter` is added to read-only DTOs/value objects, or manual field-by-field DTO/entity mapping is written where MapStruct (`ReportingPolicy.ERROR`) applies.
 
 ---
 
@@ -176,8 +189,8 @@ The specialist must stop immediately and reject approval with a `FINDING` status
 Approval (`NO_FINDING`) from `fullstack-architect` may be granted only when ALL of the following criteria are met:
 
 1. The backend source compiles successfully: `./gradlew compileJava` exits successfully.
-2. Frontend type checking succeeds: `cd frontend && npm run typecheck` completes with zero errors.
+2. Frontend type checking succeeds: `cd frontend && npm run typecheck` completes with zero errors, and frontend DTOs derive from `generated-api.ts`.
 3. Layered unidirectional dependencies are clean, with no layer inversion.
-4. Spring Data JPA entities and repositories meet the specification.
-5. REST API endpoint contracts and DTO structures match the frontend client.
+4. Spring Data JPA entities, Lombok `@Builder` models/DTOs, and MapStruct mappers (`ReportingPolicy.ERROR`) meet the specification.
+5. REST API endpoint contracts, shared frontend utilities (`utils/formatters.ts`, `NumericStepper`, `useOutsideDismiss`), and DTO structures match the frontend client without dead code or duplicated logic.
 6. The PR Gate block contains exactly one professional, non-generic rationale sentence.

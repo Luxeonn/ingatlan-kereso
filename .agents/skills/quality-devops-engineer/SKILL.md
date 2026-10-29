@@ -38,12 +38,13 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - `./gradlew check` must run deterministically without network access.
    - Use MockMvc endpoint tests and Spring Data JPA tests with embedded H2 or in-memory storage.
    - Maintain the frontend Vitest and Playwright E2E test suites.
-2. **Code quality gates**:
-   - Enforce a minimum of 80% JaCoCo instruction and line coverage in core and persistence packages.
+2. **Code quality gates & static analysis**:
+   - Enforce a minimum of 80% JaCoCo instruction and line coverage in core and persistence packages (including MapStruct mappers `JpaEntityMapper` and `PresentationMapper`, with targeted null/fallback unit tests).
    - Coverage calculation (`calculate-jacoco.sh`) must fail closed: exit non-zero if the CSV is missing or coverage is below threshold.
-   - Checkstyle 10.21.4 must report zero warnings (`maxWarnings = 0`, `isIgnoreFailures = false`).
+   - Checkstyle 10.21.4 must report zero warnings (`maxWarnings = 0`, `isIgnoreFailures = false`) and block forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
+   - MapStruct mappers must compile with `unmappedTargetPolicy = ReportingPolicy.ERROR`, and frontend OpenAPI types (`npm run generate-api`) must stay 100% synchronized with `openapi/api-spec.yaml` with zero dead DTOs or unused API client functions.
 3. **Containerization and release security**:
-   - Multi-stage Temurin JRE 21 runtime container; run as non-root (`appuser:appuser`, UID 10001), use declared volumes (`/app/data`, `/app/logs`), and enforce a health check (`curl -f http://localhost:8080/api/status`).
+   - Multi-stage Temurin JRE 25 runtime container; run as non-root (`appuser:appuser`, UID 10001), use declared volumes (`/app/data`, `/app/logs`), and enforce a health check (`curl -f http://localhost:8080/api/status`).
    - Docker Compose three-tier architecture: chain health dependencies (`service_healthy`) for `db` (PostgreSQL 17), `backend`, and `frontend` (Nginx SPA).
    - Maintain smoke-test automation in `scripts/smoke-test-docker-compose.sh`.
    - Use numeric SemVer versions from `build.gradle.kts`; Git and GitHub release tags use the `vX.Y.Z` prefix, while release image tags use `X.Y.Z` and `sha-<commit>`.
@@ -112,9 +113,10 @@ For every review, the specialist must follow this four-phase workflow:
 
 ### B. Code Quality Gates
 
-- [ ] JaCoCo instruction and line coverage are at least 80% for core and persistence packages.
+- [ ] JaCoCo instruction and line coverage are at least 80% for core and persistence packages (including MapStruct mapper null/fallback branches).
 - [ ] Coverage calculation fails closed when the CSV is missing or the threshold is not met.
-- [ ] Checkstyle 10.21.4 reports zero warnings with `maxWarnings = 0` and `isIgnoreFailures = false`.
+- [ ] Checkstyle 10.21.4 reports zero warnings with `maxWarnings = 0` and `isIgnoreFailures = false`, including zero banned Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
+- [ ] Frontend `npm run generate-api`, `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` pass without hand-duplicated OpenAPI DTOs or dead code.
 
 ### C. Containerization and Release Security
 

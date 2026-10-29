@@ -43,14 +43,16 @@ Activate this skill for any task, pull request, or code review affecting any of 
 3. **SSRF prevention and domain allowlisting**:
    - Restrict scraper requests to the six approved domains: `dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, and `ingatlan.com`.
    - Prevent fetching arbitrary URLs supplied by untrusted user input.
-4. **Input validation and injection prevention**:
+4. **Input validation, builder-based model construction, and injection prevention**:
    - Validate and normalize search criteria (city, price, floor area, and room count).
+   - Construct `IngatlanItem`, `PriceInfo`, `PropertyDetails`, `PortalSource`, and `PortalScrapeResult` inside portal parsers (`DunaHouseParser`, `OtthonCentrumParser`, `JofogasParser`, `KoltozzbeParser`, `IngatlanBazarJsonParser`, `IngatlanComParser`) and `PropertyParser` using Lombok `@Builder` instead of setter chains; never use `@SneakyThrows` so 0-crash exception handling stays explicit.
    - Protect regex parsing (`PropertyParser`) against ReDoS.
    - Avoid unparameterized SQL/HQL and string-concatenated database queries.
-5. **Spring Boot server hardening and CORS**:
+5. **Spring Boot server hardening, CORS, and safe external link opening**:
    - Bind to `127.0.0.1` by default in local environments where appropriate.
    - Configure `GlobalCorsFilter` to accept only approved origins; never combine wildcard `*` with `allowCredentials=true`.
    - Keep security headers active, including `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
+   - Route all frontend external portal/listing window openings through the centralized `openExternalUrl` helper (`frontend/src/utils/formatters.ts`) so `noopener,noreferrer` window features and URL validation are uniformly enforced.
 
 ### Explicit Non-Goals
 
@@ -119,17 +121,19 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] Scraper engines send requests only to the six approved domains (`dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, `ingatlan.com`).
 - [ ] Fetching arbitrary URLs derived from user input is prevented.
 
-### D. Input Validation and Injection Prevention
+### D. Input Validation, Builder Construction, and Injection Prevention
 
 - [ ] Search criteria (city, prices, floor area, and room count) are validated and normalized.
+- [ ] Portal parsers and `PropertyParser` instantiate `IngatlanItem`, `PriceInfo`, `PropertyDetails`, `PortalSource`, and `PortalScrapeResult` via Lombok `@Builder` without setter chains or `@SneakyThrows`.
 - [ ] Regex parsing in `PropertyParser` is protected against ReDoS.
 - [ ] No raw SQL or H2 string concatenation introduces injection risk.
 
-### E. Spring Boot Server Hardening and CORS
+### E. Spring Boot Server Hardening, CORS, and External Links
 
 - [ ] Local development binds to `127.0.0.1` by default where appropriate.
 - [ ] `GlobalCorsFilter` accepts only approved origins; wildcard `*` is never combined with credentials (`allowCredentials=true`).
 - [ ] Security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`) remain enabled.
+- [ ] External listing/portal links opened from the frontend use the centralized `openExternalUrl` helper (`noopener,noreferrer`).
 
 ---
 

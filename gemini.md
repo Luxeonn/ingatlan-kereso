@@ -98,9 +98,16 @@ ingatlan-kereso/
 │   │   ├── components/
 │   │   │   ├── analytics/MarketAnalyticsPanel.tsx # Dedicated market analysis view & price drop table
 │   │   │   ├── filters/SearchPanel.tsx          # Decoupled search criteria and filter controls
+│   │   │   ├── filters/NumericStepper.tsx       # Shared stepper primitive (AreaStepper, PriceStepper)
 │   │   │   ├── listings/ListingsPanel.tsx       # Decoupled listing stream, sort, and bulk actions
-│   │   │   ├── listings/PropertyCard.tsx        # Card with PropertyTypeBadge, BargainBadge, MultiSourceDrawer
+│   │   │   ├── listings/PropertyCard.tsx        # Card with PropertyTypeBadge, BargainBadge & multi-source drawer
 │   │   │   └── listings/QualityScoreShield.tsx  # 3-tier data quality shield with score deductions popover
+│   │   ├── hooks/
+│   │   │   └── useOutsideDismiss.ts             # Shared outside-click & Escape dismissal hook for popovers
+│   │   ├── types/
+│   │   │   └── generated-api.ts                 # Single-source-of-truth OpenAPI TypeScript schemas
+│   │   └── utils/
+│   │       └── formatters.ts                    # Centralized domain calculations, portal chips & openExternalUrl
 │   ├── package.json                             # Frontend dependencies, Vitest, Playwright scripts
 │   ├── nginx.conf                               # Production SPA reverse proxy configuration
 │   ├── Dockerfile                               # Production Nginx frontend container
@@ -137,6 +144,7 @@ ingatlan-kereso/
     │   ├── ListingStorage.java                  # Storage interface for listings and observations
     │   ├── ConfigStorage.java                   # Storage interface for configuration
     │   ├── entity/                              # JPA Entities (PropertyEntity, ListingObservationEntity, etc.)
+    │   ├── mapper/JpaEntityMapper.java          # MapStruct entity ↔ domain mapper (ReportingPolicy.ERROR)
     │   ├── repository/                          # Repositories (PropertyRepository, ListingObservationRepository)
     │   ├── JpaIngatlanStorage.java              # Primary Spring Data JPA implementation
     │   ├── InMemoryListingStorage.java          # In-memory storage fallback implementation
@@ -153,6 +161,7 @@ ingatlan-kereso/
     │   └── ingatlancom/                         # Ingatlan.com fallback engine (Cloudflare WAF)
     ├── presentation/                            # Layer 1a: Presentation and DTO models
     │   ├── DashboardPresentationService.java    # Presentation facade (KPIs, portal health)
+    │   ├── PresentationMapper.java              # MapStruct presentation DTO mapper (ReportingPolicy.ERROR)
     │   ├── DashboardResponseDto.java            # Enriched client response payload
     │   ├── MarketStatsDto.java                  # Market analytics KPIs
     │   ├── MarketSegmentStatsDto.java           # Segment-level median metrics & bargain counts
@@ -180,6 +189,9 @@ ingatlan-kereso/
 6. **Containerization & Clean Numeric Versioning:** Multi-stage Temurin JRE 25 Docker image and Docker Compose 3-tier architecture. Container images published to GHCR strictly follow clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without redundant `v` prefix.
 7. **Canonical Property Type Normalization & Multi-Signal Deduplication:** Free-form portal categories and listing titles are deterministically mapped to the canonical `PropertyType` enum. Identical physical properties advertised across different portals are clustered using location, property type, area, and room signals, consolidating into a single card that presents the lowest active market price alongside an expandable multi-source drawer.
 8. **3-Tier Domain Separation, Median Analytics & Data Quality Scoring:** Physical properties (`Property`), portal source listings (`SourceListing`), and time-series periodic snapshots (`ListingObservation`) are decoupled. The market engine computes robust median $Ft/m^2$ metrics (strictly partitioning living area from land area) and identifies genuine bargains ($\ge 20\%$ below median). An autonomous 10-rule `DataQualityEngine` (0–100 score) quarantines corrupted or anomalous listings ($< 70$) from skewing statistical medians.
+9. **Mandatory Boilerplate Elimination & Single-Source-of-Truth Patterns:**
+   - **Backend (Lombok & MapStruct):** Domain models, DTOs, and JPA entities use Lombok `@Getter`, `@Builder`, and `@NoArgsConstructor` (`@Setter` only where post-construction mutation is required; read-only DTOs/value objects omit `@Setter`). Setter chains are replaced by `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates). `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` are forbidden and blocked by Checkstyle. Entity ↔ domain/DTO conversions use MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`.
+   - **Frontend (OpenAPI Schema Derivation & Deduplication):** All frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) derive directly from `generated-api.ts` (`components['schemas']`). Domain calculations and portal metadata (`normalizePortalKey`, `PORTAL_CHIPS`, `clampQualityScore`, `getQualityConfig`, `getEffectivePrice`, `getEffectiveSqmPrice`, `openExternalUrl`) live in `utils/formatters.ts`. Shared UI primitives (`NumericStepper`, `useOutsideDismiss`, `SORT_OPTIONS`) must be reused; hand-duplicated OpenAPI types, dead API functions, and pass-through wrapper components are prohibited.
 
 ---
 
@@ -267,3 +279,7 @@ To prevent iterative trial-and-error fix cycles and minimize redundant commits o
 
 ### 5. Clean Local Commit Hygiene
 - In accordance with the "Atomic Commits" rule, each commit should represent a coherent, discrete logical change.
+
+### 6. Mandatory Refactoring & Code Hygiene Standards (Backend & Frontend)
+- **No Boilerplate Accessors or Setter Chains:** Always use Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` and MapStruct (`JpaEntityMapper`, `PresentationMapper` with `unmappedTargetPolicy = ReportingPolicy.ERROR`). Never introduce `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` (Checkstyle fails the build).
+- **No Frontend DTO Duplication or Dead Wrappers:** Always derive TypeScript DTOs from `generated-api.ts` (`npm run generate-api`), reuse centralized helpers in `frontend/src/utils/formatters.ts` (`getEffectivePrice`, `getEffectiveSqmPrice`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, `openExternalUrl`), and build steppers/popovers on `NumericStepper` and `useOutsideDismiss`.

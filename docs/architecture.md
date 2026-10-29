@@ -17,7 +17,7 @@ flowchart TD
     subgraph UI ["Frontend Client (React 19 SPA)"]
         SPA["React 19 + TypeScript + Tailwind SPA\n(Zustand Stores, TanStack Query Cache)"]
         Panels["Decoupled Views:\nSearchPanel | ListingsPanel | MarketAnalyticsPanel"]
-        Cards["PropertyCard with:\nPropertyTypeBadge, MultiSourceDrawer, BargainBadge, QualityScoreShield"]
+        Cards["PropertyCard with:\nPropertyTypeBadge, Multi-Source Drawer, BargainBadge, QualityScoreShield"]
         SPA --> Panels --> Cards
     end
 
@@ -100,8 +100,8 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
 
 ```text
 [Layer 1: Presentation & Web]
-    │  - presentation: DashboardPresentationService, DTOs (ListingDto, DashboardResponseDto, MarketStatsDto,
-    │                  MarketSegmentStatsDto, PriceDropItemDto, ListingObservationDto, PortalStatusDto)
+    │  - presentation: DashboardPresentationService, PresentationMapper, DTOs (ListingDto, DashboardResponseDto,
+    │                  MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, ListingObservationDto, PortalStatusDto)
     │  - web: RestApiController, GlobalExceptionHandler
     │  - config: GlobalCorsFilter, SpaWebMvcConfig, CoreEngineConfig
     ▼
@@ -132,6 +132,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
 2. **Core delegates to Storage Interfaces**: Layer 2 interacts with persistence exclusively through `ListingStorage` and `ConfigStorage` interfaces, never raw SQL, Hibernate sessions, or Spring Data repositories directly.
 3. **Open/Closed Portal Engines**: New property portals are introduced by implementing `PortalEngine` and registering in `PortalEngineRegistry` without modifying `SearchExecutionEngine`.
 4. **Leaf Utilities (`common`)**: Pure helpers (`HttpFetcher`, `PropertyParser`, `SlugUtils`, `CityUtils`, `AppLogger`) have zero dependencies on business logic or storage.
+5. **Code Generation & Compile-Time Mapping (Lombok & MapStruct)**: Models, presentation DTOs, and JPA entities use Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` (omitting `@Setter` on read-only DTOs and value objects, and forbidding `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` via Checkstyle). Cross-layer object conversions (`JpaEntityMapper`, `PresentationMapper`) use MapStruct with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`.
 
 ---
 
@@ -277,17 +278,18 @@ Evaluates every listing on a 0–100 quality scale using 10 deterministic rules:
 - **Build Tool**: Vite 8.3.4 with `@vitejs/plugin-react` and `vite-plugin-compression2` (Gzip pre-compression).
 - **Testing**: Vitest 5.0.4 with JSDOM and Playwright 1.64.1 for E2E.
 
-### 6.2 Decoupled View Components
-The UI is decomposed into distinct, single-responsibility panel views, avoiding monolithic "god components":
-- `SearchPanel`: Search parameters, city presets, property type tabs, and price/area steppers.
-- `ListingsPanel`: Results grid/list views, sort selector, bulk action bar, pagination, and empty/loading states.
-- `MarketAnalyticsPanel`: Autonomous analytics view featuring 6 KPI summary cards, price/sqm distribution histograms, city comparison charts, and a paginated price-drop table.
+### 6.2 Decoupled View Components & Shared Primitives
+The UI is decomposed into distinct, single-responsibility panel views and reusable primitives, avoiding monolithic "god components" and redundant pass-through wrappers:
+- `SearchPanel`: Search parameters, city presets, property type tabs, and `AreaStepper` / `PriceStepper` backed by the shared `NumericStepper` primitive.
+- `ListingsPanel`: Results grid/list views, sort selector (`SORT_OPTIONS` in `useFilterStore`), bulk action bar, pagination, and empty/loading states.
+- `MarketAnalyticsPanel`: Autonomous analytics view featuring 6 KPI summary cards, price/sqm distribution histograms (`buildHistogramBins`), city comparison charts, and a paginated price-drop table.
+- **OpenAPI Schema Derivation & Shared Domain Utilities**: Frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) derive directly from `generated-api.ts` (`components['schemas']`). Shared domain calculations (`getEffectivePrice`, `getEffectiveSqmPrice`, `clampQualityScore`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, and `openExternalUrl`) live in `utils/formatters.ts`.
 
 ### 6.3 Specialized Property Card Micro-Interactions
 - `<PropertyTypeBadge />`: Color-coded, accessible textual badge indicating canonical property type (WCAG 2.1 SC 1.4.1 compliant).
-- `<MultiSourceDrawer />`: Accessible expandable drawer displaying all grouped agency sources, individual prices, timestamps, and direct portal links.
-- `<BargainBadge />`: Prominent discount badge (e.g. *"-27% a városi mediánárhoz képest"*) with floating focus/hover popover.
-- `<QualityScoreShield />`: 3-tier quality indicator (`EXCELLENT` $\ge 85$, `ACCEPTABLE` $\ge 70$, `SUSPICIOUS` $< 70$) with score deduction breakdown popover.
+- **Multi-Source Comparison Drawer** (`PropertyCard` / `PropertyDetailsDrawer`): Accessible expandable drawer displaying all grouped agency sources, individual prices, timestamps, and direct portal links opened safely via `openExternalUrl`.
+- `<BargainBadge />`: Prominent discount badge (e.g. *"-27% a városi mediánárhoz képest"*) with floating focus/hover popover managed via `useOutsideDismiss`.
+- `<QualityScoreShield />`: 3-tier quality indicator (`EXCELLENT` $\ge 85$, `ACCEPTABLE` $\ge 70$, `SUSPICIOUS` $< 70$) with score deduction breakdown popover managed via `useOutsideDismiss`.
 
 ---
 
@@ -330,3 +332,5 @@ The UI is decomposed into distinct, single-responsibility panel views, avoiding 
 | **Nitrite NoSQL DB** | Nitrite document store (`data/ingatlanok_nosql.db`) | **Completely Removed** | Eliminated file locking bugs in parallel tests and lack of transactional relational safety. |
 | **Maven (`mvn`, `pom.xml`)** | Mentioned in legacy commands and scripts | **Gradle 9.8.2 Kotlin DSL (`build.gradle.kts`)** | Single unified build tool with fast incremental builds. |
 | **Monolithic Static Bundle** | HTML/JS packaged in `src/main/resources/static/` | **Autonomous React 19 SPA served via Vite (dev) or Nginx (prod)** | True decoupling of frontend and backend. Enables independent scaling, caching, and modern web development workflow. |
+| **Backend Boilerplate & Mapping** | Hand-written getters/setters/constructors & manual DTO/entity field copying | **Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` + MapStruct (`JpaEntityMapper`, `PresentationMapper` with `ReportingPolicy.ERROR`)** | Eliminated accessor/setter-chain boilerplate, made read-only DTOs/value objects immutable after construction, and enforced compile-time verified object mappings. |
+| **Frontend Types, Helpers & Primitives** | Hand-duplicated DTO interfaces, repeated domain math, duplicate steppers/popover listeners | **OpenAPI-derived types (`generated-api.ts`), centralized `utils/formatters.ts`, `NumericStepper`, and `useOutsideDismiss`** | Single source of truth for API schemas, domain price/quality calculations, and accessible UI primitives with zero dead wrappers. |

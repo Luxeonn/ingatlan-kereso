@@ -27,13 +27,13 @@ Follow these steps to conduct a thorough review:
    Analyze the modified files to determine which specialized agent must review and approve:
    * **Fullstack Architecture & UI (`fullstack-architect` required):**
      Touching `ingatlanok.core.*`, `ingatlanok.presentation.*`, `ingatlanok.web.*`, `ingatlanok.persistence.*`, `ingatlanok.config.*`, `Main.java`, `frontend/`, `build.gradle.kts`, `settings.gradle.kts`, or `docs/architecture.md`.
-     *Criteria:* Clean Architecture, loose coupling, Virtual Threads, Spring Data JPA persistence, React 19 UI integrity (0-SyntaxError), responsive design.
+     *Criteria:* Clean Architecture, loose coupling, Virtual Threads, Spring Data JPA persistence, Lombok `@Builder`/`@Getter`/`@NoArgsConstructor` (no `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows`; no `@Setter` on read-only DTOs/value objects), MapStruct mappers (`JpaEntityMapper`, `PresentationMapper` with `unmappedTargetPolicy = ReportingPolicy.ERROR`), OpenAPI-derived frontend DTO types (`generated-api.ts`), centralized `utils/formatters.ts` domain helpers, shared UI primitives (`NumericStepper`, `useOutsideDismiss`), React 19 UI integrity (0-SyntaxError), responsive design.
    * **Scraper & Security (`scraper-security-engineer` required):**
      Touching `ingatlanok.portal.*`, `ingatlanok.scraper.*`, `ingatlanok.common.*`, network headers, process execution, security configs.
-     *Criteria:* 0-crash resilience, Jsoup/JSON-LD parsing robustness, bot/WAF handling, AppSec (CORS, CSP, localhost bind, XSS, Path Traversal, SSRF).
+     *Criteria:* 0-crash resilience, Jsoup/JSON-LD parsing robustness, `@Builder`-based model construction in portal parsers (no setter chains or `@SneakyThrows`), bot/WAF handling, AppSec (CORS, CSP, localhost bind, XSS, Path Traversal, SSRF, `openExternalUrl` with `noopener,noreferrer`).
    * **Quality & DevOps (`quality-devops-engineer` required):**
      Touching `.github/workflows/*`, Dockerfile, docker-compose, unit/integration tests (`src/test/`, `frontend/**/__tests__`), build files.
-     *Criteria:* Deterministic offline JUnit 5 & Vitest tests, JaCoCo coverage (80%+), multi-stage Docker builds, secure CI/CD pipelines.
+     *Criteria:* Deterministic offline JUnit 5 & Vitest tests (including MapStruct null/fallback branches), JaCoCo coverage (80%+), Checkstyle 0 warnings (blocking forbidden Lombok annotations), OpenAPI schema sync (`npm run generate-api`), multi-stage Docker builds, secure CI/CD pipelines.
 
 4. **Execute Thematic Audits**:
    For each triggered domain, evaluate the diff against the corresponding specialist skill:
