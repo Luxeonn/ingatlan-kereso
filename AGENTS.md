@@ -14,6 +14,12 @@ The backend is a Java 25 Spring Boot application. Production code lives in `src/
 
 Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`), which runs on pushes to `develop`, and `.github/workflows/release.yml` (`Docker Release`), which is manually started from a branch (such as `main` or `develop`). Releases derive their version from the latest Git release tag and a patch/minor/major/custom input; GHCR publication must succeed before the Git tag and GitHub Release are created.
 
+## Code Generation Conventions (Lombok & MapStruct)
+
+- **Lombok:** use `@Getter`/`@Builder`/`@NoArgsConstructor` (and `@Setter` only where post-construction mutation is needed) across models, presentation DTOs, and JPA entities. Prefer `@Builder` (with `@Builder.Default` or constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` where copy-updates are needed) over setter chains, and omit `@Setter` on read-only DTOs/value objects (`MarketStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`). Do not use `@Data`, and do not generate `equals`/`hashCode`/`toString` on JPA entities. Keep hand-written `equals`/`hashCode` where they encode business identity.
+- **MapStruct:** use it for entity ↔ DTO/domain mappings (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`. Use `@AfterMapping` and `@MappingTarget` where post-mapping enrichment or merge semantics apply (`toItem`, `toProperty`, `updateEntityFromItem`), keeping only genuine stateful merge orchestration in Java.
+- **Records:** prefer `record` for immutable value carriers; classes with `@Builder` remain where Jackson/JPA or custom normalizing constructors apply.
+
 ## Style & Naming
 
 Follow the existing Java package and class structure. Checkstyle 10.21.4 is strict: use spaces (no tabs), keep Java lines within 120 characters, group and sort imports, and avoid wildcard imports, `System.out`/`System.err`, and `printStackTrace()`. Use descriptive PascalCase Java type names and camelCase members. Frontend components use `.tsx` with PascalCase names; hooks use `use`-prefixed camelCase. Keep generated API types generated from the OpenAPI spec rather than editing them by hand.

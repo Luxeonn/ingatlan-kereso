@@ -4,10 +4,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
 
+@Getter
+@Setter
 public class SearchCriteria implements Serializable {
 
   private String city = "Hajdúszoboszló";
@@ -101,92 +106,8 @@ public class SearchCriteria implements Serializable {
     return clone;
   }
 
-  public boolean isOnlyDiscounted() {
-    return onlyDiscounted;
-  }
-
-  public void setOnlyDiscounted(boolean onlyDiscounted) {
-    this.onlyDiscounted = onlyDiscounted;
-  }
-
-  public boolean isOnlyNewConstruction() {
-    return onlyNewConstruction;
-  }
-
-  public void setOnlyNewConstruction(boolean onlyNewConstruction) {
-    this.onlyNewConstruction = onlyNewConstruction;
-  }
-
   public String getPropertyType() {
     return propertyType != null ? propertyType : "lakas";
-  }
-
-  public void setPropertyType(String propertyType) {
-    this.propertyType = propertyType;
-  }
-
-  public Integer getMinPriceMillion() {
-    return minPriceMillion;
-  }
-
-  public void setMinPriceMillion(Integer minPriceMillion) {
-    this.minPriceMillion = minPriceMillion;
-  }
-
-  public Integer getMaxPriceMillion() {
-    return maxPriceMillion;
-  }
-
-  public void setMaxPriceMillion(Integer maxPriceMillion) {
-    this.maxPriceMillion = maxPriceMillion;
-  }
-
-  public Integer getMinRooms() {
-    return minRooms;
-  }
-
-  public void setMinRooms(Integer minRooms) {
-    this.minRooms = minRooms;
-  }
-
-  public Integer getMinArea() {
-    return minArea;
-  }
-
-  public void setMinArea(Integer minArea) {
-    this.minArea = minArea;
-  }
-
-  public Integer getMaxArea() {
-    return maxArea;
-  }
-
-  public void setMaxArea(Integer maxArea) {
-    this.maxArea = maxArea;
-  }
-
-  public List<String> getPortals() {
-    return portals;
-  }
-
-  public void setPortals(List<String> portals) {
-    this.portals = portals;
-  }
-
-  public boolean isAutoOpenBrowser() {
-    return autoOpenBrowser;
-  }
-
-  public void setAutoOpenBrowser(boolean autoOpenBrowser) {
-    this.autoOpenBrowser = autoOpenBrowser;
-  }
-
-  public boolean isExcludeViewed() {
-    return excludeViewed;
-  }
-
-  public void setExcludeViewed(boolean excludeViewed) {
-    this.excludeViewed = excludeViewed;
   }
 
   public boolean isPortalEnabled(String portalKey) {

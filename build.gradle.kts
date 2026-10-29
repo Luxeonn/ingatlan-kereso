@@ -50,6 +50,8 @@ val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
 val caffeineVersion = "3.3.1"
+val lombokVersion = "1.18.42"
+val mapstructVersion = "1.6.3"
 
 dependencies {
     constraints {
@@ -72,6 +74,13 @@ dependencies {
     implementation("org.brotli:dec:0.1.2")
     implementation("commons-io:commons-io:$commonsIoVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    implementation("org.mapstruct:mapstruct:$mapstructVersion")
+    annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    testCompileOnly("org.projectlombok:lombok:$lombokVersion")
+    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

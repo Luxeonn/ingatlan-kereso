@@ -3,6 +3,14 @@ package ingatlanok.model;
 import java.io.Serializable;
 import java.util.Objects;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class SourceListing implements Serializable {
 
   private String portal;
@@ -18,8 +26,7 @@ public class SourceListing implements Serializable {
   private boolean viewed;
   private String viewedAt;
 
-  public SourceListing() {}
-
+  @Builder
   public SourceListing(
       String portal,
       String externalListingId,
@@ -47,100 +54,8 @@ public class SourceListing implements Serializable {
     this.viewedAt = viewedAt;
   }
 
-  public String getPortal() {
-    return portal;
-  }
-
-  public void setPortal(String portal) {
-    this.portal = portal;
-  }
-
-  public String getExternalListingId() {
-    return externalListingId;
-  }
-
-  public void setExternalListingId(String externalListingId) {
-    this.externalListingId = externalListingId;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public String getTitle() {
-    return title;
-  }
-
-  public void setTitle(String title) {
-    this.title = title;
-  }
-
-  public String getImageUrl() {
-    return imageUrl;
-  }
-
-  public void setImageUrl(String imageUrl) {
-    this.imageUrl = imageUrl;
-  }
-
-  public String getFirstSeenAt() {
-    return firstSeenAt;
-  }
-
-  public void setFirstSeenAt(String firstSeenAt) {
-    this.firstSeenAt = firstSeenAt;
-  }
-
-  public String getLastSeenAt() {
-    return lastSeenAt;
-  }
-
-  public void setLastSeenAt(String lastSeenAt) {
-    this.lastSeenAt = lastSeenAt;
-  }
-
   public String getStatus() {
     return status != null ? status : "ACTIVE";
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
-  }
-
-  public Long getPriceHuf() {
-    return priceHuf;
-  }
-
-  public void setPriceHuf(Long priceHuf) {
-    this.priceHuf = priceHuf;
-  }
-
-  public Long getPricePerM2() {
-    return pricePerM2;
-  }
-
-  public void setPricePerM2(Long pricePerM2) {
-    this.pricePerM2 = pricePerM2;
-  }
-
-  public boolean isViewed() {
-    return viewed;
-  }
-
-  public void setViewed(boolean viewed) {
-    this.viewed = viewed;
-  }
-
-  public String getViewedAt() {
-    return viewedAt;
-  }
-
-  public void setViewedAt(String viewedAt) {
-    this.viewedAt = viewedAt;
   }
 
   public boolean isActive() {

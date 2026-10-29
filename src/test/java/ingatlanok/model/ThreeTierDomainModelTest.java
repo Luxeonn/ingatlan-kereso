@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
@@ -187,7 +188,7 @@ class ThreeTierDomainModelTest {
   @Test
   @DisplayName("JpaEntityMapper maps 3-tier entities and DTOs bidirectionally")
   void testJpaEntityMapperThreeTier() {
-    JpaEntityMapper mapper = new JpaEntityMapper();
+    JpaEntityMapper mapper = Mappers.getMapper(JpaEntityMapper.class);
 
     PropertyEntity entity = new PropertyEntity();
     entity.setPropertyId("DH_123");

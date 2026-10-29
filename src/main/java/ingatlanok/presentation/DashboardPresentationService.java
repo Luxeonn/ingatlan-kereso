@@ -31,7 +31,8 @@ public class DashboardPresentationService {
     List<PortalStatusDto> portalStatuses = buildPortalStatuses(searchResult);
     searchResult.setPortalStatuses(portalStatuses);
 
-    return new DashboardResponseDto(searchResult, marketStats, portalStatuses);
+    return PresentationMapper.INSTANCE.toDashboardResponseDto(
+        searchResult, marketStats, portalStatuses);
   }
 
   public MarketStatsDto calculateMarketStats(List<IngatlanItem> items) {
@@ -60,27 +61,23 @@ public class DashboardPresentationService {
 
       PortalStatusDto existing = byPortalId.get(key);
       if (existing == null) {
+        byPortalId.put(key, PresentationMapper.INSTANCE.toPortalStatusDto(pr));
+      } else {
+        int foundCount = existing.getFoundCount() + itemCount;
+        String fallbackUrl = existing.getFallbackUrl();
+        if (fallbackUrl == null && pr.getFallbackUrl() != null) {
+          fallbackUrl = pr.getFallbackUrl();
+        }
+        String mergedStatus =
+            "SUCCESS".equals(statusName) || foundCount > 0 ? "SUCCESS" : existing.getStatus();
         byPortalId.put(
             key,
-            new PortalStatusDto(
-                pr.getPortalId(),
-                pr.getPortalName(),
-                statusName,
-                itemCount,
-                pr.getExecutionTimeMs(),
-                pr.getFallbackUrl(),
-                pr.getMessage(),
-                pr.getHttpStatusCode(),
-                pr.getTechnicalDetails()));
-      } else {
-        existing.setFoundCount(existing.getFoundCount() + itemCount);
-        existing.setLatencyMs(existing.getLatencyMs() + Math.max(0L, pr.getExecutionTimeMs()));
-        if (existing.getFallbackUrl() == null && pr.getFallbackUrl() != null) {
-          existing.setFallbackUrl(pr.getFallbackUrl());
-        }
-        if ("SUCCESS".equals(statusName) || existing.getFoundCount() > 0) {
-          existing.setStatus("SUCCESS");
-        }
+            existing.toBuilder()
+                .foundCount(foundCount)
+                .latencyMs(existing.getLatencyMs() + Math.max(0L, pr.getExecutionTimeMs()))
+                .fallbackUrl(fallbackUrl)
+                .status(mergedStatus)
+                .build());
       }
     }
 

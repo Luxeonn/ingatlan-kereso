@@ -481,16 +481,17 @@ public class SearchExecutionEngine {
       }
 
       aggregated.add(
-          new PortalScrapeResult(
-              portalId,
-              portalName,
-              finalStatus,
-              new ArrayList<>(portalRelevantItems),
-              fallbackUrl,
-              finalMessage,
-              totalExecutionMs,
-              finalHttpStatus,
-              finalTechDetails));
+          PortalScrapeResult.builder()
+              .portalId(portalId)
+              .portalName(portalName)
+              .status(finalStatus)
+              .items(new ArrayList<>(portalRelevantItems))
+              .fallbackUrl(fallbackUrl)
+              .message(finalMessage)
+              .executionTimeMs(totalExecutionMs)
+              .httpStatusCode(finalHttpStatus)
+              .technicalDetails(finalTechDetails)
+              .build());
     }
     return aggregated;
   }

@@ -224,22 +224,25 @@ class ModelClassesTest {
   @Test
   @DisplayName("PriceInfo and PropertyDetails setters and edge cases")
   void testPriceInfoAndPropertyDetailsCoverage() {
-    PriceInfo priceInfo = new PriceInfo();
-    priceInfo.setAmountHuf(60_000_000L);
-    priceInfo.setAmountMillion(60.0);
-    priceInfo.setRawText("60 M Ft");
-    priceInfo.setCurrency("HUF");
+    PriceInfo priceInfo =
+        PriceInfo.builder()
+            .amountHuf(60_000_000L)
+            .amountMillion(60.0)
+            .rawText("60 M Ft")
+            .build();
 
     assertEquals(60_000_000L, priceInfo.getAmountHuf());
     assertEquals(60.0, priceInfo.getAmountMillion());
     assertEquals("60 M Ft", priceInfo.getRawText());
     assertEquals("HUF", priceInfo.getCurrency());
 
-    PropertyDetails details = new PropertyDetails();
-    details.setAreaSquareMeters(70.0);
-    details.setRoomCount(3.0);
-    details.setPricePerSquareMeter(857_143L);
-    details.setRawText("70 m² 3 szoba");
+    PropertyDetails details =
+        PropertyDetails.builder()
+            .areaSquareMeters(70.0)
+            .roomCount(3.0)
+            .pricePerSquareMeter(857_143L)
+            .rawText("70 m² 3 szoba")
+            .build();
 
     assertEquals(70.0, details.getAreaSquareMeters());
     assertEquals(3.0, details.getRoomCount());

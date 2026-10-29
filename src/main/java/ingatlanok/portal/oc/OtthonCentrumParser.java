@@ -101,7 +101,12 @@ public class OtthonCentrumParser implements PortalHtmlParser {
         PriceInfo priceInfo = PropertyParser.parsePrice(cardText);
         if (jsonPriceHuf != null && (priceInfo == null || priceInfo.getAmountHuf() == null)) {
           double million = Math.round((jsonPriceHuf / 1_000_000.0) * 100.0) / 100.0;
-          priceInfo = new PriceInfo(jsonPriceHuf + " Ft", jsonPriceHuf, million);
+          priceInfo =
+              PriceInfo.builder()
+                  .rawText(jsonPriceHuf + " Ft")
+                  .amountHuf(jsonPriceHuf)
+                  .amountMillion(million)
+                  .build();
         }
 
         PropertyDetails detailsInfo = PropertyParser.parseDetails(cardText, priceInfo);
@@ -120,21 +125,22 @@ public class OtthonCentrumParser implements PortalHtmlParser {
         }
 
         IngatlanItem item =
-            new IngatlanItem(
-                id,
-                SOURCE,
-                fullLink,
-                title,
-                priceInfo,
-                actualCity,
-                detailsInfo,
-                executionTime,
-                false);
-        item.setLocation(actualCity);
-        item.setImageUrl(
-            PortalSupport.extractImageWithFallback(card, OtthonCentrumUrlBuilder.BASE_URL));
-        item.setNewConstruction(
-            PropertyParser.isNewConstructionText(cardText, title, fullLink, seoAttr));
+            IngatlanItem.builder()
+                .id(id)
+                .source(SOURCE)
+                .url(fullLink)
+                .title(title)
+                .priceInfo(priceInfo)
+                .city(actualCity)
+                .location(actualCity)
+                .detailsInfo(detailsInfo)
+                .discoveredAt(executionTime)
+                .imageUrl(
+                    PortalSupport.extractImageWithFallback(
+                        card, OtthonCentrumUrlBuilder.BASE_URL))
+                .newConstruction(
+                    PropertyParser.isNewConstructionText(cardText, title, fullLink, seoAttr))
+                .build();
 
         if (criteria != null && !criteria.matchesRelevance(item)) {
           continue;

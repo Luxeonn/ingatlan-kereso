@@ -84,9 +84,14 @@ public class IngatlanBazarJsonParser {
           NumberFormat nf = NumberFormat.getInstance(new Locale("hu", "HU"));
           String formatted = nf.format(priceHuf) + " Ft";
           double million = Math.round((priceHuf / 1_000_000.0) * 100.0) / 100.0;
-          priceInfo = new PriceInfo(formatted, priceHuf, million);
+          priceInfo =
+              PriceInfo.builder()
+                  .rawText(formatted)
+                  .amountHuf(priceHuf)
+                  .amountMillion(million)
+                  .build();
         } else {
-          priceInfo = new PriceInfo("Ár a hirdetésben", null, null);
+          priceInfo = PriceInfo.builder().rawText("Ár a hirdetésben").build();
         }
 
         Double area = null;
@@ -130,7 +135,12 @@ public class IngatlanBazarJsonParser {
         }
 
         PropertyDetails detailsInfo =
-            new PropertyDetails(detailsSb.toString(), area, rooms, sqmPrice);
+            PropertyDetails.builder()
+                .rawText(detailsSb.toString())
+                .areaSquareMeters(area)
+                .roomCount(rooms)
+                .pricePerSquareMeter(sqmPrice)
+                .build();
 
         String defaultCity = criteria != null ? criteria.getCity() : "Debrecen";
         String settlement =
@@ -152,23 +162,7 @@ public class IngatlanBazarJsonParser {
                 ? hit.get("createdAt").asText().trim()
                 : now;
 
-        IngatlanItem item =
-            new IngatlanItem(
-                propertyId,
-                SOURCE,
-                fullUrl,
-                title,
-                priceInfo,
-                settlement,
-                detailsInfo,
-                discoveredAt,
-                true);
-        item.setLocation(location);
-
         String imageUrl = IngatlanBazarRawParser.extractImageUrl(hit);
-        if (imageUrl != null) {
-          item.setImageUrl(imageUrl);
-        }
 
         boolean isNewBuild =
             (hit.has("isNewConstruction") && hit.get("isNewConstruction").asBoolean(false))
@@ -176,7 +170,22 @@ public class IngatlanBazarJsonParser {
                 || (hit.has("condition")
                     && PropertyParser.isNewConstructionText(hit.get("condition").asText("")))
                 || PropertyParser.isNewConstructionText(title, fullUrl);
-        item.setNewConstruction(isNewBuild);
+
+        IngatlanItem item =
+            IngatlanItem.builder()
+                .id(propertyId)
+                .source(SOURCE)
+                .url(fullUrl)
+                .title(title)
+                .priceInfo(priceInfo)
+                .city(settlement)
+                .location(location)
+                .detailsInfo(detailsInfo)
+                .discoveredAt(discoveredAt)
+                .isNew(true)
+                .imageUrl(imageUrl)
+                .newConstruction(isNewBuild)
+                .build();
 
         if (criteria != null && !criteria.matchesRelevance(item)) {
           continue;

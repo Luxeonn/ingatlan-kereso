@@ -85,10 +85,19 @@ public class KoltozzbeParser implements PortalHtmlParser {
           PortalSupport.extractImageWithFallback(card, KoltozzbeUrlBuilder.BASE_URL);
 
       IngatlanItem item =
-          new IngatlanItem(lid, SOURCE, fullUrl, title, priceInfo, city, details, now, false);
-      item.setLocation(city);
-      item.setImageUrl(imageUrl);
-      item.setNewConstruction(PropertyParser.isNewConstructionText(card.text(), title, fullUrl));
+          IngatlanItem.builder()
+              .id(lid)
+              .source(SOURCE)
+              .url(fullUrl)
+              .title(title)
+              .priceInfo(priceInfo)
+              .city(city)
+              .location(city)
+              .detailsInfo(details)
+              .discoveredAt(now)
+              .imageUrl(imageUrl)
+              .newConstruction(PropertyParser.isNewConstructionText(card.text(), title, fullUrl))
+              .build();
 
       if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
@@ -224,10 +233,19 @@ public class KoltozzbeParser implements PortalHtmlParser {
           String imageUrl = extractJsonLdImage(product);
 
           IngatlanItem item =
-              new IngatlanItem(id, SOURCE, url, name, priceInfo, city, details, now, false);
-          item.setLocation(city);
-          item.setImageUrl(imageUrl);
-          item.setNewConstruction(PropertyParser.isNewConstructionText(name, description, url));
+              IngatlanItem.builder()
+                  .id(id)
+                  .source(SOURCE)
+                  .url(url)
+                  .title(name)
+                  .priceInfo(priceInfo)
+                  .city(city)
+                  .location(city)
+                  .detailsInfo(details)
+                  .discoveredAt(now)
+                  .imageUrl(imageUrl)
+                  .newConstruction(PropertyParser.isNewConstructionText(name, description, url))
+                  .build();
 
           if (criteria == null || criteria.matchesRelevance(item)) {
             items.add(item);

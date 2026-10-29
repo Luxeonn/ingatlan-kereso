@@ -65,11 +65,19 @@ public class JofogasParser implements PortalHtmlParser {
       }
 
       IngatlanItem item =
-          new IngatlanItem(
-              id, SOURCE, fullLink, title, priceInfo, city, detailsInfo, executionTime, false);
-      item.setLocation(city);
-      item.setImageUrl(PortalSupport.extractImageWithFallback(a, JofogasUrlBuilder.BASE_URL));
-      item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
+          IngatlanItem.builder()
+              .id(id)
+              .source(SOURCE)
+              .url(fullLink)
+              .title(title)
+              .priceInfo(priceInfo)
+              .city(city)
+              .location(city)
+              .detailsInfo(detailsInfo)
+              .discoveredAt(executionTime)
+              .imageUrl(PortalSupport.extractImageWithFallback(a, JofogasUrlBuilder.BASE_URL))
+              .newConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink))
+              .build();
 
       if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;
