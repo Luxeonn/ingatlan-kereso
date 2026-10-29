@@ -3,6 +3,7 @@ package ingatlanok.model;
 import java.io.Serializable;
 import java.util.Objects;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -37,6 +38,7 @@ public class ListingObservation implements Serializable {
   private Long priceDelta;
   private Double changePercent;
 
+  @Builder
   public ListingObservation(
       String observedAt,
       Long priceHuf,

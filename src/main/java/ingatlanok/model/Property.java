@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,6 +26,7 @@ public class Property implements Serializable {
   private Long minActivePriceHuf;
   private List<SourceListing> sources = new ArrayList<>();
 
+  @Builder
   public Property(
       String canonicalId,
       String normalizedCity,

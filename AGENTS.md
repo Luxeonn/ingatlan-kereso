@@ -16,9 +16,10 @@ Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`)
 
 ## Code Generation Conventions (Lombok & MapStruct)
 
-- **Lombok:** use `@Getter`/`@Setter`/`@NoArgsConstructor` for plain data classes and JPA entities (class-level only when every accessor is trivial; custom accessors are kept and skipped by Lombok). Do not use `@Data`, and do not generate `equals`/`hashCode`/`toString` on JPA entities. Keep hand-written `equals`/`hashCode` where they encode business identity.
-- **MapStruct:** use it for simple field-to-field mappings (entity ↔ DTO/record) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`. Keep hand-written mapping where setters have side effects, merge/update semantics apply, or logic is business-driven (e.g. `JpaEntityMapper.toItem`/`toEntity`).
-- **Records:** prefer `record` for immutable value carriers; classes remain where Jackson/JPA/builder semantics need mutability.
+- **Lombok:** use `@Getter`/`@Builder`/`@NoArgsConstructor` (and `@Setter` only where post-construction mutation is needed) across models, presentation DTOs, and JPA entities. Prefer `@Builder` (with `@Builder.Default` or constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` where copy-updates are needed) over setter chains, and omit `@Setter` on read-only DTOs/value objects (`MarketStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`). Do not use `@Data`, and do not generate `equals`/`hashCode`/`toString` on JPA entities. Keep hand-written `equals`/`hashCode` where they encode business identity.
+- **MapStruct:** use it for entity ↔ DTO/domain mappings (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`. Use `@AfterMapping` and `@MappingTarget` where post-mapping enrichment or merge semantics apply (`toItem`, `toProperty`, `updateEntityFromItem`), keeping only genuine stateful merge orchestration in Java.
+- **Records:** prefer `record` for immutable value carriers; classes with `@Builder` remain where Jackson/JPA or custom normalizing constructors apply.
+
 ## Style & Naming
 
 Follow the existing Java package and class structure. Checkstyle 10.21.4 is strict: use spaces (no tabs), keep Java lines within 120 characters, group and sort imports, and avoid wildcard imports, `System.out`/`System.err`, and `printStackTrace()`. Use descriptive PascalCase Java type names and camelCase members. Frontend components use `.tsx` with PascalCase names; hooks use `use`-prefixed camelCase. Keep generated API types generated from the OpenAPI spec rather than editing them by hand.

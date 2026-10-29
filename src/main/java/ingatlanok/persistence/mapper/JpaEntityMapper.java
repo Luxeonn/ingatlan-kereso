@@ -1,12 +1,16 @@
 package ingatlanok.persistence.mapper;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import org.mapstruct.AfterMapping;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
+import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValueMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 
 import ingatlanok.common.CityUtils;
@@ -25,66 +29,127 @@ import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.entity.StatusLogEntity;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(
+    componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.ERROR,
+    imports = {CityUtils.class, PropertyType.class})
 public abstract class JpaEntityMapper {
 
-  public IngatlanItem toItem(PropertyEntity entity) {
-    if (entity == null) {
-      return null;
-    }
-    IngatlanItem item = new IngatlanItem();
-    item.setId(entity.getPropertyId());
-    item.setUrl(entity.getUrl());
-    item.setPortal(entity.getPortal());
-    item.setTitle(entity.getTitle());
-    item.setPrice(entity.getPriceRaw());
+  @BeanMapping(builder = @Builder(disableBuilder = true))
+  @Mapping(target = "id", source = "propertyId")
+  @Mapping(target = "price", source = "priceRaw")
+  @Mapping(
+      target = "propertyType",
+      expression =
+          "java(entity.getPropertyType() != null"
+              + " ? entity.getPropertyType() : PropertyType.EGYEB_ISMERETLEN)")
+  @Mapping(target = "sourcesCount", ignore = true)
+  @Mapping(target = "sourceListings", ignore = true)
+  @Mapping(target = "isBargain", ignore = true)
+  @Mapping(target = "bargain", ignore = true)
+  @Mapping(target = "referenceMedianPricePerSquareMeter", ignore = true)
+  @Mapping(target = "percentageBelowMedian", ignore = true)
+  @Mapping(target = "referenceSampleSize", ignore = true)
+  @Mapping(target = "qualityScore", ignore = true)
+  @Mapping(target = "qualityDeductions", ignore = true)
+  @Mapping(target = "priceInfo", ignore = true)
+  @Mapping(target = "detailsInfo", ignore = true)
+  @Mapping(target = "source", ignore = true)
+  public abstract IngatlanItem toItem(PropertyEntity entity);
+
+  @AfterMapping
+  protected void enrichItem(PropertyEntity entity, @MappingTarget IngatlanItem item) {
     item.setLocation(entity.getLocation());
     item.setCity(entity.getCity());
-    item.setDetails(entity.getDetails());
-    item.setDiscoveredAt(entity.getDiscoveredAt());
-    item.setNew(entity.isNew());
-    item.setViewed(entity.isViewed());
-    item.setViewedAt(entity.getViewedAt());
-    item.setImageUrl(entity.getImageUrl());
-    item.setNewConstruction(entity.isNewConstruction());
-    item.setStatus(entity.getStatus());
-    item.setPriceDelta(entity.getPriceDelta());
-    item.setPriceChangePercent(entity.getPriceChangePercent());
-    item.setLastPriceChangeAt(entity.getLastPriceChangeAt());
-    item.setPropertyType(
-        entity.getPropertyType() != null ? entity.getPropertyType() : PropertyType.EGYEB_ISMERETLEN);
-
     if (entity.getPriceAmount() != null || entity.getPriceMillions() != null) {
       item.setPriceInfo(
-          new PriceInfo(
-              entity.getPriceRaw(),
-              entity.getPriceAmount() != null ? entity.getPriceAmount() : 0L,
-              entity.getPriceMillions() != null ? entity.getPriceMillions() : 0.0));
+          PriceInfo.builder()
+              .rawText(entity.getPriceRaw())
+              .amountHuf(entity.getPriceAmount() != null ? entity.getPriceAmount() : 0L)
+              .amountMillion(entity.getPriceMillions() != null ? entity.getPriceMillions() : 0.0)
+              .build());
     }
     if (entity.getAreaSqm() != null
         || entity.getRooms() != null
         || entity.getPricePerSqm() != null) {
       item.setDetailsInfo(
-          new PropertyDetails(
-              entity.getDetails(),
-              entity.getAreaSqm() != null ? entity.getAreaSqm() : 0.0,
-              entity.getRooms() != null ? entity.getRooms() : 0.0,
-              entity.getPricePerSqm() != null ? entity.getPricePerSqm() : 0L));
+          PropertyDetails.builder()
+              .rawText(entity.getDetails())
+              .areaSquareMeters(entity.getAreaSqm() != null ? entity.getAreaSqm() : 0.0)
+              .roomCount(entity.getRooms() != null ? entity.getRooms() : 0.0)
+              .pricePerSquareMeter(entity.getPricePerSqm() != null ? entity.getPricePerSqm() : 0L)
+              .build());
     }
     SourceListing source = toSourceListing(entity);
     if (source != null) {
       item.setSourceListings(List.of(source));
       item.setSourcesCount(1);
     }
-    return item;
   }
 
-  public List<IngatlanItem> toItems(Collection<PropertyEntity> entities) {
-    if (entities == null || entities.isEmpty()) {
-      return Collections.emptyList();
-    }
-    return entities.stream().map(this::toItem).collect(Collectors.toList());
-  }
+  @IterableMapping(nullValueMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT)
+  public abstract List<IngatlanItem> toItems(Collection<PropertyEntity> entities);
+
+  @Mapping(target = "internalId", ignore = true)
+  @Mapping(target = "propertyId", ignore = true)
+  @Mapping(target = "url", ignore = true)
+  @Mapping(target = "discoveredAt", ignore = true)
+  @Mapping(target = "canonicalId", ignore = true)
+  @Mapping(
+      target = "portal",
+      expression = "java(item.getPortal() != null ? item.getPortal().trim() : \"Egyéb\")")
+  @Mapping(
+      target = "city",
+      expression =
+          "java(item.getCity() != null && !item.getCity().isBlank()"
+              + " ? item.getCity().trim() : \"Ismeretlen\")")
+  @Mapping(
+      target = "normalizedCity",
+      expression =
+          "java(CityUtils.normalizeCityKey(item.getCity() != null && !item.getCity().isBlank()"
+              + " ? item.getCity().trim() : \"Ismeretlen\"))")
+  @Mapping(
+      target = "location",
+      expression =
+          "java(item.getCity() != null && !item.getCity().isBlank()"
+              + " ? item.getCity().trim() : \"Ismeretlen\")")
+  @Mapping(target = "title", source = "item.title", defaultValue = "")
+  @Mapping(
+      target = "propertyType",
+      source = "item.propertyType",
+      defaultExpression = "java(PropertyType.EGYEB_ISMERETLEN)")
+  @Mapping(
+      target = "priceRaw",
+      expression =
+          "java((item.getPriceInfo() != null && item.getPriceInfo().getRawText() != null)"
+              + " ? item.getPriceInfo().getRawText()"
+              + " : (item.getPrice() != null ? item.getPrice() : \"\"))")
+  @Mapping(target = "priceAmount", source = "item.priceInfo.amountHuf")
+  @Mapping(target = "priceMillions", source = "item.priceInfo.amountMillion")
+  @Mapping(target = "pricePerSqm", source = "item.detailsInfo.pricePerSquareMeter")
+  @Mapping(target = "details", source = "item.details", defaultValue = "")
+  @Mapping(target = "areaSqm", source = "item.detailsInfo.areaSquareMeters")
+  @Mapping(target = "rooms", source = "item.detailsInfo.roomCount")
+  @Mapping(target = "imageUrl", source = "item.imageUrl")
+  @Mapping(target = "newConstruction", ignore = true)
+  @Mapping(target = "new", source = "item.new")
+  @Mapping(target = "viewed", ignore = true)
+  @Mapping(target = "viewedAt", ignore = true)
+  @Mapping(target = "status", source = "targetStatus")
+  @Mapping(target = "priceDelta", source = "priceDelta")
+  @Mapping(target = "priceChangePercent", source = "priceChangePercent")
+  @Mapping(target = "lastPriceChangeAt", source = "lastPriceChangeAt")
+  @Mapping(target = "firstSeenAt", ignore = true)
+  @Mapping(target = "lastSeenAt", source = "now")
+  @Mapping(target = "updatedAt", source = "now")
+  protected abstract void updateEntityFromItem(
+      IngatlanItem item,
+      @MappingTarget PropertyEntity entity,
+      String now,
+      Long priceDelta,
+      Double priceChangePercent,
+      String lastPriceChangeAt,
+      String targetStatus);
 
   public PropertyEntity toEntity(
       IngatlanItem item,
@@ -96,62 +161,34 @@ public abstract class JpaEntityMapper {
       String targetStatus) {
     boolean isNew = (existing == null);
     PropertyEntity entity = isNew ? new PropertyEntity() : existing;
-    String url = item.getUrl() != null ? item.getUrl().trim() : "";
-    String portal = item.getPortal() != null ? item.getPortal().trim() : "Egyéb";
-    String cityName =
-        item.getCity() != null && !item.getCity().isBlank() ? item.getCity().trim() : "Ismeretlen";
+    boolean prevViewed = !isNew && existing.isViewed();
+    String prevViewedAt = !isNew ? existing.getViewedAt() : null;
+    boolean prevNewConstruction = !isNew && existing.isNewConstruction();
+    String prevFirstSeenAt = !isNew ? existing.getFirstSeenAt() : null;
+    String prevCanonicalId = !isNew ? existing.getCanonicalId() : null;
+
+    updateEntityFromItem(
+        item, entity, now, priceDelta, priceChangePercent, lastPriceChangeAt, targetStatus);
 
     if (isNew) {
+      String url = item.getUrl() != null ? item.getUrl().trim() : "";
       entity.setUrl(url);
-      entity.setPropertyId(generatePropertyId(portal, item.getId(), url));
+      entity.setPropertyId(generatePropertyId(entity.getPortal(), item.getId(), url));
       entity.setDiscoveredAt(item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now);
     }
-
-    boolean finalViewed = (!isNew && existing.isViewed()) || item.isViewed();
-    String finalViewedAt =
-        (!isNew && existing.isViewed())
-            ? existing.getViewedAt()
-            : (item.isViewed() ? (item.getViewedAt() != null ? item.getViewedAt() : now) : null);
-
-    PriceInfo pi = item.getPriceInfo();
-    PropertyDetails di = item.getDetailsInfo();
-
-    entity.setPortal(portal);
-    entity.setCity(cityName);
-    entity.setNormalizedCity(CityUtils.normalizeCityKey(cityName));
-    entity.setLocation(cityName);
-    entity.setTitle(item.getTitle() != null ? item.getTitle() : "");
-    entity.setPropertyType(
-        item.getPropertyType() != null ? item.getPropertyType() : PropertyType.EGYEB_ISMERETLEN);
-    entity.setPriceRaw(
-        (pi != null && pi.getRawText() != null)
-            ? pi.getRawText()
-            : (item.getPrice() != null ? item.getPrice() : ""));
-    entity.setPriceAmount(pi != null ? pi.getAmountHuf() : null);
-    entity.setPriceMillions(pi != null ? pi.getAmountMillion() : null);
-    entity.setPricePerSqm(di != null ? di.getPricePerSquareMeter() : null);
-    entity.setDetails(item.getDetails() != null ? item.getDetails() : "");
-    entity.setAreaSqm(di != null ? di.getAreaSquareMeters() : null);
-    entity.setRooms(di != null ? di.getRoomCount() : null);
-    entity.setImageUrl(item.getImageUrl());
-    entity.setNewConstruction(
-        item.isNewConstruction() || (!isNew && existing.isNewConstruction()));
-    entity.setNew(item.isNew());
-    entity.setViewed(finalViewed);
-    entity.setViewedAt(finalViewedAt);
-    entity.setStatus(targetStatus);
-    entity.setPriceDelta(priceDelta);
-    entity.setPriceChangePercent(priceChangePercent);
-    entity.setLastPriceChangeAt(lastPriceChangeAt);
+    entity.setNewConstruction(item.isNewConstruction() || prevNewConstruction);
+    entity.setViewed(prevViewed || item.isViewed());
+    entity.setViewedAt(
+        prevViewed
+            ? prevViewedAt
+            : (item.isViewed() ? (item.getViewedAt() != null ? item.getViewedAt() : now) : null));
     entity.setFirstSeenAt(
-        !isNew && existing.getFirstSeenAt() != null
-            ? existing.getFirstSeenAt()
+        prevFirstSeenAt != null
+            ? prevFirstSeenAt
             : (item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now));
-    entity.setLastSeenAt(now);
-    if (!isNew && existing.getCanonicalId() != null) {
-      entity.setCanonicalId(existing.getCanonicalId());
+    if (prevCanonicalId != null) {
+      entity.setCanonicalId(prevCanonicalId);
     }
-    entity.setUpdatedAt(now);
     return entity;
   }
 
@@ -231,21 +268,23 @@ public abstract class JpaEntityMapper {
       String statusEvent,
       Long priceDelta,
       Double changePercent);
-  public Property toProperty(PropertyEntity entity, List<SourceListing> sources) {
-    if (entity == null) {
-      return null;
-    }
-    Property prop = new Property();
-    prop.setCanonicalId(
-        entity.getCanonicalId() != null ? entity.getCanonicalId() : entity.getPropertyId());
-    prop.setNormalizedCity(entity.getNormalizedCity());
-    prop.setCity(entity.getCity());
-    prop.setPropertyType(
-        entity.getPropertyType() != null ? entity.getPropertyType() : PropertyType.EGYEB_ISMERETLEN);
-    prop.setFloorAreaSquareMeters(entity.getAreaSqm());
-    prop.setRoomCount(entity.getRooms());
-    prop.setLocation(entity.getLocation());
-    prop.setMinActivePriceHuf(entity.getPriceAmount());
+  @Mapping(
+      target = "canonicalId",
+      source = "entity.canonicalId",
+      defaultExpression = "java(entity.getPropertyId())")
+  @Mapping(
+      target = "propertyType",
+      source = "entity.propertyType",
+      defaultExpression = "java(PropertyType.EGYEB_ISMERETLEN)")
+  @Mapping(target = "floorAreaSquareMeters", source = "entity.areaSqm")
+  @Mapping(target = "roomCount", source = "entity.rooms")
+  @Mapping(target = "minActivePriceHuf", source = "entity.priceAmount")
+  @Mapping(target = "sources", ignore = true)
+  public abstract Property toProperty(PropertyEntity entity, List<SourceListing> sources);
+
+  @AfterMapping
+  protected void populatePropertySources(
+      PropertyEntity entity, List<SourceListing> sources, @MappingTarget Property prop) {
     if (sources != null && !sources.isEmpty()) {
       prop.setSources(sources);
       prop.setMinActivePriceHuf(prop.calculateMinActivePriceHuf());
@@ -255,6 +294,5 @@ public abstract class JpaEntityMapper {
         prop.setSources(List.of(singleSource));
       }
     }
-    return prop;
   }
 }

@@ -2,9 +2,11 @@ package ingatlanok.presentation;
 
 import java.io.Serializable;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import ingatlanok.model.PropertyType;
 
@@ -12,7 +14,8 @@ import ingatlanok.model.PropertyType;
  * Summary DTO representing a listing with a registered price reduction.
  */
 @Getter
-@Setter
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 public class PriceDropItemDto implements Serializable {
 

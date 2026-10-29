@@ -76,19 +76,20 @@ public class DunaHouseParser implements PortalHtmlParser {
       String title = cleanTitle(cardText, actualCity, id);
 
       IngatlanItem item =
-          new IngatlanItem(
-              id,
-              SOURCE,
-              fullLink,
-              title,
-              priceInfo,
-              actualCity,
-              detailsInfo,
-              executionTime,
-              false);
-      item.setLocation(actualCity);
-      item.setImageUrl(PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL));
-      item.setNewConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink));
+          IngatlanItem.builder()
+              .id(id)
+              .source(SOURCE)
+              .url(fullLink)
+              .title(title)
+              .priceInfo(priceInfo)
+              .city(actualCity)
+              .location(actualCity)
+              .detailsInfo(detailsInfo)
+              .discoveredAt(executionTime)
+              .imageUrl(
+                  PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL))
+              .newConstruction(PropertyParser.isNewConstructionText(cardText, title, fullLink))
+              .build();
 
       if (criteria != null && !criteria.matchesRelevance(item)) {
         continue;

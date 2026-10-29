@@ -306,7 +306,8 @@ class DataQualityAdversarialTest {
 
     // Corrupt candidate with 200,000 Ft/m² (-80% below median), score 69
     IngatlanItem corruptCheap = createBaselineResidential("cheap-corrupt", 10_000_000L, 50.0, 2.0);
-    corruptCheap.getDetailsInfo().setPricePerSquareMeter(200_000L);
+    corruptCheap.setDetailsInfo(
+        corruptCheap.getDetailsInfo().toBuilder().pricePerSquareMeter(200_000L).build());
     corruptCheap.setQualityScore(69);
     items.add(corruptCheap);
 

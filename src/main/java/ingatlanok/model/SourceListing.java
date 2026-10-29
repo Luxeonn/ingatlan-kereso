@@ -3,6 +3,7 @@ package ingatlanok.model;
 import java.io.Serializable;
 import java.util.Objects;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,6 +26,7 @@ public class SourceListing implements Serializable {
   private boolean viewed;
   private String viewedAt;
 
+  @Builder
   public SourceListing(
       String portal,
       String externalListingId,

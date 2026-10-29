@@ -2,6 +2,7 @@ package ingatlanok.core;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -75,18 +76,18 @@ public class SearchResultAggregator {
           return b.getDiscoveredAt().compareTo(a.getDiscoveredAt());
         });
 
-    SearchResult result = new SearchResult();
-    result.setItems(uniqueAggregatedList);
-    result.setNewCount(newItems.size());
-    result.setTotalFound(uniqueAggregatedList.size());
-    result.setExecutedAt(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
-    result.setPortalCounts(portalCounts != null ? portalCounts : new HashMap<>());
-    result.setCityCounts(cityCounts != null ? cityCounts : new HashMap<>());
-    if (newCitiesInitialized != null) {
-      result.getNewCitiesInitialized().addAll(newCitiesInitialized);
-    }
-
-    return result;
+    return SearchResult.builder()
+        .items(uniqueAggregatedList)
+        .newCount(newItems.size())
+        .totalFound(uniqueAggregatedList.size())
+        .executedAt(
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()))
+        .portalCounts(portalCounts != null ? portalCounts : new HashMap<>())
+        .cityCounts(cityCounts != null ? cityCounts : new HashMap<>())
+        .newCitiesInitialized(
+            newCitiesInitialized != null
+                ? new ArrayList<>(newCitiesInitialized)
+                : new ArrayList<>())
+        .build();
   }
 }

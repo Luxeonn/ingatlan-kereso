@@ -2,12 +2,11 @@ package ingatlanok.model;
 
 import java.io.Serializable;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
-@Setter
 @NoArgsConstructor
 public class PortalSource implements Serializable {
 
@@ -16,6 +15,7 @@ public class PortalSource implements Serializable {
   private String themeColor;
   private boolean directListing;
 
+  @Builder
   public PortalSource(
       String portalId, String portalName, String themeColor, boolean directListing) {
     this.portalId = portalId;

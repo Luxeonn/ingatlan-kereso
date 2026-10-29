@@ -39,7 +39,7 @@ public final class PropertyParser {
   public static PriceInfo parsePrice(String text) {
     String raw = extractPrice(text);
     if ("Ár a hirdetésben".equals(raw)) {
-      return new PriceInfo(raw, null, null);
+      return PriceInfo.builder().rawText(raw).build();
     }
 
     Matcher mMillion = MILLION_PRICE_PATTERN.matcher(raw);
@@ -47,7 +47,7 @@ public final class PropertyParser {
       try {
         double million = Double.parseDouble(mMillion.group(1).replace(",", "."));
         long huf = Math.round(million * 1_000_000.0);
-        return new PriceInfo(raw, huf, million);
+        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and continue with the next supported price format.
       }
@@ -59,13 +59,13 @@ public final class PropertyParser {
         String cleanDigits = mHuf.group(1).replaceAll("\\s+", "");
         long huf = Long.parseLong(cleanDigits);
         double million = Math.round((huf / 1_000_000.0) * 100.0) / 100.0;
-        return new PriceInfo(raw, huf, million);
+        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and return an unknown price below.
       }
     }
 
-    return new PriceInfo(raw, null, null);
+    return PriceInfo.builder().rawText(raw).build();
   }
 
   public static String extractDetails(String text) {
@@ -106,7 +106,12 @@ public final class PropertyParser {
       pricePerM2 = Math.round((double) priceInfo.getAmountHuf() / area);
     }
 
-    return new PropertyDetails(raw, area, rooms, pricePerM2);
+    return PropertyDetails.builder()
+        .rawText(raw)
+        .areaSquareMeters(area)
+        .roomCount(rooms)
+        .pricePerSquareMeter(pricePerM2)
+        .build();
   }
 
   public static String extractFirstGroup(String text, Pattern pattern, String fallback) {

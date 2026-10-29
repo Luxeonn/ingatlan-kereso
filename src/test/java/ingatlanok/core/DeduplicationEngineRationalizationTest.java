@@ -91,7 +91,7 @@ class DeduplicationEngineRationalizationTest {
             0.0,
             50_000_000L,
             "ACTIVE");
-    jf.getDetailsInfo().setRoomCount(null);
+    jf.setDetailsInfo(jf.getDetailsInfo().toBuilder().roomCount(null).build());
 
     assertTrue(engine.isMatch(dh, jf), "Hiányzó szobaszám nem tilthatja le az összevonást ha minden egyéb egyezik");
     List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(dh, jf));

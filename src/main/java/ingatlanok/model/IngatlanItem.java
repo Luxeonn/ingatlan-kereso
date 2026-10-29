@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -125,6 +126,29 @@ public class IngatlanItem implements Serializable {
       PropertyType propertyType) {
     this(id, source, url, title, priceInfo, city, detailsInfo, discoveredAt, isNew);
     this.propertyType = propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
+  }
+
+  @Builder
+  public IngatlanItem(
+      String id,
+      PortalSource source,
+      String url,
+      String title,
+      PriceInfo priceInfo,
+      String city,
+      String location,
+      PropertyDetails detailsInfo,
+      String discoveredAt,
+      boolean isNew,
+      PropertyType propertyType,
+      String imageUrl,
+      boolean newConstruction) {
+    this(id, source, url, title, priceInfo, city, detailsInfo, discoveredAt, isNew, propertyType);
+    if (location != null) {
+      this.location = location;
+    }
+    this.imageUrl = imageUrl;
+    this.newConstruction = newConstruction;
   }
 
   public void setPortal(String portal) {

@@ -3,6 +3,7 @@ package ingatlanok;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -15,10 +16,13 @@ import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.InMemoryListingStorage;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.MarketStatsDto;
+import ingatlanok.presentation.PresentationMapper;
+import ingatlanok.presentation.PriceDropItemDto;
 
 class DashboardPresentationServiceTest {
 
@@ -60,6 +64,30 @@ class DashboardPresentationServiceTest {
     assertNotNull(stats);
     assertNull(stats.getAveragePriceMillion());
     assertNull(stats.getAveragePricePerM2());
+  }
+
+  @Test
+  void testPresentationMapperNullAndFallbackBranches() {
+    PresentationMapper mapper = PresentationMapper.INSTANCE;
+    assertNull(mapper.toPortalStatusDto(null));
+    assertNull(mapper.toDashboardResponseDto(null, null, null));
+    assertNull(mapper.toPriceDropItemDto(null, null));
+    assertNull(mapper.toSourceListingFromItem(null, null, null, null));
+
+    var dash = mapper.toDashboardResponseDto(null, MarketStatsDto.builder().build(), null);
+    assertNotNull(dash);
+    assertTrue(dash.getPortalStatuses().isEmpty());
+
+    IngatlanItem item = new IngatlanItem();
+    item.setId("x");
+    item.setStatus(null);
+    SourceListing sl = mapper.toSourceListingFromItem(item, "dh", 10L, 1L);
+    assertEquals("ACTIVE", sl.getStatus());
+    assertEquals("x", sl.getExternalListingId());
+
+    PriceDropItemDto drop = mapper.toPriceDropItemDto(item, 500L);
+    assertNull(drop.getCurrentPriceHuf());
+    assertEquals(500L, drop.getPricePerM2());
   }
 
   private DashboardPresentationService createService() {

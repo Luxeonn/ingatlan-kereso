@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +27,7 @@ public class ConfigEntity implements Serializable {
   @Column(name = "config_value", columnDefinition = "TEXT")
   private String value;
 
+  @Builder
   public ConfigEntity(String key, String value) {
     this.key = key;
     this.value = value;

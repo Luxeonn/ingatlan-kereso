@@ -2,12 +2,11 @@ package ingatlanok.model;
 
 import java.io.Serializable;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
-@Setter
 @NoArgsConstructor
 public class PriceInfo implements Serializable {
 
@@ -16,6 +15,7 @@ public class PriceInfo implements Serializable {
   private Double amountMillion;
   private String currency = "HUF";
 
+  @Builder
   public PriceInfo(String rawText, Long amountHuf, Double amountMillion) {
     this.rawText = rawText;
     this.amountHuf = amountHuf;

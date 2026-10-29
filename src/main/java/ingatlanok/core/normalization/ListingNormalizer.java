@@ -129,35 +129,30 @@ public class ListingNormalizer {
         ? PortalSource.of(descriptor.name())
         : PortalSource.of(raw.portalId() != null ? raw.portalId() : "Unknown");
 
-    IngatlanItem item = new IngatlanItem(
-        id,
-        source,
-        canonicalUrl,
-        title,
-        priceInfo,
-        city,
-        detailsInfo,
-        time,
-        false
-    );
-
-    item.setLocation(city);
-
-    if (raw.imageUrl() != null && !raw.imageUrl().isBlank()) {
-      item.setImageUrl(PortalSupport.resolveUrl(homepageUrl, raw.imageUrl()));
-    }
-
     boolean isNew = PropertyParser.isNewConstructionText(
         raw.title(),
         raw.descriptionText() != null ? raw.descriptionText() : raw.detailsText(),
         canonicalUrl
     );
-    item.setNewConstruction(isNew);
 
-    PropertyType propertyType = resolvePropertyType(raw);
-    item.setPropertyType(propertyType);
+    String imageUrl = raw.imageUrl() != null && !raw.imageUrl().isBlank()
+        ? PortalSupport.resolveUrl(homepageUrl, raw.imageUrl())
+        : null;
 
-    return item;
+    return IngatlanItem.builder()
+        .id(id)
+        .source(source)
+        .url(canonicalUrl)
+        .title(title)
+        .priceInfo(priceInfo)
+        .city(city)
+        .location(city)
+        .detailsInfo(detailsInfo)
+        .discoveredAt(time)
+        .propertyType(resolvePropertyType(raw))
+        .imageUrl(imageUrl)
+        .newConstruction(isNew)
+        .build();
   }
 
   private PriceInfo resolvePriceInfo(RawPropertyListing raw) {
@@ -166,7 +161,7 @@ public class ListingNormalizer {
       double million = Math.round((huf / 1_000_000.0) * 100.0) / 100.0;
       NumberFormat nf = NumberFormat.getIntegerInstance(Locale.of("hu", "HU"));
       String formattedPrice = nf.format(huf) + " Ft";
-      return new PriceInfo(formattedPrice, huf, million);
+      return PriceInfo.builder().rawText(formattedPrice).amountHuf(huf).amountMillion(million).build();
     }
     return PropertyParser.parsePrice(raw.priceText());
   }
@@ -179,7 +174,12 @@ public class ListingNormalizer {
       long priceHuf = priceInfo != null && priceInfo.getAmountHuf() != null ? priceInfo.getAmountHuf() : 0;
       long sqmPrice = area > 0 ? Math.round(priceHuf / area) : 0;
       String text = Math.round(area) + " m² • " + Math.round(rooms) + " szoba";
-      return new PropertyDetails(text, area, rooms, sqmPrice);
+      return PropertyDetails.builder()
+          .rawText(text)
+          .areaSquareMeters(area)
+          .roomCount(rooms)
+          .pricePerSquareMeter(sqmPrice)
+          .build();
     }
 
     PropertyDetails parsed = PropertyParser.parseDetails(raw.detailsText(), priceInfo);
@@ -190,7 +190,12 @@ public class ListingNormalizer {
     long sqmPrice = (finalArea != null && finalArea > 0) ? Math.round(priceHuf / finalArea) : 0;
     String text = parsed != null && parsed.getRawText() != null ? parsed.getRawText() : "";
 
-    return new PropertyDetails(text, finalArea, finalRooms, sqmPrice);
+    return PropertyDetails.builder()
+        .rawText(text)
+        .areaSquareMeters(finalArea)
+        .roomCount(finalRooms)
+        .pricePerSquareMeter(sqmPrice)
+        .build();
   }
 
   private String resolveCity(RawPropertyListing raw, SearchCriteria criteria) {

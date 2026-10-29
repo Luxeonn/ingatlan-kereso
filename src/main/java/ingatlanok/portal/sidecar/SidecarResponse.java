@@ -131,11 +131,16 @@ public class SidecarResponse implements Serializable {
         long priceHuf = Math.round(priceMillion * 1_000_000L);
         NumberFormat nf = NumberFormat.getInstance(new Locale("hu", "HU"));
         String formatted = nf.format(priceHuf) + " Ft";
-        priceInfo = new PriceInfo(formatted, priceHuf, priceMillion);
+        priceInfo =
+            PriceInfo.builder()
+                .rawText(formatted)
+                .amountHuf(priceHuf)
+                .amountMillion(priceMillion)
+                .build();
       } else if (priceRaw != null && !priceRaw.isBlank()) {
-        priceInfo = new PriceInfo(priceRaw, null, null);
+        priceInfo = PriceInfo.builder().rawText(priceRaw).build();
       } else {
-        priceInfo = new PriceInfo("Ár a hirdetésben", null, null);
+        priceInfo = PriceInfo.builder().rawText("Ár a hirdetésben").build();
       }
 
       StringBuilder detailsSb = new StringBuilder();
@@ -159,17 +164,29 @@ public class SidecarResponse implements Serializable {
       }
 
       PropertyDetails detailsInfo =
-          new PropertyDetails(detailsSb.toString(), areaSquareMeters, roomCount, sqmPrice);
+          PropertyDetails.builder()
+              .rawText(detailsSb.toString())
+              .areaSquareMeters(areaSquareMeters)
+              .roomCount(roomCount)
+              .pricePerSquareMeter(sqmPrice)
+              .build();
 
       String displayTitle =
           (title != null && !title.isBlank()) ? title : (city + " - Ingatlan (" + id + ")");
 
-      IngatlanItem item =
-          new IngatlanItem(
-              id, source, url, displayTitle, priceInfo, city, detailsInfo, discoveredAt, isNew);
-      item.setLocation(city);
-      item.setImageUrl(imageUrl);
-      return item;
+      return IngatlanItem.builder()
+          .id(id)
+          .source(source)
+          .url(url)
+          .title(displayTitle)
+          .priceInfo(priceInfo)
+          .city(city)
+          .location(city)
+          .detailsInfo(detailsInfo)
+          .discoveredAt(discoveredAt)
+          .isNew(isNew)
+          .imageUrl(imageUrl)
+          .build();
     }
   }
 }

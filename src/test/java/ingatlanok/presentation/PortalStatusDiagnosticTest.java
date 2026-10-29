@@ -55,15 +55,18 @@ class PortalStatusDiagnosticTest {
     assertEquals(500, dto.getHttpStatusCode());
     assertEquals("Read timed out after 15000ms", dto.getTechnicalDetails());
 
-    dto.setPortalId("dh");
-    dto.setPortalName("Duna House");
-    dto.setStatus("SUCCESS");
-    dto.setFoundCount(15);
-    dto.setLatencyMs(420L);
-    dto.setFallbackUrl("https://dh.hu");
-    dto.setMessage("Sikeres");
-    dto.setHttpStatusCode(200);
-    dto.setTechnicalDetails("Minden rendben");
+    dto =
+        dto.toBuilder()
+            .portalId("dh")
+            .portalName("Duna House")
+            .status("SUCCESS")
+            .foundCount(15)
+            .latencyMs(420L)
+            .fallbackUrl("https://dh.hu")
+            .message("Sikeres")
+            .httpStatusCode(200)
+            .technicalDetails("Minden rendben")
+            .build();
 
     assertEquals("dh", dto.getPortalId());
     assertEquals("Duna House", dto.getPortalName());

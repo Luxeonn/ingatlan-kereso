@@ -2,12 +2,11 @@ package ingatlanok.presentation;
 
 import java.io.Serializable;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
-@Setter
 @NoArgsConstructor
 public class PortalStatusDto implements Serializable {
 
@@ -32,6 +31,7 @@ public class PortalStatusDto implements Serializable {
     this(portalId, portalName, status, foundCount, latencyMs, fallbackUrl, message, null, null);
   }
 
+  @Builder(toBuilder = true)
   public PortalStatusDto(
       String portalId,
       String portalName,

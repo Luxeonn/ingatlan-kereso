@@ -11,6 +11,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -37,6 +40,8 @@ import ingatlanok.model.PropertyType;
     })
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 public class PropertyEntity implements Serializable {
 
@@ -103,6 +108,7 @@ public class PropertyEntity implements Serializable {
   private String viewedAt;
 
   @Column(length = 50)
+  @Builder.Default
   private String status = "ACTIVE";
 
   private Long priceDelta;
@@ -117,6 +123,7 @@ public class PropertyEntity implements Serializable {
 
   @Enumerated(EnumType.STRING)
   @Column(name = "property_type", length = 50)
+  @Builder.Default
   private PropertyType propertyType = PropertyType.EGYEB_ISMERETLEN;
 
   @Column(length = 128)
