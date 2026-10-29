@@ -1,8 +1,6 @@
 # Ingatlan Kereső
 
 [![CI Build](https://img.shields.io/github/actions/workflow/status/Luxeonn/ingatlan-kereso/ci.yml?branch=develop&style=flat-square&label=CI%20Build)](https://github.com/Luxeonn/ingatlan-kereso/actions/workflows/ci.yml)
-[![Docker Build](https://img.shields.io/github/actions/workflow/status/Luxeonn/ingatlan-kereso/images.yml?branch=develop&style=flat-square&label=Docker%20Build)](https://github.com/Luxeonn/ingatlan-kereso/actions/workflows/images.yml)
-[![Docker Release](https://img.shields.io/github/actions/workflow/status/Luxeonn/ingatlan-kereso/release.yml?style=flat-square&label=Docker%20Release)](https://github.com/Luxeonn/ingatlan-kereso/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/Luxeonn/ingatlan-kereso?style=flat-square&label=Verzi%C3%B3&color=007ec6)](https://github.com/Luxeonn/ingatlan-kereso/releases)
 [![License](https://img.shields.io/badge/Licenc-GPL--3.0-blue?style=flat-square)](LICENSE)
 
