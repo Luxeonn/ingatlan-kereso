@@ -1,53 +1,107 @@
-# Ingatlan Kereső
+# 🏡 Ingatlan Kereső
 
-A modern, resilient real estate search, market intelligence, and monitoring application for Hungarian property portals. Built with Java 25 LTS, Spring Boot 4.1.1, and React 19 / TypeScript / Tailwind CSS.
+[![CI Build](https://img.shields.io/github/actions/workflow/status/Luxeonn/ingatlan-kereso/ci.yml?branch=develop&style=flat-square&label=CI%20Build)](https://github.com/Luxeonn/ingatlan-kereso/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Luxeonn/ingatlan-kereso?style=flat-square&label=Verzi%C3%B3&color=007ec6)](https://github.com/Luxeonn/ingatlan-kereso/releases)
+[![License](https://img.shields.io/badge/Licenc-GPL--3.0-blue?style=flat-square)](LICENSE)
 
-The application continuously aggregates listings across major portals, normalizes property types, deduplicates cross-portal listings into canonical properties, tracks historical time-series price movements, computes statistical median market metrics, and filters out data quality anomalies.
+![Java](https://img.shields.io/badge/Java-25%20LTS-ed8b00?style=flat-square)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.2-6db33f?style=flat-square)
+![React](https://img.shields.io/badge/React-19.0-61dafb?style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square)
+![Vite](https://img.shields.io/badge/Vite-8.3-646cff?style=flat-square)
+![Node.js](https://img.shields.io/badge/Node.js-22%2B-4c1?style=flat-square)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square)
 
----
+<br />
 
-## Key Features
+> **Láss át a hazai ingatlanpiaci zajon.**  
+> Egyetlen felület, amely helyetted fésüli át a legnagyobb magyar ingatlanportálokat, kiszűri a trükkös duplikációkat, leleplezi a rejtett árcsökkenéseket, és megmutatja, hol vannak a valódi piaci lehetőségek.
 
-- **Multi-Portal Scraping**: Real-time extraction from Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, and Ingatlan.com (with fallback handling for bot protection).
-- **Canonical Property Type Normalization**: Deterministic categorization into canonical types (`LAKAS`, `HAZ`, `TELEK`, `GARAZS`, `IPARI_KERESKEDELMI`, `EGYEB_ISMERETLEN`) with accessible, color-coded badges on property cards.
-- **3-Tier Domain Architecture & Price History**: Clean domain and storage separation between physical properties (`Property`), portal source listings (`SourceListing`), and periodic time-series snapshots (`ListingObservation`), preserving detailed price drops and relisting events.
-- **Cross-Portal Multi-Signal Deduplication**: Intelligently groups matching listings across different agencies into a single canonical property card displaying the lowest active market price, with an expandable multi-source comparison drawer listing all underlying portals, prices, and direct links.
-- **Dedicated Market Analytics & Bargain Hunter**:
-  - Autonomous Market Analysis panel with active-market **median Ft/m²** metrics (strictly separating residential living area from land/plot area).
-  - Minimum sample size threshold protection (<5 listings indicates insufficient data rather than skewed statistics).
-  - **"Alkalmi vétel" (Bargain)** badge for listings priced >= 20% below city+type reference median, featuring an interactive popover detailing sample count and reference benchmarks.
-- **Rule-Based Data Quality Engine**: Deterministic 0–100 scoring engine with 10 evaluation rules (price sanity, area boundaries, realistic Ft/m², room consistency, extreme anomaly detection). Automatically excludes corrupt or low-quality listings (< 70 score) from market median calculations, and displays a 3-tier `<QualityScoreShield />` on property cards.
-- **Boilerplate-Free & Contract-Driven Architecture**: Backend models, DTOs, and JPA entities use Lombok `@Builder`/`@Getter`/`@NoArgsConstructor` and compile-time MapStruct mappers (`JpaEntityMapper`, `PresentationMapper` with `ReportingPolicy.ERROR`), while the React 19 frontend derives its DTO types directly from the OpenAPI 3.1 schema (`generated-api.ts`) and shares centralized domain formatters (`utils/formatters.ts`) and UI primitives (`NumericStepper`, `useOutsideDismiss`).
-
----
-
-## Supported portals
-
-Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, and Ingatlan.com. Ingatlan.com currently uses a fallback strategy due to Cloudflare automated access restrictions.
+<br />
 
 ---
 
-## Run locally
+<br />
 
-**Requirements:** JDK 25, Node.js 22+, and npm.
+## ✨ Miért más az Ingatlan Kereső?
 
-### Backend
+A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti eltérő áron, pontatlan adatokkal és mesterségesen felpumpált kínálattal. Az **Ingatlan Kereső** a háttérben elvégzi a piszkos munkát, hogy neked már csak a tiszta képpel kelljen foglalkoznod:
 
-Start the headless Spring Boot service from the repository root:
+- 🚀 **Villámgyors, párhuzamos portál-aggregáció**  
+  Egyetlen kereséssel valós időben gyűjti össze a legfontosabb hazai ingatlanportálok kínálatát – több tucat megnyitott böngészőfül nélkül.
+
+- 🧩 **Intelligens duplikáció-szűrés és ár-összevetés**  
+  Felismeri, ha ugyanazt az ingatlant több helyen is hirdetik, egyetlen tiszta kártyára vonja össze őket, és azonnal a **legkedvezőbb elérhető árat** teszi eléd.
+
+- 💎 **Piaci radar és „Alkalmi vétel” vadász**  
+  Saját statisztikai elemzőmotorja folyamatosan méri a helyi piaci árszintet, és automatikusan megjelöli azokat az ingatlanokat, amelyek érdemben a piaci érték alatt érhetők el.
+
+- 🛡️ **Beépített adatminőség-védelem**  
+  Kiszűri a gyanús, hiányos vagy megtévesztő hirdetéseket, így sem a találati listádat, sem a piaci elemzéseket nem torzítják a hibás adatok.
+
+- 📉 **Ártörténet és árváltozás-követés**  
+  Nem felejt: rögzíti az árváltozásokat és az újrahirdetéseket, így pontosan látod, melyik eladó engedett az árból az elmúlt időszakban.
+
+<br />
+
+---
+
+<br />
+
+## 🏗️ Milyen komponensekből épül fel?
+
+A rendszer modern, egymástól függetlenül skálázható rétegekre épül:
+
+| Komponens | Technológiai alap | Mit csinál? |
+| :--- | :--- | :--- |
+| 🎨 **Webes Felület (SPA)** | React 19, TypeScript, Tailwind CSS | Gyors, letisztult keresőfelület, interaktív szűrők és vizuális piaci elemző dashboard. |
+| ⚡ **Központi API Szerver** | Java 25 LTS, Spring Boot | Nagy teljesítményű, virtuális szálakra épülő háttérszolgáltatás a kérések azonnali kiszolgálására. |
+| 🧠 **Elemző és Normalizáló Motor** | Saját üzleti algoritmusok | Hirdetések egységesítése, kereszt-portál összevonás, minőségellenőrzés és piaci statisztikák. |
+| 🕷️ **Portál Konnektorok** | Hibatűrő adatgyűjtő modulok | Párhuzamos és védett kapcsolat a hazai ingatlanportálokkal, automatikus tartalék-stratégiákkal. |
+| 🗄️ **Adattár (Perzisztencia)** | Spring Data JPA, H2 / PostgreSQL | Az ingatlanok, forráshirdetések és történeti ármozgások megbízható tárolása. |
+
+<br />
+
+---
+
+<br />
+
+## 🚀 Hogyan indítsd el?
+
+### 🐳 1. Indítás Dockerrel (A legegyszerűbb mód)
+
+Egyetlen lépésben elindítja a teljes rendszert (adatbázis, háttérszerver és webes felület):
+
+```bash
+# Előre felépített csomagok letöltése és indítása:
+docker compose pull backend frontend
+docker compose up -d --no-build
+
+# VAGY teljes felépítés helyi forráskódból:
+docker compose up -d --build
+```
+
+> 💡 **Tipp Windows felhasználóknak:** Indítsd el a `scripts/start-docker.bat` fájlt, amely egy kényelmes menüből kínálja fel az indítási opciókat!
+
+👉 Indítás után nyisd meg a böngészőben: **[http://localhost:8080](http://localhost:8080)**
+
+<br />
+
+### 💻 2. Lokális fejlesztői indítás
+
+Ha közvetlenül a forráskódból szeretnéd futtatni (**JDK 25** és **Node.js 22+** szükséges):
+
+**1. Háttérszerver (Backend) indítása:**
 
 ```bash
 # Linux / macOS
 ./gradlew bootRun
 
-# Windows (PowerShell / CMD)
+# Windows
 .\gradlew.bat bootRun
 ```
 
-The REST API is available at [http://localhost:8080/api/status](http://localhost:8080/api/status).
-
-### Frontend
-
-In a separate terminal, start the Vite development server:
+**2. Webes felület (Frontend) indítása** *(külön terminálban)*:
 
 ```bash
 cd frontend
@@ -55,55 +109,34 @@ npm ci
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The Vite dev proxy forwards `/api/*` requests to the local Spring Boot backend.
+👉 Fejlesztői felület: **[http://localhost:5173](http://localhost:5173)** *(automatikusan kapcsolódik a `localhost:8080`-on futó szerverhez)*.
+
+<br />
 
 ---
 
-## Run with Docker Compose
+<br />
 
-Install and start Docker Desktop, then choose one of these modes from the repository root:
-
-**Build images from the local project:**
+## 🧪 Minőségellenőrzés
 
 ```bash
-docker compose build
-docker compose up -d --no-build
-```
-
-**Download and run the latest images from GHCR:**
-
-```bash
-docker compose pull backend frontend
-docker compose up -d --no-build
-```
-
-The stack starts PostgreSQL 17, the headless Spring Boot backend, and Nginx reverse proxy serving the React 19 SPA. Open [http://localhost:8080](http://localhost:8080) when the containers are healthy.
-
-On Windows, `scripts/start-docker.bat` presents these options interactively (local build, GHCR latest, or a specific release version tag).
-
----
-
-## Verification & Quality Gates
-
-```bash
-# Backend checks (Checkstyle, JUnit 5, JaCoCo line coverage >= 80%, bootJar)
+# Backend ellenőrzés és csomagolás
 ./gradlew check bootJar
 
-# Frontend checks (ESLint, TypeScript typecheck, Vitest, Vite build, Playwright E2E)
-cd frontend
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-npm run test:e2e
+# Frontend ellenőrzés, tesztek és build
+cd frontend && npm run lint && npm run typecheck && npm run test && npm run build
 ```
+
+<br />
 
 ---
 
-## Project resources
+<br />
 
-- [Architecture Reference](docs/architecture.md)
-- [REST API Specification (OpenAPI 3.1)](openapi/api-spec.yaml)
-- [Security Policy](SECURITY.md)
-- [Contributor & Agent Guidelines](AGENTS.md)
-- [License](LICENSE) (GPL-3.0)
+## 📚 További tudnivalók
+
+- 🏛️ [Rendszerarchitektúra részletesen](docs/architecture.md)
+- 🔌 [REST API Specifikáció (OpenAPI)](openapi/api-spec.yaml)
+- 🔒 [Biztonsági irányelvek](SECURITY.md)
+- 🤝 [Fejlesztői irányelvek](AGENTS.md)
+- ⚖️ [Licenc (GPL-3.0)](LICENSE)
