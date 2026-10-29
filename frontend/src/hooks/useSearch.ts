@@ -11,22 +11,9 @@ import { DashboardResponseDto, SearchCriteria } from '../types/api'
 import { IngatlanItem } from '../types/property'
 import { useFilterStore, SortOption } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
-import { detectPortalFromUrl } from '../utils/formatters'
+import { detectPortalFromUrl, normalizePortalKey, openExternalUrl } from '../utils/formatters'
 
-export function normalizePortalKey(portalOrId?: string | null): string {
-  const cleaned = (portalOrId || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '')
-  if (cleaned.includes('dh') || cleaned.includes('duna')) return 'dh'
-  if (cleaned.includes('oc') || cleaned.includes('otthon')) return 'oc'
-  if (cleaned.includes('jofogas')) return 'jofogas'
-  if (cleaned.includes('ingatlanbazar') || cleaned.includes('bazar')) return 'ingatlanbazar'
-  if (cleaned.includes('koltozzbe')) return 'koltozzbe'
-  if (cleaned.includes('ingatlancom')) return 'ingatlancom'
-  return cleaned
-}
+export { normalizePortalKey }
 
 export function normalizeSearchText(str?: string | null): string {
   return (str || '')
@@ -36,16 +23,12 @@ export function normalizeSearchText(str?: string | null): string {
 }
 
 export function isItemBargain(item: IngatlanItem): boolean {
-  if (item.isBargain || item.bargainInfo?.isBargain) {
-    return true
-  }
-  if (item.percentageBelowMedian != null && item.percentageBelowMedian >= 20) {
-    return true
-  }
-  if (item.bargainInfo?.percentageBelowMedian != null && item.bargainInfo.percentageBelowMedian >= 20) {
-    return true
-  }
-  return false
+  return Boolean(
+    item.isBargain ||
+      item.bargainInfo?.isBargain ||
+      (item.percentageBelowMedian != null && item.percentageBelowMedian >= 20) ||
+      (item.bargainInfo?.percentageBelowMedian != null && item.bargainInfo.percentageBelowMedian >= 20),
+  )
 }
 
 export function filterAndSortItems(
@@ -63,32 +46,21 @@ export function filterAndSortItems(
 ): IngatlanItem[] {
   let items = [...rawItems]
 
-  // 1. Filter only new
   if (options.onlyNew) {
     items = items.filter((item) => item.isNew)
   }
-
-  // 2. Filter viewed if excludeViewed is true
   if (options.excludeViewed) {
     items = items.filter((item) => !item.viewed)
   }
-
-  // 3. Filter new construction (#202)
   if (options.onlyNewConstruction) {
     items = items.filter((item) => Boolean(item.newConstruction))
   }
-
-  // 4. Filter only bargain (#275)
   if (options.onlyBargain) {
-    items = items.filter((item) => isItemBargain(item))
+    items = items.filter(isItemBargain)
   }
-
-  // 5. Filter by minimum quality score (#275)
   if (options.minQualityScore != null && options.minQualityScore > 0) {
     items = items.filter((item) => item.qualityScore != null && item.qualityScore >= options.minQualityScore!)
   }
-
-  // 6. Filter by portal chip (#157)
   if (options.selectedPortalFilter && options.selectedPortalFilter !== 'all') {
     items = items.filter(
       (item) =>
@@ -96,19 +68,14 @@ export function filterAndSortItems(
     )
   }
 
-  // 7. Filter by multi-keyword quick search (#157)
   const q = normalizeSearchText(options.quickSearchQuery).trim()
   if (q) {
     const tokens = q.split(/\s+/).filter(Boolean)
     items = items.filter((item) => {
-      const areaStr = item.detailsInfo?.areaSquareMeters
-        ? `${Math.round(item.detailsInfo.areaSquareMeters)} m2 ${Math.round(item.detailsInfo.areaSquareMeters)} m²`
-        : ''
+      const area = item.detailsInfo?.areaSquareMeters
+      const areaStr = area ? `${Math.round(area)} m2 ${Math.round(area)} m²` : ''
       const roomsStr = item.detailsInfo?.roomCount ? `${item.detailsInfo.roomCount} szoba` : ''
-      const priceStr = item.priceInfo?.amountMillion
-        ? `${item.priceInfo.amountMillion} m ft`
-        : ''
-      const newBuildStr = item.newConstruction ? 'uj epitesu' : ''
+      const priceStr = item.priceInfo?.amountMillion ? `${item.priceInfo.amountMillion} m ft` : ''
       const searchable = normalizeSearchText(
         [
           item.title,
@@ -120,14 +87,13 @@ export function filterAndSortItems(
           item.details,
           areaStr,
           roomsStr,
-          newBuildStr,
+          item.newConstruction ? 'uj epitesu' : '',
         ].join(' '),
       )
       return tokens.every((tok) => searchable.includes(tok))
     })
   }
 
-  // 6. Sort
   items.sort((a, b) => {
     switch (options.sortOption) {
       case 'price_asc':
@@ -170,7 +136,6 @@ export function useSearch() {
   const { dashboardTab, listingSubView, starredUrls, starredItemsCache } = useUiStore()
   const [data, setData] = useState<DashboardResponseDto | null>(null)
 
-  // Archive / History query (#157)
   const historyQuery = useQuery({
     queryKey: ['history', criteria.onlyNewConstruction],
     queryFn: () => apiGetHistory(undefined, false, criteria.onlyNewConstruction),
@@ -184,15 +149,18 @@ export function useSearch() {
     }
   }, [dashboardTab, listingSubView]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const invalidateDashboardQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['portals'] })
+    queryClient.invalidateQueries({ queryKey: ['cities'] })
+    queryClient.invalidateQueries({ queryKey: ['history'] })
+  }
+
   const searchMutation = useMutation({
     mutationFn: (searchParams: SearchCriteria) => executeSearch(searchParams),
     onSuccess: (result) => {
       setData(result)
-      queryClient.invalidateQueries({ queryKey: ['portals'] })
-      queryClient.invalidateQueries({ queryKey: ['cities'] })
-      queryClient.invalidateQueries({ queryKey: ['history'] })
+      invalidateDashboardQueries()
 
-      // Zero-Server-Desktop-Call kliensoldali lapmegnyitás ha autoOpenBrowser aktív
       if (criteria.autoOpenBrowser && result.items && result.items.length > 0) {
         const newUrls = result.items
           .filter((item) => item.isNew)
@@ -200,67 +168,49 @@ export function useSearch() {
           .filter(Boolean)
 
         if (newUrls.length > 0) {
-          openClientTabs(newUrls.slice(0, 10)) // Biztonsági limit max 10 tab
+          openClientTabs(newUrls.slice(0, 10))
         }
       }
     },
   })
 
-  // Mark single item as viewed
+  const markViewedInState = (urlSet: Set<string>) => {
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            items: prev.items.map((item) => (urlSet.has(item.url) ? { ...item, viewed: true } : item)),
+          }
+        : prev,
+    )
+    queryClient.invalidateQueries({ queryKey: ['history'] })
+  }
+
   const markViewedMutation = useMutation({
     mutationFn: (url: string) => apiMarkAsViewed(url),
-    onSuccess: (_, url) => {
-      setData((prev) => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          items: prev.items.map((item) => (item.url === url ? { ...item, viewed: true } : item)),
-        }
-      })
-      queryClient.invalidateQueries({ queryKey: ['history'] })
-    },
+    onSuccess: (_, url) => markViewedInState(new Set([url])),
   })
 
-  // Bulk open and mark viewed
   const openUrlsMutation = useMutation({
     mutationFn: (urls: string[]) => apiOpenUrls(urls),
-    onSuccess: (_, urls) => {
-      const urlSet = new Set(urls)
-      setData((prev) => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          items: prev.items.map((item) => (urlSet.has(item.url) ? { ...item, viewed: true } : item)),
-        }
-      })
-      queryClient.invalidateQueries({ queryKey: ['history'] })
-    },
+    onSuccess: (_, urls) => markViewedInState(new Set(urls)),
   })
 
-  // Clear history mutation (#157)
   const clearHistoryMutation = useMutation({
     mutationFn: (city?: string) => apiClearHistory(city),
     onSuccess: () => {
       queryClient.setQueryData(['history', criteria.onlyNewConstruction], [])
-      queryClient.invalidateQueries({ queryKey: ['history'] })
-      queryClient.invalidateQueries({ queryKey: ['portals'] })
-      queryClient.invalidateQueries({ queryKey: ['cities'] })
+      invalidateDashboardQueries()
     },
   })
 
-  // Open tabs in browser client-side
   const openClientTabs = (urls: string[]) => {
-    urls.forEach((url) => {
-      window.open(url, '_blank', 'noopener,noreferrer')
-    })
+    urls.forEach(openExternalUrl)
     openUrlsMutation.mutate(urls)
   }
 
-  // Sorted and filtered live search listings
-  const processedItems = useMemo(() => {
-    if (!data?.items) return []
-    return filterAndSortItems(data.items, {
-      onlyNew,
+  const sharedFilterOptions = useMemo(
+    () => ({
       excludeViewed: criteria.excludeViewed,
       onlyNewConstruction: criteria.onlyNewConstruction,
       onlyBargain,
@@ -268,44 +218,28 @@ export function useSearch() {
       selectedPortalFilter,
       quickSearchQuery,
       sortOption,
-    })
-  }, [
-    data?.items,
-    onlyNew,
-    criteria.excludeViewed,
-    criteria.onlyNewConstruction,
-    onlyBargain,
-    minQualityScore,
-    selectedPortalFilter,
-    quickSearchQuery,
-    sortOption,
-  ])
-
-  // Sorted and filtered archive listings (#157)
-  const archiveItems = useMemo(() => {
-    const rawArchive = historyQuery.data ?? []
-    return filterAndSortItems(rawArchive, {
-      onlyNew: false,
-      excludeViewed: criteria.excludeViewed,
-      onlyNewConstruction: criteria.onlyNewConstruction,
+    }),
+    [
+      criteria.excludeViewed,
+      criteria.onlyNewConstruction,
       onlyBargain,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
       sortOption,
-    })
-  }, [
-    historyQuery.data,
-    criteria.excludeViewed,
-    criteria.onlyNewConstruction,
-    onlyBargain,
-    minQualityScore,
-    selectedPortalFilter,
-    quickSearchQuery,
-    sortOption,
-  ])
+    ],
+  )
 
-  // Starred / Favorite items (#157, #271)
+  const processedItems = useMemo(
+    () => (data?.items ? filterAndSortItems(data.items, { ...sharedFilterOptions, onlyNew }) : []),
+    [data?.items, sharedFilterOptions, onlyNew],
+  )
+
+  const archiveItems = useMemo(
+    () => filterAndSortItems(historyQuery.data ?? [], { ...sharedFilterOptions, onlyNew: false }),
+    [historyQuery.data, sharedFilterOptions],
+  )
+
   const rawFavoriteItems = useMemo(() => {
     const byUrl = new Map<string, IngatlanItem>()
     Object.entries(starredItemsCache).forEach(([u, item]) => {
@@ -322,9 +256,8 @@ export function useSearch() {
       const existing = byUrl.get(url)
       if (existing) return existing
 
-      // Resilient fallback for orphan starred URLs (#271)
       const portalInfo = detectPortalFromUrl(url)
-      const fallbackItem: IngatlanItem = {
+      return {
         id: `orphan-${url}`,
         portal: portalInfo.portalName,
         url,
@@ -338,32 +271,14 @@ export function useSearch() {
           portalName: portalInfo.portalName,
           directListing: true,
         },
-      }
-      return fallbackItem
+      } satisfies IngatlanItem
     })
   }, [starredUrls, starredItemsCache, historyQuery.data, data?.items])
 
-  const favoriteItems = useMemo(() => {
-    return filterAndSortItems(rawFavoriteItems, {
-      onlyNew: false,
-      excludeViewed: criteria.excludeViewed,
-      onlyNewConstruction: criteria.onlyNewConstruction,
-      onlyBargain,
-      minQualityScore,
-      selectedPortalFilter,
-      quickSearchQuery,
-      sortOption,
-    })
-  }, [
-    rawFavoriteItems,
-    criteria.excludeViewed,
-    criteria.onlyNewConstruction,
-    onlyBargain,
-    minQualityScore,
-    selectedPortalFilter,
-    quickSearchQuery,
-    sortOption,
-  ])
+  const favoriteItems = useMemo(
+    () => filterAndSortItems(rawFavoriteItems, { ...sharedFilterOptions, onlyNew: false }),
+    [rawFavoriteItems, sharedFilterOptions],
+  )
 
   return {
     data,
@@ -381,8 +296,7 @@ export function useSearch() {
     isError: searchMutation.isError,
     error: searchMutation.error,
     search: (overrideCriteria?: Partial<SearchCriteria>) => {
-      const finalCriteria = { ...criteria, ...(overrideCriteria || {}) }
-      searchMutation.mutate(finalCriteria)
+      searchMutation.mutate({ ...criteria, ...(overrideCriteria || {}) })
     },
     markAsViewed: (url: string) => markViewedMutation.mutate(url),
     clearArchiveHistory: (city?: string) => clearHistoryMutation.mutateAsync(city),
