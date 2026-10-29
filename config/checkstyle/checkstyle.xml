@@ -63,5 +63,20 @@
             <property name="ignoreComments" value="true"/>
             <property name="message" value="printStackTrace() is forbidden. Use SLF4J log.error(..., e) instead."/>
         </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*import\s+lombok\.Data;|^\s*@(lombok\.)?Data\b"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Lombok @Data is forbidden. Use explicit @Getter, @Builder, @NoArgsConstructor (and @Setter only where post-construction mutation is required) instead."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*import\s+lombok\.(EqualsAndHashCode|ToString);|^\s*@(lombok\.)?(EqualsAndHashCode|ToString)\b"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Lombok @EqualsAndHashCode and @ToString are forbidden. Keep hand-written equals/hashCode where business identity applies and never generate them on JPA entities."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*import\s+lombok\.SneakyThrows;|^\s*@(lombok\.)?SneakyThrows\b"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Lombok @SneakyThrows is forbidden. Handle checked exceptions explicitly to preserve 0-crash resilience."/>
+        </module>
     </module>
 </module>
