@@ -5,7 +5,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
@@ -23,8 +25,8 @@ import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.entity.StatusLogEntity;
 
-@Component
-public class JpaEntityMapper {
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public abstract class JpaEntityMapper {
 
   public IngatlanItem toItem(PropertyEntity entity) {
     if (entity == null) {
@@ -177,7 +179,10 @@ public class JpaEntityMapper {
     }
   }
 
-  public PriceHistoryEntity createPriceHistoryEntity(
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "previousPriceAmount", source = "prevAmount")
+  @Mapping(target = "priceDelta", source = "delta")
+  public abstract PriceHistoryEntity createPriceHistoryEntity(
       String propertyId,
       String url,
       String recordedAt,
@@ -187,96 +192,36 @@ public class JpaEntityMapper {
       Long pricePerSqm,
       Long prevAmount,
       Long delta,
-      Double changePercent) {
-    PriceHistoryEntity ph = new PriceHistoryEntity();
-    ph.setPropertyId(propertyId);
-    ph.setUrl(url);
-    ph.setRecordedAt(recordedAt);
-    ph.setPriceRaw(priceRaw);
-    ph.setPriceAmount(priceAmount);
-    ph.setPriceMillions(priceMillions);
-    ph.setPricePerSqm(pricePerSqm);
-    ph.setPreviousPriceAmount(prevAmount);
-    ph.setPriceDelta(delta);
-    ph.setChangePercent(changePercent);
-    return ph;
-  }
+      Double changePercent);
 
-  public PriceHistoryEntry toPriceHistoryEntry(PriceHistoryEntity ph) {
-    if (ph == null) {
-      return null;
-    }
-    return new PriceHistoryEntry(
-        ph.getId() != null ? ph.getId().intValue() : 0,
-        ph.getPropertyId(),
-        ph.getRecordedAt(),
-        ph.getPriceRaw(),
-        ph.getPriceAmount() != null ? ph.getPriceAmount() : 0L,
-        ph.getPriceMillions() != null ? ph.getPriceMillions() : 0.0,
-        ph.getPricePerSqm(),
-        ph.getPreviousPriceAmount(),
-        ph.getPriceDelta(),
-        ph.getChangePercent());
-  }
+  public abstract PriceHistoryEntry toPriceHistoryEntry(PriceHistoryEntity ph);
 
-  public StatusLogEntity createStatusLogEntity(
-      String propertyId, String url, String status, String changedAt, String note) {
-    StatusLogEntity sl = new StatusLogEntity();
-    sl.setPropertyId(propertyId);
-    sl.setUrl(url);
-    sl.setStatus(status);
-    sl.setChangedAt(changedAt);
-    sl.setNote(note);
-    return sl;
-  }
+  @Mapping(target = "id", ignore = true)
+  public abstract StatusLogEntity createStatusLogEntity(
+      String propertyId, String url, String status, String changedAt, String note);
 
-  public StatusLogEntry toStatusLogEntry(StatusLogEntity sl) {
-    if (sl == null) {
-      return null;
-    }
-    return new StatusLogEntry(
-        sl.getId() != null ? sl.getId().intValue() : 0,
-        sl.getPropertyId(),
-        sl.getStatus(),
-        sl.getChangedAt(),
-        sl.getNote());
-  }
+  public abstract StatusLogEntry toStatusLogEntry(StatusLogEntity sl);
 
-  public SourceListing toSourceListing(PropertyEntity entity) {
-    if (entity == null) {
-      return null;
-    }
-    SourceListing sl = new SourceListing();
-    sl.setPortal(entity.getPortal());
-    sl.setExternalListingId(entity.getPropertyId());
-    sl.setUrl(entity.getUrl());
-    sl.setTitle(entity.getTitle());
-    sl.setImageUrl(entity.getImageUrl());
-    sl.setFirstSeenAt(
-        entity.getFirstSeenAt() != null ? entity.getFirstSeenAt() : entity.getDiscoveredAt());
-    sl.setLastSeenAt(entity.getLastSeenAt() != null ? entity.getLastSeenAt() : entity.getUpdatedAt());
-    sl.setStatus(entity.getStatus());
-    sl.setPriceHuf(entity.getPriceAmount());
-    sl.setPricePerM2(entity.getPricePerSqm());
-    sl.setViewed(entity.isViewed());
-    sl.setViewedAt(entity.getViewedAt());
-    return sl;
-  }
+  @Mapping(target = "externalListingId", source = "propertyId")
+  @Mapping(
+      target = "firstSeenAt",
+      source = "firstSeenAt",
+      defaultExpression = "java(entity.getDiscoveredAt())")
+  @Mapping(
+      target = "lastSeenAt",
+      source = "lastSeenAt",
+      defaultExpression = "java(entity.getUpdatedAt())")
+  @Mapping(target = "priceHuf", source = "priceAmount")
+  @Mapping(target = "pricePerM2", source = "pricePerSqm")
+  public abstract SourceListing toSourceListing(PropertyEntity entity);
 
-  public ListingObservation toListingObservation(ListingObservationEntity entity) {
-    if (entity == null) {
-      return null;
-    }
-    return new ListingObservation(
-        entity.getObservedAt(),
-        entity.getPriceHuf(),
-        entity.getPricePerM2(),
-        entity.getStatusEvent(),
-        entity.getPriceDelta(),
-        entity.getChangePercent());
-  }
+  @Mapping(
+      target = "statusEvent",
+      expression = "java(ListingObservation.StatusEvent.fromString(entity.getStatusEvent()))")
+  public abstract ListingObservation toListingObservation(ListingObservationEntity entity);
 
-  public ListingObservationEntity createListingObservationEntity(
+  @Mapping(target = "id", ignore = true)
+  public abstract ListingObservationEntity createListingObservationEntity(
       String propertyId,
       String url,
       String canonicalId,
@@ -285,20 +230,7 @@ public class JpaEntityMapper {
       Long pricePerM2,
       String statusEvent,
       Long priceDelta,
-      Double changePercent) {
-    ListingObservationEntity lo = new ListingObservationEntity();
-    lo.setPropertyId(propertyId);
-    lo.setUrl(url);
-    lo.setCanonicalId(canonicalId);
-    lo.setObservedAt(observedAt);
-    lo.setPriceHuf(priceHuf);
-    lo.setPricePerM2(pricePerM2);
-    lo.setStatusEvent(statusEvent);
-    lo.setPriceDelta(priceDelta);
-    lo.setChangePercent(changePercent);
-    return lo;
-  }
-
+      Double changePercent);
   public Property toProperty(PropertyEntity entity, List<SourceListing> sources) {
     if (entity == null) {
       return null;

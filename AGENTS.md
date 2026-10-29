@@ -14,6 +14,11 @@ The backend is a Java 25 Spring Boot application. Production code lives in `src/
 
 Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`), which runs on pushes to `develop`, and `.github/workflows/release.yml` (`Docker Release`), which is manually started from a branch (such as `main` or `develop`). Releases derive their version from the latest Git release tag and a patch/minor/major/custom input; GHCR publication must succeed before the Git tag and GitHub Release are created.
 
+## Code Generation Conventions (Lombok & MapStruct)
+
+- **Lombok:** use `@Getter`/`@Setter`/`@NoArgsConstructor` for plain data classes and JPA entities (class-level only when every accessor is trivial; custom accessors are kept and skipped by Lombok). Do not use `@Data`, and do not generate `equals`/`hashCode`/`toString` on JPA entities. Keep hand-written `equals`/`hashCode` where they encode business identity.
+- **MapStruct:** use it for simple field-to-field mappings (entity ↔ DTO/record) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`. Keep hand-written mapping where setters have side effects, merge/update semantics apply, or logic is business-driven (e.g. `JpaEntityMapper.toItem`/`toEntity`).
+- **Records:** prefer `record` for immutable value carriers; classes remain where Jackson/JPA/builder semantics need mutability.
 ## Style & Naming
 
 Follow the existing Java package and class structure. Checkstyle 10.21.4 is strict: use spaces (no tabs), keep Java lines within 120 characters, group and sort imports, and avoid wildcard imports, `System.out`/`System.err`, and `printStackTrace()`. Use descriptive PascalCase Java type names and camelCase members. Frontend components use `.tsx` with PascalCase names; hooks use `use`-prefixed camelCase. Keep generated API types generated from the OpenAPI spec rather than editing them by hand.
