@@ -1,4 +1,4 @@
-import { FC, useState, useRef, useEffect, useCallback } from 'react'
+import { FC, useState, useRef, useCallback } from 'react'
 import {
   ScatterChart,
   Scatter,
@@ -12,7 +12,8 @@ import {
 } from 'recharts'
 import { ExternalLink, Sparkles, TrendingDown, HelpCircle, X } from 'lucide-react'
 import { ScatterPoint } from '../../hooks/useMarketAnalytics'
-import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
+import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
+import { formatPriceMillion, formatPricePerSqm, openExternalUrl } from '../../utils/formatters'
 
 interface PriceScatterCorrelationChartProps {
   scatterData: ScatterPoint[]
@@ -27,29 +28,9 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const helpRef = useRef<HTMLDivElement>(null)
   const lastClickedRef = useRef<{ url: string; time: number } | null>(null)
+  const closeHelp = useCallback(() => setIsHelpOpen(false), [])
 
-  useEffect(() => {
-    if (!isHelpOpen) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
-        setIsHelpOpen(false)
-      }
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsHelpOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isHelpOpen])
+  useOutsideDismiss(helpRef, isHelpOpen, closeHelp, true)
 
   const filteredData = filterSegment === 'all'
     ? scatterData
@@ -72,7 +53,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
         if (onOpenListing) {
           onOpenListing(targetUrl)
         } else {
-          window.open(targetUrl, '_blank', 'noopener,noreferrer')
+          openExternalUrl(targetUrl)
         }
       }
     },

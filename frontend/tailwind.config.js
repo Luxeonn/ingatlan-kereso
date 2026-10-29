@@ -15,14 +15,6 @@ export default {
         },
         input: 'var(--bg-input)',
         border: 'var(--border-color)',
-        portal: {
-          dh: '#f97316',
-          oc: '#ef4444',
-          jf: '#10b981',
-          ic: '#0284c7',
-          ib: '#7c3aed',
-          kb: '#0d9488',
-        },
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],

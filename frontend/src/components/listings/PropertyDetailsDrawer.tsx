@@ -1,21 +1,14 @@
 import type { FC } from 'react'
-import {
-  ExternalLink,
-  Clock,
-  Layers,
-  Tag,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldX,
-  AlertTriangle,
-  Check,
-} from 'lucide-react'
+import { ExternalLink, Clock, Layers, Tag, AlertTriangle, Check } from 'lucide-react'
 import type { IngatlanItem, SourceListing } from '../../types/property'
 import {
   formatPriceMillion,
   formatPriceFt,
   formatDate,
   getPortalStyle,
+  clampQualityScore,
+  getQualityConfig,
+  openExternalUrl,
 } from '../../utils/formatters'
 import { PropertyTypeBadge } from './PropertyTypeBadge'
 import { cn } from '../../utils/cn'
@@ -45,44 +38,13 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
 
   const handleOpenSource = (url?: string) => {
     if (!url) return
-    window.open(url, '_blank', 'noopener,noreferrer')
-    if (onMarkViewed) {
-      onMarkViewed(url)
-    }
+    openExternalUrl(url)
+    onMarkViewed?.(url)
   }
 
-  // Quality score tier & details
-  const score = item.qualityScore != null && !isNaN(item.qualityScore)
-    ? Math.max(0, Math.min(100, Math.round(item.qualityScore)))
-    : null
+  const score = clampQualityScore(item.qualityScore)
   const deductions = item.qualityDeductions ?? []
-
-  let qualityConfig = null
-  if (score != null) {
-    if (score >= 85) {
-      qualityConfig = {
-        label: 'Kiváló adatminőség',
-        icon: ShieldCheck,
-        badgeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
-        barClass: 'bg-emerald-400',
-      }
-    } else if (score >= 70) {
-      qualityConfig = {
-        label: 'Elfogadható adatminőség',
-        icon: ShieldAlert,
-        badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
-        barClass: 'bg-amber-400',
-      }
-    } else {
-      qualityConfig = {
-        label: 'Gyanús / hiányos adat',
-        icon: ShieldX,
-        badgeClass: 'bg-rose-500/15 border-rose-500/30 text-rose-400',
-        barClass: 'bg-rose-500',
-      }
-    }
-  }
-
+  const qualityConfig = score != null ? getQualityConfig(score) : null
   const isMultiSource = sources.length > 1
 
   return (
@@ -126,7 +88,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
             </div>
             <span className={cn('px-2 py-0.5 rounded border text-[11px] font-bold flex items-center gap-1', qualityConfig.badgeClass)}>
               <span>{score}/100 pont</span>
-              <span className="text-[10px] font-normal opacity-80">({qualityConfig.label})</span>
+              <span className="text-[10px] font-normal opacity-80">({qualityConfig.ratingLabel})</span>
             </span>
           </div>
 

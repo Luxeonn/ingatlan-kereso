@@ -265,4 +265,16 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
     fireEvent.click(openLink)
     expect(onMarkViewed).toHaveBeenCalledWith('https://example.com/l1')
   })
+
+  it('switches tabs in BargainHunterTable between below market and price drops and toggles distribution metric', () => {
+    render(<MarketAnalyticsPanel items={mockItems} />)
+
+    const priceDropsTab = screen.getByRole('button', { name: /Leárazások/i })
+    fireEvent.click(priceDropsTab)
+    expect(screen.getByText(/Árcsökkenés: -2/i)).toBeTruthy()
+
+    const priceToggleBtn = screen.getByRole('button', { name: /Kínálati ár \(M Ft\)/i })
+    fireEvent.click(priceToggleBtn)
+    expect(screen.getByText(/Kínálati Ár Eloszlás \(M Ft\)/i)).toBeTruthy()
+  })
 })

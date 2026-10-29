@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect, useId } from 'react'
+import React, { useState, useRef, useId, useCallback } from 'react'
 import { TrendingDown, Sparkles } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { formatPricePerSqm } from '../../utils/formatters'
+import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 
 export interface BargainBadgeProps {
   item: IngatlanItem
@@ -12,6 +13,9 @@ export const BargainBadge: React.FC<BargainBadgeProps> = ({ item, className = ''
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const popoverId = useId()
+  const closePopover = useCallback(() => setIsOpen(false), [])
+
+  useOutsideDismiss(containerRef, isOpen, closePopover)
 
   const isBargain = Boolean(item.isBargain || item.bargainInfo?.isBargain)
   const sampleSize = item.referenceSampleSize ?? item.bargainInfo?.sampleSize ?? 0
@@ -22,22 +26,6 @@ export const BargainBadge: React.FC<BargainBadgeProps> = ({ item, className = ''
   const refMedian = item.referenceMedianPricePerSquareMeter ?? item.bargainInfo?.referenceMedianPricePerSqm
   const currentPricePerSqm =
     item.detailsInfo?.pricePerSquareMeter ?? item.bargainInfo?.currentPricePerSqm
-
-  // Close when clicking outside
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen])
 
   // Guard: Must be flagged as bargain AND have at least 5 reference samples
   if (!isBargain || sampleSize < 5 || percentageBelow == null || percentageBelow <= 0) {
