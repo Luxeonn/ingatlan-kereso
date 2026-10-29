@@ -6,6 +6,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class Property implements Serializable {
 
   private String canonicalId;
@@ -17,8 +24,6 @@ public class Property implements Serializable {
   private String location;
   private Long minActivePriceHuf;
   private List<SourceListing> sources = new ArrayList<>();
-
-  public Property() {}
 
   public Property(
       String canonicalId,
@@ -43,30 +48,6 @@ public class Property implements Serializable {
     }
   }
 
-  public String getCanonicalId() {
-    return canonicalId;
-  }
-
-  public void setCanonicalId(String canonicalId) {
-    this.canonicalId = canonicalId;
-  }
-
-  public String getNormalizedCity() {
-    return normalizedCity;
-  }
-
-  public void setNormalizedCity(String normalizedCity) {
-    this.normalizedCity = normalizedCity;
-  }
-
-  public String getCity() {
-    return city;
-  }
-
-  public void setCity(String city) {
-    this.city = city;
-  }
-
   public PropertyType getPropertyType() {
     return propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
   }
@@ -75,39 +56,11 @@ public class Property implements Serializable {
     this.propertyType = propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
   }
 
-  public Double getFloorAreaSquareMeters() {
-    return floorAreaSquareMeters;
-  }
-
-  public void setFloorAreaSquareMeters(Double floorAreaSquareMeters) {
-    this.floorAreaSquareMeters = floorAreaSquareMeters;
-  }
-
-  public Double getRoomCount() {
-    return roomCount;
-  }
-
-  public void setRoomCount(Double roomCount) {
-    this.roomCount = roomCount;
-  }
-
-  public String getLocation() {
-    return location;
-  }
-
-  public void setLocation(String location) {
-    this.location = location;
-  }
-
   public Long getMinActivePriceHuf() {
     if (minActivePriceHuf != null) {
       return minActivePriceHuf;
     }
     return calculateMinActivePriceHuf();
-  }
-
-  public void setMinActivePriceHuf(Long minActivePriceHuf) {
-    this.minActivePriceHuf = minActivePriceHuf;
   }
 
   public List<SourceListing> getSources() {

@@ -3,6 +3,13 @@ package ingatlanok.model;
 import java.io.Serializable;
 import java.util.Objects;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class ListingObservation implements Serializable {
 
   public enum StatusEvent {
@@ -29,8 +36,6 @@ public class ListingObservation implements Serializable {
   private StatusEvent statusEvent = StatusEvent.UNCHANGED;
   private Long priceDelta;
   private Double changePercent;
-
-  public ListingObservation() {}
 
   public ListingObservation(
       String observedAt,
@@ -63,30 +68,6 @@ public class ListingObservation implements Serializable {
         changePercent);
   }
 
-  public String getObservedAt() {
-    return observedAt;
-  }
-
-  public void setObservedAt(String observedAt) {
-    this.observedAt = observedAt;
-  }
-
-  public Long getPriceHuf() {
-    return priceHuf;
-  }
-
-  public void setPriceHuf(Long priceHuf) {
-    this.priceHuf = priceHuf;
-  }
-
-  public Long getPricePerM2() {
-    return pricePerM2;
-  }
-
-  public void setPricePerM2(Long pricePerM2) {
-    this.pricePerM2 = pricePerM2;
-  }
-
   public StatusEvent getStatusEvent() {
     return statusEvent != null ? statusEvent : StatusEvent.UNCHANGED;
   }
@@ -97,22 +78,6 @@ public class ListingObservation implements Serializable {
 
   public void setStatusEvent(String statusEventStr) {
     this.statusEvent = StatusEvent.fromString(statusEventStr);
-  }
-
-  public Long getPriceDelta() {
-    return priceDelta;
-  }
-
-  public void setPriceDelta(Long priceDelta) {
-    this.priceDelta = priceDelta;
-  }
-
-  public Double getChangePercent() {
-    return changePercent;
-  }
-
-  public void setChangePercent(Double changePercent) {
-    this.changePercent = changePercent;
   }
 
   @Override

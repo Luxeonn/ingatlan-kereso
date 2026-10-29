@@ -10,6 +10,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(
@@ -20,6 +23,9 @@ import jakarta.persistence.Table;
       @Index(name = "idx_obs_canonical_id", columnList = "canonicalId"),
       @Index(name = "idx_obs_observed_at", columnList = "observedAt")
     })
+@Getter
+@Setter
+@NoArgsConstructor
 public class ListingObservationEntity implements Serializable {
 
   @Id
@@ -48,88 +54,6 @@ public class ListingObservationEntity implements Serializable {
   private Long priceDelta;
 
   private Double changePercent;
-
-  public ListingObservationEntity() {}
-
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
-
-  public String getPropertyId() {
-    return propertyId;
-  }
-
-  public void setPropertyId(String propertyId) {
-    this.propertyId = propertyId;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public String getCanonicalId() {
-    return canonicalId;
-  }
-
-  public void setCanonicalId(String canonicalId) {
-    this.canonicalId = canonicalId;
-  }
-
-  public String getObservedAt() {
-    return observedAt;
-  }
-
-  public void setObservedAt(String observedAt) {
-    this.observedAt = observedAt;
-  }
-
-  public Long getPriceHuf() {
-    return priceHuf;
-  }
-
-  public void setPriceHuf(Long priceHuf) {
-    this.priceHuf = priceHuf;
-  }
-
-  public Long getPricePerM2() {
-    return pricePerM2;
-  }
-
-  public void setPricePerM2(Long pricePerM2) {
-    this.pricePerM2 = pricePerM2;
-  }
-
-  public String getStatusEvent() {
-    return statusEvent;
-  }
-
-  public void setStatusEvent(String statusEvent) {
-    this.statusEvent = statusEvent;
-  }
-
-  public Long getPriceDelta() {
-    return priceDelta;
-  }
-
-  public void setPriceDelta(Long priceDelta) {
-    this.priceDelta = priceDelta;
-  }
-
-  public Double getChangePercent() {
-    return changePercent;
-  }
-
-  public void setChangePercent(Double changePercent) {
-    this.changePercent = changePercent;
-  }
 
   @Override
   public boolean equals(Object o) {

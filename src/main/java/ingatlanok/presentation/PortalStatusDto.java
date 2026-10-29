@@ -2,6 +2,13 @@ package ingatlanok.presentation;
 
 import java.io.Serializable;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class PortalStatusDto implements Serializable {
 
   private String portalId;
@@ -13,8 +20,6 @@ public class PortalStatusDto implements Serializable {
   private String message;
   private Integer httpStatusCode;
   private String technicalDetails;
-
-  public PortalStatusDto() {}
 
   public PortalStatusDto(
       String portalId,
@@ -45,78 +50,6 @@ public class PortalStatusDto implements Serializable {
     this.fallbackUrl = fallbackUrl;
     this.message = message;
     this.httpStatusCode = httpStatusCode;
-    this.technicalDetails = technicalDetails;
-  }
-
-  public String getPortalId() {
-    return portalId;
-  }
-
-  public void setPortalId(String portalId) {
-    this.portalId = portalId;
-  }
-
-  public String getPortalName() {
-    return portalName;
-  }
-
-  public void setPortalName(String portalName) {
-    this.portalName = portalName;
-  }
-
-  public String getStatus() {
-    return status;
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
-  }
-
-  public int getFoundCount() {
-    return foundCount;
-  }
-
-  public void setFoundCount(int foundCount) {
-    this.foundCount = foundCount;
-  }
-
-  public long getLatencyMs() {
-    return latencyMs;
-  }
-
-  public void setLatencyMs(long latencyMs) {
-    this.latencyMs = latencyMs;
-  }
-
-  public String getFallbackUrl() {
-    return fallbackUrl;
-  }
-
-  public void setFallbackUrl(String fallbackUrl) {
-    this.fallbackUrl = fallbackUrl;
-  }
-
-  public String getMessage() {
-    return message;
-  }
-
-  public void setMessage(String message) {
-    this.message = message;
-  }
-
-  public Integer getHttpStatusCode() {
-    return httpStatusCode;
-  }
-
-  public void setHttpStatusCode(Integer httpStatusCode) {
-    this.httpStatusCode = httpStatusCode;
-  }
-
-  public String getTechnicalDetails() {
-    return technicalDetails;
-  }
-
-  public void setTechnicalDetails(String technicalDetails) {
     this.technicalDetails = technicalDetails;
   }
 }

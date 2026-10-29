@@ -7,8 +7,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import ingatlanok.presentation.PortalStatusDto;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class SearchResult implements Serializable {
 
   private List<IngatlanItem> items = new ArrayList<>();
@@ -20,76 +27,6 @@ public class SearchResult implements Serializable {
   private List<String> newCitiesInitialized = new ArrayList<>();
   private List<PortalScrapeResult> portalResults = new ArrayList<>();
   private List<PortalStatusDto> portalStatuses = new ArrayList<>();
-
-  public SearchResult() {}
-
-  public List<IngatlanItem> getItems() {
-    return items;
-  }
-
-  public void setItems(List<IngatlanItem> items) {
-    this.items = items;
-  }
-
-  public int getNewCount() {
-    return newCount;
-  }
-
-  public void setNewCount(int newCount) {
-    this.newCount = newCount;
-  }
-
-  public int getTotalFound() {
-    return totalFound;
-  }
-
-  public void setTotalFound(int totalFound) {
-    this.totalFound = totalFound;
-  }
-
-  public String getExecutedAt() {
-    return executedAt;
-  }
-
-  public void setExecutedAt(String executedAt) {
-    this.executedAt = executedAt;
-  }
-
-  public Map<String, Integer> getPortalCounts() {
-    return portalCounts;
-  }
-
-  public void setPortalCounts(Map<String, Integer> portalCounts) {
-    this.portalCounts = portalCounts;
-  }
-
-  public Map<String, Integer> getCityCounts() {
-    return cityCounts;
-  }
-
-  public void setCityCounts(Map<String, Integer> cityCounts) {
-    this.cityCounts = cityCounts;
-  }
-
-  public List<String> getNewCitiesInitialized() {
-    return newCitiesInitialized;
-  }
-
-  public void setNewCitiesInitialized(List<String> newCitiesInitialized) {
-    this.newCitiesInitialized = newCitiesInitialized;
-  }
-
-  public List<PortalScrapeResult> getPortalResults() {
-    return portalResults;
-  }
-
-  public void setPortalResults(List<PortalScrapeResult> portalResults) {
-    this.portalResults = portalResults;
-  }
-
-  public List<PortalStatusDto> getPortalStatuses() {
-    return portalStatuses;
-  }
 
   public void setPortalStatuses(List<PortalStatusDto> portalStatuses) {
     this.portalStatuses = portalStatuses != null ? portalStatuses : new ArrayList<>();

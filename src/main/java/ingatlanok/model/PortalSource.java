@@ -2,14 +2,19 @@ package ingatlanok.model;
 
 import java.io.Serializable;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class PortalSource implements Serializable {
 
   private String portalId;
   private String portalName;
   private String themeColor;
   private boolean directListing;
-
-  public PortalSource() {}
 
   public PortalSource(
       String portalId, String portalName, String themeColor, boolean directListing) {
@@ -38,37 +43,5 @@ public class PortalSource implements Serializable {
       return new PortalSource("koltozzbe", "Költözzbe", "#e05338", true);
     }
     return new PortalSource(lower.replaceAll("[^a-z0-9]", ""), portalName, "#6b7280", true);
-  }
-
-  public String getPortalId() {
-    return portalId;
-  }
-
-  public void setPortalId(String portalId) {
-    this.portalId = portalId;
-  }
-
-  public String getPortalName() {
-    return portalName;
-  }
-
-  public void setPortalName(String portalName) {
-    this.portalName = portalName;
-  }
-
-  public String getThemeColor() {
-    return themeColor;
-  }
-
-  public void setThemeColor(String themeColor) {
-    this.themeColor = themeColor;
-  }
-
-  public boolean isDirectListing() {
-    return directListing;
-  }
-
-  public void setDirectListing(boolean directListing) {
-    this.directListing = directListing;
   }
 }

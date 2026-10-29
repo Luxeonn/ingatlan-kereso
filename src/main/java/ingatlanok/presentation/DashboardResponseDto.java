@@ -6,9 +6,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchResult;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class DashboardResponseDto implements Serializable {
 
   private List<IngatlanItem> items = new ArrayList<>();
@@ -21,8 +28,6 @@ public class DashboardResponseDto implements Serializable {
 
   private MarketStatsDto marketStats;
   private List<PortalStatusDto> portalStatuses = new ArrayList<>();
-
-  public DashboardResponseDto() {}
 
   public DashboardResponseDto(
       SearchResult searchResult, MarketStatsDto marketStats, List<PortalStatusDto> portalStatuses) {
@@ -37,77 +42,5 @@ public class DashboardResponseDto implements Serializable {
     }
     this.marketStats = marketStats;
     this.portalStatuses = portalStatuses != null ? portalStatuses : new ArrayList<>();
-  }
-
-  public List<IngatlanItem> getItems() {
-    return items;
-  }
-
-  public void setItems(List<IngatlanItem> items) {
-    this.items = items;
-  }
-
-  public int getNewCount() {
-    return newCount;
-  }
-
-  public void setNewCount(int newCount) {
-    this.newCount = newCount;
-  }
-
-  public int getTotalFound() {
-    return totalFound;
-  }
-
-  public void setTotalFound(int totalFound) {
-    this.totalFound = totalFound;
-  }
-
-  public String getExecutedAt() {
-    return executedAt;
-  }
-
-  public void setExecutedAt(String executedAt) {
-    this.executedAt = executedAt;
-  }
-
-  public Map<String, Integer> getPortalCounts() {
-    return portalCounts;
-  }
-
-  public void setPortalCounts(Map<String, Integer> portalCounts) {
-    this.portalCounts = portalCounts;
-  }
-
-  public Map<String, Integer> getCityCounts() {
-    return cityCounts;
-  }
-
-  public void setCityCounts(Map<String, Integer> cityCounts) {
-    this.cityCounts = cityCounts;
-  }
-
-  public List<String> getNewCitiesInitialized() {
-    return newCitiesInitialized;
-  }
-
-  public void setNewCitiesInitialized(List<String> newCitiesInitialized) {
-    this.newCitiesInitialized = newCitiesInitialized;
-  }
-
-  public MarketStatsDto getMarketStats() {
-    return marketStats;
-  }
-
-  public void setMarketStats(MarketStatsDto marketStats) {
-    this.marketStats = marketStats;
-  }
-
-  public List<PortalStatusDto> getPortalStatuses() {
-    return portalStatuses;
-  }
-
-  public void setPortalStatuses(List<PortalStatusDto> portalStatuses) {
-    this.portalStatuses = portalStatuses;
   }
 }

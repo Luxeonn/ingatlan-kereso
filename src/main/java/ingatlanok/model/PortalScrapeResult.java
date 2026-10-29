@@ -5,7 +5,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class PortalScrapeResult implements Serializable {
 
   private String portalId;
@@ -17,8 +23,6 @@ public class PortalScrapeResult implements Serializable {
   private long executionTimeMs;
   private Integer httpStatusCode;
   private String technicalDetails;
-
-  public PortalScrapeResult() {}
 
   public PortalScrapeResult(
       String portalId,
@@ -144,77 +148,5 @@ public class PortalScrapeResult implements Serializable {
         executionTimeMs,
         httpStatusCode,
         errorMsg);
-  }
-
-  public String getPortalId() {
-    return portalId;
-  }
-
-  public void setPortalId(String portalId) {
-    this.portalId = portalId;
-  }
-
-  public String getPortalName() {
-    return portalName;
-  }
-
-  public void setPortalName(String portalName) {
-    this.portalName = portalName;
-  }
-
-  public PortalScrapeStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(PortalScrapeStatus status) {
-    this.status = status;
-  }
-
-  public List<IngatlanItem> getItems() {
-    return items;
-  }
-
-  public void setItems(List<IngatlanItem> items) {
-    this.items = items;
-  }
-
-  public String getFallbackUrl() {
-    return fallbackUrl;
-  }
-
-  public void setFallbackUrl(String fallbackUrl) {
-    this.fallbackUrl = fallbackUrl;
-  }
-
-  public String getMessage() {
-    return message;
-  }
-
-  public void setMessage(String message) {
-    this.message = message;
-  }
-
-  public long getExecutionTimeMs() {
-    return executionTimeMs;
-  }
-
-  public void setExecutionTimeMs(long executionTimeMs) {
-    this.executionTimeMs = executionTimeMs;
-  }
-
-  public Integer getHttpStatusCode() {
-    return httpStatusCode;
-  }
-
-  public void setHttpStatusCode(Integer httpStatusCode) {
-    this.httpStatusCode = httpStatusCode;
-  }
-
-  public String getTechnicalDetails() {
-    return technicalDetails;
-  }
-
-  public void setTechnicalDetails(String technicalDetails) {
-    this.technicalDetails = technicalDetails;
   }
 }

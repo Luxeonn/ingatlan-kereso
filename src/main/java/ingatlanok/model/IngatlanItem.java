@@ -5,6 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class IngatlanItem implements Serializable {
 
   private String id;
@@ -42,8 +49,6 @@ public class IngatlanItem implements Serializable {
   private PriceInfo priceInfo;
   private PropertyDetails detailsInfo;
   private PortalSource source;
-
-  public IngatlanItem() {}
 
   public IngatlanItem(
       String id,
@@ -122,18 +127,6 @@ public class IngatlanItem implements Serializable {
     this.propertyType = propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
   }
 
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  public String getPortal() {
-    return portal;
-  }
-
   public void setPortal(String portal) {
     this.portal = portal;
     this.source = PortalSource.of(portal);
@@ -153,43 +146,11 @@ public class IngatlanItem implements Serializable {
     }
   }
 
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public String getTitle() {
-    return title;
-  }
-
-  public void setTitle(String title) {
-    this.title = title;
-  }
-
-  public String getPrice() {
-    return price;
-  }
-
-  public void setPrice(String price) {
-    this.price = price;
-  }
-
-  public PriceInfo getPriceInfo() {
-    return priceInfo;
-  }
-
   public void setPriceInfo(PriceInfo priceInfo) {
     this.priceInfo = priceInfo;
     if (priceInfo != null && priceInfo.getRawText() != null) {
       this.price = priceInfo.getRawText();
     }
-  }
-
-  public String getLocation() {
-    return location;
   }
 
   public void setLocation(String location) {
@@ -210,22 +171,6 @@ public class IngatlanItem implements Serializable {
     return city;
   }
 
-  public void setCity(String city) {
-    this.city = city;
-  }
-
-  public String getDetails() {
-    return details;
-  }
-
-  public void setDetails(String details) {
-    this.details = details;
-  }
-
-  public PropertyDetails getDetailsInfo() {
-    return detailsInfo;
-  }
-
   public void setDetailsInfo(PropertyDetails detailsInfo) {
     this.detailsInfo = detailsInfo;
     if (detailsInfo != null && detailsInfo.getRawText() != null) {
@@ -233,84 +178,8 @@ public class IngatlanItem implements Serializable {
     }
   }
 
-  public String getDiscoveredAt() {
-    return discoveredAt;
-  }
-
-  public void setDiscoveredAt(String discoveredAt) {
-    this.discoveredAt = discoveredAt;
-  }
-
-  public boolean isNew() {
-    return isNew;
-  }
-
-  public void setNew(boolean isNew) {
-    this.isNew = isNew;
-  }
-
-  public boolean isViewed() {
-    return viewed;
-  }
-
-  public void setViewed(boolean viewed) {
-    this.viewed = viewed;
-  }
-
-  public String getViewedAt() {
-    return viewedAt;
-  }
-
-  public void setViewedAt(String viewedAt) {
-    this.viewedAt = viewedAt;
-  }
-
-  public String getImageUrl() {
-    return imageUrl;
-  }
-
-  public void setImageUrl(String imageUrl) {
-    this.imageUrl = imageUrl;
-  }
-
-  public boolean isNewConstruction() {
-    return newConstruction;
-  }
-
-  public void setNewConstruction(boolean newConstruction) {
-    this.newConstruction = newConstruction;
-  }
-
   public String getStatus() {
     return status != null ? status : "ACTIVE";
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
-  }
-
-  public Long getPriceDelta() {
-    return priceDelta;
-  }
-
-  public void setPriceDelta(Long priceDelta) {
-    this.priceDelta = priceDelta;
-  }
-
-  public Double getPriceChangePercent() {
-    return priceChangePercent;
-  }
-
-  public void setPriceChangePercent(Double priceChangePercent) {
-    this.priceChangePercent = priceChangePercent;
-  }
-
-  public String getLastPriceChangeAt() {
-    return lastPriceChangeAt;
-  }
-
-  public void setLastPriceChangeAt(String lastPriceChangeAt) {
-    this.lastPriceChangeAt = lastPriceChangeAt;
   }
 
   public PropertyType getPropertyType() {
@@ -334,10 +203,6 @@ public class IngatlanItem implements Serializable {
       return sourceListings.size();
     }
     return Math.max(sourcesCount, 1);
-  }
-
-  public void setSourcesCount(int sourcesCount) {
-    this.sourcesCount = sourcesCount;
   }
 
   public List<SourceListing> getSourceListings() {
@@ -376,38 +241,6 @@ public class IngatlanItem implements Serializable {
 
   public void setIsBargain(Boolean bargain) {
     this.isBargain = bargain;
-  }
-
-  public Long getReferenceMedianPricePerSquareMeter() {
-    return referenceMedianPricePerSquareMeter;
-  }
-
-  public void setReferenceMedianPricePerSquareMeter(Long referenceMedianPricePerSquareMeter) {
-    this.referenceMedianPricePerSquareMeter = referenceMedianPricePerSquareMeter;
-  }
-
-  public Double getPercentageBelowMedian() {
-    return percentageBelowMedian;
-  }
-
-  public void setPercentageBelowMedian(Double percentageBelowMedian) {
-    this.percentageBelowMedian = percentageBelowMedian;
-  }
-
-  public Integer getReferenceSampleSize() {
-    return referenceSampleSize;
-  }
-
-  public void setReferenceSampleSize(Integer referenceSampleSize) {
-    this.referenceSampleSize = referenceSampleSize;
-  }
-
-  public Integer getQualityScore() {
-    return qualityScore;
-  }
-
-  public void setQualityScore(Integer qualityScore) {
-    this.qualityScore = qualityScore;
   }
 
   public List<String> getQualityDeductions() {
