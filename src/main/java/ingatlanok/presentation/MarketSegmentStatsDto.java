@@ -2,12 +2,9 @@ package ingatlanok.presentation;
 
 import java.io.Serializable;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import ingatlanok.model.PropertyType;
 
@@ -15,9 +12,6 @@ import ingatlanok.model.PropertyType;
  * Detailed statistical segment summary for a specific city and property type bucket.
  */
 @Getter
-@Setter
-@Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 public class MarketSegmentStatsDto implements Serializable {
 
@@ -35,4 +29,36 @@ public class MarketSegmentStatsDto implements Serializable {
   private Double minPriceMillion;
   private Double maxPriceMillion;
   private int bargainCount;
+
+  @Builder(toBuilder = true)
+  public MarketSegmentStatsDto(
+      String city,
+      PropertyType propertyType,
+      String propertyTypeName,
+      boolean residential,
+      boolean plot,
+      int sampleSize,
+      boolean insufficientData,
+      Long medianPricePerM2,
+      Long averagePricePerM2,
+      Double medianPriceMillion,
+      Double averagePriceMillion,
+      Double minPriceMillion,
+      Double maxPriceMillion,
+      int bargainCount) {
+    this.city = city;
+    this.propertyType = propertyType;
+    this.propertyTypeName = propertyTypeName;
+    this.residential = residential;
+    this.plot = plot;
+    this.sampleSize = sampleSize;
+    this.insufficientData = insufficientData;
+    this.medianPricePerM2 = medianPricePerM2;
+    this.averagePricePerM2 = averagePricePerM2;
+    this.medianPriceMillion = medianPriceMillion;
+    this.averagePriceMillion = averagePriceMillion;
+    this.minPriceMillion = minPriceMillion;
+    this.maxPriceMillion = maxPriceMillion;
+    this.bargainCount = bargainCount;
+  }
 }

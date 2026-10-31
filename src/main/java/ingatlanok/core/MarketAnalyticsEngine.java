@@ -2,6 +2,7 @@ package ingatlanok.core;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,7 +178,6 @@ public class MarketAnalyticsEngine {
 
     // Segment stats calculation and bucket lookup map
     Map<String, MarketSegmentStatsDto> segmentDtoMap = new LinkedHashMap<>();
-    List<MarketSegmentStatsDto> segmentsList = new ArrayList<>();
 
     for (Map.Entry<String, List<IngatlanItem>> entry : segmentBuckets.entrySet()) {
       String bucketKey = entry.getKey();
@@ -235,12 +235,11 @@ public class MarketAnalyticsEngine {
 
       MarketSegmentStatsDto segment = segBuilder.build();
       segmentDtoMap.put(bucketKey, segment);
-      segmentsList.add(segment);
     }
-    stats.segments(segmentsList);
 
     // Bargain detection on items
     int totalBargains = 0;
+    Map<String, Integer> segmentBargains = new HashMap<>();
     for (IngatlanItem item : uniqueItems) {
       if (item == null) {
         continue;
@@ -266,7 +265,7 @@ public class MarketAnalyticsEngine {
         if (pctBelow >= BARGAIN_DISCOUNT_THRESHOLD_PERCENT) {
           item.setIsBargain(true);
           totalBargains++;
-          segment.setBargainCount(segment.getBargainCount() + 1);
+          segmentBargains.merge(bucketKey, 1, Integer::sum);
         } else {
           item.setIsBargain(false);
         }
@@ -278,6 +277,15 @@ public class MarketAnalyticsEngine {
         item.setReferenceSampleSize(segment != null ? segment.getSampleSize() : 0);
       }
     }
+
+    List<MarketSegmentStatsDto> finalizedSegments = new ArrayList<>();
+    for (Map.Entry<String, MarketSegmentStatsDto> entry : segmentDtoMap.entrySet()) {
+      String bucketKey = entry.getKey();
+      MarketSegmentStatsDto seg = entry.getValue();
+      int bCount = segmentBargains.getOrDefault(bucketKey, 0);
+      finalizedSegments.add(seg.toBuilder().bargainCount(bCount).build());
+    }
+    stats.segments(finalizedSegments);
 
     double bargainRate = totalItems > 0
         ? Math.round(((double) totalBargains / totalItems * 100.0) * 10.0) / 10.0

@@ -18,9 +18,9 @@ import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.core.env.Environment;
 
 import ingatlanok.common.JsonSupport;
+import ingatlanok.common.resilience.PortalCircuitBreaker;
+import ingatlanok.common.resilience.PortalRateLimiter;
 import ingatlanok.core.SearchExecutionEngine;
-import ingatlanok.core.resilience.PortalCircuitBreaker;
-import ingatlanok.core.resilience.PortalRateLimiter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;

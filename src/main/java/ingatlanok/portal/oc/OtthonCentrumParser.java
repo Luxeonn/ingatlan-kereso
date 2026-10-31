@@ -85,7 +85,7 @@ public class OtthonCentrumParser implements PortalHtmlParser {
                 if (!itemsArray.isEmpty()) {
                   JsonNode firstItem = itemsArray.get(0);
                   if (firstItem.has("location_city")) {
-                    locationCity = firstItem.get("location_city").asText();
+                    locationCity = firstItem.get("location_city").asString();
                   }
                   if (firstItem.has("price") && !firstItem.get("price").isNull()) {
                     jsonPriceHuf = firstItem.get("price").asLong();

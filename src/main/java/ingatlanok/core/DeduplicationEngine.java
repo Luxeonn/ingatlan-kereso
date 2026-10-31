@@ -19,7 +19,6 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.ListingStorage;
-import ingatlanok.presentation.PresentationMapper;
 
 public class DeduplicationEngine {
 
@@ -300,7 +299,18 @@ public class DeduplicationEngine {
       pricePerM2 = Math.round(priceHuf / item.getDetailsInfo().getAreaSquareMeters());
     }
 
-    return PresentationMapper.INSTANCE.toSourceListingFromItem(item, portal, priceHuf, pricePerM2);
+    return SourceListing.builder()
+        .portal(portal)
+        .externalListingId(item.getId())
+        .url(item.getUrl())
+        .title(item.getTitle())
+        .imageUrl(item.getImageUrl())
+        .firstSeenAt(item.getDiscoveredAt())
+        .lastSeenAt(item.getDiscoveredAt())
+        .status(item.getStatus() != null ? item.getStatus() : "ACTIVE")
+        .priceHuf(priceHuf)
+        .pricePerM2(pricePerM2)
+        .build();
   }
 
   public void applyNewStatus(String city, Collection<IngatlanItem> items, boolean isFirstSearch) {

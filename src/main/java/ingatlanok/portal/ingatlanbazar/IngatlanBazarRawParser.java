@@ -36,11 +36,11 @@ public class IngatlanBazarRawParser {
 
         JsonNode hit = el;
         String propertyId = hit.has("propertyId") && !hit.get("propertyId").isNull()
-            ? hit.get("propertyId").asText().trim()
+            ? hit.get("propertyId").asString().trim()
             : null;
 
         String seoUrl = hit.has("seoUrl") && !hit.get("seoUrl").isNull()
-            ? hit.get("seoUrl").asText().trim()
+            ? hit.get("seoUrl").asString().trim()
             : "";
         if (seoUrl.isBlank()) {
           continue;
@@ -51,7 +51,7 @@ public class IngatlanBazarRawParser {
             : IngatlanBazarQueryBuilder.BASE_URL + (seoUrl.startsWith("/") ? "" : "/") + seoUrl;
 
         String title = hit.has("title") && !hit.get("title").isNull()
-            ? hit.get("title").asText().trim()
+            ? hit.get("title").asString().trim()
             : "Ingatlanbazár hirdetés";
 
         Long priceHuf = null;
@@ -82,10 +82,10 @@ public class IngatlanBazarRawParser {
         }
 
         String settlement = hit.has("settlement") && !hit.get("settlement").isNull()
-            ? hit.get("settlement").asText().trim()
+            ? hit.get("settlement").asString().trim()
             : "";
         String quarter = hit.has("quarter") && !hit.get("quarter").isNull()
-            ? hit.get("quarter").asText().trim()
+            ? hit.get("quarter").asString().trim()
             : "";
 
         String location = settlement;
@@ -97,7 +97,7 @@ public class IngatlanBazarRawParser {
 
         String descriptionText = "";
         if (hit.has("condition") && !hit.get("condition").isNull()) {
-          descriptionText = hit.get("condition").asText();
+          descriptionText = hit.get("condition").asString();
         }
         boolean isNew = (hit.has("isNewConstruction") && hit.get("isNewConstruction").asBoolean(false))
             || (hit.has("newConstruction") && hit.get("newConstruction").asBoolean(false));
@@ -137,8 +137,8 @@ public class IngatlanBazarRawParser {
     if (hit.has("renderPictures") && hit.get("renderPictures").isArray()) {
       JsonNode renderPics = hit.get("renderPictures");
       for (JsonNode pic : renderPics) {
-        if (pic.isValueNode() && !pic.asText().isBlank()) {
-          candidate = pic.asText().trim();
+        if (pic.isValueNode() && !pic.asString("").isBlank()) {
+          candidate = pic.asString("").trim();
           break;
         }
       }
@@ -147,24 +147,24 @@ public class IngatlanBazarRawParser {
     if (candidate == null && hit.has("photo") && !hit.get("photo").isNull()) {
       JsonNode p = hit.get("photo");
       if (p.isValueNode()) {
-        candidate = p.asText().trim();
+        candidate = p.asString("").trim();
       } else if (p.isObject() && p.has("url")) {
-        candidate = p.get("url").asText().trim();
+        candidate = p.get("url").asString("").trim();
       }
     }
 
     if (candidate == null && hit.has("picture") && !hit.get("picture").isNull()) {
-      candidate = hit.get("picture").asText().trim();
+      candidate = hit.get("picture").asString("").trim();
     }
 
     if (candidate == null && hit.has("images") && hit.get("images").isArray()) {
       JsonNode imgs = hit.get("images");
       for (JsonNode img : imgs) {
-        if (img.isValueNode() && !img.asText().isBlank()) {
-          candidate = img.asText().trim();
+        if (img.isValueNode() && !img.asString("").isBlank()) {
+          candidate = img.asString("").trim();
           break;
-        } else if (img.isObject() && img.has("url") && !img.get("url").asText().isBlank()) {
-          candidate = img.get("url").asText().trim();
+        } else if (img.isObject() && img.has("url") && !img.get("url").asString("").isBlank()) {
+          candidate = img.get("url").asString("").trim();
           break;
         }
       }

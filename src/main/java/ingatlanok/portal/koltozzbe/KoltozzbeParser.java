@@ -204,7 +204,7 @@ public class KoltozzbeParser implements PortalHtmlParser {
           }
           JsonNode product = el.has("item") ? el.get("item") : el;
 
-          String rawUrl = product.has("url") ? product.get("url").asText() : null;
+          String rawUrl = product.has("url") ? product.get("url").asString() : null;
           String url = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, rawUrl);
           if (url.isEmpty() || !PortalSupport.markProcessed(processedUrls, url)) {
             continue;
@@ -212,9 +212,9 @@ public class KoltozzbeParser implements PortalHtmlParser {
 
           String city = PortalSupport.resolveDefaultCity(criteria);
           String name =
-              product.has("name") ? product.get("name").asText() : city + " - Eladó ingatlan";
+              product.has("name") ? product.get("name").asString() : city + " - Eladó ingatlan";
           String description =
-              product.has("description") ? product.get("description").asText("") : "";
+              product.has("description") ? product.get("description").asString("") : "";
           String id =
               PropertyParser.extractFirstGroup(
                   url, ID_PATTERN, UUID.randomUUID().toString().substring(0, 8));
@@ -278,9 +278,9 @@ public class KoltozzbeParser implements PortalHtmlParser {
     String resolved = null;
     JsonNode imageNode = product.get("image");
     if (imageNode.isArray() && !imageNode.isEmpty()) {
-      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asText());
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asString());
     } else if (imageNode.isValueNode()) {
-      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asText());
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asString());
     }
     return (resolved != null && !PortalSupport.isPlaceholderImageUrl(resolved)) ? resolved : null;
   }

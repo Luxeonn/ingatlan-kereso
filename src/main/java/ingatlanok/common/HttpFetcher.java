@@ -8,8 +8,8 @@ import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import ingatlanok.core.resilience.PortalCircuitBreaker;
-import ingatlanok.core.resilience.PortalRateLimiter;
+import ingatlanok.common.resilience.PortalCircuitBreaker;
+import ingatlanok.common.resilience.PortalRateLimiter;
 
 /** Centralized resilient HTTP fetcher with domain whitelisting, rate limiting, and circuit breaking. */
 public final class HttpFetcher {

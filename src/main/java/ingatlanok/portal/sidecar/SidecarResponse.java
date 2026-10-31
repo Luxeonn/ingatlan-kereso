@@ -129,7 +129,7 @@ public class SidecarResponse implements Serializable {
       PriceInfo priceInfo;
       if (priceMillion != null && priceMillion > 0) {
         long priceHuf = Math.round(priceMillion * 1_000_000L);
-        NumberFormat nf = NumberFormat.getInstance(new Locale("hu", "HU"));
+        NumberFormat nf = NumberFormat.getInstance(Locale.of("hu", "HU"));
         String formatted = nf.format(priceHuf) + " Ft";
         priceInfo =
             PriceInfo.builder()

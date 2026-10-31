@@ -46,12 +46,12 @@ public class IngatlanBazarJsonParser {
         JsonNode hit = el;
         String propertyId =
             hit.has("propertyId") && !hit.get("propertyId").isNull()
-                ? hit.get("propertyId").asText()
+                ? hit.get("propertyId").asString()
                 : UUID.randomUUID().toString();
 
         String seoUrl =
             hit.has("seoUrl") && !hit.get("seoUrl").isNull()
-                ? hit.get("seoUrl").asText()
+                ? hit.get("seoUrl").asString()
                 : "";
         if (seoUrl.isBlank()) {
           continue;
@@ -67,7 +67,7 @@ public class IngatlanBazarJsonParser {
 
         String title =
             hit.has("title") && !hit.get("title").isNull()
-                ? hit.get("title").asText().trim()
+                ? hit.get("title").asString().trim()
                 : "Ingatlanbazár hirdetés";
 
         Long priceHuf = null;
@@ -81,7 +81,7 @@ public class IngatlanBazarJsonParser {
 
         PriceInfo priceInfo;
         if (priceHuf != null && priceHuf > 0) {
-          NumberFormat nf = NumberFormat.getInstance(new Locale("hu", "HU"));
+          NumberFormat nf = NumberFormat.getInstance(Locale.of("hu", "HU"));
           String formatted = nf.format(priceHuf) + " Ft";
           double million = Math.round((priceHuf / 1_000_000.0) * 100.0) / 100.0;
           priceInfo =
@@ -145,11 +145,11 @@ public class IngatlanBazarJsonParser {
         String defaultCity = criteria != null ? criteria.getCity() : "Debrecen";
         String settlement =
             hit.has("settlement") && !hit.get("settlement").isNull()
-                ? hit.get("settlement").asText().trim()
+                ? hit.get("settlement").asString().trim()
                 : defaultCity;
         String quarter =
             hit.has("quarter") && !hit.get("quarter").isNull()
-                ? hit.get("quarter").asText().trim()
+                ? hit.get("quarter").asString().trim()
                 : "";
 
         String location = settlement;
@@ -159,7 +159,7 @@ public class IngatlanBazarJsonParser {
 
         String discoveredAt =
             hit.has("createdAt") && !hit.get("createdAt").isNull()
-                ? hit.get("createdAt").asText().trim()
+                ? hit.get("createdAt").asString().trim()
                 : now;
 
         String imageUrl = IngatlanBazarRawParser.extractImageUrl(hit);
@@ -168,7 +168,7 @@ public class IngatlanBazarJsonParser {
             (hit.has("isNewConstruction") && hit.get("isNewConstruction").asBoolean(false))
                 || (hit.has("newConstruction") && hit.get("newConstruction").asBoolean(false))
                 || (hit.has("condition")
-                    && PropertyParser.isNewConstructionText(hit.get("condition").asText("")))
+                    && PropertyParser.isNewConstructionText(hit.get("condition").asString("")))
                 || PropertyParser.isNewConstructionText(title, fullUrl);
 
         IngatlanItem item =

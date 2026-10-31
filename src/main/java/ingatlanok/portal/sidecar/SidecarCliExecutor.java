@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
@@ -19,6 +20,9 @@ public class SidecarCliExecutor {
   private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
   private static final int DEFAULT_TIMEOUT_SECONDS = 20;
   private static String customExecutable = null;
+  private static final ReentrantLock PYTHON_DETECT_LOCK = new ReentrantLock();
+  private static volatile String cachedPythonCmd = null;
+  private static volatile boolean pythonChecked = false;
 
   private SidecarCliExecutor() {}
 
@@ -190,28 +194,32 @@ public class SidecarCliExecutor {
     return null;
   }
 
-  private static String cachedPythonCmd = null;
-  private static boolean pythonChecked = false;
-
-  private static synchronized String detectPythonCommand() {
+  private static String detectPythonCommand() {
     if (pythonChecked) {
       return cachedPythonCmd;
     }
-    pythonChecked = true;
-
-    String[] candidates = {"python", "py", "python3"};
-    for (String candidate : candidates) {
-      try {
-        Process p = new ProcessBuilder(candidate, "--version").start();
-        boolean finished = p.waitFor(2, TimeUnit.SECONDS);
-        if (finished && p.exitValue() == 0) {
-          cachedPythonCmd = candidate;
-          return cachedPythonCmd;
-        }
-      } catch (Exception ignored) {
-        // Try the next supported Python launcher.
+    PYTHON_DETECT_LOCK.lock();
+    try {
+      if (pythonChecked) {
+        return cachedPythonCmd;
       }
+      String[] candidates = {"python", "py", "python3"};
+      for (String candidate : candidates) {
+        try {
+          Process p = new ProcessBuilder(candidate, "--version").start();
+          boolean finished = p.waitFor(2, TimeUnit.SECONDS);
+          if (finished && p.exitValue() == 0) {
+            cachedPythonCmd = candidate;
+            return cachedPythonCmd;
+          }
+        } catch (Exception ignored) {
+          // Try the next supported Python launcher.
+        }
+      }
+      return null;
+    } finally {
+      pythonChecked = true;
+      PYTHON_DETECT_LOCK.unlock();
     }
-    return null;
   }
 }

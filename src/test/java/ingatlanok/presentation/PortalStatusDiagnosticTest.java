@@ -22,7 +22,6 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.InMemoryListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
@@ -104,18 +103,19 @@ class PortalStatusDiagnosticTest {
   }
 
   @Test
-  @DisplayName("SearchResult contains portalStatuses list")
-  void testSearchResultPortalStatuses() {
-    SearchResult result = new SearchResult();
-    assertNotNull(result.getPortalStatuses());
-    assertTrue(result.getPortalStatuses().isEmpty());
+  @DisplayName("DashboardResponseDto contains portalStatuses list")
+  void testDashboardResponseDtoPortalStatuses() {
+    DashboardResponseDto response = new DashboardResponseDto();
+    assertNotNull(response.getPortalStatuses());
+    assertTrue(response.getPortalStatuses().isEmpty());
 
     PortalStatusDto dto =
         new PortalStatusDto("ib", "Ingatlanbazár", "SUCCESS", 25, 300L, null, "Sikeres");
-    result.setPortalStatuses(List.of(dto));
+    DashboardResponseDto withStatuses =
+        DashboardResponseDto.builder().portalStatuses(List.of(dto)).build();
 
-    assertEquals(1, result.getPortalStatuses().size());
-    assertEquals("ib", result.getPortalStatuses().get(0).getPortalId());
+    assertEquals(1, withStatuses.getPortalStatuses().size());
+    assertEquals("ib", withStatuses.getPortalStatuses().get(0).getPortalId());
   }
 
   @Test

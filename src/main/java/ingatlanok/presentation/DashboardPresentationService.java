@@ -29,7 +29,6 @@ public class DashboardPresentationService {
     SearchResult searchResult = searchEngine.executeSearch(criteria);
     MarketStatsDto marketStats = analyticsEngine.calculateMarketStats(searchResult.getItems());
     List<PortalStatusDto> portalStatuses = buildPortalStatuses(searchResult);
-    searchResult.setPortalStatuses(portalStatuses);
 
     return PresentationMapper.INSTANCE.toDashboardResponseDto(
         searchResult, marketStats, portalStatuses);
