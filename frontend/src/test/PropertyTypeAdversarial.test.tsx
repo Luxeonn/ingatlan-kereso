@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PropertyTypeBadge } from '../components/listings/PropertyTypeBadge'
 import { PropertyCard } from '../components/listings/PropertyCard'
-import { IngatlanItem, CanonicalPropertyType } from '../types/property'
+import type { IngatlanItem, CanonicalPropertyType } from '../types/property'
 import { useUiStore } from '../store/useUiStore'
 
 describe('PropertyType Adversarial & Stress Testing', () => {

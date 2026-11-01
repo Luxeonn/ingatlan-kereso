@@ -6,7 +6,7 @@ import { SearchPanel } from '../components/filters/SearchPanel'
 import { filterAndSortItems } from '../hooks/useSearch'
 import { useFilterStore } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
-import { IngatlanItem } from '../types/property'
+import type { IngatlanItem } from '../types/property'
 
 const sampleItems: IngatlanItem[] = [
   {

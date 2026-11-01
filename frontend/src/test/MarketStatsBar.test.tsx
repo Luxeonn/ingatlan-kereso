@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MarketStatsBar } from '../components/kpi/MarketStatsBar'
-import { DashboardResponseDto } from '../types/api'
+import type { DashboardResponseDto } from '../types/api'
 
 describe('MarketStatsBar component (R3: static KPI cards)', () => {
   const sampleData: DashboardResponseDto = {

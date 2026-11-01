@@ -1,4 +1,5 @@
-import { useState, FC } from 'react'
+import type { FC } from 'react';
+import { useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -11,7 +12,7 @@ import {
   Legend,
 } from 'recharts'
 import { MapPin, ArrowUpDown } from 'lucide-react'
-import { CityStat } from '../../hooks/useMarketAnalytics'
+import type { CityStat } from '../../hooks/useMarketAnalytics'
 import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
 
 interface CityComparisonChartProps {

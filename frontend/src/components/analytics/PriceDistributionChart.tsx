@@ -1,4 +1,5 @@
-import { useState, FC } from 'react'
+import type { FC } from 'react';
+import { useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -11,7 +12,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { Ruler, DollarSign, Info } from 'lucide-react'
-import { HistogramBin } from '../../hooks/useMarketAnalytics'
+import type { HistogramBin } from '../../hooks/useMarketAnalytics'
 import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
 
 interface PriceDistributionChartProps {

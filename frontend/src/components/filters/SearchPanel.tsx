@@ -19,6 +19,88 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
   telek: 'Telek',
 }
 
+function getValidationWarnings(minPrice: number, maxPrice: number, minArea: number, maxArea: number): string[] {
+  const warnings: string[] = []
+  if (minPrice < 0 || maxPrice < 0) {
+    warnings.push('Az ár nem lehet negatív.')
+  } else if (minPrice > maxPrice) {
+    warnings.push(
+      `A minimális ár (${minPrice} M Ft) nem lehet nagyobb a maximális árnál (${maxPrice} M Ft).`,
+    )
+  }
+
+  if (minArea < 1 || maxArea < 1) {
+    warnings.push('Az alapterületnek legalább 1 m²-nek kell lennie.')
+  } else if (minArea > maxArea) {
+    warnings.push(
+      `A minimális alapterület (${minArea} m²) nem lehet nagyobb a maximális alapterületnél (${maxArea} m²).`,
+    )
+  }
+  return warnings
+}
+
+function resolveCitiesSummary(cities?: string[], defaultCity?: string): string {
+  if (cities && cities.length > 0) return cities.join(', ')
+  return defaultCity || 'Hajdúszoboszló'
+}
+
+function resolveTypeLabel(propertyType?: string): string {
+  const key = (propertyType || 'lakas').toLowerCase()
+  return PROPERTY_TYPE_LABELS[key] || propertyType || 'Lakás'
+}
+
+interface CollapsedFilterSummaryProps {
+  citiesSummary: string
+  typeLabel: string
+  minPriceMillion: number
+  maxPriceMillion: number
+  minArea: number
+  maxArea: number
+  portalsCount: number
+}
+
+const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
+  citiesSummary,
+  typeLabel,
+  minPriceMillion,
+  maxPriceMillion,
+  minArea,
+  maxArea,
+  portalsCount,
+}) => (
+  <div
+    data-testid="collapsed-filter-summary"
+    className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--text-secondary)]"
+  >
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-semibold text-[var(--text-primary)]">
+      <span>📍</span>
+      <span>{citiesSummary}</span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>🏠</span>
+      <span>{typeLabel}</span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>💰</span>
+      <span>
+        {minPriceMillion} - {maxPriceMillion} M Ft
+      </span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>📐</span>
+      <span>
+        {minArea} - {maxArea} m²
+      </span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>🌐</span>
+      <span>
+        {portalsCount}/{DEFAULT_PORTALS.length} portál
+      </span>
+    </span>
+  </div>
+)
+
 export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   const {
     criteria,
@@ -36,22 +118,12 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
 
   const { isFiltersCollapsed, setFiltersCollapsed } = useUiStore()
 
-  const validationWarnings: string[] = []
-  if (criteria.minPriceMillion < 0 || criteria.maxPriceMillion < 0) {
-    validationWarnings.push('Az ár nem lehet negatív.')
-  } else if (criteria.minPriceMillion > criteria.maxPriceMillion) {
-    validationWarnings.push(
-      `A minimális ár (${criteria.minPriceMillion} M Ft) nem lehet nagyobb a maximális árnál (${criteria.maxPriceMillion} M Ft).`,
-    )
-  }
-
-  if (criteria.minArea < 1 || criteria.maxArea < 1) {
-    validationWarnings.push('Az alapterületnek legalább 1 m²-nek kell lennie.')
-  } else if (criteria.minArea > criteria.maxArea) {
-    validationWarnings.push(
-      `A minimális alapterület (${criteria.minArea} m²) nem lehet nagyobb a maximális alapterületnél (${criteria.maxArea} m²).`,
-    )
-  }
+  const validationWarnings = getValidationWarnings(
+    criteria.minPriceMillion,
+    criteria.maxPriceMillion,
+    criteria.minArea,
+    criteria.maxArea,
+  )
 
   const hasValidationErrors = validationWarnings.length > 0
 
@@ -61,10 +133,8 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
     onSearch()
   }
 
-  const citiesSummary =
-    criteria.cities && criteria.cities.length > 0 ? criteria.cities.join(', ') : criteria.city || 'Hajdúszoboszló'
-  const typeLabel =
-    PROPERTY_TYPE_LABELS[(criteria.propertyType || 'lakas').toLowerCase()] || criteria.propertyType
+  const citiesSummary = resolveCitiesSummary(criteria.cities, criteria.city)
+  const typeLabel = resolveTypeLabel(criteria.propertyType)
 
   return (
     <form
@@ -92,37 +162,15 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
 
       {/* Collapsed summary bar (#157) */}
       {isFiltersCollapsed && (
-        <div
-          data-testid="collapsed-filter-summary"
-          className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--text-secondary)]"
-        >
-          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-semibold text-[var(--text-primary)]">
-            <span>📍</span>
-            <span>{citiesSummary}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-            <span>🏠</span>
-            <span>{typeLabel}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-            <span>💰</span>
-            <span>
-              {criteria.minPriceMillion} - {criteria.maxPriceMillion} M Ft
-            </span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-            <span>📐</span>
-            <span>
-              {criteria.minArea} - {criteria.maxArea} m²
-            </span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-            <span>🌐</span>
-            <span>
-              {criteria.portals.length}/{DEFAULT_PORTALS.length} portál
-            </span>
-          </span>
-        </div>
+        <CollapsedFilterSummary
+          citiesSummary={citiesSummary}
+          typeLabel={typeLabel}
+          minPriceMillion={criteria.minPriceMillion}
+          maxPriceMillion={criteria.maxPriceMillion}
+          minArea={criteria.minArea}
+          maxArea={criteria.maxArea}
+          portalsCount={criteria.portals.length}
+        />
       )}
 
       {/* Main filters content */}

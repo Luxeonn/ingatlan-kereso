@@ -128,7 +128,7 @@ export interface QualityConfig {
 }
 
 export function clampQualityScore(score?: number | null): number | null {
-  if (score == null || isNaN(score)) return null
+  if (score === null || score === undefined || isNaN(score)) return null
   return Math.max(0, Math.min(100, Math.round(score)))
 }
 
@@ -185,20 +185,20 @@ export function getEffectivePrice(item: IngatlanItem): { priceFt?: number; price
   const lowestActivePriceFt =
     activeSources.length > 0
       ? activeSources.reduce((min, s) => {
-          if (s.priceHuf != null && s.priceHuf > 0) {
-            return min == null || s.priceHuf < min ? s.priceHuf : min
+          if (s.priceHuf !== null && s.priceHuf !== undefined && s.priceHuf > 0) {
+            return min === null || min === undefined || s.priceHuf < min ? s.priceHuf : min
           }
           return min
         }, null as number | null)
       : null
 
   const priceFt = lowestActivePriceFt ?? item.priceInfo?.amountHuf
-  const priceMillion = priceFt != null ? priceFt / 1_000_000 : item.priceInfo?.amountMillion
+  const priceMillion = priceFt !== null && priceFt !== undefined ? priceFt / 1_000_000 : item.priceInfo?.amountMillion
   return { priceFt, priceMillion }
 }
 
 export function getEffectiveSqmPrice(item: IngatlanItem): number | null {
-  if (item.detailsInfo?.pricePerSquareMeter != null && item.detailsInfo.pricePerSquareMeter > 0) {
+  if (item.detailsInfo?.pricePerSquareMeter !== null && item.detailsInfo?.pricePerSquareMeter !== undefined && item.detailsInfo.pricePerSquareMeter > 0) {
     return item.detailsInfo.pricePerSquareMeter
   }
   const area = item.detailsInfo?.areaSquareMeters
@@ -219,27 +219,27 @@ export function openExternalUrl(url?: string | null): void {
 }
 
 export function formatPriceMillion(million?: number | null): string {
-  if (million == null || isNaN(million)) return 'N/A'
+  if (million === null || million === undefined || isNaN(million)) return 'N/A'
   return `${Number(million.toFixed(1))} M Ft`
 }
 
 export function formatPriceFt(amountHuf?: number | null): string {
-  if (amountHuf == null || isNaN(amountHuf)) return 'Ár a hirdetésben'
+  if (amountHuf === null || amountHuf === undefined || isNaN(amountHuf)) return 'Ár a hirdetésben'
   return new Intl.NumberFormat('hu-HU').format(amountHuf) + ' Ft'
 }
 
 export function formatPricePerSqm(ftPerM2?: number | null): string {
-  if (ftPerM2 == null || isNaN(ftPerM2) || ftPerM2 <= 0) return 'N/A'
+  if (ftPerM2 === null || ftPerM2 === undefined || isNaN(ftPerM2) || ftPerM2 <= 0) return 'N/A'
   return new Intl.NumberFormat('hu-HU').format(Math.round(ftPerM2)) + ' Ft/m²'
 }
 
 export function formatArea(sqm?: number | null): string {
-  if (sqm == null || isNaN(sqm) || sqm <= 0) return 'N/A'
+  if (sqm === null || sqm === undefined || isNaN(sqm) || sqm <= 0) return 'N/A'
   return `${Math.round(sqm)} m²`
 }
 
 export function formatRooms(rooms?: number | null): string {
-  if (rooms == null || isNaN(rooms) || rooms <= 0) return ''
+  if (rooms === null || rooms === undefined || isNaN(rooms) || rooms <= 0) return ''
   return `${rooms} szoba`
 }
 

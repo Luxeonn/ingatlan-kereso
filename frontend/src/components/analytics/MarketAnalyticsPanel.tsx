@@ -11,6 +11,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
+import type { MarketAnalyticsData } from '../../hooks/useMarketAnalytics'
 import { useMarketAnalytics } from '../../hooks/useMarketAnalytics'
 import {
   formatPriceMillion,
@@ -32,6 +33,82 @@ export interface MarketAnalyticsPanelProps {
   targetPropertyType?: string | null
 }
 
+function getCategoryLabel(activeCategory?: string | null): string | null {
+  if (activeCategory === 'lakas') return 'Lakás'
+  if (activeCategory === 'haz') return 'Ház'
+  if (activeCategory === 'telek') return 'Telek'
+  return null
+}
+
+interface CategoryCardDef {
+  id: 'lakas' | 'haz' | 'telek'
+  testId: string
+  title: string
+  Icon: typeof Building2
+  iconColor: string
+  highlightBorder: string
+  value: string
+  sampleSize: number
+  sampleLabel: string
+}
+
+function buildCategoryCards(kpi: MarketAnalyticsData['kpi']): CategoryCardDef[] {
+  return [
+    {
+      id: 'lakas' as const,
+      testId: 'kpi-card-lakas',
+      title: 'Lakás Medián Fajlagos Ár',
+      Icon: Building2,
+      iconColor: 'bg-indigo-500/10 text-indigo-400',
+      highlightBorder: 'border-indigo-500/50 ring-1 ring-indigo-500/30 bg-indigo-500/5',
+      value:
+        kpi.lakasMedianPricePerSqm !== null && kpi.lakasMedianPricePerSqm !== undefined
+          ? formatPricePerSqm(kpi.lakasMedianPricePerSqm)
+          : 'Kevés minta (<5)',
+      sampleSize: kpi.lakasSampleSize,
+      sampleLabel: `${kpi.lakasSampleSize} db lakás alapján`,
+    },
+    {
+      id: 'haz' as const,
+      testId: 'kpi-card-haz',
+      title: 'Ház Medián Fajlagos Ár',
+      Icon: Home,
+      iconColor: 'bg-amber-500/10 text-amber-400',
+      highlightBorder: 'border-amber-500/50 ring-1 ring-amber-500/30 bg-amber-500/5',
+      value:
+        kpi.hazMedianPricePerSqm !== null && kpi.hazMedianPricePerSqm !== undefined
+          ? formatPricePerSqm(kpi.hazMedianPricePerSqm)
+          : 'Kevés minta (<5)',
+      sampleSize: kpi.hazSampleSize,
+      sampleLabel: `${kpi.hazSampleSize} db ház alapján`,
+    },
+    {
+      id: 'telek' as const,
+      testId: 'kpi-card-telek',
+      title: 'Telek Medián Telekár (m²)',
+      Icon: Trees,
+      iconColor: 'bg-emerald-500/10 text-emerald-400',
+      highlightBorder: 'border-emerald-500/50 ring-1 ring-emerald-500/30 bg-emerald-500/5',
+      value:
+        kpi.telekMedianPricePerSqm !== null && kpi.telekMedianPricePerSqm !== undefined
+          ? formatPricePerSqm(kpi.telekMedianPricePerSqm)
+          : 'Kevés minta (<5)',
+      sampleSize: kpi.telekSampleSize,
+      sampleLabel: `${kpi.telekSampleSize} db telek alapján`,
+    },
+  ]
+}
+
+function getVisibleCategoryCards(cards: CategoryCardDef[], activeCategory?: string | null): CategoryCardDef[] {
+  return cards
+    .filter((card) => card.sampleSize > 0)
+    .sort((a, b) => {
+      if (a.id === activeCategory) return -1
+      if (b.id === activeCategory) return 1
+      return 0
+    })
+}
+
 export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
   items,
   onMarkViewed,
@@ -43,14 +120,7 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
   const analytics = useMarketAnalytics(items, effectivePropertyType)
   const { kpi, distribution, cityComparison, scatterData, bargains } = analytics
 
-  const categoryLabel =
-    kpi.activeCategory === 'lakas'
-      ? 'Lakás'
-      : kpi.activeCategory === 'haz'
-        ? 'Ház'
-        : kpi.activeCategory === 'telek'
-          ? 'Telek'
-          : null
+  const categoryLabel = getCategoryLabel(kpi.activeCategory)
 
   const handleSelectRange = (type: 'price' | 'sqmPrice', min: number, max: number) => {
     if (type === 'price') {
@@ -65,61 +135,7 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
     }
   }
 
-  // Category KPI definitions (#263, #264, #276)
-  const categoryCards = [
-    {
-      id: 'lakas' as const,
-      testId: 'kpi-card-lakas',
-      title: 'Lakás Medián Fajlagos Ár',
-      Icon: Building2,
-      iconColor: 'bg-indigo-500/10 text-indigo-400',
-      highlightBorder: 'border-indigo-500/50 ring-1 ring-indigo-500/30 bg-indigo-500/5',
-      value:
-        kpi.lakasMedianPricePerSqm != null
-          ? formatPricePerSqm(kpi.lakasMedianPricePerSqm)
-          : 'Kevés minta (<5)',
-      sampleSize: kpi.lakasSampleSize,
-      sampleLabel: `${kpi.lakasSampleSize} db lakás alapján`,
-    },
-    {
-      id: 'haz' as const,
-      testId: 'kpi-card-haz',
-      title: 'Ház Medián Fajlagos Ár',
-      Icon: Home,
-      iconColor: 'bg-amber-500/10 text-amber-400',
-      highlightBorder: 'border-amber-500/50 ring-1 ring-amber-500/30 bg-amber-500/5',
-      value:
-        kpi.hazMedianPricePerSqm != null
-          ? formatPricePerSqm(kpi.hazMedianPricePerSqm)
-          : 'Kevés minta (<5)',
-      sampleSize: kpi.hazSampleSize,
-      sampleLabel: `${kpi.hazSampleSize} db ház alapján`,
-    },
-    {
-      id: 'telek' as const,
-      testId: 'kpi-card-telek',
-      title: 'Telek Medián Telekár (m²)',
-      Icon: Trees,
-      iconColor: 'bg-emerald-500/10 text-emerald-400',
-      highlightBorder: 'border-emerald-500/50 ring-1 ring-emerald-500/30 bg-emerald-500/5',
-      value:
-        kpi.telekMedianPricePerSqm != null
-          ? formatPricePerSqm(kpi.telekMedianPricePerSqm)
-          : 'Kevés minta (<5)',
-      sampleSize: kpi.telekSampleSize,
-      sampleLabel: `${kpi.telekSampleSize} db telek alapján`,
-    },
-  ]
-
-  // Filter out irrelevant category cards with 0 samples (#276)
-  // Put active/searched category first to highlight it as primary stat
-  const visibleCategoryCards = categoryCards
-    .filter((card) => card.sampleSize > 0)
-    .sort((a, b) => {
-      if (a.id === kpi.activeCategory) return -1
-      if (b.id === kpi.activeCategory) return 1
-      return 0
-    })
+  const visibleCategoryCards = getVisibleCategoryCards(buildCategoryCards(kpi), kpi.activeCategory)
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200" data-testid="market-analytics-panel">
@@ -333,7 +349,7 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
                         <PropertyTypeBadge propertyType={item.propertyType} />
                       </div>
                       <span className="text-xs font-extrabold text-rose-400 font-mono">
-                        {item.priceChangePercent != null
+                        {item.priceChangePercent !== null && item.priceChangePercent !== undefined
                           ? `${Math.round(item.priceChangePercent)}%`
                           : '-'}
                       </span>
