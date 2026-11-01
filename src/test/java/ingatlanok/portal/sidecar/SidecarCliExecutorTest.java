@@ -14,12 +14,16 @@ import ingatlanok.common.JsonSupport;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.raw.ExtractionMethod;
+import ingatlanok.model.raw.RawExtractionResult;
+import ingatlanok.portal.ingatlancom.IngatlanComSidecarStrategy;
 
 class SidecarCliExecutorUnitTest {
 
   @AfterEach
   void tearDown() {
     SidecarCliExecutor.resetCustomExecutable();
+    IngatlanComSidecarStrategy.clearCache();
   }
 
   @Test
@@ -44,6 +48,14 @@ class SidecarCliExecutorUnitTest {
     criteria.setPropertyType("haz");
     criteria.setMinPriceMillion(50);
     criteria.setMaxPriceMillion(100);
+    criteria.setMinArea(80);
+    criteria.setMaxArea(180);
+
+    var builtArgs = SidecarCliExecutor.buildArguments("ingatlancom", criteria);
+    assertTrue(builtArgs.contains("--min-area"));
+    assertTrue(builtArgs.contains("80"));
+    assertTrue(builtArgs.contains("--max-area"));
+    assertTrue(builtArgs.contains("180"));
 
     Optional<SidecarResponse> res = SidecarCliExecutor.execute("ingatlancom", criteria);
     assertTrue(res.isEmpty());
@@ -116,5 +128,22 @@ class SidecarCliExecutorUnitTest {
     IngatlanItem rawPrice = withRawPrice.toIngatlanItem(null, "Szeged", "today", false);
     assertEquals("12 M Ft", rawPrice.getPriceInfo().getRawText());
     assertEquals("Szeged", rawPrice.getCity());
+  }
+
+  @Test
+  @DisplayName("IngatlanComSidecarStrategy handles non-existent custom executable gracefully")
+  void testSidecarStrategyWithFakeExecutable() {
+    IngatlanComSidecarStrategy.clearCache();
+    SidecarCliExecutor.setCustomExecutable("non-existent-sidecar-bin");
+    IngatlanComSidecarStrategy strategy = new IngatlanComSidecarStrategy();
+    assertEquals(ExtractionMethod.SIDECAR, strategy.method());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Szeged");
+    criteria.setPropertyType("haz");
+
+    RawExtractionResult result = strategy.extract(criteria);
+    assertNotNull(result);
+    assertTrue(result.listings().isEmpty());
   }
 }

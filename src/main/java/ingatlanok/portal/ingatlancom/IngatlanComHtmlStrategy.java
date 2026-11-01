@@ -13,6 +13,7 @@ import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.ExtractionStrategy;
 import ingatlanok.portal.PortalSupport;
+import ingatlanok.portal.sidecar.SidecarCliExecutor;
 
 public class IngatlanComHtmlStrategy implements ExtractionStrategy {
 
@@ -21,9 +22,10 @@ public class IngatlanComHtmlStrategy implements ExtractionStrategy {
   private final IngatlanComUrlBuilder urlBuilder;
   private final IngatlanComRawParser rawParser;
   private final Function<String, Document> documentFetcher;
+  private final boolean defaultFetcher;
 
   public IngatlanComHtmlStrategy() {
-    this(new IngatlanComUrlBuilder(), new IngatlanComRawParser(), HttpFetcher::fetchDocument);
+    this(new IngatlanComUrlBuilder(), new IngatlanComRawParser(), null);
   }
 
   public IngatlanComHtmlStrategy(
@@ -32,6 +34,7 @@ public class IngatlanComHtmlStrategy implements ExtractionStrategy {
       Function<String, Document> documentFetcher) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new IngatlanComUrlBuilder();
     this.rawParser = rawParser != null ? rawParser : new IngatlanComRawParser();
+    this.defaultFetcher = documentFetcher == null;
     this.documentFetcher = documentFetcher != null ? documentFetcher : HttpFetcher::fetchDocument;
   }
 
@@ -43,24 +46,34 @@ public class IngatlanComHtmlStrategy implements ExtractionStrategy {
   @Override
   public RawExtractionResult extract(SearchCriteria criteria) {
     String searchUrl = urlBuilder.buildSearchUrl(criteria);
+    if (defaultFetcher && SidecarCliExecutor.isAvailable()) {
+      LOGGER.debug("Ingatlan.com: Sidecar elérhető volt, redundáns Jsoup lekérés kihagyása");
+      return RawExtractionResult.botProtected(
+          method(), searchUrl, "Cloudflare WAF / Sidecar fallback");
+    }
+
     LOGGER.info("Ingatlan.com HTML stratégia indítása: {}", searchUrl);
 
     try {
       Document document = documentFetcher.apply(searchUrl);
       if (document == null) {
         LOGGER.warn("Ingatlan.com: Nem sikerült letölteni az oldalt -> WAF védelem feltételezve");
-        return RawExtractionResult.botProtected(method(), searchUrl, "Nem sikerült letölteni az oldalt");
+        return RawExtractionResult.botProtected(
+            method(), searchUrl, "Nem sikerült letölteni az oldalt");
       }
 
       if (PortalSupport.isCommonBotChallenge(document)) {
         LOGGER.warn("Ingatlan.com: Cloudflare WAF bot-védelem detektálva");
-        return RawExtractionResult.botProtected(method(), searchUrl, "Cloudflare WAF detektálva");
+        return RawExtractionResult.botProtected(
+            method(), searchUrl, "Cloudflare WAF detektálva");
       }
 
       List<RawPropertyListing> listings = rawParser.parseRawListings(document);
       if (listings.isEmpty()) {
-        LOGGER.warn("Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni -> bot védelem feltételezve");
-        return RawExtractionResult.botProtected(method(), searchUrl, "0 találat, bot-védelem aktív");
+        LOGGER.warn(
+            "Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni -> bot védelem feltételezve");
+        return RawExtractionResult.botProtected(
+            method(), searchUrl, "0 találat, bot-védelem aktív");
       }
 
       return RawExtractionResult.success(listings, method());

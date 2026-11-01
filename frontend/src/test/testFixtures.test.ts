@@ -23,8 +23,8 @@ describe('testFixtures Object Mother factories', () => {
     expect(stats.bargainCount).toBe(4)
     expect(stats.insufficientData).toBe(false)
 
-    const status = createMockPortalStatus({ portalId: 'oc', itemCount: 5 })
+    const status = createMockPortalStatus({ portalId: 'oc', foundCount: 5 })
     expect(status.portalId).toBe('oc')
-    expect(status.itemCount).toBe(5)
+    expect(status.foundCount).toBe(5)
   })
 })

@@ -345,10 +345,12 @@ export interface components {
             portalId: string;
             portalName: string;
             status: string;
-            durationMs: number;
-            itemCount: number;
-            errorMessage?: string | null;
-            botProtected: boolean;
+            foundCount: number;
+            latencyMs: number;
+            fallbackUrl?: string | null;
+            message?: string | null;
+            httpStatusCode?: number | null;
+            technicalDetails?: string | null;
         };
         PriceInfo: {
             rawText?: string;

@@ -632,9 +632,8 @@ components:
         - portalId
         - portalName
         - status
-        - durationMs
-        - itemCount
-        - botProtected
+        - foundCount
+        - latencyMs
       properties:
         portalId:
           type: string
@@ -642,15 +641,22 @@ components:
           type: string
         status:
           type: string
-        durationMs:
+        foundCount:
           type: integer
-        itemCount:
+        latencyMs:
           type: integer
-        errorMessage:
+        fallbackUrl:
           type: string
           nullable: true
-        botProtected:
-          type: boolean
+        message:
+          type: string
+          nullable: true
+        httpStatusCode:
+          type: integer
+          nullable: true
+        technicalDetails:
+          type: string
+          nullable: true
 
     PriceInfo:
       type: object

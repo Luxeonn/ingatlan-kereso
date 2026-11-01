@@ -3,27 +3,22 @@
 Scraper Sidecar – On-demand CLI segédmodul a bot-védett ingatlanportálokhoz.
 
 Használat:
-    python tools/sidecar.py --portal ingatlancom --city debrecen --type lakas --min-price 30 --max-price 50
+    python tools/sidecar.py --portal ingatlancom --city debrecen --type lakas --min-price 30 --max-price 50 --min-area 50 --max-area 120
 
 A kimenet mindig JSON formátumban érkezik a stdout-ra.
 A stderr kizárólag debug logoknak van fenntartva.
-
-Ez a script a Java IngatlanSearchService által ProcessBuilder-en keresztül kerül meghívásra,
-de önállóan is futtatható tesztelési és fejlesztési célokra.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import sys
 import os
+import sys
 
-# A tools/ könyvtárat hozzáadjuk az import path-hoz, hogy a models és scrapers csomag elérhető legyen
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from models import SidecarResponse
-
 
 SUPPORTED_PORTALS = ["ingatlancom"]
 SUPPORTED_TYPES = ["lakas", "haz", "telek", "garazs", "nyaralo", "iroda", "osszes"]
@@ -38,7 +33,7 @@ def _parse_args() -> argparse.Namespace:
         "--portal",
         required=True,
         choices=SUPPORTED_PORTALS,
-        help="Cél portál azonosító (ingatlancom | ingatlanbazar)",
+        help="Cél portál azonosító (ingatlancom)",
     )
     parser.add_argument(
         "--city",
@@ -64,6 +59,24 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Maximum ár millió Ft-ban",
     )
+    parser.add_argument(
+        "--min-area",
+        type=int,
+        default=None,
+        help="Minimum alapterület m2-ben",
+    )
+    parser.add_argument(
+        "--max-area",
+        type=int,
+        default=None,
+        help="Maximum alapterület m2-ben",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=1,
+        help="Maximálisan letöltendő oldalak száma (default: 1)",
+    )
     return parser.parse_args()
 
 
@@ -80,6 +93,9 @@ def main() -> None:
             property_type=args.property_type,
             min_price=args.min_price,
             max_price=args.max_price,
+            min_area=args.min_area,
+            max_area=args.max_area,
+            max_pages=args.max_pages,
         )
     except ImportError as e:
         response = SidecarResponse(
@@ -98,7 +114,7 @@ def main() -> None:
 
 
 def _output(response: SidecarResponse) -> None:
-    """JSON kimenetet ír a stdout-ra camelCase mezőnevekkel (Java Gson kompatibilitás)."""
+    """JSON kimenetet ír a stdout-ra camelCase mezőnevekkel."""
     print(json.dumps(response.model_dump(by_alias=True), ensure_ascii=False, indent=2))
 
 
