@@ -1,4 +1,5 @@
-import { FC, useState, useRef, useCallback } from 'react'
+import type { FC} from 'react';
+import { useState, useRef, useCallback } from 'react'
 import {
   ScatterChart,
   Scatter,
@@ -11,7 +12,7 @@ import {
   Cell,
 } from 'recharts'
 import { ExternalLink, Sparkles, TrendingDown, HelpCircle, X } from 'lucide-react'
-import { ScatterPoint } from '../../hooks/useMarketAnalytics'
+import type { ScatterPoint } from '../../hooks/useMarketAnalytics'
 import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 import { formatPriceMillion, formatPricePerSqm, openExternalUrl } from '../../utils/formatters'
 
@@ -308,7 +309,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                               {formatPricePerSqm(data.sqmPrice)}
                             </span>
                           </p>
-                          {data.priceDelta != null && data.priceDelta < 0 && (
+                          {data.priceDelta !== null && data.priceDelta !== undefined && data.priceDelta < 0 && (
                             <p className="flex justify-between gap-4 text-emerald-400 font-semibold">
                               <span>Leárazás:</span>
                               <span>{data.priceDelta.toLocaleString('hu-HU')} Ft</span>

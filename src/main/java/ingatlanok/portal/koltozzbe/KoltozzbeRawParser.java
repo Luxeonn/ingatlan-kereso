@@ -2,6 +2,7 @@ package ingatlanok.portal.koltozzbe;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jsoup.nodes.Document;
@@ -20,6 +21,7 @@ public class KoltozzbeRawParser {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbeRawParser.class);
   private static final Pattern ID_PATTERN = Pattern.compile("(?i)/(?:elado-[^/]+/)?h?([0-9]+)");
+  private static final Pattern PAGE_PARAM_PATTERN = Pattern.compile("[?&]page=(\\d+)");
 
   public List<RawPropertyListing> parseHtmlListings(Document doc) {
     List<RawPropertyListing> items = new ArrayList<>();
@@ -88,58 +90,64 @@ public class KoltozzbeRawParser {
 
     Elements scripts = doc.select("script[type=application/ld+json]");
     for (Element script : scripts) {
-      String jsonText = script.data();
-      if (jsonText == null
-          || (!jsonText.contains("ListItem") && !jsonText.contains("itemListElement"))) {
-        continue;
-      }
-      try {
-        JsonNode root = JsonSupport.parse(jsonText);
-        if (!root.isObject() || !root.has("itemListElement")) {
-          continue;
-        }
-
-        JsonNode elements = root.get("itemListElement");
-        for (JsonNode el : elements) {
-          if (!el.isObject()) {
-            continue;
-          }
-          JsonNode product = el.has("item") ? el.get("item") : el;
-
-          String rawUrl = product.has("url") ? product.get("url").asText() : null;
-          String url = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, rawUrl);
-          if (url.isEmpty()) {
-            continue;
-          }
-
-          String name = product.has("name") ? product.get("name").asText() : "";
-          String description = product.has("description") ? product.get("description").asText("") : "";
-          String id = PropertyParser.extractFirstGroup(url, ID_PATTERN, null);
-
-          long rawPrice = extractJsonLdPrice(product);
-          String imageUrl = extractJsonLdImage(product);
-
-          RawPropertyListing raw = RawPropertyListing.builder()
-              .portalId("koltozzbe")
-              .nativeId(id)
-              .url(url)
-              .title(name)
-              .priceHuf(rawPrice > 0 ? rawPrice : null)
-              .priceText(rawPrice > 0 ? null : name + " " + description)
-              .detailsText(name + " " + description)
-              .imageUrl(imageUrl)
-              .descriptionText(description)
-              .method(ExtractionMethod.JSON_LD)
-              .build();
-
-          items.add(raw);
-        }
-      } catch (Exception ex) {
-        LOGGER.debug("JSON-LD parse warning: {}", ex.getMessage());
-      }
+      processJsonLdScript(script, items);
     }
 
     return items;
+  }
+
+  private void processJsonLdScript(Element script, List<RawPropertyListing> items) {
+    String jsonText = script.data();
+    if (jsonText == null
+        || (!jsonText.contains("ListItem") && !jsonText.contains("itemListElement"))) {
+      return;
+    }
+    try {
+      JsonNode root = JsonSupport.parse(jsonText);
+      if (!root.isObject() || !root.has("itemListElement")) {
+        return;
+      }
+      for (JsonNode el : root.get("itemListElement")) {
+        RawPropertyListing raw = parseJsonLdElement(el);
+        if (raw != null) {
+          items.add(raw);
+        }
+      }
+    } catch (Exception ex) {
+      LOGGER.debug("JSON-LD parse warning: {}", ex.getMessage());
+    }
+  }
+
+  private RawPropertyListing parseJsonLdElement(JsonNode el) {
+    if (!el.isObject()) {
+      return null;
+    }
+    JsonNode product = el.has("item") ? el.get("item") : el;
+    String rawUrl = product.has("url") ? product.get("url").asString() : null;
+    String url = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, rawUrl);
+    if (url.isEmpty()) {
+      return null;
+    }
+
+    String name = product.has("name") ? product.get("name").asString() : "";
+    String description = product.has("description") ? product.get("description").asString("") : "";
+    String id = PropertyParser.extractFirstGroup(url, ID_PATTERN, null);
+
+    long rawPrice = extractJsonLdPrice(product);
+    String imageUrl = extractJsonLdImage(product);
+
+    return RawPropertyListing.builder()
+        .portalId("koltozzbe")
+        .nativeId(id)
+        .url(url)
+        .title(name)
+        .priceHuf(rawPrice > 0 ? rawPrice : null)
+        .priceText(rawPrice > 0 ? null : name + " " + description)
+        .detailsText(name + " " + description)
+        .imageUrl(imageUrl)
+        .descriptionText(description)
+        .method(ExtractionMethod.JSON_LD)
+        .build();
   }
 
   private String extractTitle(Element card, Element linkElem) {
@@ -193,10 +201,41 @@ public class KoltozzbeRawParser {
     String resolved = null;
     JsonNode imageNode = product.get("image");
     if (imageNode.isArray() && !imageNode.isEmpty()) {
-      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asText());
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asString());
     } else if (imageNode.isValueNode()) {
-      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asText());
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asString());
     }
     return (resolved != null && !PortalSupport.isPlaceholderImageUrl(resolved)) ? resolved : null;
+  }
+
+  public boolean hasNextPage(Document doc, int currentPage) {
+    if (doc == null) {
+      return false;
+    }
+    int nextPage = currentPage + 1;
+    if (!doc.select("a[rel=next], .pagination .next:not(.disabled) a").isEmpty()) {
+      return true;
+    }
+
+    Elements pageLinks = doc.select(".pagination a[href], a[href*=page=]");
+    if (pageLinks.isEmpty()) {
+      return doc.select(".pagination").isEmpty();
+    }
+
+    for (Element link : pageLinks) {
+      String href = link.attr("href");
+      Matcher matcher = PAGE_PARAM_PATTERN.matcher(href);
+      if (matcher.find()) {
+        try {
+          int targetPage = Integer.parseInt(matcher.group(1));
+          if (targetPage >= nextPage) {
+            return true;
+          }
+        } catch (NumberFormatException ignored) {
+          // Ignore malformed page numbers in pagination links.
+        }
+      }
+    }
+    return false;
   }
 }

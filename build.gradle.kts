@@ -52,6 +52,7 @@ val commonsLang3Version = "3.21.0"
 val caffeineVersion = "3.3.1"
 val lombokVersion = "1.18.42"
 val mapstructVersion = "1.6.3"
+val archunitVersion = "1.4.1"
 
 dependencies {
     constraints {
@@ -82,11 +83,25 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok:$lombokVersion")
     testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+    options.compilerArgs.addAll(
+        listOf(
+            "-Xlint:unchecked",
+            "-Xlint:deprecation",
+            "-Xlint:rawtypes",
+            "-Xlint:fallthrough",
+            "-Xlint:cast",
+            "-Xlint:overrides",
+            "-Xlint:divzero",
+            "-Xlint:empty",
+            "-Werror"
+        )
+    )
 }
 
 tasks.test {
@@ -110,6 +125,23 @@ tasks.jacocoTestReport {
             srcCsv.copyTo(file("target/site/jacoco/jacoco.csv"), overwrite = true)
         }
     }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 checkstyle {

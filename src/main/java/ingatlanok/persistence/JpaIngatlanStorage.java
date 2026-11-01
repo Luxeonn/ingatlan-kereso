@@ -29,12 +29,16 @@ import ingatlanok.persistence.entity.ConfigEntity;
 import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.mapper.JpaEntityMapper;
+import ingatlanok.persistence.mapper.ListingObservationContext;
+import ingatlanok.persistence.mapper.PriceHistoryContext;
+import ingatlanok.persistence.mapper.PropertyUpdateContext;
 import ingatlanok.persistence.repository.ConfigRepository;
 import ingatlanok.persistence.repository.ListingObservationRepository;
 import ingatlanok.persistence.repository.PriceHistoryRepository;
 import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
 import ingatlanok.persistence.service.PriceHistoryTracker;
+import ingatlanok.persistence.service.PriceHistoryTracker.ExistingPriceState;
 import ingatlanok.persistence.service.PriceHistoryTracker.PriceDeltaCalculation;
 import ingatlanok.persistence.service.StatusLogTracker;
 import ingatlanok.persistence.service.StatusLogTracker.StatusDecision;
@@ -130,59 +134,83 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
         existing != null
             ? existing.getPropertyId()
             : mapper.generatePropertyId(item.getPortal(), item.getId(), url);
+    PriceDeltaCalculation calc = calculatePriceDelta(item, existing, now);
+
+    recordPriceHistory(propId, url, now, item, calc);
+    recordStatusLog(propId, url, now, existing, item, calc);
+    recordListingObservation(propId, url, now, existing, item, calc);
+    persistProperty(item, existing, now, calc);
+  }
+
+  private PriceDeltaCalculation calculatePriceDelta(
+      IngatlanItem item, PropertyEntity existing, String now) {
     PriceInfo pi = item.getPriceInfo();
     Long priceAmount = pi != null ? pi.getAmountHuf() : null;
     Long prevAmount = existing != null ? existing.getPriceAmount() : null;
-
-    PriceDeltaCalculation calc =
-        priceTracker.calculate(
+    ExistingPriceState state =
+        new ExistingPriceState(
             existing == null,
             prevAmount,
-            priceAmount,
             existing != null ? existing.getPriceDelta() : null,
             existing != null ? existing.getPriceChangePercent() : null,
             existing != null ? existing.getLastPriceChangeAt() : null,
-            item.getStatus(),
-            item.getTitle(),
-            now);
+            item.getStatus());
+    return priceTracker.calculate(state, priceAmount, item.getTitle(), now);
+  }
 
-    if (priceAmount != null && priceAmount > 0) {
-      Double m = pi.getAmountMillion();
-      String raw =
-          pi.getRawText() != null
-              ? pi.getRawText()
-              : (item.getPrice() != null ? item.getPrice() : "");
-      Long perSqm =
-          item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
-      if (calc.isNewPriceRecord()) {
-        priceHistoryRepo.save(
-            mapper.createPriceHistoryEntity(
-                propId,
-                url,
-                item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now,
-                raw,
-                priceAmount,
-                m,
-                perSqm,
-                null,
-                0L,
-                0.0));
-      } else if (calc.priceChanged()) {
-        priceHistoryRepo.save(
-            mapper.createPriceHistoryEntity(
-                propId,
-                url,
-                now,
-                raw,
-                priceAmount,
-                m,
-                perSqm,
-                calc.previousPriceAmount(),
-                calc.delta(),
-                calc.changePercent()));
-      }
+  private void recordPriceHistory(
+      String propId, String url, String now, IngatlanItem item, PriceDeltaCalculation calc) {
+    PriceInfo pi = item.getPriceInfo();
+    Long priceAmount = pi != null ? pi.getAmountHuf() : null;
+    if (priceAmount == null || priceAmount <= 0) {
+      return;
     }
+    Double m = pi.getAmountMillion();
+    String raw =
+        pi.getRawText() != null
+            ? pi.getRawText()
+            : (item.getPrice() != null ? item.getPrice() : "");
+    Long perSqm =
+        item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
 
+    if (calc.isNewPriceRecord()) {
+      priceHistoryRepo.save(
+          mapper.createPriceHistoryEntity(
+              new PriceHistoryContext(
+                  propId,
+                  url,
+                  item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now,
+                  raw,
+                  priceAmount,
+                  m,
+                  perSqm,
+                  null,
+                  0L,
+                  0.0)));
+    } else if (calc.priceChanged()) {
+      priceHistoryRepo.save(
+          mapper.createPriceHistoryEntity(
+              new PriceHistoryContext(
+                  propId,
+                  url,
+                  now,
+                  raw,
+                  priceAmount,
+                  m,
+                  perSqm,
+                  calc.previousPriceAmount(),
+                  calc.delta(),
+                  calc.changePercent())));
+    }
+  }
+
+  private void recordStatusLog(
+      String propId,
+      String url,
+      String now,
+      PropertyEntity existing,
+      IngatlanItem item,
+      PriceDeltaCalculation calc) {
     StatusDecision sd =
         statusTracker.evaluate(
             existing == null,
@@ -193,48 +221,66 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       statusLogRepo.save(
           mapper.createStatusLogEntity(propId, url, sd.status(), sd.changedAt(), sd.note()));
     }
+  }
 
-    String statusEvent;
+  private void recordListingObservation(
+      String propId,
+      String url,
+      String now,
+      PropertyEntity existing,
+      IngatlanItem item,
+      PriceDeltaCalculation calc) {
+    if (listingObservationRepo == null) {
+      return;
+    }
+    String statusEvent = determineStatusEvent(existing, calc);
+    String obsTime =
+        existing == null && item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now;
+    Long priceAmount = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
+    Long perSqm =
+        item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
+
+    ListingObservationEntity obs =
+        mapper.createListingObservationEntity(
+            new ListingObservationContext(
+                propId,
+                url,
+                existing != null ? existing.getCanonicalId() : null,
+                obsTime,
+                priceAmount,
+                perSqm,
+                statusEvent,
+                calc.delta(),
+                calc.changePercent()));
+    listingObservationRepo.save(obs);
+  }
+
+  private String determineStatusEvent(PropertyEntity existing, PriceDeltaCalculation calc) {
     if (existing == null) {
-      statusEvent = ListingObservation.StatusEvent.NEW.name();
-    } else if (calc.priceChanged()) {
-      statusEvent = ListingObservation.StatusEvent.PRICE_CHANGED.name();
-    } else if (("INACTIVE".equalsIgnoreCase(existing.getStatus())
-            || "ARCHIVED".equalsIgnoreCase(existing.getStatus()))
-        && "ACTIVE".equalsIgnoreCase(calc.resolvedStatus())) {
-      statusEvent = ListingObservation.StatusEvent.RELISTED.name();
-    } else {
-      statusEvent = ListingObservation.StatusEvent.UNCHANGED.name();
+      return ListingObservation.StatusEvent.NEW.name();
     }
-
-    if (listingObservationRepo != null) {
-      String obsTime =
-          existing == null && item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now;
-      Long perSqm =
-          item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
-      ListingObservationEntity obs =
-          mapper.createListingObservationEntity(
-              propId,
-              url,
-              existing != null ? existing.getCanonicalId() : null,
-              obsTime,
-              priceAmount,
-              perSqm,
-              statusEvent,
-              calc.delta(),
-              calc.changePercent());
-      listingObservationRepo.save(obs);
+    if (calc.priceChanged()) {
+      return ListingObservation.StatusEvent.PRICE_CHANGED.name();
     }
+    boolean wasInactive =
+        "INACTIVE".equalsIgnoreCase(existing.getStatus())
+            || "ARCHIVED".equalsIgnoreCase(existing.getStatus());
+    if (wasInactive && "ACTIVE".equalsIgnoreCase(calc.resolvedStatus())) {
+      return ListingObservation.StatusEvent.RELISTED.name();
+    }
+    return ListingObservation.StatusEvent.UNCHANGED.name();
+  }
 
-    propertyRepo.save(
-        mapper.toEntity(
-            item,
-            existing,
+  private void persistProperty(
+      IngatlanItem item, PropertyEntity existing, String now, PriceDeltaCalculation calc) {
+    PropertyUpdateContext ctx =
+        new PropertyUpdateContext(
             now,
             calc.delta(),
             calc.changePercent(),
             calc.lastPriceChangeAt(),
-            calc.resolvedStatus()));
+            calc.resolvedStatus());
+    propertyRepo.save(mapper.toEntity(item, existing, ctx));
   }
 
   @Override

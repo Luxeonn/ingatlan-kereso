@@ -29,7 +29,6 @@ public class DashboardPresentationService {
     SearchResult searchResult = searchEngine.executeSearch(criteria);
     MarketStatsDto marketStats = analyticsEngine.calculateMarketStats(searchResult.getItems());
     List<PortalStatusDto> portalStatuses = buildPortalStatuses(searchResult);
-    searchResult.setPortalStatuses(portalStatuses);
 
     return PresentationMapper.INSTANCE.toDashboardResponseDto(
         searchResult, marketStats, portalStatuses);
@@ -40,9 +39,8 @@ public class DashboardPresentationService {
   }
 
   private List<PortalStatusDto> buildPortalStatuses(SearchResult searchResult) {
-    List<PortalStatusDto> list = new ArrayList<>();
     if (searchResult == null || searchResult.getPortalResults() == null) {
-      return list;
+      return new ArrayList<>();
     }
 
     Map<String, PortalStatusDto> byPortalId = new LinkedHashMap<>();
@@ -50,12 +48,7 @@ public class DashboardPresentationService {
       if (pr == null) {
         continue;
       }
-      String key =
-          pr.getPortalId() != null && !pr.getPortalId().isBlank()
-              ? pr.getPortalId().trim().toLowerCase(Locale.ROOT)
-              : (pr.getPortalName() != null
-                  ? pr.getPortalName().trim().toLowerCase(Locale.ROOT)
-                  : "unknown");
+      String key = resolvePortalKey(pr);
       int itemCount = pr.getItems() != null ? pr.getItems().size() : 0;
       String statusName = pr.getStatus() != null ? pr.getStatus().name() : "UNKNOWN";
 
@@ -63,25 +56,36 @@ public class DashboardPresentationService {
       if (existing == null) {
         byPortalId.put(key, PresentationMapper.INSTANCE.toPortalStatusDto(pr));
       } else {
-        int foundCount = existing.getFoundCount() + itemCount;
-        String fallbackUrl = existing.getFallbackUrl();
-        if (fallbackUrl == null && pr.getFallbackUrl() != null) {
-          fallbackUrl = pr.getFallbackUrl();
-        }
-        String mergedStatus =
-            "SUCCESS".equals(statusName) || foundCount > 0 ? "SUCCESS" : existing.getStatus();
-        byPortalId.put(
-            key,
-            existing.toBuilder()
-                .foundCount(foundCount)
-                .latencyMs(existing.getLatencyMs() + Math.max(0L, pr.getExecutionTimeMs()))
-                .fallbackUrl(fallbackUrl)
-                .status(mergedStatus)
-                .build());
+        byPortalId.put(key, mergePortalStatus(existing, pr, itemCount, statusName));
       }
     }
+    return new ArrayList<>(byPortalId.values());
+  }
 
-    list.addAll(byPortalId.values());
-    return list;
+  private String resolvePortalKey(PortalScrapeResult pr) {
+    if (pr.getPortalId() != null && !pr.getPortalId().isBlank()) {
+      return pr.getPortalId().trim().toLowerCase(Locale.ROOT);
+    }
+    if (pr.getPortalName() != null) {
+      return pr.getPortalName().trim().toLowerCase(Locale.ROOT);
+    }
+    return "unknown";
+  }
+
+  private PortalStatusDto mergePortalStatus(
+      PortalStatusDto existing, PortalScrapeResult pr, int itemCount, String statusName) {
+    int foundCount = existing.getFoundCount() + itemCount;
+    String fallbackUrl = existing.getFallbackUrl();
+    if (fallbackUrl == null && pr.getFallbackUrl() != null) {
+      fallbackUrl = pr.getFallbackUrl();
+    }
+    String mergedStatus =
+        "SUCCESS".equals(statusName) || foundCount > 0 ? "SUCCESS" : existing.getStatus();
+    return existing.toBuilder()
+        .foundCount(foundCount)
+        .latencyMs(existing.getLatencyMs() + Math.max(0L, pr.getExecutionTimeMs()))
+        .fallbackUrl(fallbackUrl)
+        .status(mergedStatus)
+        .build();
   }
 }

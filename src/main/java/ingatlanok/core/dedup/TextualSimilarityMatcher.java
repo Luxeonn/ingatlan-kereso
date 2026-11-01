@@ -21,6 +21,11 @@ public final class TextualSimilarityMatcher {
           "nagyon", "kivalo", "szep", "minden", "ahol", "ami", "itt", "van",
           "meg", "csak", "mar", "vagy", "hogy", "mert", "akarmilyen");
 
+  private static final Set<String> MULTI_GEN_MARKERS =
+      Set.of(
+          "ketgeneracios", "ket-generacios", "2-generacios", "2generacios",
+          "ket-epulet", "2-epulet", "ket-lakresz", "2-lakresz", "osszekoltoz");
+
   private TextualSimilarityMatcher() {}
 
   /**
@@ -74,12 +79,7 @@ public final class TextualSimilarityMatcher {
     }
     String text = (item.getTitle() + " " + item.getDetails() + " " + item.getUrl()).toLowerCase(Locale.ROOT);
     String slug = SlugUtils.toSlug(text);
-
-    return slug.contains("ketgeneracios") || slug.contains("ket-generacios")
-        || slug.contains("2-generacios") || slug.contains("2generacios")
-        || slug.contains("ket-epulet") || slug.contains("2-epulet")
-        || slug.contains("ket-lakresz") || slug.contains("2-lakresz")
-        || slug.contains("osszekoltoz");
+    return MULTI_GEN_MARKERS.stream().anyMatch(slug::contains);
   }
 
   /**

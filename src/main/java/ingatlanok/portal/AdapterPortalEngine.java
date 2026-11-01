@@ -64,57 +64,16 @@ public class AdapterPortalEngine implements PortalEngine {
         if (result == null) {
           continue;
         }
-
         if (result.status() == PortalScrapeStatus.SUCCESS && !result.listings().isEmpty()) {
-          List<IngatlanItem> normalizedItems = new ArrayList<>();
-          Set<String> processedUrls = new HashSet<>();
-          String now = PortalSupport.nowTimestamp();
-          int rejected = 0;
-          int duplicates = 0;
-
-          for (RawPropertyListing raw : result.listings()) {
-            if (raw == null) {
-              continue;
-            }
-            IngatlanItem item = normalizer.normalize(raw, descriptor, safeCriteria, now);
-            if (item == null) {
-              rejected++;
-              LOGGER.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
-            } else if (PortalSupport.markProcessed(processedUrls, item.getUrl())) {
-              normalizedItems.add(item);
-            } else {
-              duplicates++;
-            }
-          }
-          LOGGER.info(
-              "[{}] Adattisztítás: {} nyers -> {} érvényes (elutasítva: {}, duplikált URL: {})",
-              descriptor.name(),
-              result.listings().size(),
-              normalizedItems.size(),
-              rejected,
-              duplicates);
-
+          List<IngatlanItem> items = normalizeListings(result, descriptor, safeCriteria);
           long elapsed = System.currentTimeMillis() - startTime;
-          PortalScrapeResult scrapeResult = PortalScrapeResult.success(
-              descriptor.id(),
-              descriptor.name(),
-              normalizedItems,
-              elapsed
-          );
-          if (result.usedMethod() != null) {
-            scrapeResult.setTechnicalDetails("Strategy: " + result.usedMethod().name());
-          }
-          return scrapeResult;
+          return buildSuccessResult(descriptor, result, items, elapsed);
         }
-
         if (result.status() == PortalScrapeStatus.BOT_PROTECTED) {
           lastBotProtected = result;
           LOGGER.warn("Bot protection triggerelve a(z) {} stratégia futásakor: {}",
               strategy.method(), result.message());
-          continue;
-        }
-
-        if (result.status() == PortalScrapeStatus.FAILED) {
+        } else if (result.status() == PortalScrapeStatus.FAILED) {
           lastFailure = result;
           LOGGER.warn("Hiba a(z) {} stratégia futásakor: {}", strategy.method(), result.message());
         }
@@ -124,7 +83,66 @@ public class AdapterPortalEngine implements PortalEngine {
     }
 
     long elapsed = System.currentTimeMillis() - startTime;
+    return buildFallbackResult(descriptor, lastBotProtected, lastFailure, defaultSearchUrl, elapsed);
+  }
 
+  private List<IngatlanItem> normalizeListings(
+      RawExtractionResult result,
+      PortalDescriptor descriptor,
+      SearchCriteria safeCriteria) {
+    List<IngatlanItem> normalizedItems = new ArrayList<>();
+    Set<String> processedUrls = new HashSet<>();
+    String now = PortalSupport.nowTimestamp();
+    int rejected = 0;
+    int duplicates = 0;
+
+    for (RawPropertyListing raw : result.listings()) {
+      if (raw == null) {
+        continue;
+      }
+      IngatlanItem item = normalizer.normalize(raw, descriptor, safeCriteria, now);
+      if (item == null) {
+        rejected++;
+        LOGGER.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
+      } else if (PortalSupport.markProcessed(processedUrls, item.getUrl())) {
+        normalizedItems.add(item);
+      } else {
+        duplicates++;
+      }
+    }
+    LOGGER.info(
+        "[{}] Adattisztítás: {} nyers -> {} érvényes (elutasítva: {}, duplikált URL: {})",
+        descriptor.name(),
+        result.listings().size(),
+        normalizedItems.size(),
+        rejected,
+        duplicates);
+    return normalizedItems;
+  }
+
+  private PortalScrapeResult buildSuccessResult(
+      PortalDescriptor descriptor,
+      RawExtractionResult result,
+      List<IngatlanItem> items,
+      long elapsed) {
+    PortalScrapeResult scrapeResult = PortalScrapeResult.success(
+        descriptor.id(),
+        descriptor.name(),
+        items,
+        elapsed
+    );
+    if (result.usedMethod() != null) {
+      scrapeResult.setTechnicalDetails("Strategy: " + result.usedMethod().name());
+    }
+    return scrapeResult;
+  }
+
+  private PortalScrapeResult buildFallbackResult(
+      PortalDescriptor descriptor,
+      RawExtractionResult lastBotProtected,
+      RawExtractionResult lastFailure,
+      String defaultSearchUrl,
+      long elapsed) {
     if (lastBotProtected != null) {
       String fallback = lastBotProtected.fallbackUrl() != null
           ? lastBotProtected.fallbackUrl()
@@ -136,7 +154,6 @@ public class AdapterPortalEngine implements PortalEngine {
           elapsed
       );
     }
-
     if (lastFailure != null) {
       String fallback = lastFailure.fallbackUrl() != null
           ? lastFailure.fallbackUrl()
@@ -150,7 +167,6 @@ public class AdapterPortalEngine implements PortalEngine {
           fallback
       );
     }
-
     return PortalScrapeResult.empty(descriptor.id(), descriptor.name(), defaultSearchUrl, elapsed);
   }
 

@@ -135,53 +135,52 @@ public abstract class JpaEntityMapper {
   @Mapping(target = "new", source = "item.new")
   @Mapping(target = "viewed", ignore = true)
   @Mapping(target = "viewedAt", ignore = true)
-  @Mapping(target = "status", source = "targetStatus")
-  @Mapping(target = "priceDelta", source = "priceDelta")
-  @Mapping(target = "priceChangePercent", source = "priceChangePercent")
-  @Mapping(target = "lastPriceChangeAt", source = "lastPriceChangeAt")
+  @Mapping(target = "status", source = "ctx.targetStatus")
+  @Mapping(target = "priceDelta", source = "ctx.priceDelta")
+  @Mapping(target = "priceChangePercent", source = "ctx.priceChangePercent")
+  @Mapping(target = "lastPriceChangeAt", source = "ctx.lastPriceChangeAt")
   @Mapping(target = "firstSeenAt", ignore = true)
-  @Mapping(target = "lastSeenAt", source = "now")
-  @Mapping(target = "updatedAt", source = "now")
+  @Mapping(target = "lastSeenAt", source = "ctx.now")
+  @Mapping(target = "updatedAt", source = "ctx.now")
   protected abstract void updateEntityFromItem(
       IngatlanItem item,
       @MappingTarget PropertyEntity entity,
-      String now,
-      Long priceDelta,
-      Double priceChangePercent,
-      String lastPriceChangeAt,
-      String targetStatus);
+      PropertyUpdateContext ctx);
 
   public PropertyEntity toEntity(
       IngatlanItem item,
       PropertyEntity existing,
-      String now,
-      Long priceDelta,
-      Double priceChangePercent,
-      String lastPriceChangeAt,
-      String targetStatus) {
+      PropertyUpdateContext ctx) {
     boolean isNew = (existing == null);
     PropertyEntity entity = isNew ? new PropertyEntity() : existing;
-    boolean prevViewed = !isNew && existing.isViewed();
-    String prevViewedAt = !isNew ? existing.getViewedAt() : null;
-    boolean prevNewConstruction = !isNew && existing.isNewConstruction();
-    String prevFirstSeenAt = !isNew ? existing.getFirstSeenAt() : null;
-    String prevCanonicalId = !isNew ? existing.getCanonicalId() : null;
 
-    updateEntityFromItem(
-        item, entity, now, priceDelta, priceChangePercent, lastPriceChangeAt, targetStatus);
+    updateEntityFromItem(item, entity, ctx);
 
     if (isNew) {
-      String url = item.getUrl() != null ? item.getUrl().trim() : "";
-      entity.setUrl(url);
-      entity.setPropertyId(generatePropertyId(entity.getPortal(), item.getId(), url));
-      entity.setDiscoveredAt(item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now);
+      applyNewEntityFields(entity, item, ctx.now());
     }
+    applyEntityFlags(entity, item, existing, ctx.now());
+    return entity;
+  }
+
+  private void applyNewEntityFields(PropertyEntity entity, IngatlanItem item, String now) {
+    String url = item.getUrl() != null ? item.getUrl().trim() : "";
+    entity.setUrl(url);
+    entity.setPropertyId(generatePropertyId(entity.getPortal(), item.getId(), url));
+    entity.setDiscoveredAt(item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now);
+  }
+
+  private void applyEntityFlags(
+      PropertyEntity entity, IngatlanItem item, PropertyEntity existing, String now) {
+    boolean prevViewed = existing != null && existing.isViewed();
+    String prevViewedAt = existing != null ? existing.getViewedAt() : null;
+    boolean prevNewConstruction = existing != null && existing.isNewConstruction();
+    String prevFirstSeenAt = existing != null ? existing.getFirstSeenAt() : null;
+    String prevCanonicalId = existing != null ? existing.getCanonicalId() : null;
+
     entity.setNewConstruction(item.isNewConstruction() || prevNewConstruction);
     entity.setViewed(prevViewed || item.isViewed());
-    entity.setViewedAt(
-        prevViewed
-            ? prevViewedAt
-            : (item.isViewed() ? (item.getViewedAt() != null ? item.getViewedAt() : now) : null));
+    entity.setViewedAt(resolveViewedAt(prevViewed, prevViewedAt, item, now));
     entity.setFirstSeenAt(
         prevFirstSeenAt != null
             ? prevFirstSeenAt
@@ -189,7 +188,17 @@ public abstract class JpaEntityMapper {
     if (prevCanonicalId != null) {
       entity.setCanonicalId(prevCanonicalId);
     }
-    return entity;
+  }
+
+  private String resolveViewedAt(
+      boolean prevViewed, String prevViewedAt, IngatlanItem item, String now) {
+    if (prevViewed) {
+      return prevViewedAt;
+    }
+    if (item.isViewed()) {
+      return item.getViewedAt() != null ? item.getViewedAt() : now;
+    }
+    return null;
   }
 
   public String generatePropertyId(String portal, String rawId, String url) {
@@ -217,19 +226,17 @@ public abstract class JpaEntityMapper {
   }
 
   @Mapping(target = "id", ignore = true)
-  @Mapping(target = "previousPriceAmount", source = "prevAmount")
-  @Mapping(target = "priceDelta", source = "delta")
-  public abstract PriceHistoryEntity createPriceHistoryEntity(
-      String propertyId,
-      String url,
-      String recordedAt,
-      String priceRaw,
-      Long priceAmount,
-      Double priceMillions,
-      Long pricePerSqm,
-      Long prevAmount,
-      Long delta,
-      Double changePercent);
+  @Mapping(target = "previousPriceAmount", source = "ctx.prevAmount")
+  @Mapping(target = "priceDelta", source = "ctx.delta")
+  @Mapping(target = "propertyId", source = "ctx.propertyId")
+  @Mapping(target = "url", source = "ctx.url")
+  @Mapping(target = "recordedAt", source = "ctx.recordedAt")
+  @Mapping(target = "priceRaw", source = "ctx.priceRaw")
+  @Mapping(target = "priceAmount", source = "ctx.priceAmount")
+  @Mapping(target = "priceMillions", source = "ctx.priceMillions")
+  @Mapping(target = "pricePerSqm", source = "ctx.pricePerSqm")
+  @Mapping(target = "changePercent", source = "ctx.changePercent")
+  public abstract PriceHistoryEntity createPriceHistoryEntity(PriceHistoryContext ctx);
 
   public abstract PriceHistoryEntry toPriceHistoryEntry(PriceHistoryEntity ph);
 
@@ -258,16 +265,17 @@ public abstract class JpaEntityMapper {
   public abstract ListingObservation toListingObservation(ListingObservationEntity entity);
 
   @Mapping(target = "id", ignore = true)
+  @Mapping(target = "propertyId", source = "ctx.propertyId")
+  @Mapping(target = "url", source = "ctx.url")
+  @Mapping(target = "canonicalId", source = "ctx.canonicalId")
+  @Mapping(target = "observedAt", source = "ctx.observedAt")
+  @Mapping(target = "priceHuf", source = "ctx.priceHuf")
+  @Mapping(target = "pricePerM2", source = "ctx.pricePerM2")
+  @Mapping(target = "statusEvent", source = "ctx.statusEvent")
+  @Mapping(target = "priceDelta", source = "ctx.priceDelta")
+  @Mapping(target = "changePercent", source = "ctx.changePercent")
   public abstract ListingObservationEntity createListingObservationEntity(
-      String propertyId,
-      String url,
-      String canonicalId,
-      String observedAt,
-      Long priceHuf,
-      Long pricePerM2,
-      String statusEvent,
-      Long priceDelta,
-      Double changePercent);
+      ListingObservationContext ctx);
   @Mapping(
       target = "canonicalId",
       source = "entity.canonicalId",

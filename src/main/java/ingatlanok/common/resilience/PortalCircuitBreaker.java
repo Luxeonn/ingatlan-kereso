@@ -1,4 +1,4 @@
-package ingatlanok.core.resilience;
+package ingatlanok.common.resilience;
 
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;

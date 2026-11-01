@@ -25,54 +25,67 @@ public class DunaHouseRawParser {
 
     Elements anchorLinks = document.select("a[href*=/ingatlan/]");
     for (Element a : anchorLinks) {
-      String href = a.attr("href");
-      if (href == null || href.isBlank()) {
-        continue;
+      RawPropertyListing raw = parseListingElement(a);
+      if (raw != null) {
+        items.add(raw);
       }
-
-      String fullLink = PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href);
-      if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+/.*")
-          && !fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+$")) {
-        continue;
-      }
-
-      String cardText = a.text().replaceAll("\\s+", " ").trim();
-      String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
-      if ("elado".equalsIgnoreCase(id) || "kiado".equalsIgnoreCase(id)) {
-        String[] segments = fullLink.split("/");
-        if (segments.length > 0 && !segments[segments.length - 1].isBlank()) {
-          id = segments[segments.length - 1];
-        }
-      }
-
-      String extractedCity = PropertyParser.extractCityFromPostalAddress(cardText);
-      if (extractedCity == null || extractedCity.isBlank()) {
-        String urlCity = PropertyParser.extractCityFromDhUrl(fullLink);
-        if (urlCity != null && !urlCity.isBlank()) {
-          extractedCity = urlCity;
-        }
-      }
-
-      String title = cleanTitle(cardText, extractedCity, id);
-      String imageUrl = PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL);
-
-      RawPropertyListing raw = RawPropertyListing.builder()
-          .portalId("dh")
-          .nativeId(id)
-          .url(fullLink)
-          .title(title)
-          .priceText(cardText)
-          .detailsText(cardText)
-          .locationText(extractedCity)
-          .imageUrl(imageUrl)
-          .descriptionText(cardText)
-          .method(ExtractionMethod.HTML)
-          .build();
-
-      items.add(raw);
     }
 
     return items;
+  }
+
+  private RawPropertyListing parseListingElement(Element a) {
+    String href = a.attr("href");
+    if (href == null || href.isBlank()) {
+      return null;
+    }
+
+    String fullLink = PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href);
+    if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+/.*")
+        && !fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+$")) {
+      return null;
+    }
+
+    String cardText = a.text().replaceAll("\\s+", " ").trim();
+    String id = resolveDhId(fullLink);
+    String extractedCity = resolveDhCity(cardText, fullLink);
+    String title = cleanTitle(cardText, extractedCity, id);
+    String imageUrl = PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL);
+
+    return RawPropertyListing.builder()
+        .portalId("dh")
+        .nativeId(id)
+        .url(fullLink)
+        .title(title)
+        .priceText(cardText)
+        .detailsText(cardText)
+        .locationText(extractedCity)
+        .imageUrl(imageUrl)
+        .descriptionText(cardText)
+        .method(ExtractionMethod.HTML)
+        .build();
+  }
+
+  private String resolveDhId(String fullLink) {
+    String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
+    if ("elado".equalsIgnoreCase(id) || "kiado".equalsIgnoreCase(id)) {
+      String[] segments = fullLink.split("/");
+      if (segments.length > 0 && !segments[segments.length - 1].isBlank()) {
+        id = segments[segments.length - 1];
+      }
+    }
+    return id;
+  }
+
+  private String resolveDhCity(String cardText, String fullLink) {
+    String extractedCity = PropertyParser.extractCityFromPostalAddress(cardText);
+    if (extractedCity == null || extractedCity.isBlank()) {
+      String urlCity = PropertyParser.extractCityFromDhUrl(fullLink);
+      if (urlCity != null && !urlCity.isBlank()) {
+        return urlCity;
+      }
+    }
+    return extractedCity;
   }
 
   public String cleanTitle(String text, String defaultCity, String id) {

@@ -1,6 +1,6 @@
 import { useState, type FC } from 'react'
 import { X, Activity, CheckCircle, AlertTriangle, XCircle, ShieldAlert, Copy, Check, Clock, Layers } from 'lucide-react'
-import { PortalStatusDto } from '../../types/portal'
+import type { PortalStatusDto } from '../../types/portal'
 import { useUiStore } from '../../store/useUiStore'
 import { usePortals } from '../../hooks/usePortals'
 import { cn } from '../../utils/cn'

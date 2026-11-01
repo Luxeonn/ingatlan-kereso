@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type FC } from 'react'
+import { useEffect, useRef, useState, type FC, type ReactNode } from 'react'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { Inbox, Search, Star, Archive } from 'lucide-react'
-import { IngatlanItem } from '../../types/property'
+import type { IngatlanItem } from '../../types/property'
 import { PropertyCard } from './PropertyCard'
 import { ListingSkeleton } from './ListingSkeleton'
 import { BulkActionBar } from './BulkActionBar'
@@ -26,6 +26,77 @@ interface ListingsGridProps {
 
 const DEFAULT_INITIAL_BATCH_SIZE = 18
 const DEFAULT_BATCH_STEP = 18
+
+function calculateColumnCount(viewMode: string, width: number): number {
+  if (viewMode === 'list') return 1
+  if (width >= 1024) return 3
+  if (width >= 640) return 2
+  return 1
+}
+
+interface EmptyStateProps {
+  mode: 'listings' | 'favorites' | 'archive'
+  hasSearched: boolean
+  totalRawCount: number
+  onTriggerSearch: () => void
+}
+
+function renderEmptyState(props: EmptyStateProps): ReactNode {
+  const { mode, hasSearched, totalRawCount, onTriggerSearch } = props
+  if (mode === 'listings' && !hasSearched) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/50 p-12 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 mb-4">
+          <Search className="h-8 w-8" />
+        </div>
+        <h3 className="text-base font-bold text-[var(--text-primary)]">
+          Készen állsz a keresésre?
+        </h3>
+        <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
+          Állítsd be a kívánt településeket, árhatárokat és portálokat, majd kattints az Ingatlanok Keresése gombra!
+        </p>
+        <button
+          type="button"
+          onClick={onTriggerSearch}
+          className="mt-5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-500"
+        >
+          Keresés indítása
+        </button>
+      </div>
+    )
+  }
+  if (mode === 'favorites' && totalRawCount === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 mb-4">
+          <Star className="h-8 w-8" />
+        </div>
+        <h3 className="text-base font-bold text-[var(--text-primary)]">
+          Még nincsenek kedvencnek jelölt ingatlanok
+        </h3>
+        <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
+          Kattints a kártyák jobb felső sarkában található csillag ikonra a hirdetések elmentéséhez!
+        </p>
+      </div>
+    )
+  }
+  if (mode === 'archive' && totalRawCount === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 mb-4">
+          <Archive className="h-8 w-8" />
+        </div>
+        <h3 className="text-base font-bold text-[var(--text-primary)]">
+          Az archívum jelenleg üres
+        </h3>
+        <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
+          A korábbi keresések során megtalált és mentett hirdetések automatikusan itt jelennek meg.
+        </p>
+      </div>
+    )
+  }
+  return null
+}
 
 export const ListingsGrid: FC<ListingsGridProps> = ({
   items,
@@ -84,7 +155,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
 
   useEffect(() => {
     const updateColumns = () => {
-      setColumns(viewMode === 'list' ? 1 : window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1)
+      setColumns(calculateColumnCount(viewMode, window.innerWidth))
     }
     updateColumns()
     window.addEventListener('resize', updateColumns)
@@ -124,62 +195,10 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
     )
   }
 
-  // 2. Initial state before search (only in 'listings' mode)
-  if (mode === 'listings' && !hasSearched) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/50 p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 mb-4">
-          <Search className="h-8 w-8" />
-        </div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
-          Készen állsz a keresésre?
-        </h3>
-        <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
-          Állítsd be a kívánt településeket, árhatárokat és portálokat, majd kattints az Ingatlanok Keresése gombra!
-        </p>
-        <button
-          type="button"
-          onClick={onTriggerSearch}
-          className="mt-5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-500"
-        >
-          Keresés indítása
-        </button>
-      </div>
-    )
-  }
-
-  // 3. Empty Favorites state (#157)
-  if (mode === 'favorites' && totalRawCount === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 mb-4">
-          <Star className="h-8 w-8" />
-        </div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
-          Még nincsenek kedvencnek jelölt ingatlanok
-        </h3>
-        <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
-          Kattints a kártyák jobb felső sarkában található csillag ikonra a hirdetések elmentéséhez!
-        </p>
-      </div>
-    )
-  }
-
-  // 4. Empty Archive state (#157)
-  if (mode === 'archive' && totalRawCount === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 mb-4">
-          <Archive className="h-8 w-8" />
-        </div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
-          Az archívum jelenleg üres
-        </h3>
-        <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
-          A korábbi keresések során megtalált és mentett hirdetések automatikusan itt jelennek meg.
-        </p>
-      </div>
-    )
+  // 2, 3, 4. Empty states before search / favorites / archive
+  const emptyState = renderEmptyState({ mode, hasSearched, totalRawCount, onTriggerSearch })
+  if (emptyState) {
+    return emptyState
   }
 
   // 5. Render toolbar + listings (or filtered empty message while keeping BulkActionBar accessible)

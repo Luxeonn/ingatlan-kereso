@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import { IngatlanItem } from '../types/property'
+import type { IngatlanItem } from '../types/property'
 
 export async function markAsViewed(url: string): Promise<{ success: boolean; marked: boolean; url: string }> {
   return apiClient<{ success: boolean; marked: boolean; url: string }>('/api/items/viewed', {

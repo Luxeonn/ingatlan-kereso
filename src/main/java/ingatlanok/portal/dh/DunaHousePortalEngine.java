@@ -17,16 +17,14 @@ public class DunaHousePortalEngine implements PortalEngine {
   private static final AppLogger LOGGER = AppLogger.getLogger(DunaHousePortalEngine.class);
 
   private final DunaHouseUrlBuilder urlBuilder;
-  private final DunaHouseParser parser;
   private final AdapterPortalEngine adapterEngine;
 
   public DunaHousePortalEngine() {
-    this(new DunaHouseUrlBuilder(), new DunaHouseParser());
+    this(new DunaHouseUrlBuilder());
   }
 
-  public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder, DunaHouseParser parser) {
+  public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new DunaHouseUrlBuilder();
-    this.parser = parser != null ? parser : new DunaHouseParser();
     this.adapterEngine = new AdapterPortalEngine(new DunaHousePortalAdapter(this.urlBuilder,
         List.of(new DunaHouseHtmlStrategy(this.urlBuilder, new DunaHouseRawParser(), HttpFetcher::fetchDocument))));
   }
@@ -50,9 +48,5 @@ public class DunaHousePortalEngine implements PortalEngine {
 
   public DunaHouseUrlBuilder getUrlBuilder() {
     return urlBuilder;
-  }
-
-  public DunaHouseParser getParser() {
-    return parser;
   }
 }

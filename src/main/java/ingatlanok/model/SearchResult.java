@@ -14,8 +14,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import ingatlanok.presentation.PortalStatusDto;
-
 @Getter
 @Setter
 @Builder
@@ -36,10 +34,4 @@ public class SearchResult implements Serializable {
   private List<String> newCitiesInitialized = new ArrayList<>();
   @Builder.Default
   private List<PortalScrapeResult> portalResults = new ArrayList<>();
-  @Builder.Default
-  private List<PortalStatusDto> portalStatuses = new ArrayList<>();
-
-  public void setPortalStatuses(List<PortalStatusDto> portalStatuses) {
-    this.portalStatuses = portalStatuses != null ? portalStatuses : new ArrayList<>();
-  }
 }

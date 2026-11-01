@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.jsoup.Jsoup;
@@ -15,30 +16,48 @@ import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.portal.dh.DunaHouseParser;
+import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.dh.DunaHousePortalEngine;
+import ingatlanok.portal.dh.DunaHouseRawParser;
 import ingatlanok.portal.dh.DunaHouseUrlBuilder;
-import ingatlanok.portal.ingatlanbazar.IngatlanBazarJsonParser;
 import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
 import ingatlanok.portal.ingatlanbazar.IngatlanBazarQueryBuilder;
-import ingatlanok.portal.ingatlancom.IngatlanComParser;
+import ingatlanok.portal.ingatlanbazar.IngatlanBazarRawParser;
 import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
+import ingatlanok.portal.ingatlancom.IngatlanComRawParser;
 import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
-import ingatlanok.portal.jofogas.JofogasParser;
+import ingatlanok.portal.jofogas.JofogasPortalEngine;
+import ingatlanok.portal.jofogas.JofogasRawParser;
 import ingatlanok.portal.jofogas.JofogasUrlBuilder;
-import ingatlanok.portal.koltozzbe.KoltozzbeParser;
 import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
+import ingatlanok.portal.koltozzbe.KoltozzbeRawParser;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
-import ingatlanok.portal.oc.OtthonCentrumParser;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
+import ingatlanok.portal.oc.OtthonCentrumRawParser;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
 
 class PortalAdaptersModularTest {
+
+  private List<IngatlanItem> normalizeAll(
+      List<RawPropertyListing> rawListings,
+      PortalDescriptor descriptor,
+      SearchCriteria criteria,
+      String executionTime) {
+    ListingNormalizer normalizer = new ListingNormalizer();
+    Set<String> processedUrls = new HashSet<>();
+    return rawListings.stream()
+        .map(raw -> normalizer.normalize(raw, descriptor, criteria, executionTime))
+        .filter(Objects::nonNull)
+        .filter(item -> criteria == null || criteria.matchesRelevance(item))
+        .filter(item -> processedUrls.add(item.getUrl()))
+        .toList();
+  }
 
   @Test
   @DisplayName("Duna House UrlBuilder és Parser egységteszt offline fixture adatokkal (#205)")
@@ -68,9 +87,10 @@ class PortalAdaptersModularTest {
             + "</body></html>";
     Document doc = Jsoup.parse(html, DunaHouseUrlBuilder.BASE_URL);
 
-    DunaHouseParser parser = new DunaHouseParser();
+    DunaHouseRawParser rawParser = new DunaHouseRawParser();
+    PortalDescriptor desc = new DunaHousePortalEngine().getDescriptor();
     List<IngatlanItem> items =
-        parser.parseItems(doc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+        normalizeAll(rawParser.parseRawListings(doc), desc, criteria, "2026-10-14 12:00:00");
 
     assertEquals(1, items.size());
     assertEquals("12345", items.get(0).getId());
@@ -108,9 +128,10 @@ class PortalAdaptersModularTest {
             + "</body></html>";
     Document doc = Jsoup.parse(html, OtthonCentrumUrlBuilder.BASE_URL);
 
-    OtthonCentrumParser parser = new OtthonCentrumParser();
+    OtthonCentrumRawParser rawParser = new OtthonCentrumRawParser();
+    PortalDescriptor desc = new OtthonCentrumPortalEngine().getDescriptor();
     List<IngatlanItem> items =
-        parser.parseItems(doc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+        normalizeAll(rawParser.parseRawListings(doc), desc, criteria, "2026-10-14 12:00:00");
 
     assertEquals(1, items.size());
     assertEquals("H45678", items.get(0).getId());
@@ -141,9 +162,10 @@ class PortalAdaptersModularTest {
             + "</body></html>";
     Document doc = Jsoup.parse(html, JofogasUrlBuilder.BASE_URL);
 
-    JofogasParser parser = new JofogasParser();
+    JofogasRawParser rawParser = new JofogasRawParser();
+    PortalDescriptor desc = new JofogasPortalEngine().getDescriptor();
     List<IngatlanItem> items =
-        parser.parseItems(doc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+        normalizeAll(rawParser.parseRawListings(doc), desc, criteria, "2026-10-14 12:00:00");
 
     assertEquals(1, items.size());
     assertEquals("12345678", items.get(0).getId());
@@ -199,9 +221,10 @@ class PortalAdaptersModularTest {
             + "  ]\n"
             + "}";
 
-    IngatlanBazarJsonParser parser = new IngatlanBazarJsonParser();
+    IngatlanBazarRawParser rawParser = new IngatlanBazarRawParser();
+    PortalDescriptor desc = new IngatlanBazarPortalEngine().getDescriptor();
     List<IngatlanItem> items =
-        parser.parseItemsFromJson(json, criteria, new HashSet<>(), "2026-10-14 12:00:00");
+        normalizeAll(rawParser.parseRawListings(json), desc, criteria, "2026-10-14 12:00:00");
 
     assertEquals(1, items.size());
     assertEquals("IB999", items.get(0).getId());
@@ -314,16 +337,15 @@ class PortalAdaptersModularTest {
     String url = urlBuilder.buildSearchUrl(criteria);
     assertEquals("https://ingatlan.com/lista/elado+lakas+60-120-m2+50-75-mFt+debrecen", url);
 
-    IngatlanComParser parser = new IngatlanComParser();
     Document normalDoc =
         Jsoup.parse("<html><head><title>Eladó lakások Debrecen</title></head><body></body></html>");
-    assertFalse(parser.isBotChallenge(normalDoc));
+    assertFalse(PortalSupport.isCommonBotChallenge(normalDoc));
 
     Document cloudflareDoc =
         Jsoup.parse(
             "<html><head><title>Just a moment... Cloudflare</title></head><body><div"
                 + " id=\"challenge-error-text\">Error</div></body></html>");
-    assertTrue(parser.isBotChallenge(cloudflareDoc));
+    assertTrue(PortalSupport.isCommonBotChallenge(cloudflareDoc));
 
     String cardsHtml =
         "<html><body>"
@@ -336,12 +358,14 @@ class PortalAdaptersModularTest {
             + "  </a>"
             + "</div>"
             + "</body></html>";
+    IngatlanComRawParser rawParser = new IngatlanComRawParser();
+    PortalDescriptor desc = new IngatlanComPortalEngine().getDescriptor();
     List<IngatlanItem> parsedCards =
-        parser.parseItems(
-            Jsoup.parse(cardsHtml, IngatlanComUrlBuilder.BASE_URL),
+        normalizeAll(
+            rawParser.parseRawListings(Jsoup.parse(cardsHtml, IngatlanComUrlBuilder.BASE_URL)),
+            desc,
             criteria,
-            "2026-10-14 12:00:00",
-            new HashSet<>());
+            "2026-10-14 12:00:00");
     assertEquals(1, parsedCards.size());
     assertEquals("999888", parsedCards.get(0).getId());
     assertTrue(parsedCards.get(0).isNewConstruction());
@@ -369,13 +393,14 @@ class PortalAdaptersModularTest {
             + "\"offers\":{\"priceSpecification\":{\"price\":85000000}}"
             + "}}]}"
             + "</script></head><body></body></html>";
-    KoltozzbeParser kbParser = new KoltozzbeParser();
+    KoltozzbeRawParser kbRawParser = new KoltozzbeRawParser();
+    PortalDescriptor kbDesc = new KoltozzbePortalEngine().getDescriptor();
     List<IngatlanItem> kbItems =
-        kbParser.parseItems(
-            Jsoup.parse(jsonLdHtml, KoltozzbeUrlBuilder.BASE_URL),
+        normalizeAll(
+            kbRawParser.parseJsonLdListings(Jsoup.parse(jsonLdHtml, KoltozzbeUrlBuilder.BASE_URL)),
+            kbDesc,
             criteria,
-            "2026-10-18",
-            new HashSet<>());
+            "2026-10-18");
     assertEquals(1, kbItems.size());
     assertEquals("554433", kbItems.get(0).getId());
     assertTrue(kbItems.get(0).isNewConstruction());
@@ -390,13 +415,14 @@ class PortalAdaptersModularTest {
             + "  <img class=\"lazyload\" data-src=\"/uploads/oc777.jpg\" />"
             + "</div>"
             + "</body></html>";
-    OtthonCentrumParser ocParser = new OtthonCentrumParser();
+    OtthonCentrumRawParser ocRawParser = new OtthonCentrumRawParser();
+    PortalDescriptor ocDesc = new OtthonCentrumPortalEngine().getDescriptor();
     List<IngatlanItem> ocItems =
-        ocParser.parseItems(
-            Jsoup.parse(ocSeoHtml, OtthonCentrumUrlBuilder.BASE_URL),
+        normalizeAll(
+            ocRawParser.parseRawListings(Jsoup.parse(ocSeoHtml, OtthonCentrumUrlBuilder.BASE_URL)),
+            ocDesc,
             criteria,
-            "2026-10-18",
-            new HashSet<>());
+            "2026-10-18");
     assertEquals(1, ocItems.size());
     assertEquals("OC777", ocItems.get(0).getId());
     assertTrue(ocItems.get(0).isNewConstruction());
@@ -501,12 +527,19 @@ class PortalAdaptersModularTest {
     criteria.setMinArea(null);
     criteria.setMaxArea(null);
 
+    PortalDescriptor dhDesc = new DunaHousePortalEngine().getDescriptor();
+    PortalDescriptor ocDesc = new OtthonCentrumPortalEngine().getDescriptor();
+    PortalDescriptor jfDesc = new JofogasPortalEngine().getDescriptor();
+    PortalDescriptor ibDesc = new IngatlanBazarPortalEngine().getDescriptor();
+    PortalDescriptor kbDesc = new KoltozzbePortalEngine().getDescriptor();
+    PortalDescriptor icDesc = new IngatlanComPortalEngine().getDescriptor();
+
     // Duna House fixture
     String dhHtml = new String(
         getClass().getResourceAsStream("/fixtures/dh/sample-dh.html").readAllBytes());
     Document dhDoc = Jsoup.parse(dhHtml, DunaHouseUrlBuilder.BASE_URL);
-    List<IngatlanItem> dhItems = new DunaHouseParser().parseItems(
-        dhDoc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+    List<IngatlanItem> dhItems =
+        normalizeAll(new DunaHouseRawParser().parseRawListings(dhDoc), dhDesc, criteria, "2026-10-14 12:00:00");
     assertEquals(2, dhItems.size());
     assertEquals("12345", dhItems.get(0).getId());
 
@@ -521,8 +554,8 @@ class PortalAdaptersModularTest {
     String ocHtml = new String(
         getClass().getResourceAsStream("/fixtures/oc/sample-oc.html").readAllBytes());
     Document ocDoc = Jsoup.parse(ocHtml, OtthonCentrumUrlBuilder.BASE_URL);
-    List<IngatlanItem> ocItems = new OtthonCentrumParser().parseItems(
-        ocDoc, ocCriteria, "2026-10-14 12:00:00", new HashSet<>());
+    List<IngatlanItem> ocItems =
+        normalizeAll(new OtthonCentrumRawParser().parseRawListings(ocDoc), ocDesc, ocCriteria, "2026-10-14 12:00:00");
     assertEquals(2, ocItems.size());
     assertEquals("H45678", ocItems.get(0).getId());
 
@@ -530,8 +563,8 @@ class PortalAdaptersModularTest {
     String jfHtml = new String(
         getClass().getResourceAsStream("/fixtures/jofogas/sample-jofogas.html").readAllBytes());
     Document jfDoc = Jsoup.parse(jfHtml, JofogasUrlBuilder.BASE_URL);
-    List<IngatlanItem> jfItems = new JofogasParser().parseItems(
-        jfDoc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+    List<IngatlanItem> jfItems =
+        normalizeAll(new JofogasRawParser().parseRawListings(jfDoc), jfDesc, criteria, "2026-10-14 12:00:00");
     assertEquals(2, jfItems.size());
     assertEquals("12345678", jfItems.get(0).getId());
 
@@ -546,8 +579,8 @@ class PortalAdaptersModularTest {
     String ibJson = new String(
         getClass().getResourceAsStream(
             "/fixtures/ingatlanbazar/sample-ingatlanbazar.json").readAllBytes());
-    List<IngatlanItem> ibItems = new IngatlanBazarJsonParser().parseItemsFromJson(
-        ibJson, ibCriteria, new HashSet<>(), "2026-10-14 12:00:00");
+    List<IngatlanItem> ibItems =
+        normalizeAll(new IngatlanBazarRawParser().parseRawListings(ibJson), ibDesc, ibCriteria, "2026-10-14 12:00:00");
     assertEquals(2, ibItems.size());
     assertEquals("IB999", ibItems.get(0).getId());
 
@@ -555,16 +588,19 @@ class PortalAdaptersModularTest {
     String kbHtml = new String(
         getClass().getResourceAsStream("/fixtures/koltozzbe/sample-koltozzbe.html").readAllBytes());
     Document kbDoc = Jsoup.parse(kbHtml, KoltozzbeUrlBuilder.BASE_URL);
-    List<IngatlanItem> kbItems = new KoltozzbeParser().parseItems(
-        kbDoc, ibCriteria, "2026-10-14 12:00:00", new HashSet<>());
+    List<RawPropertyListing> kbRaw = new ArrayList<>();
+    kbRaw.addAll(new KoltozzbeRawParser().parseHtmlListings(kbDoc));
+    kbRaw.addAll(new KoltozzbeRawParser().parseJsonLdListings(kbDoc));
+    List<IngatlanItem> kbItems =
+        normalizeAll(kbRaw, kbDesc, ibCriteria, "2026-10-14 12:00:00");
     assertEquals(2, kbItems.size());
 
     // Ingatlan.com fixture
     String icHtml = new String(
         getClass().getResourceAsStream("/fixtures/ingatlancom/sample-ingatlancom.html").readAllBytes());
     Document icDoc = Jsoup.parse(icHtml, IngatlanComUrlBuilder.BASE_URL);
-    List<IngatlanItem> icItems = new IngatlanComParser().parseItems(
-        icDoc, criteria, "2026-10-14 12:00:00", new HashSet<>());
+    List<IngatlanItem> icItems =
+        normalizeAll(new IngatlanComRawParser().parseRawListings(icDoc), icDesc, criteria, "2026-10-14 12:00:00");
     assertEquals(1, icItems.size());
     assertEquals("12345678", icItems.get(0).getId());
   }

@@ -22,21 +22,18 @@ public class KoltozzbeJsonLdStrategy implements ExtractionStrategy {
 
   private final KoltozzbeUrlBuilder urlBuilder;
   private final KoltozzbeRawParser rawParser;
-  private final KoltozzbeParser paginationHelper;
   private final Function<String, Document> documentFetcher;
 
   public KoltozzbeJsonLdStrategy() {
-    this(new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), new KoltozzbeParser(), HttpFetcher::fetchDocument);
+    this(new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), HttpFetcher::fetchDocument);
   }
 
   public KoltozzbeJsonLdStrategy(
       KoltozzbeUrlBuilder urlBuilder,
       KoltozzbeRawParser rawParser,
-      KoltozzbeParser paginationHelper,
       Function<String, Document> documentFetcher) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new KoltozzbeUrlBuilder();
     this.rawParser = rawParser != null ? rawParser : new KoltozzbeRawParser();
-    this.paginationHelper = paginationHelper != null ? paginationHelper : new KoltozzbeParser();
     this.documentFetcher = documentFetcher != null ? documentFetcher : HttpFetcher::fetchDocument;
   }
 
@@ -70,7 +67,7 @@ public class KoltozzbeJsonLdStrategy implements ExtractionStrategy {
           }
         }
 
-        if (!paginationHelper.hasNextPage(doc, page)) {
+        if (!rawParser.hasNextPage(doc, page)) {
           break;
         }
       }

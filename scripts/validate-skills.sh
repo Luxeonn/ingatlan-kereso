@@ -69,7 +69,7 @@ echo ""
 # ------------------------------------------------------------------------------
 # 1. Frontmatter validation
 # ------------------------------------------------------------------------------
-echo "--- [1/5] Validating YAML frontmatter in specialist skills ---"
+echo "--- [1/6] Validating YAML frontmatter in specialist skills ---"
 
 SKILL_DIRS=(
   ".agents/skills/fullstack-architect"
@@ -119,7 +119,7 @@ done
 # 2. Mandatory English-language section validation
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [2/5] Validating the eight mandatory English-language sections ---"
+echo "--- [2/6] Validating the eight mandatory English-language sections ---"
 
 MANDATORY_SECTIONS=(
   "Purpose & Activation"
@@ -149,7 +149,7 @@ done
 # 3. Decision-token validation
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [3/5] Validating standard decision tokens ---"
+echo "--- [3/6] Validating standard decision tokens ---"
 
 DECISION_TOKENS=("FINDING" "NO_FINDING" "NOT_APPLICABLE" "NOT_VERIFIED")
 for dir in "${SKILL_DIRS[@]}"; do
@@ -169,7 +169,7 @@ done
 # 4. Markdown links and relative file paths
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [4/5] Validating relative Markdown links and file paths ---"
+echo "--- [4/6] Validating relative Markdown links and file paths ---"
 
 DOC_FILES=(
   "README.md"
@@ -223,7 +223,7 @@ done
 # 5. Banned words and obsolete claims
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [5/5] Scanning for banned words and obsolete technology claims ---"
+echo "--- [5/6] Scanning for banned words and obsolete technology claims ---"
 
 while IFS= read -r match; do
   [ -n "$match" ] || continue
@@ -298,6 +298,62 @@ while IFS= read -r match; do
   l=$(echo "$match" | cut -d: -f2)
   log_fail "Forbidden Lombok annotation/import (@Data, @EqualsAndHashCode, @ToString, @SneakyThrows) found in Java source" "$f" "$l"
 done < <(grep -rnI -E '^[[:space:]]*(import[[:space:]]+lombok\.(Data|EqualsAndHashCode|ToString|SneakyThrows);|@(lombok\.)?(Data|EqualsAndHashCode|ToString|SneakyThrows)\b)' src/ 2>/dev/null || true)
+
+# ------------------------------------------------------------------------------
+# 6. Architectural guardrails & frontend OpenAPI derivation
+# ------------------------------------------------------------------------------
+echo ""
+echo "--- [6/6] Validating architectural guardrails & frontend OpenAPI derivation ---"
+
+# 6.1 Frontend OpenAPI type derivation (no manual DTO duplication in frontend/src/types/)
+for type_file in frontend/src/types/*.ts; do
+  [ -f "$type_file" ] || continue
+  filename="$(basename "$type_file")"
+  if [ "$filename" = "generated-api.ts" ]; then
+    continue
+  fi
+  if ! grep -q "components\['schemas'\]" "$type_file"; then
+    log_fail "Frontend type file must derive schemas from generated-api.ts (missing components['schemas']): $type_file" "$type_file"
+  else
+    log_pass "Frontend type file '$filename' derives schemas from generated-api.ts"
+  fi
+done
+
+# 6.2 Single-point SSRF isolation: Jsoup.connect must only occur in HttpFetcher.java
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  if [[ "$f" != *"HttpFetcher.java" ]]; then
+    log_fail "SSRF violation: direct Jsoup.connect call outside HttpFetcher.java" "$f" "$l"
+  else
+    log_pass "Jsoup.connect isolated in $f:$l"
+  fi
+done < <(grep -rnI 'Jsoup\.connect' src/main/java/ 2>/dev/null || true)
+
+# 6.3 Virtual thread non-pinning: no synchronized in core/, portal/, or web/
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Virtual thread pinning violation: 'synchronized' keyword found in service path" "$f" "$l"
+done < <(grep -rnI -E '\bsynchronized\b' src/main/java/ingatlanok/core/ src/main/java/ingatlanok/portal/ src/main/java/ingatlanok/web/ 2>/dev/null || true)
+
+# 6.4 Persistence encapsulation: no repository imports outside persistence
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Persistence encapsulation violation: direct repository import outside persistence package" "$f" "$l"
+done < <(grep -rnI 'import ingatlanok\.persistence\.repository\.' src/main/java/ingatlanok/core/ src/main/java/ingatlanok/portal/ src/main/java/ingatlanok/web/ src/main/java/ingatlanok/presentation/ src/main/java/ingatlanok/model/ 2>/dev/null || true)
+
+# 6.5 Forbidden direct window.open calls in frontend components
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Direct window.open is forbidden in frontend components (use openExternalUrl from src/utils/formatters.ts)" "$f" "$l"
+done < <(grep -rnI -E '\bwindow\.open\b' frontend/src/components/ 2>/dev/null || true)
 
 echo ""
 echo "=============================================================================="

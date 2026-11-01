@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { PropertyCard } from '../components/listings/PropertyCard'
-import { IngatlanItem } from '../types/property'
+import type { IngatlanItem } from '../types/property'
 import { useUiStore } from '../store/useUiStore'
 
 describe('PropertyCard component (#270)', () => {

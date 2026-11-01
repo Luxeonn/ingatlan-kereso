@@ -192,6 +192,12 @@ ingatlan-kereso/
 9. **Mandatory Boilerplate Elimination & Single-Source-of-Truth Patterns:**
    - **Backend (Lombok & MapStruct):** Domain models, DTOs, and JPA entities use Lombok `@Getter`, `@Builder`, and `@NoArgsConstructor` (`@Setter` only where post-construction mutation is required; read-only DTOs/value objects omit `@Setter`). Setter chains are replaced by `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates). `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` are forbidden and blocked by Checkstyle. Entity ↔ domain/DTO conversions use MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`.
    - **Frontend (OpenAPI Schema Derivation & Deduplication):** All frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) derive directly from `generated-api.ts` (`components['schemas']`). Domain calculations and portal metadata (`normalizePortalKey`, `PORTAL_CHIPS`, `clampQualityScore`, `getQualityConfig`, `getEffectivePrice`, `getEffectiveSqmPrice`, `openExternalUrl`) live in `utils/formatters.ts`. Shared UI primitives (`NumericStepper`, `useOutsideDismiss`, `SORT_OPTIONS`) must be reused; hand-duplicated OpenAPI types, dead API functions, and pass-through wrapper components are prohibited.
+10. **Fail-Closed Compiler, ArchUnit & Strict Quality Gates:**
+    - **Backend Javac & ArchUnit:** Javac compilation enforces `-Werror` and `-Xlint:unchecked,deprecation,rawtypes,fallthrough,cast,overrides,divzero,empty` with zero compiler warnings permitted. ArchUnit JUnit 5 1.4.1 suite (`ArchitectureRulesTest.java`) asserts 4-layer unidirectional flow (`web` -> `presentation` -> `core` -> `persistence`/`portal`), storage abstraction (no direct Repository/JPA/Entity access from `web`, `presentation`, `core`, or `portal`), read-only DTO immutability (no setters on read-only DTOs/value objects), single-point SSRF isolation (`Jsoup.connect` calls strictly confined to `HttpFetcher`), and virtual thread carrier-pinning prevention (no `synchronized` keywords in service/portal/core/web paths).
+    - **Checkstyle Clean Code Metrics:** Strict Checkstyle 10.21.4 ruleset enforces `MethodLength` <= 80 (non-empty), `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, and `DeclarationOrder`.
+    - **Native JaCoCo Gate:** Native Gradle `jacocoTestCoverageVerification` enforces a minimum 80.00% line coverage bound directly to `./gradlew check`.
+    - **Frontend TypeScript & ESLint Zero-Warning Gate:** TypeScript compiler enforces `noImplicitReturns`, `noImplicitOverride`, and `forceConsistentCasingInFileNames`. ESLint enforces a zero-warning gate (`--max-warnings 0`), strict Clean Code metrics (`complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`), and AST property restriction forbidding direct `window.open` in favor of `openExternalUrl`.
+    - **Offline Architecture & Skills Validator:** `scripts/validate-skills.sh` Check 6 verifies offline architectural guardrails and frontend OpenAPI type derivation in CI and local checks.
 
 ---
 
@@ -259,20 +265,28 @@ To prevent iterative trial-and-error fix cycles and minimize redundant commits o
 - **Never push unverified code to remote to let CI perform preliminary checks.**
 - **Backend check suite:** Before pushing any Java change, execute locally:
   ```bash
-  ./gradlew checkstyleMain checkstyleTest test jacocoTestReport
+  ./gradlew checkstyleMain checkstyleTest test jacocoTestReport jacocoTestCoverageVerification check bootJar
   ```
-  Ensure all tests pass, zero Checkstyle violations occur, and line coverage satisfies the threshold.
+  Ensure Javac compiles with `-Werror` and `-Xlint:unchecked,deprecation,rawtypes,fallthrough,cast,overrides,divzero,empty` with zero warnings, all JUnit 5 and ArchUnit tests (`ArchitectureRulesTest.java`) pass, zero Checkstyle violations occur under Clean Code rules, and native `jacocoTestCoverageVerification` satisfies the >=80.00% line coverage gate.
 - **Frontend check suite:** Before pushing any UI change, execute locally:
   ```bash
-  cd frontend && npm run lint && npm run typecheck && npm run test && npm run build
+  cd frontend && npm run generate-api && npm run typecheck && npm run lint && npm run test && npm run build
   ```
+  Ensure TypeScript compiles cleanly with strict flags (`noImplicitReturns`, `noImplicitOverride`, `forceConsistentCasingInFileNames`), ESLint passes with zero warnings (`--max-warnings 0`) enforcing Clean Code metrics (`complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`), AST property restrictions forbid direct `window.open`, Vitest tests pass, and Vite builds successfully.
+- **Offline skills & architecture guardrail validator:** Validate skills, Markdown paths, and architectural boundaries locally:
+  ```bash
+  bash scripts/validate-skills.sh -v
+  # Windows PowerShell:
+  & "C:\Program Files\Git\bin\bash.exe" scripts/validate-skills.sh -v
+  ```
+  Ensure all 6 checks pass cleanly (frontmatter, 8 mandatory sections, decision tokens, markdown links, banned words/patterns, and architectural guardrails/OpenAPI derivation).
 
 ### 2. JaCoCo Coverage Safety Buffer (Target ≥82%)
-- CI enforces a strict, non-negotiable **80.00%** minimum line coverage threshold (`ci.yml`).
+- CI enforces a strict, non-negotiable **80.00%** minimum line coverage threshold via native Gradle `jacocoTestCoverageVerification` bound directly to `./gradlew check`.
 - Maintain at least an **82.00%** local JaCoCo coverage buffer on touched modules.
 
 ### 3. AppSec & CodeQL SSRF (CWE-918) Elimination
-- Route external portal network requests through the pre-vetted, resilient `HttpFetcher` abstraction, which integrates `PortalRateLimiter`, `PortalCircuitBreaker`, and strict domain validation.
+- Route external portal network requests through the pre-vetted, resilient `HttpFetcher` abstraction, which integrates `PortalRateLimiter`, `PortalCircuitBreaker`, and strict domain validation. Direct `Jsoup.connect` calls outside `HttpFetcher.java` are strictly forbidden and blocked by ArchUnit and `scripts/validate-skills.sh`.
 
 ### 4. Spring Boot CLI & Switch Arguments
 - Always use `@ConditionalOnProperty(name = "cli")` (checking only presence) and synchronize early flags via `System.setProperty("cli", "true")` in `main()` before context bootstrap.
@@ -281,5 +295,8 @@ To prevent iterative trial-and-error fix cycles and minimize redundant commits o
 - In accordance with the "Atomic Commits" rule, each commit should represent a coherent, discrete logical change.
 
 ### 6. Mandatory Refactoring & Code Hygiene Standards (Backend & Frontend)
-- **No Boilerplate Accessors or Setter Chains:** Always use Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` and MapStruct (`JpaEntityMapper`, `PresentationMapper` with `unmappedTargetPolicy = ReportingPolicy.ERROR`). Never introduce `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` (Checkstyle fails the build).
-- **No Frontend DTO Duplication or Dead Wrappers:** Always derive TypeScript DTOs from `generated-api.ts` (`npm run generate-api`), reuse centralized helpers in `frontend/src/utils/formatters.ts` (`getEffectivePrice`, `getEffectiveSqmPrice`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, `openExternalUrl`), and build steppers/popovers on `NumericStepper` and `useOutsideDismiss`.
+- **No Boilerplate Accessors or Setter Chains:** Always use Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` and MapStruct (`JpaEntityMapper`, `PresentationMapper` with `unmappedTargetPolicy = ReportingPolicy.ERROR`). Never introduce `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` (Checkstyle fails the build). Read-only DTOs and value objects must omit `@Setter` to maintain strict immutability (enforced by ArchUnit).
+- **Backend Clean Code Limits (Checkstyle):** Enforce strict method metrics: `MethodLength` <= 80 (non-empty), `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, and `DeclarationOrder`. Extract oversized methods into small, descriptive single-responsibility private methods and use parameter/context objects.
+- **Java 25 Virtual Thread Non-Pinning:** Never use the `synchronized` keyword in `core/`, `portal/`, or `web/` packages. Use `ReentrantLock` for mutual exclusion to prevent carrier thread pinning (enforced by ArchUnit and `scripts/validate-skills.sh`).
+- **No Frontend DTO Duplication or Dead Wrappers:** Always derive TypeScript DTOs directly from `generated-api.ts` (`npm run generate-api`), reuse centralized helpers in `frontend/src/utils/formatters.ts` (`getEffectivePrice`, `getEffectiveSqmPrice`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, `openExternalUrl`), and build steppers/popovers on `NumericStepper` and `useOutsideDismiss`. Direct `window.open` is forbidden in components and guarded by ESLint AST rule and `scripts/validate-skills.sh`.
+- **Frontend Clean Code & Strict Types:** Enforce ESLint zero-warning gate (`--max-warnings 0`), `complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq` (strict `===` / `!==`), `@typescript-eslint/consistent-type-imports`, and `@typescript-eslint/no-explicit-any: error`.

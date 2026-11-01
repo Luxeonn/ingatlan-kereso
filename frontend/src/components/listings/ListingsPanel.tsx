@@ -2,7 +2,8 @@ import type { FC } from 'react'
 import { LayoutGrid, Star, Archive } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
-import { useUiStore, ListingSubView } from '../../store/useUiStore'
+import type { ListingSubView } from '../../store/useUiStore'
+import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
 export interface ListingsPanelProps {
@@ -25,6 +26,85 @@ export interface ListingsPanelProps {
   initialBatchSize?: number
   batchSize?: number
 }
+
+function isMultiSourceItem(it: IngatlanItem): boolean {
+  if (it.sourcesCount !== null && it.sourcesCount !== undefined && it.sourcesCount > 1) {
+    return true
+  }
+  return Boolean(it.sourceListings && it.sourceListings.length > 1)
+}
+
+interface ListingsSubViewNavProps {
+  activeMode: ListingSubView
+  activeSearchCount: number
+  activeFavoritesCount: number
+  activeArchiveCount: number
+  onSubViewChange: (newSubView: ListingSubView) => void
+}
+
+const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
+  activeMode,
+  activeSearchCount,
+  activeFavoritesCount,
+  activeArchiveCount,
+  onSubViewChange,
+}) => (
+  <nav
+    data-testid="listings-subview-nav"
+    aria-label="Hirdetés nézetek"
+    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-2.5 shadow-sm"
+  >
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        data-testid="subview-listings"
+        aria-pressed={activeMode === 'listings'}
+        onClick={() => onSubViewChange('listings')}
+        className={cn(
+          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+          activeMode === 'listings'
+            ? 'bg-blue-600 text-white shadow-sm'
+            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
+        )}
+      >
+        <LayoutGrid className="h-3.5 w-3.5" />
+        <span>Hirdetések ({activeSearchCount})</span>
+      </button>
+
+      <button
+        type="button"
+        data-testid="subview-favorites"
+        aria-pressed={activeMode === 'favorites'}
+        onClick={() => onSubViewChange('favorites')}
+        className={cn(
+          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+          activeMode === 'favorites'
+            ? 'bg-amber-600 text-white shadow-sm'
+            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
+        )}
+      >
+        <Star className="h-3.5 w-3.5" />
+        <span>⭐ Kedvencek ({activeFavoritesCount})</span>
+      </button>
+
+      <button
+        type="button"
+        data-testid="subview-archive"
+        aria-pressed={activeMode === 'archive'}
+        onClick={() => onSubViewChange('archive')}
+        className={cn(
+          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+          activeMode === 'archive'
+            ? 'bg-purple-600 text-white shadow-sm'
+            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
+        )}
+      >
+        <Archive className="h-3.5 w-3.5" />
+        <span>Archívum ({activeArchiveCount})</span>
+      </button>
+    </div>
+  </nav>
+)
 
 export const ListingsPanel: FC<ListingsPanelProps> = ({
   items,
@@ -59,68 +139,18 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   const activeArchiveCount = archiveCount ?? (activeMode === 'archive' ? totalRawCount : 0)
 
   // Multi-source grouped count calculation (#260, #261)
-  const multiSourceCount = items.filter(
-    (it) => (it.sourcesCount != null && it.sourcesCount > 1) || (it.sourceListings && it.sourceListings.length > 1)
-  ).length
+  const multiSourceCount = items.filter(isMultiSourceItem).length
 
   return (
     <section className="space-y-4" data-testid="listings-panel">
       {/* Sub-view navigation toolbar (#R2) */}
-      <nav
-        data-testid="listings-subview-nav"
-        aria-label="Hirdetés nézetek"
-        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-2.5 shadow-sm"
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            data-testid="subview-listings"
-            aria-pressed={activeMode === 'listings'}
-            onClick={() => handleSubViewChange('listings')}
-            className={cn(
-              'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
-              activeMode === 'listings'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-            )}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            <span>Hirdetések ({activeSearchCount})</span>
-          </button>
-
-          <button
-            type="button"
-            data-testid="subview-favorites"
-            aria-pressed={activeMode === 'favorites'}
-            onClick={() => handleSubViewChange('favorites')}
-            className={cn(
-              'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
-              activeMode === 'favorites'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-            )}
-          >
-            <Star className="h-3.5 w-3.5" />
-            <span>⭐ Kedvencek ({activeFavoritesCount})</span>
-          </button>
-
-          <button
-            type="button"
-            data-testid="subview-archive"
-            aria-pressed={activeMode === 'archive'}
-            onClick={() => handleSubViewChange('archive')}
-            className={cn(
-              'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
-              activeMode === 'archive'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-            )}
-          >
-            <Archive className="h-3.5 w-3.5" />
-            <span>Archívum ({activeArchiveCount})</span>
-          </button>
-        </div>
-      </nav>
+      <ListingsSubViewNav
+        activeMode={activeMode}
+        activeSearchCount={activeSearchCount}
+        activeFavoritesCount={activeFavoritesCount}
+        activeArchiveCount={activeArchiveCount}
+        onSubViewChange={handleSubViewChange}
+      />
 
       {/* Multi-source clustering summary notice if present in listings mode */}
       {activeMode === 'listings' && multiSourceCount > 0 && (

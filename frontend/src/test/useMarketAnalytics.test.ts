@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useMarketAnalytics } from '../hooks/useMarketAnalytics'
-import { IngatlanItem } from '../types/property'
+import type { IngatlanItem } from '../types/property'
 
 describe('useMarketAnalytics hook', () => {
   it('returns zero and empty structures when items list is empty (zero crash)', () => {

@@ -9,6 +9,127 @@ export interface BargainBadgeProps {
   className?: string
 }
 
+interface BargainStats {
+  isBargain: boolean
+  sampleSize: number
+  percentageBelow: number | null
+  refMedian: number | null | undefined
+  currentPricePerSqm: number | null | undefined
+  roundedPct: number
+}
+
+function resolvePercentageBelow(item: IngatlanItem): number | null {
+  if (item.percentageBelowMedian !== undefined && item.percentageBelowMedian !== null) {
+    return item.percentageBelowMedian
+  }
+  const info = item.bargainInfo
+  if (!info) return null
+  if (info.percentageBelowMedian !== undefined && info.percentageBelowMedian !== null) {
+    return info.percentageBelowMedian
+  }
+  if (info.deltaPercent !== undefined && info.deltaPercent !== null) {
+    return Math.abs(info.deltaPercent)
+  }
+  return null
+}
+
+function resolveSampleSize(item: IngatlanItem): number {
+  if (item.referenceSampleSize !== undefined && item.referenceSampleSize !== null) {
+    return item.referenceSampleSize
+  }
+  return item.bargainInfo?.sampleSize ?? 0
+}
+
+function extractBargainStats(item: IngatlanItem): BargainStats | null {
+  const isBargain = Boolean(item.isBargain || item.bargainInfo?.isBargain)
+  const sampleSize = resolveSampleSize(item)
+  const percentageBelow = resolvePercentageBelow(item)
+
+  if (!isBargain || sampleSize < 5 || percentageBelow === null || percentageBelow <= 0) {
+    return null
+  }
+
+  return {
+    isBargain,
+    sampleSize,
+    percentageBelow,
+    refMedian: item.referenceMedianPricePerSquareMeter ?? item.bargainInfo?.referenceMedianPricePerSqm,
+    currentPricePerSqm: item.detailsInfo?.pricePerSquareMeter ?? item.bargainInfo?.currentPricePerSqm,
+    roundedPct: Math.round(percentageBelow),
+  }
+}
+
+interface BargainPopoverProps {
+  popoverId: string
+  city?: string
+  currentPricePerSqm?: number | null
+  refMedian?: number | null
+  roundedPct: number
+  sampleSize: number
+}
+
+const BargainPopover: React.FC<BargainPopoverProps> = ({
+  popoverId,
+  city,
+  currentPricePerSqm,
+  refMedian,
+  roundedPct,
+  sampleSize,
+}) => (
+  <div
+    id={popoverId}
+    role="dialog"
+    aria-label="Alkalmi vétel részletei"
+    data-testid="bargain-popover"
+    onClick={(e) => e.stopPropagation()}
+    className="absolute top-full left-0 mt-1.5 z-50 w-72 max-w-[calc(100vw-2.5rem)] rounded-xl border border-emerald-500/30 bg-slate-900/95 dark:bg-slate-900/95 p-3.5 shadow-2xl backdrop-blur-md text-slate-200 animate-in fade-in zoom-in-95 duration-150"
+  >
+    <div className="flex items-center justify-between pb-2 mb-2 border-b border-emerald-500/20">
+      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+        <Sparkles className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+        <span>Piaci Árelemzés • Alkalmi Vétel</span>
+      </div>
+      <span className="text-[10px] text-slate-400 font-mono">
+        {city}
+      </span>
+    </div>
+
+    <div className="space-y-1.5 text-xs">
+      <div className="flex justify-between items-center">
+        <span className="text-slate-400">Kínálati m² ár:</span>
+        <span className="font-bold text-emerald-400 font-mono">
+          {formatPricePerSqm(currentPricePerSqm)}
+        </span>
+      </div>
+
+      {refMedian !== null && refMedian !== undefined && (
+        <div className="flex justify-between items-center">
+          <span className="text-slate-400">Városi medián m² ár:</span>
+          <span className="font-semibold text-slate-300 font-mono">
+            {formatPricePerSqm(refMedian)}
+          </span>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center pt-1 border-t border-slate-700/50">
+        <span className="text-slate-400">Eltérés a mediántól:</span>
+        <span className="font-extrabold text-emerald-400 font-mono">
+          -{roundedPct}%
+        </span>
+      </div>
+
+      <div className="flex justify-between items-center text-[11px] text-slate-400">
+        <span>Minta elemszáma:</span>
+        <span className="font-medium text-slate-300">{sampleSize} hirdetés</span>
+      </div>
+    </div>
+
+    <div className="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 italic">
+      Legalább 5 azonos típusú helyi hirdetésből számított medián alapján.
+    </div>
+  </div>
+)
+
 export const BargainBadge: React.FC<BargainBadgeProps> = ({ item, className = '' }) => {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -17,22 +138,12 @@ export const BargainBadge: React.FC<BargainBadgeProps> = ({ item, className = ''
 
   useOutsideDismiss(containerRef, isOpen, closePopover)
 
-  const isBargain = Boolean(item.isBargain || item.bargainInfo?.isBargain)
-  const sampleSize = item.referenceSampleSize ?? item.bargainInfo?.sampleSize ?? 0
-  const percentageBelow =
-    item.percentageBelowMedian ??
-    item.bargainInfo?.percentageBelowMedian ??
-    (item.bargainInfo?.deltaPercent != null ? Math.abs(item.bargainInfo.deltaPercent) : null)
-  const refMedian = item.referenceMedianPricePerSquareMeter ?? item.bargainInfo?.referenceMedianPricePerSqm
-  const currentPricePerSqm =
-    item.detailsInfo?.pricePerSquareMeter ?? item.bargainInfo?.currentPricePerSqm
-
-  // Guard: Must be flagged as bargain AND have at least 5 reference samples
-  if (!isBargain || sampleSize < 5 || percentageBelow == null || percentageBelow <= 0) {
+  const stats = extractBargainStats(item)
+  if (!stats) {
     return null
   }
 
-  const roundedPct = Math.round(percentageBelow)
+  const { sampleSize, refMedian, currentPricePerSqm, roundedPct } = stats
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -78,58 +189,14 @@ export const BargainBadge: React.FC<BargainBadgeProps> = ({ item, className = ''
       </button>
 
       {isOpen && (
-        <div
-          id={popoverId}
-          role="dialog"
-          aria-label="Alkalmi vétel részletei"
-          data-testid="bargain-popover"
-          onClick={(e) => e.stopPropagation()}
-          className="absolute top-full left-0 mt-1.5 z-50 w-72 max-w-[calc(100vw-2.5rem)] rounded-xl border border-emerald-500/30 bg-slate-900/95 dark:bg-slate-900/95 p-3.5 shadow-2xl backdrop-blur-md text-slate-200 animate-in fade-in zoom-in-95 duration-150"
-        >
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-emerald-500/20">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
-              <span>Piaci Árelemzés • Alkalmi Vétel</span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono">
-              {item.city}
-            </span>
-          </div>
-
-          <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Kínálati m² ár:</span>
-              <span className="font-bold text-emerald-400 font-mono">
-                {formatPricePerSqm(currentPricePerSqm)}
-              </span>
-            </div>
-
-            {refMedian != null && (
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">Városi medián m² ár:</span>
-                <span className="font-semibold text-slate-300 font-mono">
-                  {formatPricePerSqm(refMedian)}
-                </span>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center pt-1 border-t border-slate-700/50">
-              <span className="text-slate-400">Eltérés a mediántól:</span>
-              <span className="font-extrabold text-emerald-400 font-mono">
-                -{roundedPct}%
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-[11px] text-slate-400">
-              <span>Minta elemszáma:</span>
-              <span className="font-medium text-slate-300">{sampleSize} hirdetés</span>
-            </div>
-          </div>
-
-          <div className="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 italic">
-            Legalább 5 azonos típusú helyi hirdetésből számított medián alapján.
-          </div>
-        </div>
+        <BargainPopover
+          popoverId={popoverId}
+          city={item.city}
+          currentPricePerSqm={currentPricePerSqm}
+          refMedian={refMedian}
+          roundedPct={roundedPct}
+          sampleSize={sampleSize}
+        />
       )}
     </div>
   )

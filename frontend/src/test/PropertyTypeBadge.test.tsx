@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { PropertyTypeBadge } from '../components/listings/PropertyTypeBadge'
-import { CanonicalPropertyType } from '../types/property'
+import type { CanonicalPropertyType } from '../types/property'
 
 describe('PropertyTypeBadge component', () => {
   const canonicalCases: Array<{ type: CanonicalPropertyType; expectedLabel: string }> = [

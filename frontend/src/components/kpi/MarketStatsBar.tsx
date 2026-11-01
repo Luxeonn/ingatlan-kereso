@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { Building2, Sparkles, DollarSign, Ruler } from 'lucide-react'
-import { DashboardResponseDto } from '../../types/api'
+import type { DashboardResponseDto } from '../../types/api'
 import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
 
 interface MarketStatsBarProps {
@@ -53,7 +53,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
         <div>
           <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Átlagos Kínálati Ár</p>
           <p className="text-lg font-extrabold text-[var(--text-primary)]">
-            {avgPrice != null ? formatPriceMillion(avgPrice) : 'N/A'}
+            {avgPrice !== null && avgPrice !== undefined ? formatPriceMillion(avgPrice) : 'N/A'}
           </p>
         </div>
       </div>
@@ -66,7 +66,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
         <div>
           <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Átlagos Fajlagos Ár</p>
           <p className="text-lg font-extrabold text-[var(--text-primary)]">
-            {avgSqmPrice != null ? formatPricePerSqm(avgSqmPrice) : 'N/A'}
+            {avgSqmPrice !== null && avgSqmPrice !== undefined ? formatPricePerSqm(avgSqmPrice) : 'N/A'}
           </p>
         </div>
       </div>

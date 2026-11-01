@@ -51,14 +51,12 @@ class KoltozzbeAdapterTest {
     KoltozzbeJsonLdStrategy jsonLdStrategy = new KoltozzbeJsonLdStrategy(
         new KoltozzbeUrlBuilder(),
         new KoltozzbeRawParser(),
-        new KoltozzbeParser(),
         url -> doc
     );
 
     KoltozzbeHtmlStrategy htmlStrategy = new KoltozzbeHtmlStrategy(
         new KoltozzbeUrlBuilder(),
         new KoltozzbeRawParser(),
-        new KoltozzbeParser(),
         url -> doc
     );
 

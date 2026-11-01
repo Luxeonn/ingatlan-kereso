@@ -44,7 +44,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
 
   const score = clampQualityScore(item.qualityScore)
   const deductions = item.qualityDeductions ?? []
-  const qualityConfig = score != null ? getQualityConfig(score) : null
+  const qualityConfig = score !== null ? getQualityConfig(score) : null
   const isMultiSource = sources.length > 1
 
   return (
@@ -73,7 +73,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
       </div>
 
       {/* 2. SECTION: Data Quality (if present) */}
-      {score != null && qualityConfig && (
+      {score !== null && qualityConfig && (
         <div
           data-testid="drawer-quality-section"
           className={cn(
@@ -143,7 +143,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
               const portalName = source.portal || 'Forrás'
               const portalStyle = getPortalStyle(portalName)
               const million =
-                source.priceHuf != null ? source.priceHuf / 1_000_000 : null
+                source.priceHuf !== null && source.priceHuf !== undefined ? source.priceHuf / 1_000_000 : null
               const isActive =
                 !source.status || source.status.toUpperCase() === 'ACTIVE'
               const freshness = source.lastSeenAt || source.firstSeenAt
@@ -196,11 +196,11 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
                     {/* Price display */}
                     <div className="text-right">
                       <div className="text-xs font-bold text-blue-400">
-                        {million != null
+                        {million !== null && million !== undefined
                           ? formatPriceMillion(million)
                           : 'Ár a hirdetésben'}
                       </div>
-                      {source.priceHuf != null && (
+                      {source.priceHuf !== null && source.priceHuf !== undefined && (
                         <div className="text-[10px] text-[var(--text-secondary)]">
                           {formatPriceFt(source.priceHuf)}
                         </div>

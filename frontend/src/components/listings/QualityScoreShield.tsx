@@ -26,7 +26,7 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
   useOutsideDismiss(containerRef, isOpen, closePopover)
 
   const clampedScore = clampQualityScore(item.qualityScore)
-  if (clampedScore == null) {
+  if (clampedScore === null) {
     return null
   }
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { IngatlanItem } from '../types/property'
+import type { IngatlanItem } from '../types/property'
 
 export type DashboardTab = 'listings' | 'analytics'
 export type ListingSubView = 'listings' | 'favorites' | 'archive'

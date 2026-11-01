@@ -17,16 +17,14 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
   private static final AppLogger LOGGER = AppLogger.getLogger(OtthonCentrumPortalEngine.class);
 
   private final OtthonCentrumUrlBuilder urlBuilder;
-  private final OtthonCentrumParser parser;
   private final AdapterPortalEngine adapterEngine;
 
   public OtthonCentrumPortalEngine() {
-    this(new OtthonCentrumUrlBuilder(), new OtthonCentrumParser());
+    this(new OtthonCentrumUrlBuilder());
   }
 
-  public OtthonCentrumPortalEngine(OtthonCentrumUrlBuilder urlBuilder, OtthonCentrumParser parser) {
+  public OtthonCentrumPortalEngine(OtthonCentrumUrlBuilder urlBuilder) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new OtthonCentrumUrlBuilder();
-    this.parser = parser != null ? parser : new OtthonCentrumParser();
     this.adapterEngine = new AdapterPortalEngine(new OtthonCentrumPortalAdapter(this.urlBuilder,
         List.of(new OtthonCentrumHtmlStrategy(this.urlBuilder, new OtthonCentrumRawParser(),
             HttpFetcher::fetchDocument))));
@@ -51,9 +49,5 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
 
   public OtthonCentrumUrlBuilder getUrlBuilder() {
     return urlBuilder;
-  }
-
-  public OtthonCentrumParser getParser() {
-    return parser;
   }
 }

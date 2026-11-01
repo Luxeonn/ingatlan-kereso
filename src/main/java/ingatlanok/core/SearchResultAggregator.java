@@ -3,6 +3,7 @@ package ingatlanok.core;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -19,6 +20,18 @@ import ingatlanok.persistence.ConfigStorage;
 
 public class SearchResultAggregator {
 
+  private static final Comparator<IngatlanItem> ITEM_COMPARATOR =
+      (a, b) -> {
+        int priceCmp = comparePrices(a, b);
+        if (priceCmp != 0) {
+          return priceCmp;
+        }
+        if (a.isNew() != b.isNew()) {
+          return Boolean.compare(!a.isNew(), !b.isNew());
+        }
+        return compareDiscoveredDates(a.getDiscoveredAt(), b.getDiscoveredAt());
+      };
+
   public SearchResult aggregate(
       List<IngatlanItem> uniqueAggregatedList,
       SearchCriteria criteria,
@@ -34,47 +47,8 @@ public class SearchResultAggregator {
       configStorage.saveLastCriteria(criteria);
     }
 
-    if (criteria != null && criteria.isAutoOpenBrowser() && !newItems.isEmpty()) {
-      Set<String> urlsToOpen =
-          newItems.stream()
-              .map(IngatlanItem::getUrl)
-              .collect(Collectors.toCollection(LinkedHashSet::new));
-      BrowserUtils.openUrls(urlsToOpen);
-    }
-
-    uniqueAggregatedList.sort(
-        (a, b) -> {
-          Long priceA = (a.getPriceInfo() != null) ? a.getPriceInfo().getAmountHuf() : null;
-          if (priceA == null && a.getPrice() != null) {
-            priceA = PropertyParser.parsePrice(a.getPrice()).getAmountHuf();
-          }
-          Long priceB = (b.getPriceInfo() != null) ? b.getPriceInfo().getAmountHuf() : null;
-          if (priceB == null && b.getPrice() != null) {
-            priceB = PropertyParser.parsePrice(b.getPrice()).getAmountHuf();
-          }
-
-          if (priceA != null && priceB != null) {
-            int cmp = Long.compare(priceA, priceB);
-            if (cmp != 0) {
-              return cmp;
-            }
-          } else if (priceA != null) {
-            return -1;
-          } else if (priceB != null) {
-            return 1;
-          }
-
-          if (a.isNew() != b.isNew()) {
-            return Boolean.compare(!a.isNew(), !b.isNew());
-          }
-          if (a.getDiscoveredAt() == null) {
-            return 1;
-          }
-          if (b.getDiscoveredAt() == null) {
-            return -1;
-          }
-          return b.getDiscoveredAt().compareTo(a.getDiscoveredAt());
-        });
+    handleAutoOpenBrowser(criteria, newItems);
+    uniqueAggregatedList.sort(ITEM_COMPARATOR);
 
     return SearchResult.builder()
         .items(uniqueAggregatedList)
@@ -89,5 +63,53 @@ public class SearchResultAggregator {
                 ? new ArrayList<>(newCitiesInitialized)
                 : new ArrayList<>())
         .build();
+  }
+
+  private static int comparePrices(IngatlanItem a, IngatlanItem b) {
+    Long priceA = extractPrice(a);
+    Long priceB = extractPrice(b);
+    if (priceA != null && priceB != null) {
+      return Long.compare(priceA, priceB);
+    }
+    if (priceA != null) {
+      return -1;
+    }
+    if (priceB != null) {
+      return 1;
+    }
+    return 0;
+  }
+
+  private static Long extractPrice(IngatlanItem item) {
+    if (item.getPriceInfo() != null && item.getPriceInfo().getAmountHuf() != null) {
+      return item.getPriceInfo().getAmountHuf();
+    }
+    if (item.getPrice() != null) {
+      return PropertyParser.parsePrice(item.getPrice()).getAmountHuf();
+    }
+    return null;
+  }
+
+  private static int compareDiscoveredDates(String dateA, String dateB) {
+    if (dateA == null && dateB == null) {
+      return 0;
+    }
+    if (dateA == null) {
+      return 1;
+    }
+    if (dateB == null) {
+      return -1;
+    }
+    return dateB.compareTo(dateA);
+  }
+
+  private void handleAutoOpenBrowser(SearchCriteria criteria, List<IngatlanItem> newItems) {
+    if (criteria != null && criteria.isAutoOpenBrowser() && !newItems.isEmpty()) {
+      Set<String> urlsToOpen =
+          newItems.stream()
+              .map(IngatlanItem::getUrl)
+              .collect(Collectors.toCollection(LinkedHashSet::new));
+      BrowserUtils.openUrls(urlsToOpen);
+    }
   }
 }

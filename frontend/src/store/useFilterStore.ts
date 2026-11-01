@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { z } from 'zod'
-import { SearchCriteria } from '../types/api'
+import type { SearchCriteria } from '../types/api'
 
 export type SortOption =
   | 'price_asc'
@@ -116,6 +116,43 @@ interface FilterState {
   syncToUrl: () => void
 }
 
+type ParsedUrlParams = z.infer<typeof urlSchema>
+
+function parseCitiesParam(citiesParam?: string): { cities: string[]; city: string } | null {
+  if (!citiesParam) return null
+  const list = citiesParam
+    .split(',')
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0 && c.length <= 100)
+    .slice(0, 20)
+  if (list.length === 0) return null
+  return { cities: list, city: list[0] }
+}
+
+function parsePortalsParam(portalsParam?: string): string[] | null {
+  if (!portalsParam) return null
+  const validPortals = portalsParam
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => DEFAULT_PORTALS.includes(p))
+  return validPortals.length > 0 ? validPortals : null
+}
+
+function parseNumericRanges(params: ParsedUrlParams, result: Partial<SearchCriteria>): void {
+  if (params.minPrice !== undefined) result.minPriceMillion = params.minPrice
+  if (params.maxPrice !== undefined) result.maxPriceMillion = params.maxPrice
+  if (params.minArea !== undefined) result.minArea = params.minArea
+  if (params.maxArea !== undefined) result.maxArea = params.maxArea
+}
+
+function parseBooleanFlags(params: ParsedUrlParams, result: Partial<SearchCriteria>): void {
+  if (params.autoOpen !== null && params.autoOpen !== undefined) result.autoOpenBrowser = params.autoOpen === 'true'
+  if (params.excludeViewed !== null && params.excludeViewed !== undefined) result.excludeViewed = params.excludeViewed === 'true'
+  if (params.onlyNewConstruction !== null && params.onlyNewConstruction !== undefined) {
+    result.onlyNewConstruction = params.onlyNewConstruction === 'true'
+  }
+}
+
 function parseUrlParams(): {
   criteria?: Partial<SearchCriteria>
   sort?: SortOption
@@ -129,36 +166,21 @@ function parseUrlParams(): {
   const params = parsedUrl.data
   const result: Partial<SearchCriteria> = {}
 
-  const citiesParam = params.cities || params.city
-  if (citiesParam) {
-    const list = citiesParam
-      .split(',')
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0 && c.length <= 100)
-      .slice(0, 20)
-    if (list.length > 0) {
-      result.cities = list
-      result.city = list[0]
-    }
+  const parsedCities = parseCitiesParam(params.cities || params.city)
+  if (parsedCities) {
+    result.cities = parsedCities.cities
+    result.city = parsedCities.city
   }
 
   if (params.type) result.propertyType = params.type
-  if (params.minPrice !== undefined) result.minPriceMillion = params.minPrice
-  if (params.maxPrice !== undefined) result.maxPriceMillion = params.maxPrice
-  if (params.minArea !== undefined) result.minArea = params.minArea
-  if (params.maxArea !== undefined) result.maxArea = params.maxArea
+  parseNumericRanges(params, result)
 
-  if (params.portals) {
-    const validPortals = params.portals
-      .split(',')
-      .map((p) => p.trim())
-      .filter((p) => DEFAULT_PORTALS.includes(p))
-    if (validPortals.length > 0) result.portals = validPortals
+  const parsedPortals = parsePortalsParam(params.portals)
+  if (parsedPortals) {
+    result.portals = parsedPortals
   }
 
-  if (params.autoOpen != null) result.autoOpenBrowser = params.autoOpen === 'true'
-  if (params.excludeViewed != null) result.excludeViewed = params.excludeViewed === 'true'
-  if (params.onlyNewConstruction != null) result.onlyNewConstruction = params.onlyNewConstruction === 'true'
+  parseBooleanFlags(params, result)
 
   return {
     criteria: result,
@@ -167,6 +189,51 @@ function parseUrlParams(): {
     onlyBargain: params.onlyBargain === 'true',
     minQualityScore: params.minQuality ?? 0,
   }
+}
+
+function appendNumericRangeParams(params: URLSearchParams, criteria: SearchCriteria): void {
+  const { minPriceMillion, maxPriceMillion, minArea, maxArea } = criteria
+  if (minPriceMillion !== null && minPriceMillion !== undefined && minPriceMillion !== 70) {
+    params.set('minPrice', String(minPriceMillion))
+  }
+  if (maxPriceMillion !== null && maxPriceMillion !== undefined && maxPriceMillion !== 120) {
+    params.set('maxPrice', String(maxPriceMillion))
+  }
+  if (minArea !== null && minArea !== undefined && minArea !== 90) {
+    params.set('minArea', String(minArea))
+  }
+  if (maxArea !== null && maxArea !== undefined && maxArea !== 200) {
+    params.set('maxArea', String(maxArea))
+  }
+}
+
+function appendFilterCategoryParams(params: URLSearchParams, criteria: SearchCriteria): void {
+  if (criteria.cities && criteria.cities.length > 0) params.set('cities', criteria.cities.join(','))
+  if (criteria.propertyType && criteria.propertyType !== 'lakas') params.set('type', criteria.propertyType)
+  if (criteria.portals && criteria.portals.length < DEFAULT_PORTALS.length) {
+    params.set('portals', criteria.portals.join(','))
+  }
+  if (criteria.autoOpenBrowser) params.set('autoOpen', 'true')
+  if (criteria.excludeViewed) params.set('excludeViewed', 'true')
+  if (criteria.onlyNewConstruction) params.set('onlyNewConstruction', 'true')
+}
+
+function appendCriteriaParams(params: URLSearchParams, criteria: SearchCriteria): void {
+  appendFilterCategoryParams(params, criteria)
+  appendNumericRangeParams(params, criteria)
+}
+
+function appendUiFilterParams(
+  params: URLSearchParams,
+  sortOption: SortOption,
+  onlyNew: boolean,
+  onlyBargain: boolean,
+  minQualityScore: number,
+): void {
+  if (sortOption !== 'price_asc') params.set('sort', sortOption)
+  if (onlyNew) params.set('onlyNew', 'true')
+  if (onlyBargain) params.set('onlyBargain', 'true')
+  if (minQualityScore > 0) params.set('minQuality', String(minQualityScore))
 }
 
 export const useFilterStore = create<FilterState>((set, get) => {
@@ -288,27 +355,8 @@ export const useFilterStore = create<FilterState>((set, get) => {
       if (typeof window === 'undefined') return
       const { criteria, sortOption, onlyNew, onlyBargain, minQualityScore } = get()
       const params = new URLSearchParams()
-
-      if (criteria.cities && criteria.cities.length > 0) params.set('cities', criteria.cities.join(','))
-      if (criteria.propertyType && criteria.propertyType !== 'lakas') params.set('type', criteria.propertyType)
-      if (criteria.minPriceMillion != null && criteria.minPriceMillion !== 70) {
-        params.set('minPrice', String(criteria.minPriceMillion))
-      }
-      if (criteria.maxPriceMillion != null && criteria.maxPriceMillion !== 120) {
-        params.set('maxPrice', String(criteria.maxPriceMillion))
-      }
-      if (criteria.minArea != null && criteria.minArea !== 90) params.set('minArea', String(criteria.minArea))
-      if (criteria.maxArea != null && criteria.maxArea !== 200) params.set('maxArea', String(criteria.maxArea))
-      if (criteria.portals && criteria.portals.length < DEFAULT_PORTALS.length) {
-        params.set('portals', criteria.portals.join(','))
-      }
-      if (sortOption !== 'price_asc') params.set('sort', sortOption)
-      if (onlyNew) params.set('onlyNew', 'true')
-      if (onlyBargain) params.set('onlyBargain', 'true')
-      if (minQualityScore > 0) params.set('minQuality', String(minQualityScore))
-      if (criteria.autoOpenBrowser) params.set('autoOpen', 'true')
-      if (criteria.excludeViewed) params.set('excludeViewed', 'true')
-      if (criteria.onlyNewConstruction) params.set('onlyNewConstruction', 'true')
+      appendCriteriaParams(params, criteria)
+      appendUiFilterParams(params, sortOption, onlyNew, onlyBargain, minQualityScore)
 
       const queryString = params.toString()
       const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname

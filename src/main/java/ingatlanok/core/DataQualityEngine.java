@@ -55,101 +55,115 @@ public class DataQualityEngine {
       return new QualityEvaluation(0, List.of("Hiányzó hirdetés objektum: -100 pont"));
     }
 
-    int score = BASE_SCORE;
-    List<String> deductions = new ArrayList<>();
-
-    // 1. Price Sanity (-30)
+    DeductionCollector collector = new DeductionCollector();
     Long priceAmount = resolvePriceAmount(item);
-    if (priceAmount == null || priceAmount < MIN_SANITY_PRICE_HUF || priceAmount > MAX_SANITY_PRICE_HUF) {
-      score -= 30;
-      deductions.add("Érvénytelen vagy irreális ár (1M - 5B Ft tartományon kívül): -30 pont");
-    }
-
-    // 2. Area Sanity (-25)
-    PropertyType type = item.getPropertyType() != null ? item.getPropertyType() : PropertyType.EGYEB_ISMERETLEN;
     Double area = resolveArea(item);
+    PropertyType type =
+        item.getPropertyType() != null ? item.getPropertyType() : PropertyType.EGYEB_ISMERETLEN;
+
+    evaluatePriceSanity(priceAmount, collector);
+    evaluateAreaSanity(type, area, collector);
+    evaluateLocationAndType(item, type, collector);
+    evaluateConsistency(
+        type, area, resolvePricePerM2(item, priceAmount, area), resolveRooms(item), collector);
+    evaluateCompleteness(item, collector);
+
+    int clampedScore = Math.max(0, Math.min(100, collector.score));
+    return new QualityEvaluation(clampedScore, collector.deductions);
+  }
+
+  private void evaluatePriceSanity(Long priceAmount, DeductionCollector collector) {
+    if (priceAmount == null
+        || priceAmount < MIN_SANITY_PRICE_HUF
+        || priceAmount > MAX_SANITY_PRICE_HUF) {
+      collector.deduct(30, "Érvénytelen vagy irreális ár (1M - 5B Ft tartományon kívül): -30 pont");
+    }
+  }
+
+  private void evaluateAreaSanity(
+      PropertyType type, Double area, DeductionCollector collector) {
     if (area == null || area <= 0) {
-      score -= 25;
-      deductions.add("Hiányzó vagy érvénytelen alapterület: -25 pont");
-    } else if (type.isPlot()) {
+      collector.deduct(25, "Hiányzó vagy érvénytelen alapterület: -25 pont");
+      return;
+    }
+    if (type.isPlot()) {
       if (area < MIN_PLOT_AREA_M2 || area > MAX_PLOT_AREA_M2) {
-        score -= 25;
-        deductions.add("Irreális telekméret (50 m² - 500 000 m²-en kívül): -25 pont");
+        collector.deduct(25, "Irreális telekméret (50 m² - 500 000 m²-en kívül): -25 pont");
       }
     } else if (type.isResidential()) {
       if (area < MIN_RESIDENTIAL_AREA_M2 || area > MAX_RESIDENTIAL_AREA_M2) {
-        score -= 25;
-        deductions.add("Irreális lakóterület (10 m² - 2000 m²-en kívül): -25 pont");
+        collector.deduct(25, "Irreális lakóterület (10 m² - 2000 m²-en kívül): -25 pont");
       }
-    } else {
-      if (area < MIN_OTHER_AREA_M2 || area > MAX_PLOT_AREA_M2) {
-        score -= 25;
-        deductions.add("Irreális alapterület: -25 pont");
-      }
+    } else if (area < MIN_OTHER_AREA_M2 || area > MAX_PLOT_AREA_M2) {
+      collector.deduct(25, "Irreális alapterület: -25 pont");
     }
+  }
 
-    // 3. City Presence (-20)
+  private void evaluateLocationAndType(
+      IngatlanItem item, PropertyType type, DeductionCollector collector) {
     String rawCity = item.getRawCity();
     String location = item.getLocation();
-    boolean hasCity = (rawCity != null && !rawCity.isBlank() && !"Ismeretlen".equalsIgnoreCase(rawCity.trim()))
-        || (location != null && !location.isBlank() && !"Ismeretlen".equalsIgnoreCase(location.trim()));
+    boolean hasCity = isValidCityValue(rawCity) || isValidCityValue(location);
     if (!hasCity) {
-      score -= 20;
-      deductions.add("Hiányzó vagy érvénytelen település: -20 pont");
+      collector.deduct(20, "Hiányzó vagy érvénytelen település: -20 pont");
     }
-
-    // 4. Type Presence (-15)
     if (type == PropertyType.EGYEB_ISMERETLEN) {
-      score -= 15;
-      deductions.add("Ismeretlen vagy hiányzó ingatlantípus: -15 pont");
+      collector.deduct(15, "Ismeretlen vagy hiányzó ingatlantípus: -15 pont");
     }
+  }
 
-    // 5. Price/m² Plausibility (-20) - Residential only
-    Long pricePerM2 = resolvePricePerM2(item, priceAmount, area);
+  private boolean isValidCityValue(String val) {
+    return val != null && !val.isBlank() && !"Ismeretlen".equalsIgnoreCase(val.trim());
+  }
+
+  private void evaluateConsistency(
+      PropertyType type,
+      Double area,
+      Long pricePerM2,
+      Double rooms,
+      DeductionCollector collector) {
     if (type.isResidential() && pricePerM2 != null) {
       if (pricePerM2 < MIN_RESIDENTIAL_PRICE_PER_M2 || pricePerM2 > MAX_RESIDENTIAL_PRICE_PER_M2) {
-        score -= 20;
-        deductions.add("Irreális négyzetméterár lakóingatlannál (< 100 000 vagy > 4 000 000 Ft/m²): -20 pont");
+        collector.deduct(
+            20,
+            "Irreális négyzetméterár lakóingatlannál (< 100 000 vagy > 4 000 000 Ft/m²): -20 pont");
       }
     }
-
-    // 6. Room Count to Area Consistency (-15) - Residential only
-    Double rooms = resolveRooms(item);
     if (type.isResidential() && area != null && area > 0 && rooms != null && rooms > 0) {
       double areaPerRoom = area / rooms;
       if (areaPerRoom < MIN_AREA_PER_ROOM_M2 || areaPerRoom > MAX_AREA_PER_ROOM_M2) {
-        score -= 15;
-        deductions.add("Inkonzisztens szobaszám-alapterület arány (< 12 vagy > 150 m²/szoba): -15 pont");
+        collector.deduct(
+            15,
+            "Inkonzisztens szobaszám-alapterület arány (< 12 vagy > 150 m²/szoba): -15 pont");
       }
     }
+  }
 
-    // 7. Title Presence (-10)
+  private void evaluateCompleteness(IngatlanItem item, DeductionCollector collector) {
     if (item.getTitle() == null || item.getTitle().isBlank()) {
-      score -= 10;
-      deductions.add("Hiányzó hirdetéscím: -10 pont");
+      collector.deduct(10, "Hiányzó hirdetéscím: -10 pont");
     }
-
-    // 8. URL Validity (-20)
     String url = item.getUrl();
     if (url == null || url.isBlank() || (!url.startsWith("http://") && !url.startsWith("https://"))) {
-      score -= 20;
-      deductions.add("Hiányzó vagy érvénytelen hirdetés URL: -20 pont");
+      collector.deduct(20, "Hiányzó vagy érvénytelen hirdetés URL: -20 pont");
     }
-
-    // 9. Photo Presence (-10)
     if (item.getImageUrl() == null || item.getImageUrl().isBlank()) {
-      score -= 10;
-      deductions.add("Hiányzó fényképes dokumentáció: -10 pont");
+      collector.deduct(10, "Hiányzó fényképes dokumentáció: -10 pont");
     }
-
-    // 10. Extreme Price Shift in History (-25)
-    if (item.getPriceChangePercent() != null && Math.abs(item.getPriceChangePercent()) > MAX_PRICE_CHANGE_PERCENT) {
-      score -= 25;
-      deductions.add("Extrém árváltozás az előzményekben (> 50% elmozdulás): -25 pont");
+    if (item.getPriceChangePercent() != null
+        && Math.abs(item.getPriceChangePercent()) > MAX_PRICE_CHANGE_PERCENT) {
+      collector.deduct(25, "Extrém árváltozás az előzményekben (> 50% elmozdulás): -25 pont");
     }
+  }
 
-    int clampedScore = Math.max(0, Math.min(100, score));
-    return new QualityEvaluation(clampedScore, deductions);
+  private static final class DeductionCollector {
+    private int score = BASE_SCORE;
+    private final List<String> deductions = new ArrayList<>();
+
+    void deduct(int points, String reason) {
+      this.score -= points;
+      this.deductions.add(reason);
+    }
   }
 
   /**

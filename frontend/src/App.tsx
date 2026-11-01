@@ -6,17 +6,57 @@ import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { useSearch } from './hooks/useSearch'
-import { useFilterStore, SORT_OPTIONS, SortOption } from './store/useFilterStore'
+import type { SortOption } from './store/useFilterStore'
+import { useFilterStore, SORT_OPTIONS } from './store/useFilterStore'
 import { useUiStore } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
 import { cn } from './utils/cn'
+import type { IngatlanItem } from './types/property'
 
 const MarketAnalyticsPanel = lazy(() =>
   import('./components/analytics/MarketAnalyticsPanel').then((module) => ({
     default: module.MarketAnalyticsPanel,
   })),
 )
+
+interface ActiveSliceParams {
+  listingSubView: string
+  items: IngatlanItem[]
+  rawItems: IngatlanItem[]
+  rawCount: number
+  favoriteItems: IngatlanItem[]
+  rawFavoriteItems: IngatlanItem[]
+  archiveItems: IngatlanItem[]
+  rawArchiveItems: IngatlanItem[]
+  isLoading: boolean
+  isArchiveLoading: boolean
+}
+
+function resolveActiveListingsSlice(params: ActiveSliceParams) {
+  if (params.listingSubView === 'favorites') {
+    return {
+      activeItems: params.favoriteItems,
+      activeRawItems: params.rawFavoriteItems,
+      activeRawCount: params.rawFavoriteItems.length,
+      activeLoading: false,
+    }
+  }
+  if (params.listingSubView === 'archive') {
+    return {
+      activeItems: params.archiveItems,
+      activeRawItems: params.rawArchiveItems,
+      activeRawCount: params.rawArchiveItems.length,
+      activeLoading: params.isArchiveLoading,
+    }
+  }
+  return {
+    activeItems: params.items,
+    activeRawItems: params.rawItems,
+    activeRawCount: params.rawCount,
+    activeLoading: params.isLoading,
+  }
+}
 
 export const App: FC = () => {
   const {
@@ -71,33 +111,18 @@ export const App: FC = () => {
   }
 
   // Active listings data slice based on current listing sub-view
-  const activeItems =
-    listingSubView === 'favorites'
-      ? favoriteItems
-      : listingSubView === 'archive'
-        ? archiveItems
-        : items
-
-  const activeRawItems =
-    listingSubView === 'favorites'
-      ? rawFavoriteItems
-      : listingSubView === 'archive'
-        ? rawArchiveItems
-        : rawItems
-
-  const activeRawCount =
-    listingSubView === 'favorites'
-      ? rawFavoriteItems.length
-      : listingSubView === 'archive'
-        ? rawArchiveItems.length
-        : rawCount
-
-  const activeLoading =
-    listingSubView === 'archive'
-      ? isArchiveLoading
-      : listingSubView === 'favorites'
-        ? false
-        : isLoading
+  const { activeItems, activeRawItems, activeRawCount, activeLoading } = resolveActiveListingsSlice({
+    listingSubView,
+    items,
+    rawItems,
+    rawCount,
+    favoriteItems,
+    rawFavoriteItems,
+    archiveItems,
+    rawArchiveItems,
+    isLoading,
+    isArchiveLoading,
+  })
 
   return (
     <div className="min-h-screen bg-[var(--bg-body)] text-[var(--text-primary)] transition-colors duration-200">
@@ -197,7 +222,7 @@ export const App: FC = () => {
             rawItems={activeRawItems}
             totalRawCount={activeRawCount}
             isLoading={activeLoading}
-            hasSearched={listingSubView === 'listings' ? data != null : true}
+            hasSearched={listingSubView === 'listings' ? data !== null && data !== undefined : true}
             mode={listingSubView}
             subView={listingSubView}
             onSubViewChange={setListingSubView}

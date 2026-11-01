@@ -2,12 +2,15 @@ package ingatlanok.core;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PriceInfo;
+import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.presentation.MarketSegmentStatsDto;
 import ingatlanok.presentation.MarketStatsDto;
@@ -49,242 +52,332 @@ public class MarketAnalyticsEngine {
       return stats.build();
     }
 
-    // Deduplicate by URL (or unique ID) to ensure each physical listing has equal weight
     List<IngatlanItem> uniqueItems = deduplicateItems(items);
     int totalItems = uniqueItems.size();
 
-    List<Double> pricesMillion = new ArrayList<>();
-    List<Long> allPricesPerM2 = new ArrayList<>();
-    List<Long> residentialPricesM2 = new ArrayList<>();
-    List<Long> plotPricesM2 = new ArrayList<>();
-    List<Long> otherPricesM2 = new ArrayList<>();
+    MarketStatsAccumulator acc = accumulateItemMetrics(uniqueItems);
+    computeGeneralPriceMetrics(stats, acc, totalItems);
+    computeResidentialAndPlotMetrics(stats, acc);
+    Map<String, MarketSegmentStatsDto> segmentDtoMap = computeSegmentMetrics(acc.segmentBuckets);
+    detectBargains(stats, uniqueItems, segmentDtoMap, totalItems);
+    computePriceDrops(stats, uniqueItems, totalItems);
 
-    Map<String, Integer> cityCounts = new LinkedHashMap<>();
-    int newItemsCount = 0;
+    return stats.build();
+  }
 
-    // Map bucket key (cityKey#type) -> list of items in segment
-    Map<String, List<IngatlanItem>> segmentBuckets = new LinkedHashMap<>();
-
+  private MarketStatsAccumulator accumulateItemMetrics(List<IngatlanItem> uniqueItems) {
+    MarketStatsAccumulator acc = new MarketStatsAccumulator();
     for (IngatlanItem item : uniqueItems) {
       if (item == null) {
         continue;
       }
-
       if (item.isNew()) {
-        newItemsCount++;
+        acc.newItemsCount++;
       }
-
-      String city = item.getCity();
-      if (city != null && !city.isBlank()) {
-        cityCounts.put(city, cityCounts.getOrDefault(city, 0) + 1);
-      }
-
-      if (item.getPriceInfo() != null && item.getPriceInfo().getAmountMillion() != null
-          && item.getPriceInfo().getAmountMillion() > 0) {
-        pricesMillion.add(item.getPriceInfo().getAmountMillion());
-      }
-
-      Long pricePerM2 = resolvePricePerM2(item);
-      if (pricePerM2 != null && pricePerM2 > 0) {
-        allPricesPerM2.add(pricePerM2);
-        if (isEligibleForMedian(item)) {
-          PropertyType type = item.getPropertyType();
-          if (type.isResidential()) {
-            residentialPricesM2.add(pricePerM2);
-          } else if (type.isPlot()) {
-            plotPricesM2.add(pricePerM2);
-          } else {
-            otherPricesM2.add(pricePerM2);
-          }
-        }
-      }
-
-      String cityKey = CityUtils.normalizeCityKey(item.getCity());
-      PropertyType type = item.getPropertyType();
-      String bucketKey = cityKey + "#" + type.name();
-      segmentBuckets.computeIfAbsent(bucketKey, k -> new ArrayList<>()).add(item);
+      accumulateCityCount(acc.cityCounts, item.getCity());
+      accumulatePriceMillion(acc.pricesMillion, item);
+      accumulatePricePerM2(acc, item);
+      accumulateSegmentBucket(acc.segmentBuckets, item);
     }
+    return acc;
+  }
 
-    // Legacy general metrics
-    if (!pricesMillion.isEmpty()) {
-      double sum = pricesMillion.stream().mapToDouble(Double::doubleValue).sum();
-      double avg = sum / pricesMillion.size();
+  private void accumulateCityCount(Map<String, Integer> cityCounts, String city) {
+    if (city != null && !city.isBlank()) {
+      cityCounts.put(city, cityCounts.getOrDefault(city, 0) + 1);
+    }
+  }
+
+  private void accumulatePriceMillion(List<Double> pricesMillion, IngatlanItem item) {
+    if (item.getPriceInfo() != null
+        && item.getPriceInfo().getAmountMillion() != null
+        && item.getPriceInfo().getAmountMillion() > 0) {
+      pricesMillion.add(item.getPriceInfo().getAmountMillion());
+    }
+  }
+
+  private void accumulatePricePerM2(MarketStatsAccumulator acc, IngatlanItem item) {
+    Long pricePerM2 = resolvePricePerM2(item);
+    if (pricePerM2 == null || pricePerM2 <= 0) {
+      return;
+    }
+    acc.allPricesPerM2.add(pricePerM2);
+    if (!isEligibleForMedian(item)) {
+      return;
+    }
+    PropertyType type = item.getPropertyType();
+    if (type.isResidential()) {
+      acc.residentialPricesM2.add(pricePerM2);
+    } else if (type.isPlot()) {
+      acc.plotPricesM2.add(pricePerM2);
+    } else {
+      acc.otherPricesM2.add(pricePerM2);
+    }
+  }
+
+  private void accumulateSegmentBucket(
+      Map<String, List<IngatlanItem>> segmentBuckets, IngatlanItem item) {
+    String cityKey = CityUtils.normalizeCityKey(item.getCity());
+    PropertyType type = item.getPropertyType();
+    String bucketKey = cityKey + "#" + type.name();
+    segmentBuckets.computeIfAbsent(bucketKey, k -> new ArrayList<>()).add(item);
+  }
+
+  private void computeGeneralPriceMetrics(
+      MarketStatsDto.MarketStatsDtoBuilder stats, MarketStatsAccumulator acc, int totalItems) {
+    if (!acc.pricesMillion.isEmpty()) {
+      double sum = acc.pricesMillion.stream().mapToDouble(Double::doubleValue).sum();
+      double avg = sum / acc.pricesMillion.size();
       stats
           .averagePriceMillion(Math.round(avg * 10.0) / 10.0)
-          .minPriceMillion(pricesMillion.stream().mapToDouble(Double::doubleValue).min().orElse(0.0))
-          .maxPriceMillion(pricesMillion.stream().mapToDouble(Double::doubleValue).max().orElse(0.0));
+          .minPriceMillion(acc.pricesMillion.stream().mapToDouble(Double::doubleValue).min().orElse(0.0))
+          .maxPriceMillion(acc.pricesMillion.stream().mapToDouble(Double::doubleValue).max().orElse(0.0));
     }
-
-    if (!allPricesPerM2.isEmpty()) {
-      long sumM2 = allPricesPerM2.stream().mapToLong(Long::longValue).sum();
-      stats.averagePricePerM2(sumM2 / allPricesPerM2.size());
+    if (!acc.allPricesPerM2.isEmpty()) {
+      long sumM2 = acc.allPricesPerM2.stream().mapToLong(Long::longValue).sum();
+      stats.averagePricePerM2(sumM2 / acc.allPricesPerM2.size());
     }
+    double newRate =
+        totalItems > 0
+            ? Math.round(((double) acc.newItemsCount / totalItems * 100.0) * 10.0) / 10.0
+            : 0.0;
+    stats.newRatePercent(newRate).cityBreakdown(acc.cityCounts);
+  }
 
-    double newRate = totalItems > 0
-        ? Math.round(((double) newItemsCount / totalItems * 100.0) * 10.0) / 10.0
-        : 0.0;
-    stats.newRatePercent(newRate).cityBreakdown(cityCounts);
+  private void computeResidentialAndPlotMetrics(
+      MarketStatsDto.MarketStatsDtoBuilder stats, MarketStatsAccumulator acc) {
+    Long resMedian = computeResidentialMetrics(stats, acc.residentialPricesM2);
+    Long plotMedian = computePlotMetrics(stats, acc.plotPricesM2);
+    computeOverallMedian(stats, acc, resMedian, plotMedian);
+  }
 
-    // Residential living area metrics (LAKAS + HAZ)
-    Long resMedian = null;
+  private Long computeResidentialMetrics(
+      MarketStatsDto.MarketStatsDtoBuilder stats, List<Long> residentialPricesM2) {
     stats.residentialSampleSize(residentialPricesM2.size());
     if (residentialPricesM2.size() >= MIN_SAMPLE_SIZE) {
-      resMedian = calculateMedian(residentialPricesM2);
+      Long resMedian = calculateMedian(residentialPricesM2);
       long resSum = residentialPricesM2.stream().mapToLong(Long::longValue).sum();
       stats
           .residentialMedianPricePerM2(resMedian)
           .residentialAveragePricePerM2(resSum / residentialPricesM2.size())
           .residentialInsufficientData(false);
-    } else {
-      stats.residentialMedianPricePerM2(null);
-      if (!residentialPricesM2.isEmpty()) {
-        long resSum = residentialPricesM2.stream().mapToLong(Long::longValue).sum();
-        stats.residentialAveragePricePerM2(resSum / residentialPricesM2.size());
-      }
-      stats.residentialInsufficientData(true);
+      return resMedian;
     }
+    stats.residentialMedianPricePerM2(null);
+    if (!residentialPricesM2.isEmpty()) {
+      long resSum = residentialPricesM2.stream().mapToLong(Long::longValue).sum();
+      stats.residentialAveragePricePerM2(resSum / residentialPricesM2.size());
+    }
+    stats.residentialInsufficientData(true);
+    return null;
+  }
 
-    // Plot land area metrics (TELEK) - strictly separated from living area
-    Long plotMedian = null;
+  private Long computePlotMetrics(
+      MarketStatsDto.MarketStatsDtoBuilder stats, List<Long> plotPricesM2) {
     stats.plotSampleSize(plotPricesM2.size());
     if (plotPricesM2.size() >= MIN_SAMPLE_SIZE) {
-      plotMedian = calculateMedian(plotPricesM2);
+      Long plotMedian = calculateMedian(plotPricesM2);
       long plotSum = plotPricesM2.stream().mapToLong(Long::longValue).sum();
       stats
           .plotMedianPricePerM2(plotMedian)
           .plotAveragePricePerM2(plotSum / plotPricesM2.size())
           .plotInsufficientData(false);
-    } else {
-      stats.plotMedianPricePerM2(null);
-      if (!plotPricesM2.isEmpty()) {
-        long plotSum = plotPricesM2.stream().mapToLong(Long::longValue).sum();
-        stats.plotAveragePricePerM2(plotSum / plotPricesM2.size());
-      }
-      stats.plotInsufficientData(true);
+      return plotMedian;
     }
+    stats.plotMedianPricePerM2(null);
+    if (!plotPricesM2.isEmpty()) {
+      long plotSum = plotPricesM2.stream().mapToLong(Long::longValue).sum();
+      stats.plotAveragePricePerM2(plotSum / plotPricesM2.size());
+    }
+    stats.plotInsufficientData(true);
+    return null;
+  }
 
-    // Overall medianPricePerM2 & insufficientData guard
-    int totalValidSqm = residentialPricesM2.size() + plotPricesM2.size() + otherPricesM2.size();
+  private void computeOverallMedian(
+      MarketStatsDto.MarketStatsDtoBuilder stats,
+      MarketStatsAccumulator acc,
+      Long resMedian,
+      Long plotMedian) {
+    int totalValidSqm =
+        acc.residentialPricesM2.size() + acc.plotPricesM2.size() + acc.otherPricesM2.size();
     stats.totalSampleSize(totalValidSqm);
 
-    if (residentialPricesM2.size() >= MIN_SAMPLE_SIZE) {
+    if (acc.residentialPricesM2.size() >= MIN_SAMPLE_SIZE) {
       stats.medianPricePerM2(resMedian).insufficientData(false);
-    } else if (plotPricesM2.size() >= MIN_SAMPLE_SIZE && residentialPricesM2.isEmpty()) {
+    } else if (acc.plotPricesM2.size() >= MIN_SAMPLE_SIZE && acc.residentialPricesM2.isEmpty()) {
       stats.medianPricePerM2(plotMedian).insufficientData(false);
     } else {
       stats.medianPricePerM2(null).insufficientData(true);
     }
+  }
 
-    // Segment stats calculation and bucket lookup map
+  private Map<String, MarketSegmentStatsDto> computeSegmentMetrics(
+      Map<String, List<IngatlanItem>> segmentBuckets) {
     Map<String, MarketSegmentStatsDto> segmentDtoMap = new LinkedHashMap<>();
-    List<MarketSegmentStatsDto> segmentsList = new ArrayList<>();
-
     for (Map.Entry<String, List<IngatlanItem>> entry : segmentBuckets.entrySet()) {
       String bucketKey = entry.getKey();
       List<IngatlanItem> bucketItems = entry.getValue();
-
-      IngatlanItem sampleItem = bucketItems.getFirst();
-      MarketSegmentStatsDto.MarketSegmentStatsDtoBuilder segBuilder =
-          MarketSegmentStatsDto.builder()
-              .city(sampleItem.getCity())
-              .propertyType(sampleItem.getPropertyType())
-              .propertyTypeName(sampleItem.getPropertyType().getDisplayName())
-              .residential(sampleItem.getPropertyType().isResidential())
-              .plot(sampleItem.getPropertyType().isPlot());
-
-      List<Long> bucketPricesM2 = new ArrayList<>();
-      List<Double> bucketPricesM = new ArrayList<>();
-      for (IngatlanItem bi : bucketItems) {
-        if (isEligibleForMedian(bi)) {
-          Long pm2 = resolvePricePerM2(bi);
-          if (pm2 != null && pm2 > 0) {
-            bucketPricesM2.add(pm2);
-          }
-          if (bi.getPriceInfo() != null && bi.getPriceInfo().getAmountMillion() != null
-              && bi.getPriceInfo().getAmountMillion() > 0) {
-            bucketPricesM.add(bi.getPriceInfo().getAmountMillion());
-          }
-        }
-      }
-
-      segBuilder.sampleSize(bucketPricesM2.size());
-      if (bucketPricesM2.size() >= MIN_SAMPLE_SIZE) {
-        long sumM2 = bucketPricesM2.stream().mapToLong(Long::longValue).sum();
-        segBuilder
-            .insufficientData(false)
-            .medianPricePerM2(calculateMedian(bucketPricesM2))
-            .averagePricePerM2(sumM2 / bucketPricesM2.size());
-      } else {
-        segBuilder.insufficientData(true).medianPricePerM2(null);
-        if (!bucketPricesM2.isEmpty()) {
-          long sumM2 = bucketPricesM2.stream().mapToLong(Long::longValue).sum();
-          segBuilder.averagePricePerM2(sumM2 / bucketPricesM2.size());
-        }
-      }
-
-      if (!bucketPricesM.isEmpty()) {
-        double sumM = bucketPricesM.stream().mapToDouble(Double::doubleValue).sum();
-        segBuilder
-            .averagePriceMillion(Math.round((sumM / bucketPricesM.size()) * 10.0) / 10.0)
-            .medianPriceMillion(calculateDoubleMedian(bucketPricesM))
-            .minPriceMillion(
-                bucketPricesM.stream().mapToDouble(Double::doubleValue).min().orElse(0.0))
-            .maxPriceMillion(
-                bucketPricesM.stream().mapToDouble(Double::doubleValue).max().orElse(0.0));
-      }
-
-      MarketSegmentStatsDto segment = segBuilder.build();
-      segmentDtoMap.put(bucketKey, segment);
-      segmentsList.add(segment);
+      segmentDtoMap.put(bucketKey, buildSegmentStats(bucketItems));
     }
-    stats.segments(segmentsList);
+    return segmentDtoMap;
+  }
 
-    // Bargain detection on items
+  private MarketSegmentStatsDto buildSegmentStats(List<IngatlanItem> bucketItems) {
+    IngatlanItem sampleItem = bucketItems.getFirst();
+    MarketSegmentStatsDto.MarketSegmentStatsDtoBuilder segBuilder =
+        MarketSegmentStatsDto.builder()
+            .city(sampleItem.getCity())
+            .propertyType(sampleItem.getPropertyType())
+            .propertyTypeName(sampleItem.getPropertyType().getDisplayName())
+            .residential(sampleItem.getPropertyType().isResidential())
+            .plot(sampleItem.getPropertyType().isPlot());
+
+    List<Long> bucketPricesM2 = new ArrayList<>();
+    List<Double> bucketPricesM = new ArrayList<>();
+    collectBucketEligiblePrices(bucketItems, bucketPricesM2, bucketPricesM);
+
+    populateSegmentSqmStats(segBuilder, bucketPricesM2);
+    populateSegmentMillionStats(segBuilder, bucketPricesM);
+    return segBuilder.build();
+  }
+
+  private void collectBucketEligiblePrices(
+      List<IngatlanItem> bucketItems, List<Long> bucketPricesM2, List<Double> bucketPricesM) {
+    for (IngatlanItem bi : bucketItems) {
+      if (!isEligibleForMedian(bi)) {
+        continue;
+      }
+      Long pm2 = resolvePricePerM2(bi);
+      if (pm2 != null && pm2 > 0) {
+        bucketPricesM2.add(pm2);
+      }
+      if (bi.getPriceInfo() != null
+          && bi.getPriceInfo().getAmountMillion() != null
+          && bi.getPriceInfo().getAmountMillion() > 0) {
+        bucketPricesM.add(bi.getPriceInfo().getAmountMillion());
+      }
+    }
+  }
+
+  private void populateSegmentSqmStats(
+      MarketSegmentStatsDto.MarketSegmentStatsDtoBuilder segBuilder, List<Long> bucketPricesM2) {
+    segBuilder.sampleSize(bucketPricesM2.size());
+    if (bucketPricesM2.size() >= MIN_SAMPLE_SIZE) {
+      long sumM2 = bucketPricesM2.stream().mapToLong(Long::longValue).sum();
+      segBuilder
+          .insufficientData(false)
+          .medianPricePerM2(calculateMedian(bucketPricesM2))
+          .averagePricePerM2(sumM2 / bucketPricesM2.size());
+    } else {
+      segBuilder.insufficientData(true).medianPricePerM2(null);
+      if (!bucketPricesM2.isEmpty()) {
+        long sumM2 = bucketPricesM2.stream().mapToLong(Long::longValue).sum();
+        segBuilder.averagePricePerM2(sumM2 / bucketPricesM2.size());
+      }
+    }
+  }
+
+  private void populateSegmentMillionStats(
+      MarketSegmentStatsDto.MarketSegmentStatsDtoBuilder segBuilder, List<Double> bucketPricesM) {
+    if (bucketPricesM.isEmpty()) {
+      return;
+    }
+    double sumM = bucketPricesM.stream().mapToDouble(Double::doubleValue).sum();
+    segBuilder
+        .averagePriceMillion(Math.round((sumM / bucketPricesM.size()) * 10.0) / 10.0)
+        .medianPriceMillion(calculateDoubleMedian(bucketPricesM))
+        .minPriceMillion(bucketPricesM.stream().mapToDouble(Double::doubleValue).min().orElse(0.0))
+        .maxPriceMillion(bucketPricesM.stream().mapToDouble(Double::doubleValue).max().orElse(0.0));
+  }
+
+  private void detectBargains(
+      MarketStatsDto.MarketStatsDtoBuilder stats,
+      List<IngatlanItem> uniqueItems,
+      Map<String, MarketSegmentStatsDto> segmentDtoMap,
+      int totalItems) {
     int totalBargains = 0;
+    Map<String, Integer> segmentBargains = new HashMap<>();
+
     for (IngatlanItem item : uniqueItems) {
       if (item == null) {
         continue;
       }
-      String cityKey = CityUtils.normalizeCityKey(item.getCity());
-      PropertyType type = item.getPropertyType();
-      String bucketKey = cityKey + "#" + type.name();
+      String bucketKey = resolveBucketKey(item);
       MarketSegmentStatsDto segment = segmentDtoMap.get(bucketKey);
-
       Long itemPriceM2 = resolvePricePerM2(item);
-      if (itemPriceM2 != null && itemPriceM2 > 0 && segment != null
-          && !segment.isInsufficientData() && segment.getMedianPricePerM2() != null
-          && segment.getMedianPricePerM2() > 0
-          && isEligibleForMedian(item)) {
-        long refMedian = segment.getMedianPricePerM2();
-        double pctBelow = ((double) (refMedian - itemPriceM2) / refMedian) * 100.0;
-        double roundedPctBelow = Math.round(pctBelow * 10.0) / 10.0;
 
-        item.setReferenceMedianPricePerSquareMeter(refMedian);
-        item.setPercentageBelowMedian(roundedPctBelow);
-        item.setReferenceSampleSize(segment.getSampleSize());
-
-        if (pctBelow >= BARGAIN_DISCOUNT_THRESHOLD_PERCENT) {
-          item.setIsBargain(true);
+      if (isEligibleForBargain(itemPriceM2, segment, item)) {
+        boolean isBargain = evaluateItemBargain(item, itemPriceM2, segment);
+        if (isBargain) {
           totalBargains++;
-          segment.setBargainCount(segment.getBargainCount() + 1);
-        } else {
-          item.setIsBargain(false);
+          segmentBargains.merge(bucketKey, 1, Integer::sum);
         }
       } else {
-        // Insufficient data (< 5 samples in bucket) or missing price/m2 -> bargain strictly suppressed
-        item.setIsBargain(false);
-        item.setReferenceMedianPricePerSquareMeter(null);
-        item.setPercentageBelowMedian(null);
-        item.setReferenceSampleSize(segment != null ? segment.getSampleSize() : 0);
+        suppressItemBargain(item, segment);
       }
     }
 
-    double bargainRate = totalItems > 0
-        ? Math.round(((double) totalBargains / totalItems * 100.0) * 10.0) / 10.0
-        : 0.0;
+    finalizeSegmentBargains(stats, segmentDtoMap, segmentBargains);
+    double bargainRate =
+        totalItems > 0
+            ? Math.round(((double) totalBargains / totalItems * 100.0) * 10.0) / 10.0
+            : 0.0;
     stats.bargainCount(totalBargains).bargainRatePercent(bargainRate);
+  }
 
-    // Price drops aggregation (listings with priceDelta < 0)
+  private String resolveBucketKey(IngatlanItem item) {
+    String cityKey = CityUtils.normalizeCityKey(item.getCity());
+    PropertyType type = item.getPropertyType();
+    return cityKey + "#" + type.name();
+  }
+
+  private boolean isEligibleForBargain(
+      Long itemPriceM2, MarketSegmentStatsDto segment, IngatlanItem item) {
+    if (itemPriceM2 == null || itemPriceM2 <= 0 || segment == null || segment.isInsufficientData()) {
+      return false;
+    }
+    Long median = segment.getMedianPricePerM2();
+    return median != null && median > 0 && isEligibleForMedian(item);
+  }
+
+  private boolean evaluateItemBargain(
+      IngatlanItem item, Long itemPriceM2, MarketSegmentStatsDto segment) {
+    long refMedian = segment.getMedianPricePerM2();
+    double pctBelow = ((double) (refMedian - itemPriceM2) / refMedian) * 100.0;
+    double roundedPctBelow = Math.round(pctBelow * 10.0) / 10.0;
+
+    item.setReferenceMedianPricePerSquareMeter(refMedian);
+    item.setPercentageBelowMedian(roundedPctBelow);
+    item.setReferenceSampleSize(segment.getSampleSize());
+
+    boolean isBargain = pctBelow >= BARGAIN_DISCOUNT_THRESHOLD_PERCENT;
+    item.setIsBargain(isBargain);
+    return isBargain;
+  }
+
+  private void suppressItemBargain(IngatlanItem item, MarketSegmentStatsDto segment) {
+    item.setIsBargain(false);
+    item.setReferenceMedianPricePerSquareMeter(null);
+    item.setPercentageBelowMedian(null);
+    item.setReferenceSampleSize(segment != null ? segment.getSampleSize() : 0);
+  }
+
+  private void finalizeSegmentBargains(
+      MarketStatsDto.MarketStatsDtoBuilder stats,
+      Map<String, MarketSegmentStatsDto> segmentDtoMap,
+      Map<String, Integer> segmentBargains) {
+    List<MarketSegmentStatsDto> finalizedSegments = new ArrayList<>();
+    for (Map.Entry<String, MarketSegmentStatsDto> entry : segmentDtoMap.entrySet()) {
+      String bucketKey = entry.getKey();
+      MarketSegmentStatsDto seg = entry.getValue();
+      int bCount = segmentBargains.getOrDefault(bucketKey, 0);
+      finalizedSegments.add(seg.toBuilder().bargainCount(bCount).build());
+    }
+    stats.segments(finalizedSegments);
+  }
+
+  private void computePriceDrops(
+      MarketStatsDto.MarketStatsDtoBuilder stats, List<IngatlanItem> uniqueItems, int totalItems) {
     List<IngatlanItem> priceDropItems = new ArrayList<>();
     for (IngatlanItem item : uniqueItems) {
       if (item != null && item.getPriceDelta() != null && item.getPriceDelta() < 0) {
@@ -292,60 +385,83 @@ public class MarketAnalyticsEngine {
       }
     }
 
-    double dropRate = totalItems > 0
-        ? Math.round(((double) priceDropItems.size() / totalItems * 100.0) * 10.0) / 10.0
-        : 0.0;
+    double dropRate =
+        totalItems > 0
+            ? Math.round(((double) priceDropItems.size() / totalItems * 100.0) * 10.0) / 10.0
+            : 0.0;
     stats.priceDropCount(priceDropItems.size()).priceDropRatePercent(dropRate);
 
-    if (!priceDropItems.isEmpty()) {
-      long totalDropHuf = 0;
-      double totalDropPct = 0.0;
-      for (IngatlanItem dropItem : priceDropItems) {
-        totalDropHuf += Math.abs(dropItem.getPriceDelta());
-        if (dropItem.getPriceChangePercent() != null) {
-          totalDropPct += Math.abs(dropItem.getPriceChangePercent());
-        }
-      }
-      stats
-          .averagePriceDropAmountHuf(Math.round((double) totalDropHuf / priceDropItems.size()))
-          .averagePriceDropPercent(
-              Math.round((totalDropPct / priceDropItems.size()) * 10.0) / 10.0);
-
-      // Sort descending by absolute price drop (largest discount first)
-      priceDropItems.sort(Comparator.comparingLong((IngatlanItem it) -> Math.abs(it.getPriceDelta())).reversed());
-
-      List<PriceDropItemDto> topDrops = new ArrayList<>();
-      int limit = Math.min(priceDropItems.size(), 10);
-      for (int i = 0; i < limit; i++) {
-        IngatlanItem it = priceDropItems.get(i);
-        topDrops.add(PresentationMapper.INSTANCE.toPriceDropItemDto(it, resolvePricePerM2(it)));
-      }
-      stats.topPriceDrops(topDrops);
-    } else {
+    if (priceDropItems.isEmpty()) {
       stats
           .averagePriceDropAmountHuf(null)
           .averagePriceDropPercent(null)
           .topPriceDrops(new ArrayList<>());
+      return;
     }
 
-    return stats.build();
+    populatePriceDropDetails(stats, priceDropItems);
+  }
+
+  private void populatePriceDropDetails(
+      MarketStatsDto.MarketStatsDtoBuilder stats, List<IngatlanItem> priceDropItems) {
+    long totalDropHuf = 0;
+    double totalDropPct = 0.0;
+    for (IngatlanItem dropItem : priceDropItems) {
+      totalDropHuf += Math.abs(dropItem.getPriceDelta());
+      if (dropItem.getPriceChangePercent() != null) {
+        totalDropPct += Math.abs(dropItem.getPriceChangePercent());
+      }
+    }
+    stats
+        .averagePriceDropAmountHuf(Math.round((double) totalDropHuf / priceDropItems.size()))
+        .averagePriceDropPercent(
+            Math.round((totalDropPct / priceDropItems.size()) * 10.0) / 10.0);
+
+    priceDropItems.sort(
+        Comparator.comparingLong((IngatlanItem it) -> Math.abs(it.getPriceDelta())).reversed());
+
+    List<PriceDropItemDto> topDrops = new ArrayList<>();
+    int limit = Math.min(priceDropItems.size(), 10);
+    for (int i = 0; i < limit; i++) {
+      IngatlanItem it = priceDropItems.get(i);
+      topDrops.add(PresentationMapper.INSTANCE.toPriceDropItemDto(it, resolvePricePerM2(it)));
+    }
+    stats.topPriceDrops(topDrops);
   }
 
   public Long resolvePricePerM2(IngatlanItem item) {
     if (item == null) {
       return null;
     }
-    if (item.getDetailsInfo() != null && item.getDetailsInfo().getPricePerSquareMeter() != null
-        && item.getDetailsInfo().getPricePerSquareMeter() > 0) {
-      return item.getDetailsInfo().getPricePerSquareMeter();
+    PropertyDetails details = item.getDetailsInfo();
+    if (details != null
+        && details.getPricePerSquareMeter() != null
+        && details.getPricePerSquareMeter() > 0) {
+      return details.getPricePerSquareMeter();
     }
-    if (item.getPriceInfo() != null && item.getPriceInfo().getAmountHuf() != null
-        && item.getPriceInfo().getAmountHuf() > 0
-        && item.getDetailsInfo() != null && item.getDetailsInfo().getAreaSquareMeters() != null
-        && item.getDetailsInfo().getAreaSquareMeters() > 0) {
-      return Math.round((double) item.getPriceInfo().getAmountHuf() / item.getDetailsInfo().getAreaSquareMeters());
+    PriceInfo price = item.getPriceInfo();
+    if (hasValidAmountAndArea(price, details)) {
+      return Math.round((double) price.getAmountHuf() / details.getAreaSquareMeters());
     }
     return null;
+  }
+
+  private boolean hasValidAmountAndArea(PriceInfo price, PropertyDetails details) {
+    if (price == null || price.getAmountHuf() == null || price.getAmountHuf() <= 0) {
+      return false;
+    }
+    return details != null && details.getAreaSquareMeters() != null && details.getAreaSquareMeters() > 0;
+  }
+
+  private static final class MarketStatsAccumulator {
+    private final List<Double> pricesMillion = new ArrayList<>();
+    private final List<Long> allPricesPerM2 = new ArrayList<>();
+    private final List<Long> residentialPricesM2 = new ArrayList<>();
+    private final List<Long> plotPricesM2 = new ArrayList<>();
+    private final List<Long> otherPricesM2 = new ArrayList<>();
+    private final Map<String, Integer> cityCounts = new LinkedHashMap<>();
+    private final Map<String, List<IngatlanItem>> segmentBuckets = new LinkedHashMap<>();
+    private int newItemsCount = 0;
   }
 
   public Long calculateMedian(List<Long> values) {

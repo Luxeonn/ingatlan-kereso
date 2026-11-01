@@ -62,13 +62,7 @@ public class JofogasHtmlStrategy implements ExtractionStrategy {
           LOGGER.warn("Nem sikerült letölteni a Jófogás oldalt: {}", pageUrl);
           continue;
         }
-
-        List<RawPropertyListing> pageListings = rawParser.parseRawListings(document);
-        for (RawPropertyListing raw : pageListings) {
-          if (raw != null && raw.url() != null && processedUrls.add(raw.url())) {
-            allListings.add(raw);
-          }
-        }
+        collectPageListings(document, processedUrls, allListings);
       }
 
       if (allListings.isEmpty()) {
@@ -78,6 +72,19 @@ public class JofogasHtmlStrategy implements ExtractionStrategy {
     } catch (Exception e) {
       LOGGER.error("Hiba a Jófogás HTML stratégia futásakor: {}", e.getMessage(), e);
       return RawExtractionResult.failure(method(), searchUrl, e.getMessage(), 500);
+    }
+  }
+
+  private void collectPageListings(
+      Document document, Set<String> processedUrls, List<RawPropertyListing> allListings) {
+    if (document == null) {
+      return;
+    }
+    List<RawPropertyListing> pageListings = rawParser.parseRawListings(document);
+    for (RawPropertyListing raw : pageListings) {
+      if (raw != null && raw.url() != null && processedUrls.add(raw.url())) {
+        allListings.add(raw);
+      }
     }
   }
 
