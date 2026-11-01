@@ -112,33 +112,28 @@ public final class LocationConflictDetector {
     if (locA == null || locB == null) {
       return false;
     }
+    return hasDistrictConflict(locA, locB, normalizedCity)
+        || hasQuarterConflict(locA, locB)
+        || hasStreetConflict(locA, locB);
+  }
 
-    // 1. Budapest district conflict
-    if ("budapest".equals(normalizedCity) && locA.hasDistrict() && locB.hasDistrict()) {
-      if (!locA.district().equals(locB.district())) {
-        return true;
-      }
-    }
+  private static boolean isConflictingText(String a, String b) {
+    return !a.equals(b) && !a.contains(b) && !b.contains(a);
+  }
 
-    // 2. City quarter conflict (e.g. Bánomkert vs Kertváros)
-    if (locA.hasQuarter() && locB.hasQuarter()) {
-      String qA = locA.quarter();
-      String qB = locB.quarter();
-      if (!qA.equals(qB) && !qA.contains(qB) && !qB.contains(qA)) {
-        return true;
-      }
-    }
+  private static boolean hasDistrictConflict(ExtractedLocation a, ExtractedLocation b, String city) {
+    return "budapest".equals(city)
+        && a.hasDistrict()
+        && b.hasDistrict()
+        && !a.district().equals(b.district());
+  }
 
-    // 3. Street name conflict (e.g. Muskátli utca vs Kossuth utca)
-    if (locA.hasStreet() && locB.hasStreet()) {
-      String sA = locA.street();
-      String sB = locB.street();
-      if (!sA.equals(sB) && !sA.contains(sB) && !sB.contains(sA)) {
-        return true;
-      }
-    }
+  private static boolean hasQuarterConflict(ExtractedLocation a, ExtractedLocation b) {
+    return a.hasQuarter() && b.hasQuarter() && isConflictingText(a.quarter(), b.quarter());
+  }
 
-    return false;
+  private static boolean hasStreetConflict(ExtractedLocation a, ExtractedLocation b) {
+    return a.hasStreet() && b.hasStreet() && isConflictingText(a.street(), b.street());
   }
 
   /**
@@ -165,7 +160,6 @@ public final class LocationConflictDetector {
       return null;
     }
 
-    // Check Roman numerals first
     Matcher mRoman = BP_DISTRICT_ROMAN_PATTERN.matcher(text);
     if (mRoman.find()) {
       Integer d = romanToNumber(mRoman.group(1));
@@ -174,11 +168,23 @@ public final class LocationConflictDetector {
       }
     }
 
-    // Check Arabic numerals
-    Matcher mArabic = BP_DISTRICT_ARABIC_PATTERN.matcher(text);
-    if (mArabic.find()) {
+    Integer arabic = parseDistrictNumber(BP_DISTRICT_ARABIC_PATTERN.matcher(text));
+    if (arabic != null) {
+      return arabic;
+    }
+
+    Integer urlDistrict = parseDistrictNumber(BP_DISTRICT_URL_PATTERN.matcher(text));
+    if (urlDistrict != null) {
+      return urlDistrict;
+    }
+
+    return findNamedDistrict(text);
+  }
+
+  private static Integer parseDistrictNumber(Matcher matcher) {
+    if (matcher.find()) {
       try {
-        int d = Integer.parseInt(mArabic.group(1));
+        int d = Integer.parseInt(matcher.group(1));
         if (d >= 1 && d <= 23) {
           return d;
         }
@@ -186,28 +192,16 @@ public final class LocationConflictDetector {
         // Fall through
       }
     }
+    return null;
+  }
 
-    // Check URL pattern
-    Matcher mUrl = BP_DISTRICT_URL_PATTERN.matcher(text);
-    if (mUrl.find()) {
-      try {
-        int d = Integer.parseInt(mUrl.group(1));
-        if (d >= 1 && d <= 23) {
-          return d;
-        }
-      } catch (NumberFormatException ignored) {
-        // Fall through
-      }
-    }
-
-    // Check district names
+  private static Integer findNamedDistrict(String text) {
     String slug = SlugUtils.toSlug(text);
     for (Map.Entry<String, Integer> entry : BP_DISTRICT_NAMES.entrySet()) {
       if (slug.contains(entry.getKey())) {
         return entry.getValue();
       }
     }
-
     return null;
   }
 

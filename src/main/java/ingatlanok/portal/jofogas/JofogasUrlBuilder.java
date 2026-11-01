@@ -24,27 +24,30 @@ public class JofogasUrlBuilder implements PortalUrlBuilder {
       throw new IllegalArgumentException("City must not be null or blank");
     }
 
-    String citySlug = SlugUtils.toSlug(criteria.getCity());
-    if (citySlug.isEmpty()) {
-      throw new IllegalArgumentException("Invalid city name: " + criteria.getCity());
-    }
-
-    String locationSegment;
-    if ("budapest".equals(citySlug)) {
-      locationSegment = "budapest";
-    } else {
-      Optional<String> countySlug = CityUtils.getCountySlug(criteria.getCity());
-      if (countySlug.isPresent() && !countySlug.get().equals(citySlug)) {
-        locationSegment = countySlug.get() + "/" + citySlug;
-      } else if (countySlug.isPresent()) {
-        locationSegment = countySlug.get();
-      } else {
-        locationSegment = citySlug;
-      }
-    }
-
+    String locationSegment = resolveLocationSegment(criteria.getCity());
     String typeSlug = PortalSupport.resolvePropertyTypeSlug(criteria);
+    List<String> queryParams = buildQueryParams(criteria);
 
+    String route = "/" + locationSegment + "/" + typeSlug;
+    return BASE_URL + route + "?" + String.join("&", queryParams);
+  }
+
+  private String resolveLocationSegment(String city) {
+    String citySlug = SlugUtils.toSlug(city);
+    if (citySlug.isEmpty()) {
+      throw new IllegalArgumentException("Invalid city name: " + city);
+    }
+    if ("budapest".equals(citySlug)) {
+      return "budapest";
+    }
+    Optional<String> countySlug = CityUtils.getCountySlug(city);
+    if (countySlug.isPresent() && !countySlug.get().equals(citySlug)) {
+      return countySlug.get() + "/" + citySlug;
+    }
+    return countySlug.orElse(citySlug);
+  }
+
+  private List<String> buildQueryParams(SearchCriteria criteria) {
     List<String> queryParams = new ArrayList<>();
     queryParams.add("st=s");
 
@@ -62,8 +65,6 @@ public class JofogasUrlBuilder implements PortalUrlBuilder {
     }
 
     Collections.sort(queryParams);
-
-    String route = "/" + locationSegment + "/" + typeSlug;
-    return BASE_URL + route + "?" + String.join("&", queryParams);
+    return queryParams;
   }
 }

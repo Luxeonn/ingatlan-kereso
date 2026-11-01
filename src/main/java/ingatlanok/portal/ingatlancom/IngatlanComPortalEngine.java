@@ -17,20 +17,18 @@ public class IngatlanComPortalEngine implements PortalEngine {
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComPortalEngine.class);
 
   private final IngatlanComUrlBuilder urlBuilder;
-  private final IngatlanComParser parser;
   private final AdapterPortalEngine adapterEngine;
 
   public IngatlanComPortalEngine() {
-    this(new IngatlanComUrlBuilder(), new IngatlanComParser());
+    this(new IngatlanComUrlBuilder());
   }
 
-  public IngatlanComPortalEngine(IngatlanComUrlBuilder urlBuilder, IngatlanComParser parser) {
+  public IngatlanComPortalEngine(IngatlanComUrlBuilder urlBuilder) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new IngatlanComUrlBuilder();
-    this.parser = parser != null ? parser : new IngatlanComParser();
     this.adapterEngine = new AdapterPortalEngine(new IngatlanComPortalAdapter(this.urlBuilder,
         List.of(
             new IngatlanComSidecarStrategy(this.urlBuilder),
-            new IngatlanComHtmlStrategy(this.urlBuilder, new IngatlanComRawParser(), this.parser,
+            new IngatlanComHtmlStrategy(this.urlBuilder, new IngatlanComRawParser(),
                 HttpFetcher::fetchDocument)
         )));
   }
@@ -50,16 +48,12 @@ public class IngatlanComPortalEngine implements PortalEngine {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new IngatlanComPortalAdapter(urlBuilder,
         List.of(
             new IngatlanComSidecarStrategy(urlBuilder),
-            new IngatlanComHtmlStrategy(urlBuilder, new IngatlanComRawParser(), parser, documentFetcher)
+            new IngatlanComHtmlStrategy(urlBuilder, new IngatlanComRawParser(), documentFetcher)
         )));
     return dynamicEngine.scrape(criteria);
   }
 
   public IngatlanComUrlBuilder getUrlBuilder() {
     return urlBuilder;
-  }
-
-  public IngatlanComParser getParser() {
-    return parser;
   }
 }

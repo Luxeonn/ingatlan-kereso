@@ -9,6 +9,14 @@ public class PriceHistoryTracker {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(PriceHistoryTracker.class);
 
+  public record ExistingPriceState(
+      boolean isNew,
+      Long prevAmount,
+      Long existingDelta,
+      Double existingPct,
+      String existingLastChangeAt,
+      String currentStatus) {}
+
   public record PriceDeltaCalculation(
       Long delta,
       Double changePercent,
@@ -19,42 +27,56 @@ public class PriceHistoryTracker {
       Long previousPriceAmount) {}
 
   public PriceDeltaCalculation calculate(
-      boolean isNew,
-      Long prevAmount,
+      ExistingPriceState existing,
       Long newAmount,
-      Long existingDelta,
-      Double existingPct,
-      String existingLastChangeAt,
-      String currentStatus,
       String title,
       String now) {
     if (newAmount == null || newAmount <= 0) {
-      String status =
-          (currentStatus != null && !currentStatus.isBlank()) ? currentStatus : "ACTIVE";
-      return new PriceDeltaCalculation(
-          existingDelta, existingPct, existingLastChangeAt, status, false, false, prevAmount);
+      return fallbackCalculation(existing);
     }
-
-    if (isNew) {
-      String status =
-          (currentStatus != null && !currentStatus.isBlank()) ? currentStatus : "ACTIVE";
-      return new PriceDeltaCalculation(0L, 0.0, null, status, true, false, null);
+    if (existing.isNew()) {
+      return newPriceCalculation(existing);
     }
-
-    if (prevAmount != null && prevAmount > 0 && !prevAmount.equals(newAmount)) {
-      long delta = newAmount - prevAmount;
-      double changePct = Math.round(((double) delta / prevAmount * 100.0) * 100.0) / 100.0;
-      String newStatus = delta < 0 ? "PRICE_DROP" : (delta > 0 ? "PRICE_INCREASE" : currentStatus);
-
-      LOGGER.info(
-          "[Árváltozás] {} - Régi: {} Ft -> Új: {} Ft (Delta: {} Ft, {}%)",
-          title != null ? title : "", prevAmount, newAmount, delta, changePct);
-
-      return new PriceDeltaCalculation(delta, changePct, now, newStatus, false, true, prevAmount);
+    if (existing.prevAmount() != null
+        && existing.prevAmount() > 0
+        && !existing.prevAmount().equals(newAmount)) {
+      return priceChangedCalculation(existing, newAmount, title, now);
     }
+    return fallbackCalculation(existing);
+  }
 
-    String status = (currentStatus != null && !currentStatus.isBlank()) ? currentStatus : "ACTIVE";
+  private PriceDeltaCalculation fallbackCalculation(ExistingPriceState existing) {
+    String status = resolveStatus(existing.currentStatus());
     return new PriceDeltaCalculation(
-        existingDelta, existingPct, existingLastChangeAt, status, false, false, prevAmount);
+        existing.existingDelta(),
+        existing.existingPct(),
+        existing.existingLastChangeAt(),
+        status,
+        false,
+        false,
+        existing.prevAmount());
+  }
+
+  private PriceDeltaCalculation newPriceCalculation(ExistingPriceState existing) {
+    String status = resolveStatus(existing.currentStatus());
+    return new PriceDeltaCalculation(0L, 0.0, null, status, true, false, null);
+  }
+
+  private PriceDeltaCalculation priceChangedCalculation(
+      ExistingPriceState existing, Long newAmount, String title, String now) {
+    long prev = existing.prevAmount();
+    long delta = newAmount - prev;
+    double changePct = Math.round(((double) delta / prev * 100.0) * 100.0) / 100.0;
+    String newStatus = delta < 0 ? "PRICE_DROP" : (delta > 0 ? "PRICE_INCREASE" : existing.currentStatus());
+
+    LOGGER.info(
+        "[Árváltozás] {} - Régi: {} Ft -> Új: {} Ft (Delta: {} Ft, {}%)",
+        title != null ? title : "", prev, newAmount, delta, changePct);
+
+    return new PriceDeltaCalculation(delta, changePct, now, newStatus, false, true, prev);
+  }
+
+  private String resolveStatus(String currentStatus) {
+    return (currentStatus != null && !currentStatus.isBlank()) ? currentStatus : "ACTIVE";
   }
 }

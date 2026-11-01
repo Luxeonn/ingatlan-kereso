@@ -12,6 +12,7 @@ import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.ExtractionStrategy;
+import ingatlanok.portal.PortalSupport;
 
 public class IngatlanComHtmlStrategy implements ExtractionStrategy {
 
@@ -19,21 +20,18 @@ public class IngatlanComHtmlStrategy implements ExtractionStrategy {
 
   private final IngatlanComUrlBuilder urlBuilder;
   private final IngatlanComRawParser rawParser;
-  private final IngatlanComParser parserHelper;
   private final Function<String, Document> documentFetcher;
 
   public IngatlanComHtmlStrategy() {
-    this(new IngatlanComUrlBuilder(), new IngatlanComRawParser(), new IngatlanComParser(), HttpFetcher::fetchDocument);
+    this(new IngatlanComUrlBuilder(), new IngatlanComRawParser(), HttpFetcher::fetchDocument);
   }
 
   public IngatlanComHtmlStrategy(
       IngatlanComUrlBuilder urlBuilder,
       IngatlanComRawParser rawParser,
-      IngatlanComParser parserHelper,
       Function<String, Document> documentFetcher) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new IngatlanComUrlBuilder();
     this.rawParser = rawParser != null ? rawParser : new IngatlanComRawParser();
-    this.parserHelper = parserHelper != null ? parserHelper : new IngatlanComParser();
     this.documentFetcher = documentFetcher != null ? documentFetcher : HttpFetcher::fetchDocument;
   }
 
@@ -54,7 +52,7 @@ public class IngatlanComHtmlStrategy implements ExtractionStrategy {
         return RawExtractionResult.botProtected(method(), searchUrl, "Nem sikerült letölteni az oldalt");
       }
 
-      if (parserHelper.isBotChallenge(document)) {
+      if (PortalSupport.isCommonBotChallenge(document)) {
         LOGGER.warn("Ingatlan.com: Cloudflare WAF bot-védelem detektálva");
         return RawExtractionResult.botProtected(method(), searchUrl, "Cloudflare WAF detektálva");
       }

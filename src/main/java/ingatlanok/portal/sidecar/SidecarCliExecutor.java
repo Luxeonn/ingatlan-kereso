@@ -19,8 +19,9 @@ public class SidecarCliExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
   private static final int DEFAULT_TIMEOUT_SECONDS = 20;
-  private static String customExecutable = null;
   private static final ReentrantLock PYTHON_DETECT_LOCK = new ReentrantLock();
+
+  private static String customExecutable = null;
   private static volatile String cachedPythonCmd = null;
   private static volatile boolean pythonChecked = false;
 
@@ -54,55 +55,15 @@ public class SidecarCliExecutor {
     try {
       ProcessBuilder pb = new ProcessBuilder(fullCommand);
       pb.redirectErrorStream(false);
-
       Process process = pb.start();
 
       StringBuilder stdout = new StringBuilder();
       StringBuilder stderr = new StringBuilder();
 
-      Thread outThread =
-          Thread.ofVirtual()
-              .start(
-                  () -> {
-                    try (BufferedReader reader =
-                        new BufferedReader(
-                            new InputStreamReader(
-                                process.getInputStream(), StandardCharsets.UTF_8))) {
-                      String line;
-                      while ((line = reader.readLine()) != null) {
-                        stdout.append(line).append("\n");
-                      }
-                    } catch (Exception ignored) {
-                       // A failed stream read is reflected in the process result and diagnostics.
-                    }
-                  });
-
-      Thread errThread =
-          Thread.ofVirtual()
-              .start(
-                  () -> {
-                    try (BufferedReader reader =
-                        new BufferedReader(
-                            new InputStreamReader(
-                                process.getErrorStream(), StandardCharsets.UTF_8))) {
-                      String line;
-                      while ((line = reader.readLine()) != null) {
-                        stderr.append(line).append("\n");
-                      }
-                    } catch (Exception ignored) {
-                       // A failed stream read is reflected in the process result and diagnostics.
-                    }
-                  });
-
-      boolean finished = process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-      if (!finished) {
-        process.destroyForcibly();
+      if (!readProcessStreams(process, stdout, stderr)) {
         LOGGER.warn("Időtúllépés a sidecar futtatása során ({})", portalId);
         return Optional.empty();
       }
-
-      outThread.join(2000);
-      errThread.join(2000);
 
       String stdoutJson = stdout.toString().trim();
       if (stdoutJson.isEmpty()) {
@@ -112,13 +73,8 @@ public class SidecarCliExecutor {
         return Optional.empty();
       }
 
-      int jsonStart = stdoutJson.indexOf("{");
-      int jsonEnd = stdoutJson.lastIndexOf("}");
-      if (jsonStart >= 0 && jsonEnd > jsonStart) {
-        stdoutJson = stdoutJson.substring(jsonStart, jsonEnd + 1);
-      }
-
-      SidecarResponse response = JsonSupport.mapper().readValue(stdoutJson, SidecarResponse.class);
+      String payload = extractJsonPayload(stdoutJson);
+      SidecarResponse response = JsonSupport.mapper().readValue(payload, SidecarResponse.class);
       return Optional.ofNullable(response);
 
     } catch (tools.jackson.core.JacksonException e) {
@@ -128,6 +84,42 @@ public class SidecarCliExecutor {
       LOGGER.error("Hiba a sidecar futtatásakor: {}", e.getMessage(), e);
       return Optional.empty();
     }
+  }
+
+  private static boolean readProcessStreams(Process process, StringBuilder stdout, StringBuilder stderr)
+      throws InterruptedException {
+    Thread outThread = Thread.ofVirtual().start(() -> readStream(process.getInputStream(), stdout));
+    Thread errThread = Thread.ofVirtual().start(() -> readStream(process.getErrorStream(), stderr));
+
+    boolean finished = process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    if (!finished) {
+      process.destroyForcibly();
+      return false;
+    }
+
+    outThread.join(2000);
+    errThread.join(2000);
+    return true;
+  }
+
+  private static void readStream(java.io.InputStream in, StringBuilder target) {
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        target.append(line).append("\n");
+      }
+    } catch (Exception ignored) {
+      // Process streams errors are captured via process exit state.
+    }
+  }
+
+  private static String extractJsonPayload(String stdoutJson) {
+    int jsonStart = stdoutJson.indexOf("{");
+    int jsonEnd = stdoutJson.lastIndexOf("}");
+    if (jsonStart >= 0 && jsonEnd > jsonStart) {
+      return stdoutJson.substring(jsonStart, jsonEnd + 1);
+    }
+    return stdoutJson;
   }
 
   public static List<String> buildArguments(String portalId, SearchCriteria criteria) {

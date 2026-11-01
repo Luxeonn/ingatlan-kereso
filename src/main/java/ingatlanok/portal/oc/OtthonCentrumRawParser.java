@@ -33,86 +33,97 @@ public class OtthonCentrumRawParser {
     }
 
     for (Element card : cards) {
-      String href = card.is("a") ? card.attr("href") : "";
-      if (href.isBlank()) {
-        Element a = card.selectFirst("a[href*=/ingatlanok/]");
-        if (a != null) {
-          href = a.attr("href");
-        }
-      }
-      if (href == null || href.isBlank()) {
-        continue;
-      }
-
-      if (href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
-        String fullLink = PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href);
-
-        String cardText = card.text().replaceAll("\\s+", " ").trim();
-        String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
-
-        String locationCity = null;
-        Long jsonPriceHuf = null;
-        String seoAttr = card.attr("data-seo-select-item-value");
-        if (seoAttr.isBlank()) {
-          Element seoHolder = card.selectFirst("[data-seo-select-item-value]");
-          if (seoHolder != null) {
-            seoAttr = seoHolder.attr("data-seo-select-item-value");
-          }
-        }
-
-        if (!seoAttr.isBlank()) {
-          try {
-            JsonNode seoObj = JsonSupport.parse(seoAttr);
-            if (seoObj.has("ecommerce")) {
-              JsonNode ecom = seoObj.get("ecommerce");
-              if (ecom.has("items")) {
-                JsonNode itemsArray = ecom.get("items");
-                if (!itemsArray.isEmpty()) {
-                  JsonNode firstItem = itemsArray.get(0);
-                  if (firstItem.has("location_city")) {
-                    locationCity = firstItem.get("location_city").asString();
-                  }
-                  if (firstItem.has("price") && !firstItem.get("price").isNull()) {
-                    jsonPriceHuf = firstItem.get("price").asLong();
-                  }
-                }
-              }
-            }
-          } catch (Exception ignored) {
-            // Optional metadata
-          }
-        }
-
-        String title;
-        Element headingEl = card.selectFirst("div.collapse.description h6, .description h6, h6, h3");
-        if (headingEl != null && !headingEl.text().isBlank()) {
-          title = headingEl.text().trim();
-        } else {
-          title = cleanTitle(cardText, locationCity, id);
-        }
-
-        String imageUrl = PortalSupport.extractImageWithFallback(card, OtthonCentrumUrlBuilder.BASE_URL);
-
-        RawPropertyListing raw = RawPropertyListing.builder()
-            .portalId("oc")
-            .nativeId(id)
-            .url(fullLink)
-            .title(title)
-            .priceHuf(jsonPriceHuf)
-            .priceText(cardText)
-            .detailsText(cardText)
-            .locationText(locationCity)
-            .imageUrl(imageUrl)
-            .descriptionText(cardText + " " + seoAttr)
-            .method(ExtractionMethod.HTML)
-            .build();
-
+      RawPropertyListing raw = parseCard(card);
+      if (raw != null) {
         items.add(raw);
       }
     }
 
     return items;
   }
+
+  private RawPropertyListing parseCard(Element card) {
+    String href = extractHref(card);
+    if (href == null || href.isBlank() || !href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
+      return null;
+    }
+
+    String fullLink = PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href);
+    String cardText = card.text().replaceAll("\\s+", " ").trim();
+    String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
+
+    String seoAttr = extractSeoAttr(card);
+    SeoMetadata seo = parseSeoMetadata(seoAttr);
+    String title = resolveTitle(card, cardText, seo.locationCity(), id);
+    String imageUrl = PortalSupport.extractImageWithFallback(card, OtthonCentrumUrlBuilder.BASE_URL);
+
+    return RawPropertyListing.builder()
+        .portalId("oc")
+        .nativeId(id)
+        .url(fullLink)
+        .title(title)
+        .priceHuf(seo.priceHuf())
+        .priceText(cardText)
+        .detailsText(cardText)
+        .locationText(seo.locationCity())
+        .imageUrl(imageUrl)
+        .descriptionText(cardText + " " + seoAttr)
+        .method(ExtractionMethod.HTML)
+        .build();
+  }
+
+  private String extractHref(Element card) {
+    String href = card.is("a") ? card.attr("href") : "";
+    if (href.isBlank()) {
+      Element a = card.selectFirst("a[href*=/ingatlanok/]");
+      if (a != null) {
+        href = a.attr("href");
+      }
+    }
+    return href;
+  }
+
+  private String extractSeoAttr(Element card) {
+    String seoAttr = card.attr("data-seo-select-item-value");
+    if (seoAttr.isBlank()) {
+      Element seoHolder = card.selectFirst("[data-seo-select-item-value]");
+      if (seoHolder != null) {
+        return seoHolder.attr("data-seo-select-item-value");
+      }
+    }
+    return seoAttr;
+  }
+
+  private SeoMetadata parseSeoMetadata(String seoAttr) {
+    if (seoAttr == null || seoAttr.isBlank()) {
+      return new SeoMetadata(null, null);
+    }
+    try {
+      JsonNode seoObj = JsonSupport.parse(seoAttr);
+      JsonNode items = seoObj.path("ecommerce").path("items");
+      if (!items.isArray() || items.isEmpty()) {
+        return new SeoMetadata(null, null);
+      }
+      JsonNode first = items.get(0);
+      String city = first.has("location_city") ? first.get("location_city").asString() : null;
+      Long price = first.has("price") && !first.get("price").isNull()
+          ? first.get("price").asLong()
+          : null;
+      return new SeoMetadata(city, price);
+    } catch (Exception ignored) {
+      return new SeoMetadata(null, null);
+    }
+  }
+
+  private String resolveTitle(Element card, String cardText, String locationCity, String id) {
+    Element headingEl = card.selectFirst("div.collapse.description h6, .description h6, h6, h3");
+    if (headingEl != null && !headingEl.text().isBlank()) {
+      return headingEl.text().trim();
+    }
+    return cleanTitle(cardText, locationCity, id);
+  }
+
+  private record SeoMetadata(String locationCity, Long priceHuf) {}
 
   public String cleanTitle(String text, String defaultCity, String id) {
     if (text != null && text.contains("szoba")) {

@@ -22,24 +22,21 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
 
   private final KoltozzbeUrlBuilder urlBuilder;
   private final KoltozzbeRawParser rawParser;
-  private final KoltozzbeParser paginationHelper;
   private final Function<String, Document> documentFetcher;
   private final int maxPages;
 
   public KoltozzbeExtractionStrategy() {
-    this(new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), new KoltozzbeParser(),
+    this(new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(),
         HttpFetcher::fetchDocument, KoltozzbePortalEngine.DEFAULT_MAX_PAGES);
   }
 
   public KoltozzbeExtractionStrategy(
       KoltozzbeUrlBuilder urlBuilder,
       KoltozzbeRawParser rawParser,
-      KoltozzbeParser paginationHelper,
       Function<String, Document> documentFetcher,
       int maxPages) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new KoltozzbeUrlBuilder();
     this.rawParser = rawParser != null ? rawParser : new KoltozzbeRawParser();
-    this.paginationHelper = paginationHelper != null ? paginationHelper : new KoltozzbeParser();
     this.documentFetcher = documentFetcher != null ? documentFetcher : HttpFetcher::fetchDocument;
     this.maxPages = maxPages > 0 ? maxPages : KoltozzbePortalEngine.DEFAULT_MAX_PAGES;
   }
@@ -69,21 +66,7 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
           break;
         }
 
-        List<RawPropertyListing> pageHtml = rawParser.parseHtmlListings(doc);
-        for (RawPropertyListing raw : pageHtml) {
-          if (raw != null && raw.url() != null && processedUrls.add(raw.url())) {
-            allListings.add(raw);
-          }
-        }
-
-        List<RawPropertyListing> pageJsonLd = rawParser.parseJsonLdListings(doc);
-        for (RawPropertyListing raw : pageJsonLd) {
-          if (raw != null && raw.url() != null && processedUrls.add(raw.url())) {
-            allListings.add(raw);
-          }
-        }
-
-        if ((pageHtml.isEmpty() && pageJsonLd.isEmpty()) || !paginationHelper.hasNextPage(doc, page)) {
+        if (!collectPageListings(doc, page, processedUrls, allListings)) {
           break;
         }
       }
@@ -95,6 +78,35 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
     } catch (Exception e) {
       LOGGER.error("Hiba a Költözzbe stratégia futásakor: {}", e.getMessage(), e);
       return RawExtractionResult.failure(method(), searchUrl, e.getMessage(), 500);
+    }
+  }
+
+  private boolean collectPageListings(
+      Document doc,
+      int page,
+      Set<String> processedUrls,
+      List<RawPropertyListing> allListings) {
+    List<RawPropertyListing> pageHtml = rawParser.parseHtmlListings(doc);
+    addUniqueListings(pageHtml, processedUrls, allListings);
+
+    List<RawPropertyListing> pageJsonLd = rawParser.parseJsonLdListings(doc);
+    addUniqueListings(pageJsonLd, processedUrls, allListings);
+
+    boolean hasContent = !pageHtml.isEmpty() || !pageJsonLd.isEmpty();
+    return hasContent && rawParser.hasNextPage(doc, page);
+  }
+
+  private void addUniqueListings(
+      List<RawPropertyListing> candidates,
+      Set<String> processedUrls,
+      List<RawPropertyListing> target) {
+    if (candidates == null) {
+      return;
+    }
+    for (RawPropertyListing raw : candidates) {
+      if (raw != null && raw.url() != null && processedUrls.add(raw.url())) {
+        target.add(raw);
+      }
     }
   }
 }

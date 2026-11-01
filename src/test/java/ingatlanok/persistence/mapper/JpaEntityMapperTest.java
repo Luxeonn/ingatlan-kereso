@@ -120,7 +120,8 @@ class JpaEntityMapperTest {
     item.setViewed(false);
 
     PropertyEntity entity =
-        mapper.toEntity(item, null, "2026-03-01 12:00:00", 0L, 0.0, null, "ACTIVE");
+        mapper.toEntity(
+            item, null, new PropertyUpdateContext("2026-03-01 12:00:00", 0L, 0.0, null, "ACTIVE"));
 
     assertNotNull(entity);
     assertEquals("Otthon Centrum_456", entity.getPropertyId());
@@ -155,11 +156,12 @@ class JpaEntityMapperTest {
         mapper.toEntity(
             item,
             existing,
-            "2026-03-01 12:00:00",
-            -500_000L,
-            -1.0,
-            "2026-03-01 12:00:00",
-            "PRICE_DROP");
+            new PropertyUpdateContext(
+                "2026-03-01 12:00:00",
+                -500_000L,
+                -1.0,
+                "2026-03-01 12:00:00",
+                "PRICE_DROP"));
 
     assertEquals("orig_id", updated.getPropertyId());
     assertEquals("2026-02-01 09:00:00", updated.getDiscoveredAt());
@@ -201,16 +203,17 @@ class JpaEntityMapperTest {
   void testHistoryAndStatusMapping() {
     PriceHistoryEntity ph =
         mapper.createPriceHistoryEntity(
-            "p1",
-            "url1",
-            "2026-03-01",
-            "30 M Ft",
-            30_000_000L,
-            30.0,
-            500_000L,
-            32_000_000L,
-            -2_000_000L,
-            -6.25);
+            new PriceHistoryContext(
+                "p1",
+                "url1",
+                "2026-03-01",
+                "30 M Ft",
+                30_000_000L,
+                30.0,
+                500_000L,
+                32_000_000L,
+                -2_000_000L,
+                -6.25));
     ph.setId(7L);
     PriceHistoryEntry phEntry = mapper.toPriceHistoryEntry(ph);
     assertNotNull(phEntry);
@@ -242,11 +245,15 @@ class JpaEntityMapperTest {
 
     IngatlanItem item2 = new IngatlanItem();
     item2.setPropertyType(PropertyType.IPARI_KERESKEDELMI);
-    PropertyEntity entity2 = mapper.toEntity(item2, null, "now", 0L, 0.0, null, "ACTIVE");
+    PropertyEntity entity2 =
+        mapper.toEntity(
+            item2, null, new PropertyUpdateContext("now", 0L, 0.0, null, "ACTIVE"));
     assertEquals(PropertyType.IPARI_KERESKEDELMI, entity2.getPropertyType());
 
     item2.setPropertyType((PropertyType) null);
-    PropertyEntity entityNull = mapper.toEntity(item2, null, "now", 0L, 0.0, null, "ACTIVE");
+    PropertyEntity entityNull =
+        mapper.toEntity(
+            item2, null, new PropertyUpdateContext("now", 0L, 0.0, null, "ACTIVE"));
     assertEquals(PropertyType.EGYEB_ISMERETLEN, entityNull.getPropertyType());
   }
 
@@ -283,7 +290,8 @@ class JpaEntityMapperTest {
     assertNull(mapper.toStatusLogEntry(null));
 
     ListingObservationEntity lo =
-        mapper.createListingObservationEntity("p", "u", "c", "t", 1L, 2L, "BOGUS", 3L, 4.0);
+        mapper.createListingObservationEntity(
+            new ListingObservationContext("p", "u", "c", "t", 1L, 2L, "BOGUS", 3L, 4.0));
     assertNull(lo.getId());
     assertEquals("c", lo.getCanonicalId());
     ListingObservation obs = mapper.toListingObservation(lo);

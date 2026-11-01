@@ -18,6 +18,18 @@ public final class PortalSupport {
   private static final DateTimeFormatter TIMESTAMP_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+  private static final Set<String> PLACEHOLDER_MARKERS = Set.of(
+      "nopic",
+      "no-pic",
+      "placeholder",
+      "default-image",
+      "no-image",
+      "noimage",
+      "/y/img/app_banner/",
+      "/y/img/foot-logo",
+      "/y/img/sale_icon"
+  );
+
   private PortalSupport() {}
 
   public static SearchCriteria normalizeCriteria(SearchCriteria criteria) {
@@ -109,15 +121,7 @@ public final class PortalSupport {
       return true;
     }
     String lower = url.toLowerCase(java.util.Locale.ROOT);
-    return lower.contains("nopic")
-        || lower.contains("no-pic")
-        || lower.contains("placeholder")
-        || lower.contains("default-image")
-        || lower.contains("no-image")
-        || lower.contains("noimage")
-        || lower.contains("/y/img/app_banner/")
-        || lower.contains("/y/img/foot-logo")
-        || lower.contains("/y/img/sale_icon");
+    return PLACEHOLDER_MARKERS.stream().anyMatch(lower::contains);
   }
 
   public static String extractImageWithFallback(Element element, String baseUrl) {

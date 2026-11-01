@@ -2,6 +2,7 @@ package ingatlanok.core.normalization;
 
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import ingatlanok.common.PropertyParser;
@@ -104,55 +105,65 @@ public class ListingNormalizer {
 
     String homepageUrl = descriptor != null ? descriptor.homepageUrl() : "";
     String canonicalUrl = PortalSupport.resolveUrl(homepageUrl, raw.url());
-
-    String id;
-    if (raw.nativeId() != null && !raw.nativeId().isBlank()) {
-      id = raw.nativeId().trim();
-    } else {
-      id = Integer.toUnsignedString(canonicalUrl.hashCode());
-    }
-
-    PriceInfo priceInfo = resolvePriceInfo(raw);
-    PropertyDetails detailsInfo = resolveDetailsInfo(raw, priceInfo);
-
+    String id = resolveId(raw, canonicalUrl);
     String city = resolveCity(raw, criteria);
-
-    String title = raw.title() != null && !raw.title().isBlank()
-        ? raw.title().trim()
-        : city + " - Eladó ingatlan (" + id + ")";
-
-    String time = executionTime != null && !executionTime.isBlank()
-        ? executionTime
-        : PortalSupport.nowTimestamp();
-
-    PortalSource source = descriptor != null
-        ? PortalSource.of(descriptor.name())
-        : PortalSource.of(raw.portalId() != null ? raw.portalId() : "Unknown");
-
-    boolean isNew = PropertyParser.isNewConstructionText(
-        raw.title(),
-        raw.descriptionText() != null ? raw.descriptionText() : raw.detailsText(),
-        canonicalUrl
-    );
-
-    String imageUrl = raw.imageUrl() != null && !raw.imageUrl().isBlank()
-        ? PortalSupport.resolveUrl(homepageUrl, raw.imageUrl())
-        : null;
+    PriceInfo priceInfo = resolvePriceInfo(raw);
 
     return IngatlanItem.builder()
         .id(id)
-        .source(source)
+        .source(resolvePortalSource(descriptor, raw))
         .url(canonicalUrl)
-        .title(title)
+        .title(resolveTitle(raw, city, id))
         .priceInfo(priceInfo)
         .city(city)
         .location(city)
-        .detailsInfo(detailsInfo)
-        .discoveredAt(time)
+        .detailsInfo(resolveDetailsInfo(raw, priceInfo))
+        .discoveredAt(resolveTime(executionTime))
         .propertyType(resolvePropertyType(raw))
-        .imageUrl(imageUrl)
-        .newConstruction(isNew)
+        .imageUrl(resolveImageUrl(raw, homepageUrl))
+        .newConstruction(resolveIsNew(raw, canonicalUrl))
         .build();
+  }
+
+  private String resolveId(RawPropertyListing raw, String canonicalUrl) {
+    if (raw.nativeId() != null && !raw.nativeId().isBlank()) {
+      return raw.nativeId().trim();
+    }
+    return Integer.toUnsignedString(canonicalUrl.hashCode());
+  }
+
+  private String resolveTitle(RawPropertyListing raw, String city, String id) {
+    if (raw.title() != null && !raw.title().isBlank()) {
+      return raw.title().trim();
+    }
+    return city + " - Eladó ingatlan (" + id + ")";
+  }
+
+  private String resolveTime(String executionTime) {
+    if (executionTime != null && !executionTime.isBlank()) {
+      return executionTime;
+    }
+    return PortalSupport.nowTimestamp();
+  }
+
+  private PortalSource resolvePortalSource(PortalDescriptor descriptor, RawPropertyListing raw) {
+    if (descriptor != null) {
+      return PortalSource.of(descriptor.name());
+    }
+    String name = raw.portalId() != null ? raw.portalId() : "Unknown";
+    return PortalSource.of(name);
+  }
+
+  private String resolveImageUrl(RawPropertyListing raw, String homepageUrl) {
+    if (raw.imageUrl() != null && !raw.imageUrl().isBlank()) {
+      return PortalSupport.resolveUrl(homepageUrl, raw.imageUrl());
+    }
+    return null;
+  }
+
+  private boolean resolveIsNew(RawPropertyListing raw, String canonicalUrl) {
+    String descOrDetails = raw.descriptionText() != null ? raw.descriptionText() : raw.detailsText();
+    return PropertyParser.isNewConstructionText(raw.title(), descOrDetails, canonicalUrl);
   }
 
   private PriceInfo resolvePriceInfo(RawPropertyListing raw) {
@@ -169,10 +180,8 @@ public class ListingNormalizer {
   private PropertyDetails resolveDetailsInfo(RawPropertyListing raw, PriceInfo priceInfo) {
     Double area = raw.areaSquareMeters();
     Double rooms = raw.roomCount();
-
     if (area != null && rooms != null) {
-      long priceHuf = priceInfo != null && priceInfo.getAmountHuf() != null ? priceInfo.getAmountHuf() : 0;
-      long sqmPrice = area > 0 ? Math.round(priceHuf / area) : 0;
+      long sqmPrice = calculateSqmPrice(priceInfo, area);
       String text = Math.round(area) + " m² • " + Math.round(rooms) + " szoba";
       return PropertyDetails.builder()
           .rawText(text)
@@ -181,21 +190,29 @@ public class ListingNormalizer {
           .pricePerSquareMeter(sqmPrice)
           .build();
     }
+    return parseDetailsInfo(raw, priceInfo, area, rooms);
+  }
 
+  private PropertyDetails parseDetailsInfo(
+      RawPropertyListing raw, PriceInfo priceInfo, Double area, Double rooms) {
     PropertyDetails parsed = PropertyParser.parseDetails(raw.detailsText(), priceInfo);
     Double finalArea = area != null ? area : (parsed != null ? parsed.getAreaSquareMeters() : null);
     Double finalRooms = rooms != null ? rooms : (parsed != null ? parsed.getRoomCount() : null);
-
-    long priceHuf = priceInfo != null && priceInfo.getAmountHuf() != null ? priceInfo.getAmountHuf() : 0;
-    long sqmPrice = (finalArea != null && finalArea > 0) ? Math.round(priceHuf / finalArea) : 0;
+    long sqmPrice = calculateSqmPrice(priceInfo, finalArea);
     String text = parsed != null && parsed.getRawText() != null ? parsed.getRawText() : "";
-
     return PropertyDetails.builder()
         .rawText(text)
         .areaSquareMeters(finalArea)
         .roomCount(finalRooms)
         .pricePerSquareMeter(sqmPrice)
         .build();
+  }
+
+  private long calculateSqmPrice(PriceInfo priceInfo, Double area) {
+    if (area == null || area <= 0 || priceInfo == null || priceInfo.getAmountHuf() == null) {
+      return 0;
+    }
+    return Math.round(priceInfo.getAmountHuf() / area);
   }
 
   private String resolveCity(RawPropertyListing raw, SearchCriteria criteria) {
@@ -213,55 +230,68 @@ public class ListingNormalizer {
     if (raw == null) {
       return PropertyType.EGYEB_ISMERETLEN;
     }
+    PropertyType fromExtra = resolveTypeFromExtra(raw.extra());
+    if (fromExtra != PropertyType.EGYEB_ISMERETLEN) {
+      return fromExtra;
+    }
+    PropertyType fromUrl = resolveTypeFromUrlString(raw.url());
+    if (fromUrl != PropertyType.EGYEB_ISMERETLEN) {
+      return fromUrl;
+    }
+    PropertyType fromDesc = resolveTypeFromDescription(raw.descriptionText());
+    if (fromDesc != PropertyType.EGYEB_ISMERETLEN) {
+      return fromDesc;
+    }
+    return resolveTypeFromText(raw.title(), raw.detailsText());
+  }
 
-    if (raw.extra() != null) {
-      for (String key : new String[] {"propertyType", "category", "item_category", "type"}) {
-        String val = raw.extra().get(key);
-        if (val != null && !val.isBlank()) {
-          PropertyType type = PropertyType.fromString(val);
-          if (type != PropertyType.EGYEB_ISMERETLEN) {
-            return type;
-          }
+  private PropertyType resolveTypeFromExtra(Map<String, String> extra) {
+    if (extra == null) {
+      return PropertyType.EGYEB_ISMERETLEN;
+    }
+    for (String key : new String[] {"propertyType", "category", "item_category", "type"}) {
+      String val = extra.get(key);
+      if (val != null && !val.isBlank()) {
+        PropertyType type = PropertyType.fromString(val);
+        if (type != PropertyType.EGYEB_ISMERETLEN) {
+          return type;
         }
       }
     }
+    return PropertyType.EGYEB_ISMERETLEN;
+  }
 
-    String url = raw.url() != null ? raw.url().toLowerCase(Locale.ROOT) : "";
-    if (!url.isBlank()) {
-      PropertyType urlType = resolveTypeFromUrl(url);
-      if (urlType != PropertyType.EGYEB_ISMERETLEN) {
-        return urlType;
-      }
+  private PropertyType resolveTypeFromUrlString(String rawUrl) {
+    if (rawUrl == null || rawUrl.isBlank()) {
+      return PropertyType.EGYEB_ISMERETLEN;
     }
+    return resolveTypeFromUrl(rawUrl.toLowerCase(Locale.ROOT));
+  }
 
-    String desc = raw.descriptionText() != null ? raw.descriptionText() : "";
-    if (desc.contains("item_category")) {
+  private PropertyType resolveTypeFromDescription(String desc) {
+    if (desc != null && desc.contains("item_category")) {
       PropertyType ocType = extractOcCategory(desc);
       if (ocType != PropertyType.EGYEB_ISMERETLEN) {
         return ocType;
       }
     }
+    return PropertyType.EGYEB_ISMERETLEN;
+  }
 
-    String title = raw.title() != null ? raw.title() : "";
-    String details = raw.detailsText() != null ? raw.detailsText() : "";
-    String combined = title + " " + details;
+  private PropertyType resolveTypeFromText(String title, String details) {
+    String t = title != null ? title : "";
+    String d = details != null ? details : "";
+    String combined = t + " " + d;
 
     PropertyType compoundType = resolveTypeFromCompoundPatterns(combined);
     if (compoundType != PropertyType.EGYEB_ISMERETLEN) {
       return compoundType;
     }
-
-    PropertyType titleWordType = resolveTypeFromWordPatterns(title);
+    PropertyType titleWordType = resolveTypeFromWordPatterns(t);
     if (titleWordType != PropertyType.EGYEB_ISMERETLEN) {
       return titleWordType;
     }
-
-    PropertyType detailsWordType = resolveTypeFromWordPatterns(details);
-    if (detailsWordType != PropertyType.EGYEB_ISMERETLEN) {
-      return detailsWordType;
-    }
-
-    return PropertyType.EGYEB_ISMERETLEN;
+    return resolveTypeFromWordPatterns(d);
   }
 
   private PropertyType resolveTypeFromUrl(String url) {

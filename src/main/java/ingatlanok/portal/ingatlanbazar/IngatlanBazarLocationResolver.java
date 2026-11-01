@@ -74,28 +74,33 @@ public final class IngatlanBazarLocationResolver {
       String url = String.format(GEO_MATCH_URL, encoded);
       LOGGER.debug("Ingatlanbazár településkód lekérdezése: {} -> {}", cityName, url);
       String json = HttpFetcher.fetchJson(url);
-
-      if (json != null && !json.isBlank()) {
-        JsonNode root = JsonSupport.parse(json);
-        if (root.has("data") && root.get("data").isArray()) {
-          JsonNode data = root.get("data");
-          for (JsonNode el : data) {
-            if (el.isObject()) {
-              JsonNode obj = el;
-              if (obj.has("id") && !obj.get("id").isNull()) {
-                int id = obj.get("id").asInt();
-                LOCATION_CACHE.put(slug, id);
-                LOGGER.debug("Ingatlanbazár településkód megtalálva: {} -> {}", cityName, id);
-                return Optional.of(id);
-              }
-            }
-          }
-        }
+      Optional<Integer> resolved = parseLocationIdFromJson(json);
+      if (resolved.isPresent()) {
+        int id = resolved.get();
+        LOCATION_CACHE.put(slug, id);
+        LOGGER.debug("Ingatlanbazár településkód megtalálva: {} -> {}", cityName, id);
+        return resolved;
       }
     } catch (Exception e) {
       LOGGER.warn("Nem sikerült feloldani a településkódot ({}): {}", cityName, e.getMessage());
     }
 
+    return Optional.empty();
+  }
+
+  private static Optional<Integer> parseLocationIdFromJson(String json) {
+    if (json == null || json.isBlank()) {
+      return Optional.empty();
+    }
+    JsonNode root = JsonSupport.parse(json);
+    if (!root.has("data") || !root.get("data").isArray()) {
+      return Optional.empty();
+    }
+    for (JsonNode el : root.get("data")) {
+      if (el.isObject() && el.has("id") && !el.get("id").isNull()) {
+        return Optional.of(el.get("id").asInt());
+      }
+    }
     return Optional.empty();
   }
 }

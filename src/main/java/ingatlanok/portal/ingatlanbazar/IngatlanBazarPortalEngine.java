@@ -15,17 +15,14 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarPortalEngine.class);
 
   private final IngatlanBazarQueryBuilder queryBuilder;
-  private final IngatlanBazarJsonParser jsonParser;
   private final AdapterPortalEngine adapterEngine;
 
   public IngatlanBazarPortalEngine() {
-    this(new IngatlanBazarQueryBuilder(), new IngatlanBazarJsonParser());
+    this(new IngatlanBazarQueryBuilder());
   }
 
-  public IngatlanBazarPortalEngine(
-      IngatlanBazarQueryBuilder queryBuilder, IngatlanBazarJsonParser jsonParser) {
+  public IngatlanBazarPortalEngine(IngatlanBazarQueryBuilder queryBuilder) {
     this.queryBuilder = queryBuilder != null ? queryBuilder : new IngatlanBazarQueryBuilder();
-    this.jsonParser = jsonParser != null ? jsonParser : new IngatlanBazarJsonParser();
     this.adapterEngine = new AdapterPortalEngine(new IngatlanBazarPortalAdapter(this.queryBuilder,
         List.of(new IngatlanBazarApiStrategy(this.queryBuilder, new IngatlanBazarRawParser(),
             HttpFetcher::fetchJson))));
@@ -50,9 +47,5 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
 
   public IngatlanBazarQueryBuilder getQueryBuilder() {
     return queryBuilder;
-  }
-
-  public IngatlanBazarJsonParser getJsonParser() {
-    return jsonParser;
   }
 }

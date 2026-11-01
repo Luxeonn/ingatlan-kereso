@@ -24,12 +24,10 @@ import org.mapstruct.ReportingPolicy;
 @AnalyzeClasses(packages = "ingatlanok", importOptions = {ImportOption.DoNotIncludeTests.class})
 public final class ArchitectureRulesTest {
 
-  private static final String READ_ONLY_DTO_PATTERN =
+  static final String READ_ONLY_DTO_PATTERN =
       ".*\\.(MarketStatsDto|MarketSegmentStatsDto|PriceDropItemDto"
           + "|PortalStatusDto|DashboardResponseDto|PortalSource"
           + "|PriceInfo|PropertyDetails)";
-
-  private ArchitectureRulesTest() {}
 
   @ArchTest
   static final ArchRule MODEL_AND_COMMON_INDEPENDENT =
@@ -146,4 +144,6 @@ public final class ArchitectureRulesTest {
           .should()
           .haveModifier(JavaModifier.SYNCHRONIZED)
           .because("Synchronized methods cause carrier thread pinning on Java 25 virtual threads");
+
+  private ArchitectureRulesTest() {}
 }

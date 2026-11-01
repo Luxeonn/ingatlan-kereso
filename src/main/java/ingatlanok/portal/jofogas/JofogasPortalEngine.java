@@ -17,16 +17,14 @@ public class JofogasPortalEngine implements PortalEngine {
   private static final AppLogger LOGGER = AppLogger.getLogger(JofogasPortalEngine.class);
 
   private final JofogasUrlBuilder urlBuilder;
-  private final JofogasParser parser;
   private final AdapterPortalEngine adapterEngine;
 
   public JofogasPortalEngine() {
-    this(new JofogasUrlBuilder(), new JofogasParser());
+    this(new JofogasUrlBuilder());
   }
 
-  public JofogasPortalEngine(JofogasUrlBuilder urlBuilder, JofogasParser parser) {
+  public JofogasPortalEngine(JofogasUrlBuilder urlBuilder) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new JofogasUrlBuilder();
-    this.parser = parser != null ? parser : new JofogasParser();
     this.adapterEngine = new AdapterPortalEngine(new JofogasPortalAdapter(this.urlBuilder,
         List.of(new JofogasHtmlStrategy(this.urlBuilder, new JofogasRawParser(), HttpFetcher::fetchDocument))));
   }
@@ -53,9 +51,5 @@ public class JofogasPortalEngine implements PortalEngine {
 
   public JofogasUrlBuilder getUrlBuilder() {
     return urlBuilder;
-  }
-
-  public JofogasParser getParser() {
-    return parser;
   }
 }

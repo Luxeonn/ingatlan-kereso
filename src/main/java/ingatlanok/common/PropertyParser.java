@@ -1,5 +1,6 @@
 package ingatlanok.common;
 
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +26,22 @@ public final class PropertyParser {
       Pattern.compile("(\\d+[,.]?\\d*)\\s*m²", Pattern.CASE_INSENSITIVE);
   private static final Pattern ROOM_PATTERN =
       Pattern.compile("(\\d+[,.]?\\d*)\\s*szoba", Pattern.CASE_INSENSITIVE);
+
+  private static final Pattern POSTAL_CITY_PATTERN =
+      Pattern.compile("\\b(\\d{4})\\s+([A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ\\-]+)");
+  private static final Pattern DH_URL_CITY_PATTERN =
+      Pattern.compile(
+          "/ingatlan/[A-Za-z0-9\\-]+/elado-[a-z]+-(?:[a-z\\-]+-megye-)?"
+              + "([a-z\\-]+?)(?:-\\d{4}|-falu|-varos|-utca|-kertvaros|/|$)");
+
+  private static final Set<String> NEW_CONSTRUCTION_KEYWORDS = Set.of(
+      "uj-epitesu",
+      "ujepitesu",
+      "szerkezetkesz",
+      "kulcsrakesz-uj",
+      "uj-projekt",
+      "lakopark-projekt"
+  );
 
   private PropertyParser() {}
 
@@ -121,13 +138,6 @@ public final class PropertyParser {
     Matcher matcher = pattern.matcher(text);
     return matcher.find() ? matcher.group(1).trim() : fallback;
   }
-
-  private static final Pattern POSTAL_CITY_PATTERN =
-      Pattern.compile("\\b(\\d{4})\\s+([A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ\\-]+)");
-  private static final Pattern DH_URL_CITY_PATTERN =
-      Pattern.compile(
-          "/ingatlan/[A-Za-z0-9\\-]+/elado-[a-z]+-(?:[a-z\\-]+-megye-)?"
-              + "([a-z\\-]+?)(?:-\\d{4}|-falu|-varos|-utca|-kertvaros|/|$)");
 
   public static boolean isPriceInRange(
       PriceInfo priceInfo, Integer minMillion, Integer maxMillion) {
@@ -226,12 +236,7 @@ public final class PropertyParser {
         continue;
       }
       String slug = SlugUtils.toSlug(text);
-      if (slug.contains("uj-epitesu")
-          || slug.contains("ujepitesu")
-          || slug.contains("szerkezetkesz")
-          || slug.contains("kulcsrakesz-uj")
-          || slug.contains("uj-projekt")
-          || slug.contains("lakopark-projekt")) {
+      if (NEW_CONSTRUCTION_KEYWORDS.stream().anyMatch(slug::contains)) {
         return true;
       }
     }

@@ -95,6 +95,18 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
+  @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+  public ResponseEntity<Map<String, Object>> handleMethodArgumentNotValid(
+      org.springframework.web.bind.MethodArgumentNotValidException ex, HttpServletRequest request) {
+    org.springframework.validation.FieldError fieldError = ex.getBindingResult().getFieldError();
+    String msg =
+        fieldError != null
+            ? "Érvénytelen paraméter típus: " + fieldError.getField()
+            : "Érvénytelen kérés paraméterek";
+    LOGGER.warn(msg);
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
+  }
+
   @ExceptionHandler({
     org.springframework.web.servlet.resource.NoResourceFoundException.class,
     org.springframework.web.servlet.NoHandlerFoundException.class

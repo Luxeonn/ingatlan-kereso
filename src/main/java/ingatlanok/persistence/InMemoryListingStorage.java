@@ -61,43 +61,75 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
     String url = item.getUrl();
     IngatlanItem existing = urlIndex.get(url);
     String now = java.time.LocalDateTime.now().toString();
-    boolean isViewed = viewedUrls.contains(url) || (existing != null && existing.isViewed()) || item.isViewed();
-    if (isViewed) {
-      viewedUrls.add(url);
-      item.setViewed(true);
-      if (item.getViewedAt() == null) {
-        item.setViewedAt(existing != null && existing.getViewedAt() != null ? existing.getViewedAt() : now);
-      }
+    updateViewedState(item, existing, url, now);
+    updatePriceAndStatus(item, existing, now);
+  }
+
+  private void updateViewedState(IngatlanItem item, IngatlanItem existing, String url, String now) {
+    boolean isViewed =
+        viewedUrls.contains(url) || (existing != null && existing.isViewed()) || item.isViewed();
+    if (!isViewed) {
+      return;
     }
+    viewedUrls.add(url);
+    item.setViewed(true);
+    if (item.getViewedAt() == null) {
+      item.setViewedAt(
+          existing != null && existing.getViewedAt() != null ? existing.getViewedAt() : now);
+    }
+  }
+
+  private void updatePriceAndStatus(IngatlanItem item, IngatlanItem existing, String now) {
     Long newAmount = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
     if (existing == null) {
-      if (newAmount != null && newAmount > 0 && item.getPriceDelta() == null) {
-        item.setPriceDelta(0L);
-        item.setPriceChangePercent(0.0);
-      }
+      applyNewPriceDefaults(item, newAmount);
+      return;
+    }
+    Long prevAmount =
+        existing.getPriceInfo() != null ? existing.getPriceInfo().getAmountHuf() : null;
+    if (hasPriceChanged(prevAmount, newAmount)) {
+      applyPriceChange(item, prevAmount, newAmount, now);
     } else {
-      Long prevAmount = existing.getPriceInfo() != null ? existing.getPriceInfo().getAmountHuf() : null;
-      if (prevAmount != null && prevAmount > 0 && newAmount != null && newAmount > 0 && !prevAmount.equals(newAmount)) {
-        long delta = newAmount - prevAmount;
-        double pct = Math.round(((double) delta / prevAmount * 100.0) * 100.0) / 100.0;
-        item.setPriceDelta(delta);
-        item.setPriceChangePercent(pct);
-        item.setLastPriceChangeAt(now);
-        item.setStatus(delta < 0 ? "PRICE_DROP" : "PRICE_INCREASE");
-      } else {
-        if (item.getPriceDelta() == null) {
-          item.setPriceDelta(existing.getPriceDelta());
-        }
-        if (item.getPriceChangePercent() == null) {
-          item.setPriceChangePercent(existing.getPriceChangePercent());
-        }
-        if (item.getLastPriceChangeAt() == null) {
-          item.setLastPriceChangeAt(existing.getLastPriceChangeAt());
-        }
-        if ("ACTIVE".equals(item.getStatus()) && existing.getStatus() != null) {
-          item.setStatus(existing.getStatus());
-        }
-      }
+      retainExistingPriceState(item, existing);
+    }
+  }
+
+  private void applyNewPriceDefaults(IngatlanItem item, Long newAmount) {
+    if (newAmount != null && newAmount > 0 && item.getPriceDelta() == null) {
+      item.setPriceDelta(0L);
+      item.setPriceChangePercent(0.0);
+    }
+  }
+
+  private boolean hasPriceChanged(Long prevAmount, Long newAmount) {
+    return prevAmount != null
+        && prevAmount > 0
+        && newAmount != null
+        && newAmount > 0
+        && !prevAmount.equals(newAmount);
+  }
+
+  private void applyPriceChange(IngatlanItem item, Long prevAmount, Long newAmount, String now) {
+    long delta = newAmount - prevAmount;
+    double pct = Math.round(((double) delta / prevAmount * 100.0) * 100.0) / 100.0;
+    item.setPriceDelta(delta);
+    item.setPriceChangePercent(pct);
+    item.setLastPriceChangeAt(now);
+    item.setStatus(delta < 0 ? "PRICE_DROP" : "PRICE_INCREASE");
+  }
+
+  private void retainExistingPriceState(IngatlanItem item, IngatlanItem existing) {
+    if (item.getPriceDelta() == null) {
+      item.setPriceDelta(existing.getPriceDelta());
+    }
+    if (item.getPriceChangePercent() == null) {
+      item.setPriceChangePercent(existing.getPriceChangePercent());
+    }
+    if (item.getLastPriceChangeAt() == null) {
+      item.setLastPriceChangeAt(existing.getLastPriceChangeAt());
+    }
+    if ("ACTIVE".equals(item.getStatus()) && existing.getStatus() != null) {
+      item.setStatus(existing.getStatus());
     }
   }
 

@@ -19,26 +19,23 @@ public class KoltozzbePortalEngine implements PortalEngine {
   private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbePortalEngine.class);
 
   private final KoltozzbeUrlBuilder urlBuilder;
-  private final KoltozzbeParser parser;
   private final int maxPages;
   private final AdapterPortalEngine adapterEngine;
 
   public KoltozzbePortalEngine() {
-    this(new KoltozzbeUrlBuilder(), new KoltozzbeParser(), DEFAULT_MAX_PAGES);
+    this(new KoltozzbeUrlBuilder(), DEFAULT_MAX_PAGES);
   }
 
-  public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder, KoltozzbeParser parser) {
-    this(urlBuilder, parser, DEFAULT_MAX_PAGES);
+  public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder) {
+    this(urlBuilder, DEFAULT_MAX_PAGES);
   }
 
-  public KoltozzbePortalEngine(
-      KoltozzbeUrlBuilder urlBuilder, KoltozzbeParser parser, int maxPages) {
+  public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder, int maxPages) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new KoltozzbeUrlBuilder();
-    this.parser = parser != null ? parser : new KoltozzbeParser();
     this.maxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
     this.adapterEngine = new AdapterPortalEngine(new KoltozzbePortalAdapter(this.urlBuilder,
         List.of(
-            new KoltozzbeExtractionStrategy(this.urlBuilder, new KoltozzbeRawParser(), this.parser,
+            new KoltozzbeExtractionStrategy(this.urlBuilder, new KoltozzbeRawParser(),
                 HttpFetcher::fetchDocument, this.maxPages)
         )));
   }
@@ -57,17 +54,13 @@ public class KoltozzbePortalEngine implements PortalEngine {
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new KoltozzbePortalAdapter(urlBuilder,
         List.of(
-            new KoltozzbeExtractionStrategy(urlBuilder, new KoltozzbeRawParser(), parser, documentFetcher, maxPages)
+            new KoltozzbeExtractionStrategy(urlBuilder, new KoltozzbeRawParser(), documentFetcher, maxPages)
         )));
     return dynamicEngine.scrape(criteria);
   }
 
   public KoltozzbeUrlBuilder getUrlBuilder() {
     return urlBuilder;
-  }
-
-  public KoltozzbeParser getParser() {
-    return parser;
   }
 
   public int getMaxPages() {

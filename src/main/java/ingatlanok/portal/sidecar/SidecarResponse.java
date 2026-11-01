@@ -126,23 +126,45 @@ public class SidecarResponse implements Serializable {
 
     public IngatlanItem toIngatlanItem(
         PortalSource source, String city, String discoveredAt, boolean isNew) {
-      PriceInfo priceInfo;
+      PriceInfo priceInfo = buildPriceInfo();
+      PropertyDetails detailsInfo = buildPropertyDetails(priceInfo);
+
+      String displayTitle =
+          (title != null && !title.isBlank()) ? title : (city + " - Ingatlan (" + id + ")");
+
+      return IngatlanItem.builder()
+          .id(id)
+          .source(source)
+          .url(url)
+          .title(displayTitle)
+          .priceInfo(priceInfo)
+          .city(city)
+          .location(city)
+          .detailsInfo(detailsInfo)
+          .discoveredAt(discoveredAt)
+          .isNew(isNew)
+          .imageUrl(imageUrl)
+          .build();
+    }
+
+    private PriceInfo buildPriceInfo() {
       if (priceMillion != null && priceMillion > 0) {
         long priceHuf = Math.round(priceMillion * 1_000_000L);
         NumberFormat nf = NumberFormat.getInstance(Locale.of("hu", "HU"));
         String formatted = nf.format(priceHuf) + " Ft";
-        priceInfo =
-            PriceInfo.builder()
-                .rawText(formatted)
-                .amountHuf(priceHuf)
-                .amountMillion(priceMillion)
-                .build();
-      } else if (priceRaw != null && !priceRaw.isBlank()) {
-        priceInfo = PriceInfo.builder().rawText(priceRaw).build();
-      } else {
-        priceInfo = PriceInfo.builder().rawText("Ár a hirdetésben").build();
+        return PriceInfo.builder()
+            .rawText(formatted)
+            .amountHuf(priceHuf)
+            .amountMillion(priceMillion)
+            .build();
       }
+      if (priceRaw != null && !priceRaw.isBlank()) {
+        return PriceInfo.builder().rawText(priceRaw).build();
+      }
+      return PriceInfo.builder().rawText("Ár a hirdetésben").build();
+    }
 
+    private PropertyDetails buildPropertyDetails(PriceInfo priceInfo) {
       StringBuilder detailsSb = new StringBuilder();
       if (areaSquareMeters != null && areaSquareMeters > 0) {
         detailsSb.append(Math.round(areaSquareMeters)).append(" m²");
@@ -163,29 +185,11 @@ public class SidecarResponse implements Serializable {
         sqmPrice = Math.round(priceInfo.getAmountHuf() / areaSquareMeters);
       }
 
-      PropertyDetails detailsInfo =
-          PropertyDetails.builder()
-              .rawText(detailsSb.toString())
-              .areaSquareMeters(areaSquareMeters)
-              .roomCount(roomCount)
-              .pricePerSquareMeter(sqmPrice)
-              .build();
-
-      String displayTitle =
-          (title != null && !title.isBlank()) ? title : (city + " - Ingatlan (" + id + ")");
-
-      return IngatlanItem.builder()
-          .id(id)
-          .source(source)
-          .url(url)
-          .title(displayTitle)
-          .priceInfo(priceInfo)
-          .city(city)
-          .location(city)
-          .detailsInfo(detailsInfo)
-          .discoveredAt(discoveredAt)
-          .isNew(isNew)
-          .imageUrl(imageUrl)
+      return PropertyDetails.builder()
+          .rawText(detailsSb.toString())
+          .areaSquareMeters(areaSquareMeters)
+          .roomCount(roomCount)
+          .pricePerSquareMeter(sqmPrice)
           .build();
     }
   }

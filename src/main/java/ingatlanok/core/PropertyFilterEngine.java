@@ -87,49 +87,70 @@ public class PropertyFilterEngine {
       if (item == null) {
         continue;
       }
-
-      if (item.getCity() == null || item.getCity().isBlank()) {
-        item.setCity(targetCity);
-      }
-      if (item.getLocation() == null || item.getLocation().isBlank()) {
-        item.setLocation(targetCity);
-      }
-
-      PriceInfo priceInfo = item.getPriceInfo();
-      if (priceInfo == null && item.getPrice() != null && !item.getPrice().isBlank()) {
-        priceInfo = PropertyParser.parsePrice(item.getPrice());
-        item.setPriceInfo(priceInfo);
-      }
-
-      if (criteria != null
-          && !PropertyParser.isPriceInRange(
-              priceInfo, criteria.getMinPriceMillion(), criteria.getMaxPriceMillion())) {
+      populateMissingCity(item, targetCity);
+      PriceInfo priceInfo = resolvePriceInfo(item);
+      if (!matchesPrice(priceInfo, criteria)) {
         filteredPrice++;
         continue;
       }
-
-      Double area =
-          (item.getDetailsInfo() != null) ? item.getDetailsInfo().getAreaSquareMeters() : null;
-      if (area == null && item.getDetails() != null && !item.getDetails().isBlank()) {
-        PropertyDetails parsed = PropertyParser.parseDetails(item.getDetails(), priceInfo);
-        item.setDetailsInfo(parsed);
-        area = parsed.getAreaSquareMeters();
-      }
-      if (criteria != null
-          && !PropertyParser.isAreaInRange(area, criteria.getMinArea(), criteria.getMaxArea())) {
+      Double area = resolveArea(item, priceInfo);
+      if (!matchesArea(area, criteria)) {
         filteredArea++;
         continue;
       }
-
       if (targetCity != null && !SearchCriteria.matchesCity(item, targetCity)) {
         filteredCity++;
         continue;
       }
-
       matching.add(item);
     }
 
-    return new FilterResult(matching, items.size(), filteredPrice, filteredArea, 0, filteredCity, 0, 0);
+    return new FilterResult(
+        matching, items.size(), filteredPrice, filteredArea, 0, filteredCity, 0, 0);
+  }
+
+  private void populateMissingCity(IngatlanItem item, String targetCity) {
+    if (item.getCity() == null || item.getCity().isBlank()) {
+      item.setCity(targetCity);
+    }
+    if (item.getLocation() == null || item.getLocation().isBlank()) {
+      item.setLocation(targetCity);
+    }
+  }
+
+  private PriceInfo resolvePriceInfo(IngatlanItem item) {
+    PriceInfo priceInfo = item.getPriceInfo();
+    if (priceInfo == null && item.getPrice() != null && !item.getPrice().isBlank()) {
+      priceInfo = PropertyParser.parsePrice(item.getPrice());
+      item.setPriceInfo(priceInfo);
+    }
+    return priceInfo;
+  }
+
+  private Double resolveArea(IngatlanItem item, PriceInfo priceInfo) {
+    Double area =
+        (item.getDetailsInfo() != null) ? item.getDetailsInfo().getAreaSquareMeters() : null;
+    if (area == null && item.getDetails() != null && !item.getDetails().isBlank()) {
+      PropertyDetails parsed = PropertyParser.parseDetails(item.getDetails(), priceInfo);
+      item.setDetailsInfo(parsed);
+      area = parsed.getAreaSquareMeters();
+    }
+    return area;
+  }
+
+  private boolean matchesPrice(PriceInfo priceInfo, SearchCriteria criteria) {
+    if (criteria == null) {
+      return true;
+    }
+    return PropertyParser.isPriceInRange(
+        priceInfo, criteria.getMinPriceMillion(), criteria.getMaxPriceMillion());
+  }
+
+  private boolean matchesArea(Double area, SearchCriteria criteria) {
+    if (criteria == null) {
+      return true;
+    }
+    return PropertyParser.isAreaInRange(area, criteria.getMinArea(), criteria.getMaxArea());
   }
 
   public FilterResult filterView(List<IngatlanItem> items, SearchCriteria criteria) {
@@ -146,22 +167,18 @@ public class PropertyFilterEngine {
       if (item == null) {
         continue;
       }
-
-      if (criteria != null && criteria.isExcludeViewed() && item.isViewed()) {
+      if (isExcludedViewed(item, criteria)) {
         filteredViewed++;
         continue;
       }
-
-      if (criteria != null && criteria.isOnlyDiscounted() && !item.isDiscounted()) {
+      if (isExcludedDiscount(item, criteria)) {
         filteredDiscount++;
         continue;
       }
-
-      if (criteria != null && criteria.isOnlyNewConstruction() && !item.isNewConstruction()) {
+      if (isExcludedNewConstruction(item, criteria)) {
         filteredNewConstruction++;
         continue;
       }
-
       matching.add(item);
     }
 
@@ -174,5 +191,17 @@ public class PropertyFilterEngine {
         0,
         filteredDiscount,
         filteredNewConstruction);
+  }
+
+  private boolean isExcludedViewed(IngatlanItem item, SearchCriteria criteria) {
+    return criteria != null && criteria.isExcludeViewed() && item.isViewed();
+  }
+
+  private boolean isExcludedDiscount(IngatlanItem item, SearchCriteria criteria) {
+    return criteria != null && criteria.isOnlyDiscounted() && !item.isDiscounted();
+  }
+
+  private boolean isExcludedNewConstruction(IngatlanItem item, SearchCriteria criteria) {
+    return criteria != null && criteria.isOnlyNewConstruction() && !item.isNewConstruction();
   }
 }

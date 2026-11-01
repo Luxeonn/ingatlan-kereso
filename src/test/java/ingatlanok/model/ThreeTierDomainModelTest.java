@@ -16,6 +16,7 @@ import org.mapstruct.factory.Mappers;
 import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.mapper.JpaEntityMapper;
+import ingatlanok.persistence.mapper.ListingObservationContext;
 
 @DisplayName("3-Tier Domain Architecture Model Tests")
 class ThreeTierDomainModelTest {
@@ -232,15 +233,16 @@ class ThreeTierDomainModelTest {
 
     ListingObservationEntity obsEntity =
         mapper.createListingObservationEntity(
-            "DH_123",
-            "https://dh.hu/123",
-            "CANONICAL-999",
-            "2026-10-24 15:00:00",
-            92_000_000L,
-            766_666L,
-            "PRICE_CHANGED",
-            -3_000_000L,
-            -3.15);
+            new ListingObservationContext(
+                "DH_123",
+                "https://dh.hu/123",
+                "CANONICAL-999",
+                "2026-10-24 15:00:00",
+                92_000_000L,
+                766_666L,
+                "PRICE_CHANGED",
+                -3_000_000L,
+                -3.15));
     ListingObservation obs = mapper.toListingObservation(obsEntity);
     assertNotNull(obs);
     assertEquals(ListingObservation.StatusEvent.PRICE_CHANGED, obs.getStatusEvent());

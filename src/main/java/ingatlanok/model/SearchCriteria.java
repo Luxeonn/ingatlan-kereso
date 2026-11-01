@@ -186,54 +186,45 @@ public class SearchCriteria implements Serializable {
       return true;
     }
 
-    String itemLoc = item.getLocation();
-    if (itemLoc != null && !itemLoc.isBlank()) {
-      String locSlug = SlugUtils.toSlug(itemLoc);
-      if (locSlug.equals(targetSlug)
-          || locSlug.contains(targetSlug)
-          || targetSlug.contains(locSlug)) {
-        return true;
-      }
-      if (CityUtils.containsDifferentKnownCity(locSlug, targetSlug)) {
-        return false;
-      }
+    Boolean locDecision = evaluateSlugMatch(item.getLocation(), targetSlug, true);
+    if (locDecision != null) {
+      return locDecision;
     }
-
-    String itemCity = item.getCity();
-    if (itemCity != null && !itemCity.isBlank()) {
-      String citySlug = SlugUtils.toSlug(itemCity);
-      if (citySlug.equals(targetSlug)
-          || citySlug.contains(targetSlug)
-          || targetSlug.contains(citySlug)) {
-        return true;
-      }
-      if (CityUtils.containsDifferentKnownCity(citySlug, targetSlug)) {
-        return false;
-      }
+    Boolean cityDecision = evaluateSlugMatch(item.getCity(), targetSlug, true);
+    if (cityDecision != null) {
+      return cityDecision;
     }
-
-    String url = item.getUrl();
-    if (url != null && !url.isBlank()) {
-      String urlSlug = SlugUtils.toSlug(url);
-      if (urlSlug.contains(targetSlug)) {
-        return true;
-      }
-      if (CityUtils.containsDifferentKnownCity(urlSlug, targetSlug)) {
-        return false;
-      }
+    Boolean urlDecision = evaluateSlugMatch(item.getUrl(), targetSlug, false);
+    if (urlDecision != null) {
+      return urlDecision;
     }
-
-    String title = item.getTitle();
-    if (title != null && !title.isBlank()) {
-      String titleSlug = SlugUtils.toSlug(title);
-      if (titleSlug.contains(targetSlug)) {
-        return true;
-      }
-      if (CityUtils.containsDifferentKnownCity(titleSlug, targetSlug)) {
-        return false;
-      }
+    Boolean titleDecision = evaluateSlugMatch(item.getTitle(), targetSlug, false);
+    if (titleDecision != null) {
+      return titleDecision;
     }
 
     return true;
+  }
+
+  private static Boolean evaluateSlugMatch(
+      String value, String targetSlug, boolean allowReverseContains) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    String slug = SlugUtils.toSlug(value);
+    if (isDirectOrSubstringMatch(slug, targetSlug, allowReverseContains)) {
+      return true;
+    }
+    if (CityUtils.containsDifferentKnownCity(slug, targetSlug)) {
+      return false;
+    }
+    return null;
+  }
+
+  private static boolean isDirectOrSubstringMatch(
+      String slug, String targetSlug, boolean allowReverseContains) {
+    return slug.equals(targetSlug)
+        || slug.contains(targetSlug)
+        || (allowReverseContains && targetSlug.contains(slug));
   }
 }
