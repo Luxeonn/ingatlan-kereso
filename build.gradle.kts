@@ -155,6 +155,7 @@ configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     resolutionStrategy {
         force("org.codehaus.plexus:plexus-utils:4.1.0")
         force("commons-beanutils:commons-beanutils:1.11.0")
+        force("com.google.guava:guava:33.7.2-jre")
     }
 }
 
