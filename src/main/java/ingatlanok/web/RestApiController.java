@@ -2,7 +2,6 @@ package ingatlanok.web;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
@@ -208,11 +206,6 @@ public class RestApiController {
     if (urls != null && !urls.isEmpty()) {
       for (String url : urls) {
         listingStorage.markAsViewed(url);
-      }
-      boolean forceServerOpen =
-          "true".equalsIgnoreCase(System.getProperty("server.open.desktop", "false"));
-      if (forceServerOpen && !java.awt.GraphicsEnvironment.isHeadless()) {
-        BrowserUtils.openUrls(new LinkedHashSet<>(urls));
       }
     }
     return ResponseEntity.ok(Map.of("success", true, "count", urls != null ? urls.size() : 0));
