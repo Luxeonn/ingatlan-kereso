@@ -13,7 +13,7 @@ This specialist skill owns **software quality assurance**, **fully offline herme
 
 ### Primary Mission
 
-Ensure every code change is covered by deterministic, network-independent tests; JaCoCo coverage never falls below the 80% threshold; Checkstyle reports zero violations; containers meet security and health-check requirements; and CI/CD workflows prevent silent failures and false-green results.
+Ensure every code change is covered by deterministic, network-independent tests; native Gradle `jacocoTestCoverageVerification` enforces a minimum 80% line coverage bound to `check`; Checkstyle reports zero violations under strict Clean Code metrics; frontend ESLint enforces a zero-warning gate (`--max-warnings 0`); the 6-part offline validator (`scripts/validate-skills.sh`) enforces architectural guardrails; containers meet security and health-check requirements; and CI/CD workflows prevent silent failures and false-green results.
 
 ### Activation Triggers
 
@@ -36,12 +36,14 @@ Activate this skill for any task, pull request, or code review affecting any of 
 
 1. **Fully offline hermetic testing (QA)**:
    - `./gradlew check` must run deterministically without network access.
-   - Use MockMvc endpoint tests and Spring Data JPA tests with embedded H2 or in-memory storage.
+   - Use MockMvc endpoint tests, Spring Data JPA tests with embedded H2 or in-memory storage, and ArchUnit architecture rules (`ArchitectureRulesTest.java`).
    - Maintain the frontend Vitest and Playwright E2E test suites.
 2. **Code quality gates & static analysis**:
-   - Enforce a minimum of 80% JaCoCo instruction and line coverage in core and persistence packages (including MapStruct mappers `JpaEntityMapper` and `PresentationMapper`, with targeted null/fallback unit tests).
+   - Enforce minimum 80.00% line coverage via native Gradle `jacocoTestCoverageVerification` bound directly to `./gradlew check` across core and persistence packages (including MapStruct mappers `JpaEntityMapper` and `PresentationMapper`, with targeted null/fallback unit tests).
    - Coverage calculation (`calculate-jacoco.sh`) must fail closed: exit non-zero if the CSV is missing or coverage is below threshold.
-   - Checkstyle 10.21.4 must report zero warnings (`maxWarnings = 0`, `isIgnoreFailures = false`) and block forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
+   - Checkstyle 10.21.4 must report zero warnings (`maxWarnings = 0`, `isIgnoreFailures = false`) under strict Clean Code metrics: `MethodLength` <= 80 (non-empty), `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, `DeclarationOrder`, and block forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
+   - Frontend static analysis must enforce an ESLint zero-warning gate (`--max-warnings 0`) with Clean Code rules (`complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`) and AST restriction against direct `window.open`.
+   - Maintain the 6-part deterministic offline validator (`scripts/validate-skills.sh`) enforcing YAML frontmatter, 8 mandatory sections, decision tokens, relative links, banned words, and architectural guardrails / frontend OpenAPI derivation.
    - MapStruct mappers must compile with `unmappedTargetPolicy = ReportingPolicy.ERROR`, and frontend OpenAPI types (`npm run generate-api`) must stay 100% synchronized with `openapi/api-spec.yaml` with zero dead DTOs or unused API client functions.
 3. **Containerization and release security**:
    - Multi-stage Temurin JRE 25 runtime container; run as non-root (`appuser:appuser`, UID 10001), use declared volumes (`/app/data`, `/app/logs`), and enforce a health check (`curl -f http://localhost:8080/api/status`).
@@ -93,9 +95,11 @@ For every review, the specialist must follow this four-phase workflow:
 2. **Phase 2: Pipeline and quality audit**
    - Check path filters, required job dependencies, the minimal fail-closed gate, JaCoCo thresholds, Checkstyle, and Docker security configuration.
 3. **Phase 3: Deterministic local verification**
-   - Run `./gradlew check` and the repository's skill validator.
-   - Run relevant coverage scripts and Docker smoke tests when affected and available.
-   - Verify that standard unit tests do not require live external network access.
+   - Run backend check suite: `./gradlew checkstyleMain checkstyleTest test jacocoTestReport jacocoTestCoverageVerification check bootJar`.
+   - Run offline skills and architecture validator: `bash scripts/validate-skills.sh -v` (all 6 checks must pass).
+   - Run frontend check suite: `cd frontend && npm run generate-api && npm run typecheck && npm run lint && npm run test && npm run build` (ESLint zero-warning gate `--max-warnings 0`).
+   - Run Docker smoke tests when container configuration is affected.
+   - Verify that standard unit and integration tests do not require live external network access.
 4. **Phase 4: Synthesis and decision**
    - Determine the decision token (`NO_FINDING`, `FINDING`, `NOT_APPLICABLE`, or `NOT_VERIFIED`).
    - Record a concise rationale for the review decision.
@@ -109,14 +113,16 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] `./gradlew check` passes deterministically without network access.
 - [ ] Live portal tests are explicitly tagged and excluded from normal test runs.
 - [ ] Unit and integration tests use MockMvc, WireMock, and embedded or in-memory persistence where appropriate.
+- [ ] ArchUnit JUnit 5 suite (`ArchitectureRulesTest.java`) passes with zero violations.
 - [ ] Frontend Vitest and Playwright E2E coverage is maintained.
 
 ### B. Code Quality Gates
 
-- [ ] JaCoCo instruction and line coverage are at least 80% for core and persistence packages (including MapStruct mapper null/fallback branches).
+- [ ] JaCoCo line coverage is at least 80.00% enforced via native Gradle `jacocoTestCoverageVerification` bound directly to `./gradlew check` for core and persistence packages (including MapStruct mapper null/fallback branches).
 - [ ] Coverage calculation fails closed when the CSV is missing or the threshold is not met.
-- [ ] Checkstyle 10.21.4 reports zero warnings with `maxWarnings = 0` and `isIgnoreFailures = false`, including zero banned Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
-- [ ] Frontend `npm run generate-api`, `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` pass without hand-duplicated OpenAPI DTOs or dead code.
+- [ ] Checkstyle 10.21.4 reports zero warnings with `maxWarnings = 0` and `isIgnoreFailures = false`, enforcing Clean Code metrics (`MethodLength` <= 80, `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, `DeclarationOrder`) and blocking forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
+- [ ] Frontend `npm run generate-api`, `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` pass without warnings (`--max-warnings 0`), without hand-duplicated OpenAPI DTOs, and with zero direct `window.open` calls.
+- [ ] Offline validator `scripts/validate-skills.sh -v` passes all 6 checks cleanly.
 
 ### C. Containerization and Release Security
 
@@ -139,7 +145,7 @@ For every review, the specialist must follow this four-phase workflow:
 The specialist must record the following concrete evidence during review:
 
 - **Test evidence**: Relevant `./gradlew check` and frontend test results.
-- **Coverage evidence**: JaCoCo report and the result of `calculate-jacoco.sh`.
+- **Coverage evidence**: JaCoCo report and the result of `calculate-jacoco.sh` / `jacocoTestCoverageVerification`.
 - **CI/CD and container evidence**: Workflow status, path-filter behavior, health checks, and Docker runtime user.
 
 ### Review Output
@@ -150,9 +156,9 @@ Summarize the concrete test, coverage, container, and CI evidence in the review.
 
 ## 6. Standard Decision Semantics
 
-- **`FINDING`**: Use when offline tests access the network, coverage falls below 80%, Checkstyle reports violations, containers run as root, or a CI false-green gap is found.
+- **`FINDING`**: Use when offline tests access the network, coverage falls below 80%, Checkstyle reports violations, ESLint produces warnings under `--max-warnings 0`, containers run as root, or a CI false-green gap is found.
   - *Required format*: `FINDING: [Severity: CRITICAL/MAJOR/MINOR] - [File:Line] - [Description and remediation guidance]`
-- **`NO_FINDING`**: All required tests pass, coverage is at least 80%, Checkstyle is clean, and container and CI configurations are robust and false-green resistant.
+- **`NO_FINDING`**: All required tests pass, coverage is at least 80%, Checkstyle is clean under Clean Code rules, ESLint has zero warnings, and container and CI configurations are robust and false-green resistant.
 - **`NOT_APPLICABLE`**: The task only affects user documentation or isolated frontend styling without changing tests, build, container, or CI configuration.
 - **`NOT_VERIFIED`**: Tests or coverage calculations cannot be run (for example, due to a broken build environment). As a fail-closed safeguard, the PR must not be approved.
 
@@ -163,12 +169,14 @@ Summarize the concrete test, coverage, container, and CI evidence in the review.
 The specialist must stop immediately and reject approval with a `FINDING` status if any of the following conditions occurs:
 
 1. **Live network access during tests**: `./gradlew test` or `check` attempts to reach external endpoints instead of using mocks.
-2. **Coverage regression**: JaCoCo coverage falls below 80% in core or persistence packages.
+2. **Coverage regression**: JaCoCo line coverage falls below 80.00% in core or persistence packages, or `jacocoTestCoverageVerification` fails.
 3. **False-green behavior**: A CI step or script masks a failing exit code (`continue-on-error: true`, `|| true`) or treats a missing report as success.
-4. **Checkstyle violation**: Any formatting or convention violation remains when `maxWarnings = 0`.
-5. **Root container**: The Docker runtime stage does not run as `appuser` with UID 10001.
-6. **Unverified Docker publishing**: Docker images are built or published without successful CI confirmation.
-7. **PR title bypass**: The required PR build check accepts a title that does not follow Conventional Commits.
+4. **Checkstyle violation**: Any formatting or Clean Code convention violation remains when `maxWarnings = 0`.
+5. **Frontend lint or type regression**: ESLint reports any warning under `--max-warnings 0`, or TypeScript strict compiler options fail.
+6. **Skills or architecture validator failure**: Any check fails in `scripts/validate-skills.sh`.
+7. **Root container**: The Docker runtime stage does not run as `appuser` with UID 10001.
+8. **Unverified Docker publishing**: Docker images are built or published without successful CI confirmation.
+9. **PR title bypass**: The required PR build check accepts a title that does not follow Conventional Commits.
 
 ---
 
@@ -176,9 +184,9 @@ The specialist must stop immediately and reject approval with a `FINDING` status
 
 Approval (`NO_FINDING`) from `quality-devops-engineer` may be granted only when ALL of the following criteria are met:
 
-1. `./gradlew check` passes offline with zero test failures and zero Checkstyle warnings.
-2. JaCoCo coverage is at least 80%, and `calculate-jacoco.sh` exits successfully.
-3. The offline `validate-skills.sh` validator reports zero errors.
+1. `./gradlew checkstyleMain checkstyleTest test jacocoTestReport jacocoTestCoverageVerification check bootJar` passes offline with zero test failures, zero Checkstyle Clean Code warnings, and >=80.00% line coverage.
+2. Frontend verification (`npm run generate-api && npm run typecheck && npm run lint && npm run test && npm run build`) passes with zero errors and zero warnings (`--max-warnings 0`).
+3. The offline `validate-skills.sh` validator reports zero errors across all 6 checks.
 4. Docker and Compose configuration meets container-security and health-check requirements.
 5. CI/CD path filters and the minimal gate prevent false-green results.
 6. The PR build workflow requires a valid Conventional Commit title.
