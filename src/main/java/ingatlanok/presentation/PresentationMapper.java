@@ -9,7 +9,10 @@ import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.MarketSegmentStats;
+import ingatlanok.model.MarketStats;
 import ingatlanok.model.PortalScrapeResult;
+import ingatlanok.model.PriceDropItem;
 import ingatlanok.model.SearchResult;
 import ingatlanok.model.SourceListing;
 
@@ -42,6 +45,12 @@ public interface PresentationMapper {
       defaultExpression = "java(new ArrayList<>())")
   DashboardResponseDto toDashboardResponseDto(
       SearchResult searchResult, MarketStatsDto marketStats, List<PortalStatusDto> portalStatuses);
+
+  MarketStatsDto toMarketStatsDto(MarketStats stats);
+
+  MarketSegmentStatsDto toMarketSegmentStatsDto(MarketSegmentStats segment);
+
+  PriceDropItemDto toPriceDropItemDto(PriceDropItem item);
 
   @Mapping(target = "currentPriceHuf", source = "item.priceInfo.amountHuf")
   @Mapping(target = "currentPriceMillion", source = "item.priceInfo.amountMillion")

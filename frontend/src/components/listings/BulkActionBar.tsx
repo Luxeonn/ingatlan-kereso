@@ -7,12 +7,7 @@ import {
   Search,
   X,
   Trash2,
-  EyeOff,
   ArrowUpDown,
-  TrendingDown,
-  ShieldCheck,
-  Sparkles,
-  Building2,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
@@ -20,6 +15,7 @@ import { useFilterStore, SORT_OPTIONS, type SortOption } from '../../store/useFi
 import { isItemBargain } from '../../hooks/useSearch'
 import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
+import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
 
 interface BulkActionBarProps {
   items: IngatlanItem[]
@@ -41,202 +37,6 @@ function formatResultCount(visibleCount: number | undefined, itemsLength: number
   }
   return `${itemsLength} db`
 }
-
-interface QuickFilterChipsRowProps {
-  onlyNew: boolean
-  setOnlyNew: (val: boolean) => void
-  onlyNewConstruction?: boolean
-  setOnlyNewConstruction: (val: boolean) => void
-  onlyBargain: boolean
-  setOnlyBargain: (val: boolean) => void
-  bargainCount: number
-  excludeViewed?: boolean
-  setExcludeViewed: (val: boolean) => void
-  minQualityScore: number
-  setMinQualityScore: (val: number) => void
-}
-
-const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
-  onlyNew,
-  setOnlyNew,
-  onlyNewConstruction,
-  setOnlyNewConstruction,
-  onlyBargain,
-  setOnlyBargain,
-  bargainCount,
-  excludeViewed,
-  setExcludeViewed,
-  minQualityScore,
-  setMinQualityScore,
-}) => (
-  <div
-    data-testid="filter-chips-row"
-    className="flex flex-wrap items-center gap-2 border-t border-[var(--border-color)] pt-2.5 text-xs"
-  >
-    {/* 1. Csak új találatok */}
-    <button
-      type="button"
-      aria-pressed={onlyNew}
-      onClick={() => setOnlyNew(!onlyNew)}
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        onlyNew
-          ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-      )}
-    >
-      <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-      <span>Csak új találatok</span>
-    </button>
-
-    {/* 2. Csak új építésű */}
-    <button
-      type="button"
-      aria-pressed={onlyNewConstruction}
-      aria-label="Csak új építésű ingatlanok"
-      onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        onlyNewConstruction
-          ? 'border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-      )}
-    >
-      <Building2 className="h-3.5 w-3.5 text-cyan-400" />
-      <span>Csak új építésű</span>
-    </button>
-
-    {/* 3. Alkalmi vétel */}
-    <button
-      type="button"
-      data-testid="bargain-filter-toggle"
-      aria-pressed={onlyBargain}
-      onClick={() => setOnlyBargain(!onlyBargain)}
-      title="Kizárólag alkalmi vételek megjelenítése (mediánnál legalább 20%-kal olcsóbb ingatlanok)"
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        onlyBargain
-          ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30',
-      )}
-    >
-      <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
-      <span>Alkalmi vétel</span>
-      {bargainCount > 0 && (
-        <span
-          data-testid="bargain-filter-count"
-          className={cn(
-            'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
-            onlyBargain
-              ? 'bg-emerald-500/30 text-emerald-200'
-              : 'bg-[var(--bg-card)] text-emerald-400',
-          )}
-        >
-          {bargainCount}
-        </span>
-      )}
-    </button>
-
-    {/* 4. Megtekintettek rejtése */}
-    <button
-      type="button"
-      aria-pressed={excludeViewed}
-      onClick={() => setExcludeViewed(!excludeViewed)}
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        excludeViewed
-          ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-      )}
-    >
-      <EyeOff className="h-3.5 w-3.5 text-blue-400" />
-      <span>Megtekintettek rejtése</span>
-    </button>
-
-    {/* 5. Minőség: választó */}
-    <div className="flex items-center gap-1.5 text-xs shrink-0">
-      <ShieldCheck
-        className={cn(
-          'h-3.5 w-3.5 shrink-0',
-          minQualityScore >= 85
-            ? 'text-emerald-400'
-            : minQualityScore >= 70
-              ? 'text-amber-400'
-              : 'text-[var(--text-secondary)]',
-        )}
-      />
-      <label htmlFor="listings-quality-select" className="text-[var(--text-secondary)] font-medium">
-        Minőség:
-      </label>
-      <select
-        id="listings-quality-select"
-        data-testid="quality-filter-select"
-        aria-label="Adatminőség szűrő"
-        value={minQualityScore}
-        onChange={(e) => setMinQualityScore(Number(e.target.value))}
-        className={cn(
-          'rounded-lg border px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 focus:outline-none transition-all',
-          minQualityScore >= 85
-            ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
-            : minQualityScore >= 70
-              ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
-              : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-primary)]',
-        )}
-      >
-        <option value={0}>Összes minőség</option>
-        <option value={70}>Megbízható (≥70)</option>
-        <option value={85}>Kiváló (≥85)</option>
-      </select>
-    </div>
-  </div>
-)
-
-interface PortalFilterChipsRowProps {
-  selectedPortalFilter: string
-  setSelectedPortalFilter: (id: string) => void
-  portalCounts: Record<string, number>
-}
-
-const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
-  selectedPortalFilter,
-  setSelectedPortalFilter,
-  portalCounts,
-}) => (
-  <div
-    data-testid="portal-quick-filter-chips"
-    className="flex flex-wrap items-center gap-1.5 border-t border-[var(--border-color)] pt-2.5"
-  >
-    {PORTAL_CHIPS.map((chip) => {
-      const count = portalCounts[chip.id] || 0
-      const isActive = selectedPortalFilter === chip.id
-      return (
-        <button
-          key={chip.id}
-          type="button"
-          onClick={() => setSelectedPortalFilter(chip.id)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all',
-            isActive
-              ? 'border-blue-500/50 bg-blue-600 text-white shadow-sm'
-              : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-          )}
-        >
-          <span>{chip.label}</span>
-          <span
-            className={cn(
-              'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
-              isActive
-                ? 'bg-white/20 text-white'
-                : 'bg-[var(--bg-card)] text-[var(--text-secondary)]',
-            )}
-          >
-            {count}
-          </span>
-        </button>
-      )
-    })}
-  </div>
-)
 
 export const BulkActionBar: FC<BulkActionBarProps> = ({
   items,
@@ -292,9 +92,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
 
   return (
     <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
-      {/* 1. Sor – Keresés & Fő akciók (Search & Actions Bar) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Bal oldal: Gyorskereső mező */}
         <div className="relative flex-1 min-w-[200px] max-w-sm sm:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
           <input
@@ -317,9 +115,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
           )}
         </div>
 
-        {/* Jobb oldal: Rendezés, Találatszámláló, Tömeges műveletek és Nézetváltó */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Rendezés legördülő menü */}
           <div className="flex items-center gap-1.5 text-xs shrink-0">
             <ArrowUpDown className="h-3.5 w-3.5 text-[var(--text-secondary)] shrink-0" />
             <label htmlFor="bulk-sort-select" className="text-[var(--text-secondary)] font-medium">
@@ -340,7 +136,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
             </select>
           </div>
 
-          {/* Találatszámláló */}
           <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
             <span>{formatResultCount(visibleCount, items.length, totalRawCount)}</span>
             {items.length !== totalRawCount && (visibleCount === null || visibleCount === undefined) && (
@@ -350,7 +145,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
             )}
           </div>
 
-          {/* Tömeges műveletek */}
           {items.length > 0 && (
             <button
               type="button"
@@ -408,7 +202,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
             )
           )}
 
-          {/* Nézetváltó */}
           <div className="flex items-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] p-0.5 shrink-0">
             <button
               type="button"
@@ -440,7 +233,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         </div>
       </div>
 
-      {/* 2. Sor – Gyorsszűrő Chipek és Kritériumok */}
       <QuickFilterChipsRow
         onlyNew={onlyNew}
         setOnlyNew={setOnlyNew}
@@ -455,7 +247,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         setMinQualityScore={setMinQualityScore}
       />
 
-      {/* 3. Sor – Forrásportál szűrők */}
       <PortalFilterChipsRow
         selectedPortalFilter={selectedPortalFilter}
         setSelectedPortalFilter={setSelectedPortalFilter}

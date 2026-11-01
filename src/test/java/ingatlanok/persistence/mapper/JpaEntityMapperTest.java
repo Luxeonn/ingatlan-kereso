@@ -302,4 +302,5 @@ class JpaEntityMapperTest {
     assertEquals(0, entry.id());
     assertEquals(0L, entry.priceAmount());
     assertEquals(0.0, entry.priceMillions());
-  }}
+  }
+}

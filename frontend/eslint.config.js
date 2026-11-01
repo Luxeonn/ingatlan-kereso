@@ -31,6 +31,7 @@ export default tseslint.config(
       'complexity': ['error', 15],
       'max-depth': ['error', 4],
       'max-params': ['error', 5],
+      'max-lines': ['error', { max: 350, skipBlankLines: true, skipComments: true }],
       'eqeqeq': ['error', 'always'],
       'no-lonely-if': 'error',
       'no-else-return': 'error',
@@ -49,6 +50,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/types/generated-api.ts'],
+    rules: {
+      'max-lines': 'off',
+    },
+  },
+  {
     files: ['src/utils/formatters.ts', 'src/test/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-properties': 'off',
@@ -59,6 +66,7 @@ export default tseslint.config(
     rules: {
       'complexity': 'off',
       'max-params': 'off',
+      'max-lines': 'off',
     },
   }
 );

@@ -78,12 +78,11 @@ class PropertyTypeUrlAndParsingTest {
     String url = jfScraper.buildSearchUrl(criteria);
     assertNotNull(url);
 
-    String expectedTypeWord =
-        switch (type) {
-          case "haz" -> "haz";
-          case "telek" -> "telek";
-          default -> "lakas";
-        };
+    String expectedTypeWord = switch (type) {
+      case "haz" -> "haz";
+      case "telek" -> "telek";
+      default -> "lakas";
+    };
     assertTrue(
         url.startsWith("https://ingatlan.jofogas.hu/hajdu-bihar/hajduszoboszlo/" + expectedTypeWord),
         "Jófogás strukturált URL prefix hibás: " + url);

@@ -106,11 +106,12 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │  - config: GlobalCorsFilter, SpaWebMvcConfig, CoreEngineConfig
     ▼
 [Layer 2: Core Domain & Business Logic]
-    │  - core: SearchExecutionEngine, ParallelPortalScrapeExecutor, SearchResultAggregator,
-    │          PropertyFilterEngine, DeduplicationEngine, MarketAnalyticsEngine,
-    │          ListingNormalizer, DataQualityEngine
+    │  - core: SearchExecutionEngine, SearchPersistenceSynchronizer, ParallelPortalScrapeExecutor,
+    │          SearchResultAggregator, PropertyFilterEngine, DeduplicationEngine,
+    │          MarketAnalyticsEngine, MarketStatisticsCalculator, ListingNormalizer, DataQualityEngine
     │  - model: IngatlanItem, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult,
     │           PropertyType, Property, SourceListing, ListingObservation,
+    │           MarketStats, MarketSegmentStats, PriceDropItem,
     │           DataQualityScore, QualityCheckResult, QualitySeverity, QualityTier
     │  - service: IngatlanSearchService
     ▼
@@ -124,15 +125,16 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
        - persistence.entity: PropertyEntity, ListingObservationEntity, PriceHistoryEntity, StatusLogEntity, ConfigEntity
        - persistence.repository: PropertyRepository, ListingObservationRepository, ConfigRepository, StatusLogRepository
        - persistence.mapper: JpaEntityMapper
-       - persistence.service: ListingFilterService, PriceHistoryTracker, StatusLogTracker
+       - persistence.service: PropertyPersistenceHelper, ListingFilterService, PriceHistoryTracker, StatusLogTracker
 ```
 
 ### Layer Boundary Invariants:
-1. **Layer 1 never enters Layer 2, 3, or 4**: Neither `core`, `portal`, nor `persistence` may import `@RestController`, `HttpServletRequest`, or web-specific types.
+1. **Layer 1 never enters Layer 2, 3, or 4 (Zero-Exception ArchUnit)**: Neither `core`, `portal`, nor `persistence` may import `@RestController`, `HttpServletRequest`, presentation DTOs (`ingatlanok.presentation.*`), or web-specific types (`ArchitectureRulesTest` enforces `CORE_DOES_NOT_DEPEND_ON_PRESENTATION` with zero exceptions).
 2. **Core delegates to Storage Interfaces**: Layer 2 interacts with persistence exclusively through `ListingStorage` and `ConfigStorage` interfaces, never raw SQL, Hibernate sessions, or Spring Data repositories directly.
 3. **Open/Closed Portal Engines**: New property portals are introduced by implementing `PortalEngine` and registering in `PortalEngineRegistry` without modifying `SearchExecutionEngine`.
 4. **Leaf Utilities (`common`)**: Pure helpers (`HttpFetcher`, `PropertyParser`, `SlugUtils`, `CityUtils`, `AppLogger`) have zero dependencies on business logic or storage.
 5. **Code Generation & Compile-Time Mapping (Lombok & MapStruct)**: Models, presentation DTOs, and JPA entities use Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` (omitting `@Setter` on read-only DTOs and value objects, and forbidding `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` via Checkstyle). Cross-layer object conversions (`JpaEntityMapper`, `PresentationMapper`) use MapStruct with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`.
+6. **File-Length Modularity & AI Token-Efficiency Tooling**: Production Java files are capped at `FileLength <= 450` lines (2-space indentation, strict whitespace tokens) and frontend TypeScript/React files at `max-lines <= 350` lines (excluding blanks/comments). Each backend package documents its entry points in `package-info.java`, shared Object Mother builders (`TestFixtures.java` and `testFixtures.ts`) eliminate test setup boilerplate, `logback-test.xml` suppresses `INFO` noise during test runs, and `scripts/ai-verify.sh` provides compact verification summaries.
 
 ---
 
@@ -311,10 +313,10 @@ The UI is decomposed into distinct, single-responsibility panel views and reusab
 
 ## 8. Quality Assurance & Hermetic Verification
 
-1. **100% Offline Hermetic Testing**: Automated unit and integration tests run entirely offline (`./gradlew test`). Live network scraping is forbidden in standard test cycles.
-2. **JaCoCo Quality Gate**: Instruction and line coverage must exceed 80% across core, persistence, and domain packages (current achievement: **85.67%** line coverage).
-3. **Checkstyle Static Analysis**: Checkstyle 10.21.4 verifies compliance with `config/checkstyle/checkstyle.xml` (0 warnings permitted).
-4. **Frontend Verification**: TypeScript compilation (`npm run typecheck`), ESLint (`npm run lint`), Vitest unit tests (`npm test`), and Playwright E2E browser tests (`npm run test:e2e`).
+1. **100% Offline Hermetic Testing**: Automated unit and integration tests run entirely offline (`./gradlew test`) with `WARN`-level logging (`src/test/resources/logback-test.xml`) and shared Object Mother builders (`TestFixtures.java`). Live network scraping is forbidden in standard test cycles.
+2. **JaCoCo Quality Gate**: Instruction and line coverage must exceed 80% across core, persistence, and domain packages (current achievement: **87.96%** line coverage).
+3. **Checkstyle Static Analysis**: Checkstyle 10.21.4 verifies compliance with `config/checkstyle/checkstyle.xml` (`FileLength <= 450`, 2-space `Indentation`, strict whitespace tokens, and Clean Code complexity caps; 0 warnings permitted).
+4. **Frontend Verification**: TypeScript compilation (`npm run typecheck`), ESLint (`npm run lint` with `--max-warnings 0` and `max-lines: 350`), Vitest unit tests (`npm test` using `testFixtures.ts`), and Playwright E2E browser tests (`npm run test:e2e`).
 
 ---
 

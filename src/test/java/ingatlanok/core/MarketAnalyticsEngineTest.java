@@ -14,11 +14,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.MarketSegmentStats;
+import ingatlanok.model.MarketStats;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
-import ingatlanok.presentation.MarketSegmentStatsDto;
-import ingatlanok.presentation.MarketStatsDto;
 
 class MarketAnalyticsEngineTest {
 
@@ -64,7 +64,7 @@ class MarketAnalyticsEngineTest {
         createItem("4", "Debrecen", PropertyType.LAKAS, 45_000_000L, 50.0, 900_000L, null, null),
         createItem("5", "Debrecen", PropertyType.LAKAS, 50_000_000L, 50.0, 1_000_000L, null, null));
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     assertFalse(stats.isInsufficientData());
@@ -88,7 +88,7 @@ class MarketAnalyticsEngineTest {
         createItem("5", "Szeged", PropertyType.LAKAS, 50_000_000L, 50.0, 1_000_000L, null, null),
         createItem("6", "Szeged", PropertyType.LAKAS, 60_000_000L, 50.0, 1_200_000L, null, null));
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     assertFalse(stats.isInsufficientData());
@@ -107,7 +107,7 @@ class MarketAnalyticsEngineTest {
         createItem("3", "Miskolc", PropertyType.HAZ, 30_000_000L, 100.0, 300_000L, null, null),
         createItem("4", "Miskolc", PropertyType.HAZ, 35_000_000L, 100.0, 350_000L, null, null));
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     assertTrue(stats.isInsufficientData());
@@ -142,7 +142,7 @@ class MarketAnalyticsEngineTest {
     items.add(createItem("p4", "Gyor", PropertyType.TELEK, 35_000_000L, 1000.0, 35_000L, null, null));
     items.add(createItem("p5", "Gyor", PropertyType.TELEK, 40_000_000L, 1000.0, 40_000L, null, null));
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     // Residential median must be 600,000 Ft/m2
@@ -181,7 +181,7 @@ class MarketAnalyticsEngineTest {
         createItem("r1", "Budapest", PropertyType.LAKAS, 40_500_000L, 50.0, 810_000L, null, null);
 
     List<IngatlanItem> items = List.of(bargainItem, regularItem, item1, item2, item3, item4, item5);
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     assertEquals(1_000_000L, stats.getResidentialMedianPricePerM2());
@@ -212,7 +212,7 @@ class MarketAnalyticsEngineTest {
         createItem("u1", "Pecs", PropertyType.LAKAS, 55_000_000L, 60.0, 916_667L, 5_000_000L, 10.0);
 
     List<IngatlanItem> items = List.of(drop1, drop2, noDrop, priceIncrease);
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     assertEquals(2, stats.getPriceDropCount());
@@ -248,7 +248,7 @@ class MarketAnalyticsEngineTest {
     items.add(zeroArea);
     items.add(negPrice);
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
     assertTrue(stats.isInsufficientData());
     assertNull(stats.getMedianPricePerM2());
@@ -279,7 +279,7 @@ class MarketAnalyticsEngineTest {
     }
     itemsWithDuplicates.addAll(List.of(item2, item3, item4, item5));
 
-    MarketStatsDto stats = engine.calculateMarketStats(itemsWithDuplicates);
+    MarketStats stats = engine.calculateMarketStats(itemsWithDuplicates);
     assertNotNull(stats);
     // Deduplication should ensure sample size is 5 and median is 700k, not 500k!
     assertEquals(5, stats.getTotalSampleSize());
@@ -296,7 +296,7 @@ class MarketAnalyticsEngineTest {
         createItem("p4", "Kecskemet", PropertyType.TELEK, 25_000_000L, 1000.0, 25_000L, null, null),
         createItem("p5", "Kecskemet", PropertyType.TELEK, 30_000_000L, 1000.0, 30_000L, null, null));
 
-    MarketStatsDto stats = engine.calculateMarketStats(plots);
+    MarketStats stats = engine.calculateMarketStats(plots);
     assertNotNull(stats);
     assertFalse(stats.isInsufficientData());
     assertEquals(20_000L, stats.getPlotMedianPricePerM2());
@@ -315,11 +315,11 @@ class MarketAnalyticsEngineTest {
         createItem("4", "Debrecen", PropertyType.LAKAS, 45_000_000L, 50.0, 900_000L, null, null),
         createItem("5", "Debrecen", PropertyType.LAKAS, 50_000_000L, 50.0, 1_000_000L, null, null));
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats.getSegments());
     assertEquals(1, stats.getSegments().size());
 
-    MarketSegmentStatsDto segment = stats.getSegments().getFirst();
+    MarketSegmentStats segment = stats.getSegments().getFirst();
     assertEquals("Debrecen", segment.getCity());
     assertEquals(PropertyType.LAKAS, segment.getPropertyType());
     assertTrue(segment.isResidential());
@@ -378,7 +378,7 @@ class MarketAnalyticsEngineTest {
             15_000_000L, 50.0, 300_000L, null, null));
       }
 
-      MarketStatsDto stats = engine.calculateMarketStats(items);
+      MarketStats stats = engine.calculateMarketStats(items);
       assertNotNull(stats, "Stats must not be null for count " + count);
       assertTrue(stats.isInsufficientData(), "Overall insufficientData must be true for count " + count);
       assertTrue(stats.isResidentialInsufficientData(), "Residential insufficientData must be true for count " + count);
@@ -410,7 +410,7 @@ class MarketAnalyticsEngineTest {
       items.add(createItem("p" + i, "Budapest", PropertyType.TELEK, 20_000_000L, 1000.0, 20_000L, null, null));
     }
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
     // Residential median must remain exactly 1,000,000 Ft/m² despite 15 plot listings
     assertEquals(1_000_000L, stats.getResidentialMedianPricePerM2());
@@ -446,7 +446,7 @@ class MarketAnalyticsEngineTest {
     items.add(item0);
     items.add(itemPrem);
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
     assertEquals(1_000_000L, stats.getResidentialMedianPricePerM2());
 
@@ -481,7 +481,7 @@ class MarketAnalyticsEngineTest {
         null, null);
 
     List<IngatlanItem> items = List.of(dropMid, priceHike, dropSmall, zeroDelta, dropBig, nullDelta);
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     // Exactly 3 drops (dropBig, dropMid, dropSmall)
@@ -528,7 +528,7 @@ class MarketAnalyticsEngineTest {
     corruptedList.add(item3);
     corruptedList.add(itemHuge);
 
-    MarketStatsDto stats = engine.calculateMarketStats(corruptedList);
+    MarketStats stats = engine.calculateMarketStats(corruptedList);
     assertNotNull(stats);
     // itemHuge is rejected by DataQualityEngine (score < 70 due to 2T Ft price and 2B Ft/m²), so sample size is 0
     assertEquals(0, stats.getResidentialSampleSize());
@@ -553,7 +553,7 @@ class MarketAnalyticsEngineTest {
     corruptOutlier.setQualityScore(40);
 
     List<IngatlanItem> items = List.of(item1, item2, item3, item4, item5, corruptOutlier);
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
     assertEquals(5, stats.getResidentialSampleSize());
@@ -580,7 +580,7 @@ class MarketAnalyticsEngineTest {
     fakeBargain.setQualityScore(50);
 
     List<IngatlanItem> items = List.of(item1, item2, item3, item4, item5, genuineBargain, fakeBargain);
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
 
     assertTrue(genuineBargain.getIsBargain(), "Genuine high-quality listing should qualify as bargain");
     assertFalse(fakeBargain.getIsBargain(), "Low quality score listing must NEVER qualify as bargain");

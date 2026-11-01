@@ -16,10 +16,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.MarketStats;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
-import ingatlanok.presentation.MarketStatsDto;
 
 /**
  * Adversarial and empirical stress test suite for DataQualityEngine and MarketAnalyticsEngine (#267).
@@ -288,7 +288,7 @@ class DataQualityAdversarialTest {
     corruptLow.setQualityScore(69);
     items.add(corruptLow);
 
-    MarketStatsDto stats = analyticsEngine.calculateMarketStats(items);
+    MarketStats stats = analyticsEngine.calculateMarketStats(items);
 
     assertNotNull(stats);
     assertEquals(5, stats.getResidentialSampleSize(), "Only the 5 clean listings should be sampled");

@@ -89,14 +89,15 @@ public class CoreEngineConfig {
       MarketAnalyticsEngine analyticsEngine,
       DataQualityEngine qualityEngine) {
     ConfigStorage configStorage = (listingStorage instanceof ConfigStorage cs) ? cs : null;
-    return new SearchExecutionEngine(
-        portalRegistry,
-        listingStorage,
-        configStorage,
-        filterEngine,
-        dedupEngine,
-        analyticsEngine,
-        qualityEngine);
+    return SearchExecutionEngine.builder()
+        .portalRegistry(portalRegistry)
+        .listingStorage(listingStorage)
+        .configStorage(configStorage)
+        .filterEngine(filterEngine)
+        .dedupEngine(dedupEngine)
+        .analyticsEngine(analyticsEngine)
+        .qualityEngine(qualityEngine)
+        .build();
   }
 
   @Bean

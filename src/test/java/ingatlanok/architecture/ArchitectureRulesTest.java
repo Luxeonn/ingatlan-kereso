@@ -26,6 +26,7 @@ public final class ArchitectureRulesTest {
 
   static final String READ_ONLY_DTO_PATTERN =
       ".*\\.(MarketStatsDto|MarketSegmentStatsDto|PriceDropItemDto"
+          + "|MarketStats|MarketSegmentStats|PriceDropItem"
           + "|PortalStatusDto|DashboardResponseDto|PortalSource"
           + "|PriceInfo|PropertyDetails)";
 
@@ -67,16 +68,14 @@ public final class ArchitectureRulesTest {
           .because("Persistence and scraper portal engines must never depend on the presentation layer");
 
   @ArchTest
-  static final ArchRule CORE_DOES_NOT_DEPEND_ON_PRESENTATION_EXCEPT_MARKET_ANALYTICS =
+  static final ArchRule CORE_DOES_NOT_DEPEND_ON_PRESENTATION =
       noClasses()
           .that()
           .resideInAnyPackage("..ingatlanok.core..")
-          .and()
-          .doNotHaveSimpleName("MarketAnalyticsEngine")
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage("..ingatlanok.presentation..")
-          .because("Core engines must not depend on presentation (MarketAnalyticsEngine bridge planned for M2)");
+          .because("Core business logic engines must never depend on the presentation layer");
 
   @ArchTest
   static final ArchRule STORAGE_ABSTRACTION_INTEGRITY =

@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.SearchExecutionEngine;
@@ -15,19 +16,18 @@ import ingatlanok.model.SearchResult;
 
 public class DashboardPresentationService {
 
-
   private final SearchExecutionEngine searchEngine;
   private final MarketAnalyticsEngine analyticsEngine;
 
   public DashboardPresentationService(
       SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
-    this.searchEngine = java.util.Objects.requireNonNull(searchEngine);
-    this.analyticsEngine = java.util.Objects.requireNonNull(analyticsEngine);
+    this.searchEngine = Objects.requireNonNull(searchEngine);
+    this.analyticsEngine = Objects.requireNonNull(analyticsEngine);
   }
 
   public DashboardResponseDto executeSearch(SearchCriteria criteria) {
     SearchResult searchResult = searchEngine.executeSearch(criteria);
-    MarketStatsDto marketStats = analyticsEngine.calculateMarketStats(searchResult.getItems());
+    MarketStatsDto marketStats = calculateMarketStats(searchResult.getItems());
     List<PortalStatusDto> portalStatuses = buildPortalStatuses(searchResult);
 
     return PresentationMapper.INSTANCE.toDashboardResponseDto(
@@ -35,7 +35,7 @@ public class DashboardPresentationService {
   }
 
   public MarketStatsDto calculateMarketStats(List<IngatlanItem> items) {
-    return analyticsEngine.calculateMarketStats(items);
+    return PresentationMapper.INSTANCE.toMarketStatsDto(analyticsEngine.calculateMarketStats(items));
   }
 
   private List<PortalStatusDto> buildPortalStatuses(SearchResult searchResult) {

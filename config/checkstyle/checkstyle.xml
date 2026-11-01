@@ -6,6 +6,9 @@
     <property name="severity" value="error"/>
     <property name="fileExtensions" value="java, properties, xml"/>
 
+    <module name="FileLength">
+        <property name="max" value="450"/>
+    </module>
     <module name="FileTabCharacter">
         <property name="eachLine" value="true"/>
     </module>
@@ -15,11 +18,36 @@
     </module>
 
     <module name="SuppressionSingleFilter">
-        <property name="checks" value="MethodLength|ParameterNumber|CyclomaticComplexity"/>
+        <property name="checks" value="FileLength|MethodLength|ParameterNumber|CyclomaticComplexity"/>
         <property name="files" value="[/\\]src[/\\]test[/\\]"/>
     </module>
 
     <module name="TreeWalker">
+        <module name="Indentation">
+            <property name="basicOffset" value="2"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="2"/>
+            <property name="throwsIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="4"/>
+            <property name="arrayInitIndent" value="2"/>
+        </module>
+        <module name="WhitespaceAround">
+            <property name="allowEmptyConstructors" value="true"/>
+            <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
+            <property name="allowEmptyLoops" value="true"/>
+            <property name="allowEmptyLambdas" value="true"/>
+            <property name="allowEmptyCatches" value="true"/>
+        </module>
+        <module name="WhitespaceAfter"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="GenericWhitespace"/>
+        <module name="EmptyLineSeparator">
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+            <property name="allowMultipleEmptyLines" value="false"/>
+            <property name="allowMultipleEmptyLinesInsideClassMembers" value="false"/>
+        </module>
+
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
