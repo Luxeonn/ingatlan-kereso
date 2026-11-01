@@ -19,6 +19,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.MarketSegmentStats;
+import ingatlanok.model.MarketStats;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
@@ -166,12 +168,12 @@ class MarketAnalyticsEmpiricalStressTest {
     items.add(createItem("pecs_g3", "Pecs", PropertyType.GARAZS, 4_000_000L, 20.0, 200_000L));
     items.add(createItem("pecs_g4", "Pecs", PropertyType.GARAZS, 5_000_000L, 20.0, 250_000L));
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
     assertEquals(5, stats.getSegments().size());
 
     // Validate Budapest LAKAS
-    MarketSegmentStatsDto bpLakas = stats.getSegments().stream()
+    MarketSegmentStats bpLakas = stats.getSegments().stream()
         .filter(s -> "Budapest".equals(s.getCity()) && PropertyType.LAKAS == s.getPropertyType())
         .findFirst().orElseThrow();
     assertEquals(6, bpLakas.getSampleSize());
@@ -180,7 +182,7 @@ class MarketAnalyticsEmpiricalStressTest {
     assertEquals(1, bpLakas.getBargainCount());
 
     // Validate Budapest HAZ
-    MarketSegmentStatsDto bpHaz = stats.getSegments().stream()
+    MarketSegmentStats bpHaz = stats.getSegments().stream()
         .filter(s -> "Budapest".equals(s.getCity()) && PropertyType.HAZ == s.getPropertyType())
         .findFirst().orElseThrow();
     assertEquals(5, bpHaz.getSampleSize());
@@ -189,7 +191,7 @@ class MarketAnalyticsEmpiricalStressTest {
     assertEquals(1, bpHaz.getBargainCount());
 
     // Validate Debrecen LAKAS
-    MarketSegmentStatsDto debLakas = stats.getSegments().stream()
+    MarketSegmentStats debLakas = stats.getSegments().stream()
         .filter(s -> "Debrecen".equals(s.getCity()) && PropertyType.LAKAS == s.getPropertyType())
         .findFirst().orElseThrow();
     assertEquals(5, debLakas.getSampleSize());
@@ -198,7 +200,7 @@ class MarketAnalyticsEmpiricalStressTest {
     assertEquals(0, debLakas.getBargainCount());
 
     // Validate Szeged TELEK
-    MarketSegmentStatsDto szegTelek = stats.getSegments().stream()
+    MarketSegmentStats szegTelek = stats.getSegments().stream()
         .filter(s -> "Szeged".equals(s.getCity()) && PropertyType.TELEK == s.getPropertyType())
         .findFirst().orElseThrow();
     assertEquals(5, szegTelek.getSampleSize());
@@ -207,7 +209,7 @@ class MarketAnalyticsEmpiricalStressTest {
     assertEquals(1, szegTelek.getBargainCount());
 
     // Validate Pecs GARAZS (insufficient data)
-    MarketSegmentStatsDto pecsGarazs = stats.getSegments().stream()
+    MarketSegmentStats pecsGarazs = stats.getSegments().stream()
         .filter(s -> "Pecs".equals(s.getCity()) && PropertyType.GARAZS == s.getPropertyType())
         .findFirst().orElseThrow();
     assertEquals(4, pecsGarazs.getSampleSize());
@@ -217,7 +219,7 @@ class MarketAnalyticsEmpiricalStressTest {
 
     // Core invariant: sum of segment bargains == total bargains
     int sumSegmentBargains = stats.getSegments().stream()
-        .mapToInt(MarketSegmentStatsDto::getBargainCount)
+        .mapToInt(MarketSegmentStats::getBargainCount)
         .sum();
     assertEquals(3, stats.getBargainCount());
     assertEquals(3, sumSegmentBargains);
@@ -304,7 +306,7 @@ class MarketAnalyticsEmpiricalStressTest {
     items.add(item20);
     items.add(item1999);
 
-    MarketStatsDto stats = engine.calculateMarketStats(items);
+    MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
 
     assertTrue(item20.isBargain(), "800,000 vs 1M (20.0% below) must be a bargain");
@@ -314,7 +316,7 @@ class MarketAnalyticsEmpiricalStressTest {
     assertEquals(20.0, item1999.getPercentageBelowMedian()); // rounded to 20.0 for display, but raw pctBelow is 19.99
 
     assertEquals(1, stats.getBargainCount());
-    MarketSegmentStatsDto segment = stats.getSegments().getFirst();
+    MarketSegmentStats segment = stats.getSegments().getFirst();
     assertEquals(1, segment.getBargainCount());
   }
 
@@ -340,18 +342,18 @@ class MarketAnalyticsEmpiricalStressTest {
       randomItems.add(it);
     }
 
-    MarketStatsDto stats = engine.calculateMarketStats(randomItems);
+    MarketStats stats = engine.calculateMarketStats(randomItems);
     assertNotNull(stats);
 
     // Invariant 1: Sum of segment bargains == total bargains
     int totalBargainsInSegments = stats.getSegments().stream()
-        .mapToInt(MarketSegmentStatsDto::getBargainCount)
+        .mapToInt(MarketSegmentStats::getBargainCount)
         .sum();
     assertEquals(stats.getBargainCount(), totalBargainsInSegments,
         "Total bargains must equal the sum of segment bargains");
 
     // Invariant 2: For every segment, bargainCount equals actual count of items in that segment with isBargain == true
-    for (MarketSegmentStatsDto seg : stats.getSegments()) {
+    for (MarketSegmentStats seg : stats.getSegments()) {
       long itemsMarkedBargainInSeg = randomItems.stream()
           .filter(it -> seg.getCity().equalsIgnoreCase(it.getCity()) && seg.getPropertyType() == it.getPropertyType())
           .filter(IngatlanItem::isBargain)

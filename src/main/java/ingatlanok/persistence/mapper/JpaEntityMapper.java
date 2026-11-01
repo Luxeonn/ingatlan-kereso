@@ -276,6 +276,7 @@ public abstract class JpaEntityMapper {
   @Mapping(target = "changePercent", source = "ctx.changePercent")
   public abstract ListingObservationEntity createListingObservationEntity(
       ListingObservationContext ctx);
+
   @Mapping(
       target = "canonicalId",
       source = "entity.canonicalId",

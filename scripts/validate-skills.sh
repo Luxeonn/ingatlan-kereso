@@ -355,6 +355,14 @@ while IFS= read -r match; do
   log_fail "Direct window.open is forbidden in frontend components (use openExternalUrl from src/utils/formatters.ts)" "$f" "$l"
 done < <(grep -rnI -E '\bwindow\.open\b' frontend/src/components/ 2>/dev/null || true)
 
+# 6.6 Exception-free unidirectional layer flow: lower layers never import presentation
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Layer violation: lower layer imports presentation package" "$f" "$l"
+done < <(grep -rnI 'import ingatlanok\.presentation\.' src/main/java/ingatlanok/core/ src/main/java/ingatlanok/persistence/ src/main/java/ingatlanok/portal/ src/main/java/ingatlanok/model/ src/main/java/ingatlanok/common/ 2>/dev/null || true)
+
 echo ""
 echo "=============================================================================="
 if [ "$ERRORS" -gt 0 ]; then

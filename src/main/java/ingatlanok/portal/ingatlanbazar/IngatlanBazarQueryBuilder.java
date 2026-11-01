@@ -20,12 +20,11 @@ public class IngatlanBazarQueryBuilder implements PortalUrlBuilder {
     String displayCity = PortalSupport.resolveAsciiCapitalizedCity(city);
 
     String rawType = PortalSupport.resolvePropertyTypeSlug(safe);
-    String typeSlug =
-        switch (rawType) {
-          case "haz" -> "Haz";
-          case "telek" -> "Telek";
-          default -> "Lakas";
-        };
+    String typeSlug = switch (rawType) {
+      case "haz" -> "Haz";
+      case "telek" -> "Telek";
+      default -> "Lakas";
+    };
 
     StringBuilder path =
         new StringBuilder(BASE_URL)
