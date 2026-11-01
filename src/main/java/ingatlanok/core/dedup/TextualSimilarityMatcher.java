@@ -128,4 +128,43 @@ public final class TextualSimilarityMatcher {
 
     return false;
   }
+
+  /**
+   * Evaluates whether two items have strong textual similarity based on affirmative location,
+   * identical slugs, title substring containment, or high Jaccard token overlap.
+   */
+  public static boolean hasStrongTitleSimilarity(
+      IngatlanItem a,
+      IngatlanItem b,
+      Set<String> tokensA,
+      Set<String> tokensB,
+      boolean hasAffirmativeLocation) {
+    if (hasAffirmativeLocation) {
+      return true;
+    }
+    String titleA = a != null ? a.getTitle() : "";
+    String titleB = b != null ? b.getTitle() : "";
+    return isSlugSimilar(titleA, titleB) || hasTokenSimilarity(tokensA, tokensB);
+  }
+
+  private static boolean isSlugSimilar(String titleA, String titleB) {
+    String slugA = SlugUtils.toSlug(titleA);
+    String slugB = SlugUtils.toSlug(titleB);
+    if (slugA.isBlank() || slugB.isBlank()) {
+      return false;
+    }
+    if (slugA.equals(slugB)) {
+      return true;
+    }
+    boolean contained = slugA.contains(slugB) || slugB.contains(slugA);
+    return contained && Math.min(slugA.length(), slugB.length()) >= 12;
+  }
+
+  private static boolean hasTokenSimilarity(Set<String> tokensA, Set<String> tokensB) {
+    double jaccard = calculateJaccardSimilarity(tokensA, tokensB);
+    if (jaccard >= 0.50) {
+      return true;
+    }
+    return jaccard >= 0.33 && hasDistinctiveKeywordOverlap(tokensA, tokensB);
+  }
 }

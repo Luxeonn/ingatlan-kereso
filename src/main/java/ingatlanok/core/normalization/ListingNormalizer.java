@@ -200,6 +200,15 @@ public class ListingNormalizer {
     Double finalRooms = rooms != null ? rooms : (parsed != null ? parsed.getRoomCount() : null);
     long sqmPrice = calculateSqmPrice(priceInfo, finalArea);
     String text = parsed != null && parsed.getRawText() != null ? parsed.getRawText() : "";
+    if (text.isBlank()) {
+      if (finalArea != null && finalRooms != null) {
+        text = Math.round(finalArea) + " m² • " + Math.round(finalRooms) + " szoba";
+      } else if (finalArea != null) {
+        text = Math.round(finalArea) + " m²";
+      } else if (finalRooms != null) {
+        text = Math.round(finalRooms) + " szoba";
+      }
+    }
     return PropertyDetails.builder()
         .rawText(text)
         .areaSquareMeters(finalArea)
