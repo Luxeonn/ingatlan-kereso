@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BulkActionBar } from '../components/listings/BulkActionBar'
 import { SearchPanel } from '../components/filters/SearchPanel'
+import { DiagnosticsModal } from '../components/modals/DiagnosticsModal'
 import { filterAndSortItems } from '../hooks/useSearch'
 import { useFilterStore } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
@@ -270,5 +271,45 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(rawFavoriteItems).toHaveLength(1)
     expect(rawFavoriteItems[0].url).toBe('https://dh.hu/elado-ingatlan/12345')
     expect(rawFavoriteItems[0].portal).toBe('Duna House')
+  })
+
+  it('renders DiagnosticsModal with latencyMs, foundCount, and clickable fallbackUrl button on BOT_PROTECTED (#300)', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    useUiStore.setState({ isDiagnosticsModalOpen: true })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DiagnosticsModal
+          portalStatuses={[
+            {
+              portalId: 'ingatlancom',
+              portalName: 'Ingatlan.com',
+              status: 'BOT_PROTECTED',
+              latencyMs: 245,
+              foundCount: 0,
+              fallbackUrl: 'https://ingatlan.com/lista/elado+haz+debrecen',
+              message: 'Cloudflare WAF detektálva',
+            },
+            {
+              portalId: 'dh',
+              portalName: 'Duna House',
+              status: 'SUCCESS',
+              latencyMs: 510,
+              foundCount: 17,
+              fallbackUrl: null,
+              message: null,
+            },
+          ]}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByText('245 ms')).toBeTruthy()
+    expect(screen.getByText('17 találat')).toBeTruthy()
+    const fallbackBtn = screen.getByTestId('fallback-link-ingatlancom')
+    expect(fallbackBtn).toBeTruthy()
+    expect(fallbackBtn.textContent).toContain('Keresés megnyitása itt: Ingatlan.com')
   })
 })

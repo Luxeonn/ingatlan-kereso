@@ -18,12 +18,14 @@ import ingatlanok.model.SearchCriteria;
 public class SidecarCliExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
-  private static final int DEFAULT_TIMEOUT_SECONDS = 20;
-  private static final ReentrantLock PYTHON_DETECT_LOCK = new ReentrantLock();
+  private static final int DEFAULT_TIMEOUT_SECONDS = 25;
+  private static final ReentrantLock RUNTIME_DETECT_LOCK = new ReentrantLock();
 
   private static String customExecutable = null;
   private static volatile String cachedPythonCmd = null;
   private static volatile boolean pythonChecked = false;
+  private static volatile String cachedNodeCmd = null;
+  private static volatile boolean nodeChecked = false;
 
   private SidecarCliExecutor() {}
 
@@ -86,8 +88,8 @@ public class SidecarCliExecutor {
     }
   }
 
-  private static boolean readProcessStreams(Process process, StringBuilder stdout, StringBuilder stderr)
-      throws InterruptedException {
+  private static boolean readProcessStreams(
+      Process process, StringBuilder stdout, StringBuilder stderr) throws InterruptedException {
     Thread outThread = Thread.ofVirtual().start(() -> readStream(process.getInputStream(), stdout));
     Thread errThread = Thread.ofVirtual().start(() -> readStream(process.getErrorStream(), stderr));
 
@@ -103,13 +105,14 @@ public class SidecarCliExecutor {
   }
 
   private static void readStream(java.io.InputStream in, StringBuilder target) {
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+    try (BufferedReader reader =
+        new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
       String line;
       while ((line = reader.readLine()) != null) {
         target.append(line).append("\n");
       }
     } catch (Exception ignored) {
-      // Process streams errors are captured via process exit state.
+      // Process stream errors are captured via process exit state.
     }
   }
 
@@ -127,13 +130,9 @@ public class SidecarCliExecutor {
     args.add("--portal");
     args.add(portalId);
 
-    String city = criteria.getCity();
-    String citySlug = SlugUtils.toSlug(city);
-    if (citySlug.isEmpty()) {
-      citySlug = "debrecen";
-    }
+    String citySlug = SlugUtils.toSlug(criteria.getCity());
     args.add("--city");
-    args.add(citySlug);
+    args.add(citySlug.isEmpty() ? "debrecen" : citySlug);
 
     String rawType =
         criteria.getPropertyType() != null
@@ -142,17 +141,26 @@ public class SidecarCliExecutor {
     args.add("--type");
     args.add(rawType);
 
-    if (criteria.getMinPriceMillion() != null) {
-      args.add("--min-price");
-      args.add(String.valueOf(criteria.getMinPriceMillion()));
-    }
-
-    if (criteria.getMaxPriceMillion() != null) {
-      args.add("--max-price");
-      args.add(String.valueOf(criteria.getMaxPriceMillion()));
-    }
+    appendPositiveBound(args, "--min-price", criteria.getMinPriceMillion());
+    appendMaxBound(args, "--max-price", criteria.getMaxPriceMillion());
+    appendPositiveBound(args, "--min-area", criteria.getMinArea());
+    appendMaxBound(args, "--max-area", criteria.getMaxArea());
 
     return args;
+  }
+
+  private static void appendPositiveBound(List<String> args, String flag, Integer value) {
+    if (value != null && value > 0) {
+      args.add(flag);
+      args.add(String.valueOf(value));
+    }
+  }
+
+  private static void appendMaxBound(List<String> args, String flag, Integer value) {
+    if (value != null && value > 0 && value < 9999) {
+      args.add(flag);
+      args.add(String.valueOf(value));
+    }
   }
 
   private static List<String> resolveCommand(List<String> args) {
@@ -171,13 +179,26 @@ public class SidecarCliExecutor {
       return cmd;
     }
 
-    File script = new File("tools/sidecar.py");
-    if (script.exists()) {
+    File pyScript = new File("tools/sidecar.py");
+    if (pyScript.exists()) {
       String pythonCmd = detectPythonCommand();
       if (pythonCmd != null) {
         List<String> cmd = new ArrayList<>();
         cmd.add(pythonCmd);
-        cmd.add(script.getAbsolutePath());
+        cmd.add(pyScript.getAbsolutePath());
+        cmd.addAll(args);
+        return cmd;
+      }
+    }
+
+    File nodeScript = new File("tools/sidecar-playwright.mjs");
+    File playwrightModule = new File("frontend/node_modules/playwright/index.mjs");
+    if (nodeScript.exists() && playwrightModule.exists()) {
+      String nodeCmd = detectNodeCommand();
+      if (nodeCmd != null) {
+        List<String> cmd = new ArrayList<>();
+        cmd.add(nodeCmd);
+        cmd.add(nodeScript.getAbsolutePath());
         cmd.addAll(args);
         return cmd;
       }
@@ -190,28 +211,55 @@ public class SidecarCliExecutor {
     if (pythonChecked) {
       return cachedPythonCmd;
     }
-    PYTHON_DETECT_LOCK.lock();
+    RUNTIME_DETECT_LOCK.lock();
     try {
       if (pythonChecked) {
         return cachedPythonCmd;
       }
-      String[] candidates = {"python", "py", "python3"};
+      String[] candidates = {"python3", "python", "py"};
       for (String candidate : candidates) {
-        try {
-          Process p = new ProcessBuilder(candidate, "--version").start();
-          boolean finished = p.waitFor(2, TimeUnit.SECONDS);
-          if (finished && p.exitValue() == 0) {
-            cachedPythonCmd = candidate;
-            return cachedPythonCmd;
-          }
-        } catch (Exception ignored) {
-          // Try the next supported Python launcher.
+        if (canRunCommand(candidate, "-c", "import curl_cffi, bs4, pydantic")) {
+          cachedPythonCmd = candidate;
+          return cachedPythonCmd;
         }
       }
       return null;
     } finally {
       pythonChecked = true;
-      PYTHON_DETECT_LOCK.unlock();
+      RUNTIME_DETECT_LOCK.unlock();
+    }
+  }
+
+  private static String detectNodeCommand() {
+    if (nodeChecked) {
+      return cachedNodeCmd;
+    }
+    RUNTIME_DETECT_LOCK.lock();
+    try {
+      if (nodeChecked) {
+        return cachedNodeCmd;
+      }
+      if (canRunCommand("node", "--version")) {
+        cachedNodeCmd = "node";
+      }
+      return cachedNodeCmd;
+    } finally {
+      nodeChecked = true;
+      RUNTIME_DETECT_LOCK.unlock();
+    }
+  }
+
+  private static boolean canRunCommand(String... command) {
+    try {
+      Process p = new ProcessBuilder(command).start();
+      boolean finished = p.waitFor(3, TimeUnit.SECONDS);
+      if (!finished) {
+        p.destroyForcibly();
+        return false;
+      }
+      return p.exitValue() == 0;
+    } catch (Exception ignored) {
+      return false;
     }
   }
 }

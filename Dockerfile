@@ -18,12 +18,15 @@ COPY src ./src
 # Build headless Spring Boot fat JAR without running tests
 RUN sed -i 's/\r$//' gradlew && ./gradlew -PreleaseVersion="$APP_VERSION" bootJar --no-daemon -x test
 
-# Stage 2: Minimal hardened runtime with Temurin JRE 25
+# Stage 2: Minimal hardened runtime with Temurin JRE 25 + Python curl_cffi sidecar
 FROM eclipse-temurin:25-jre-alpine
 
-# Upgrade packages to apply latest security patches (e.g. libexpat) and install curl/ca-certificates
+# Upgrade packages to apply latest security patches and install curl/ca-certificates + Python sidecar runtime
+COPY tools/requirements.txt /tmp/requirements.txt
 RUN apk upgrade --no-cache && \
-    apk add --no-cache curl ca-certificates
+    apk add --no-cache curl ca-certificates python3 py3-pip && \
+    pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt && \
+    rm -f /tmp/requirements.txt
 
 # Create non-root system user (UID 10001) for container security
 RUN addgroup -S -g 10001 appuser && \
@@ -32,11 +35,12 @@ RUN addgroup -S -g 10001 appuser && \
 WORKDIR /app
 
 # Prepare directories with proper permissions
-RUN mkdir -p /app/data /app/logs && \
+RUN mkdir -p /app/data /app/logs /app/tools && \
     chown -R appuser:appuser /app
 
-# Copy executable Spring Boot jar from builder stage
+# Copy executable Spring Boot jar and sidecar scripts
 COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-*.jar /app/app.jar
+COPY --chown=appuser:appuser tools/ /app/tools/
 
 USER appuser:appuser
 

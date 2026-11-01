@@ -357,6 +357,16 @@ class PortalAdaptersModularTest {
             + "    <img data-src=\"https://ingatlan.com/img/999.jpg\" />"
             + "  </a>"
             + "</div>"
+            + "<a href=\"/35344073\" data-listing-id=\"35344073\" class=\"listing-card\">"
+            + "  <img src=\"https://ip.ingatlancdn.com/resize/magan/800x800/photo.jpg\""
+            + " class=\"listing-card-image\" />"
+            + "  <span class=\"listing-label\" data-slug=\"uj-epitesu\">Új építésű</span>"
+            + "  <span class=\"fw-bold fs-5 text-gray-900\">68,5 M Ft</span>"
+            + "  <span class=\"d-block fs-7 text-gray-900\">Debrecen, Rózsavölgy utca 209.</span>"
+            + "  <div><span>Alapterület</span><span>97 m<sup>2</sup></span></div>"
+            + "  <div><span>Telekterület</span><span>450 m<sup>2</sup></span></div>"
+            + "  <div><span>Szobák</span><span>3 + 1</span></div>"
+            + "</a>"
             + "</body></html>";
     IngatlanComRawParser rawParser = new IngatlanComRawParser();
     PortalDescriptor desc = new IngatlanComPortalEngine().getDescriptor();
@@ -366,10 +376,17 @@ class PortalAdaptersModularTest {
             desc,
             criteria,
             "2026-10-14 12:00:00");
-    assertEquals(1, parsedCards.size());
+    assertEquals(2, parsedCards.size());
     assertEquals("999888", parsedCards.get(0).getId());
     assertTrue(parsedCards.get(0).isNewConstruction());
     assertEquals("https://ingatlan.com/img/999.jpg", parsedCards.get(0).getImageUrl());
+
+    assertEquals("35344073", parsedCards.get(1).getId());
+    assertEquals("https://ingatlan.com/35344073", parsedCards.get(1).getUrl());
+    assertEquals(68_500_000L, parsedCards.get(1).getPriceInfo().getAmountHuf());
+    assertEquals(97.0, parsedCards.get(1).getDetailsInfo().getAreaSquareMeters());
+    assertEquals(3.5, parsedCards.get(1).getDetailsInfo().getRoomCount());
+    assertTrue(parsedCards.get(1).isNewConstruction());
   }
 
   @Test

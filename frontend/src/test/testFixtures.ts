@@ -85,10 +85,12 @@ export function createMockPortalStatus(overrides: Partial<PortalStatusDto> = {})
     portalId: 'dh',
     portalName: 'Duna House',
     status: 'SUCCESS',
-    durationMs: 320,
-    itemCount: 12,
-    errorMessage: null,
-    botProtected: false,
+    latencyMs: 320,
+    foundCount: 12,
+    fallbackUrl: null,
+    message: null,
+    httpStatusCode: 200,
+    technicalDetails: null,
     ...overrides,
   }
 }
