@@ -13,9 +13,11 @@ public final class PropertyParser {
       Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)", Pattern.CASE_INSENSITIVE);
   private static final Pattern DETAILS_PATTERN =
       Pattern.compile(
-          "(\\d+[,.]?\\d*\\s*m²[^\\n"
-              + "•|]*\\d+\\s*szoba|\\d+\\s*szoba[^\\d•|]*[•|]?\\s*\\d+[,.]?\\d*\\s*m²|\\d+[,.]?\\d*\\s*m²)",
-          Pattern.CASE_INSENSITIVE);
+          "(\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter)[^\\n•|]*\\d+\\s*szoba[a-záéíóöőúüű]*"
+              + "|\\d+\\s*szoba[a-záéíóöőúüű]*[^\\d•|]*[•|]?"
+              + "\\s*\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter)"
+              + "|\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter))",
+          Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
   private static final Pattern MILLION_PRICE_PATTERN =
       Pattern.compile("(\\d+[,.]?\\d*)\\s*M\\s*Ft", Pattern.CASE_INSENSITIVE);
@@ -23,7 +25,9 @@ public final class PropertyParser {
       Pattern.compile("(\\d[\\d\\s]*)\\s*Ft", Pattern.CASE_INSENSITIVE);
 
   private static final Pattern AREA_PATTERN =
-      Pattern.compile("(\\d+[,.]?\\d*)\\s*m²", Pattern.CASE_INSENSITIVE);
+      Pattern.compile(
+          "(\\d+[,.]?\\d*)\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter\\b)",
+          Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern ROOM_PATTERN =
       Pattern.compile("(\\d+[,.]?\\d*)\\s*szoba", Pattern.CASE_INSENSITIVE);
 
