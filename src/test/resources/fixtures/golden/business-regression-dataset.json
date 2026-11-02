@@ -1,0 +1,207 @@
+{
+  "description": "Golden Test Dataset for Property Search Business Logic Regression Protection (#345)",
+  "version": "1.0.0",
+  "scenarios": {
+    "normalListings": [
+      {
+        "id": "NORM-DH-1",
+        "portal": "dh",
+        "city": "Debrecen",
+        "title": "Eladó téglalakás Debrecen Belváros",
+        "propertyType": "LAKAS",
+        "priceHuf": 50000000,
+        "priceText": "50 M Ft",
+        "areaM2": 50.0,
+        "rooms": 2.0,
+        "qualityScore": 100,
+        "expectedSqmPrice": 1000000
+      },
+      {
+        "id": "NORM-OC-1",
+        "portal": "oc",
+        "city": "Debrecen",
+        "title": "Eladó családi ház Debrecen Nagyerdő",
+        "propertyType": "HAZ",
+        "priceHuf": 90000000,
+        "priceText": "90 M Ft",
+        "areaM2": 100.0,
+        "rooms": 4.0,
+        "qualityScore": 95,
+        "expectedSqmPrice": 900000
+      },
+      {
+        "id": "NORM-PLOT-1",
+        "portal": "jofogas",
+        "city": "Debrecen",
+        "title": "Eladó építési telek Debrecen Júliatelep",
+        "propertyType": "TELEK",
+        "priceHuf": 30000000,
+        "priceText": "30 M Ft",
+        "areaM2": 1000.0,
+        "rooms": null,
+        "qualityScore": 95,
+        "expectedSqmPrice": 30000
+      }
+    ],
+    "malformedAndEdgeInputs": [
+      {
+        "id": "EDGE-DOT-PRICE",
+        "rawPriceText": "Ár: 45.000.000 Ft",
+        "expectedAmountHuf": 45000000,
+        "expectedAmountMillion": 45.0
+      },
+      {
+        "id": "EDGE-NBSP-PRICE",
+        "rawPriceText": "Ár: 45\u00A0000\u00A0000 Ft",
+        "expectedAmountHuf": 45000000,
+        "expectedAmountMillion": 45.0
+      },
+      {
+        "id": "EDGE-ZERO-PRICE",
+        "rawPriceText": "0 Ft",
+        "areaM2": 50.0,
+        "expectedAmountHuf": 0,
+        "expectedAmountMillion": 0.0,
+        "expectedSqmPrice": null
+      },
+      {
+        "id": "EDGE-MISSING-PRICE",
+        "rawPriceText": "Ár megegyezés szerint",
+        "areaM2": 50.0,
+        "expectedAmountHuf": null,
+        "expectedAmountMillion": null,
+        "expectedSqmPrice": null
+      }
+    ],
+    "crossPortalDeduplicationCases": [
+      {
+        "clusterId": "CLUSTER-NEW-CONST-1",
+        "items": [
+          {
+            "id": "DH-PRIMARY",
+            "portal": "dh",
+            "url": "https://dh.hu/ingatlan/dh-new-1",
+            "city": "Debrecen",
+            "title": "Új építésű lakás Debrecen Belváros",
+            "propertyType": "LAKAS",
+            "priceHuf": 40000000,
+            "areaM2": 60.0,
+            "rooms": 2.0,
+            "newConstruction": false,
+            "status": "ACTIVE"
+          },
+          {
+            "id": "OC-SECONDARY",
+            "portal": "oc",
+            "url": "https://oc.hu/ingatlan/oc-new-1",
+            "city": "Debrecen",
+            "title": "Új építésű lakás Debrecen Belváros",
+            "propertyType": "LAKAS",
+            "priceHuf": 42000000,
+            "areaM2": 60.0,
+            "rooms": 2.0,
+            "newConstruction": true,
+            "status": "ACTIVE"
+          }
+        ],
+        "expectedClusterSize": 2,
+        "expectedPrimaryId": "DH-PRIMARY",
+        "expectedNewConstruction": true
+      }
+    ],
+    "boundaryCases": [
+      {
+        "case": "BARGAIN_THRESHOLD_EXACT_20_PCT",
+        "medianPricePerM2": 1000000,
+        "itemPricePerM2": 800000,
+        "discountPct": 20.0,
+        "expectedIsBargain": true
+      },
+      {
+        "case": "BARGAIN_THRESHOLD_BELOW_20_PCT",
+        "medianPricePerM2": 1000000,
+        "itemPricePerM2": 800100,
+        "discountPct": 19.99,
+        "expectedIsBargain": false
+      },
+      {
+        "case": "SAMPLE_SIZE_MINIMUM",
+        "sampleSize": 5,
+        "expectedSufficientData": true
+      },
+      {
+        "case": "SAMPLE_SIZE_INSUFFICIENT",
+        "sampleSize": 4,
+        "expectedSufficientData": false
+      }
+    ],
+    "outlierQuarantineCases": [
+      {
+        "id": "OUTLIER-10-BILLION",
+        "city": "Szeged",
+        "propertyType": "LAKAS",
+        "priceHuf": 10000000000,
+        "areaM2": 50.0,
+        "rooms": 2.0,
+        "qualityScore": 30,
+        "expectedQuarantined": true
+      },
+      {
+        "id": "VALID-PEER-1",
+        "city": "Szeged",
+        "propertyType": "LAKAS",
+        "priceHuf": 40000000,
+        "areaM2": 50.0,
+        "rooms": 2.0,
+        "qualityScore": 95,
+        "expectedQuarantined": false
+      }
+    ],
+    "priceAndLifecycleTransitions": [
+      {
+        "initialPriceHuf": 50000000,
+        "newPriceHuf": 45000000,
+        "expectedDeltaHuf": -5000000,
+        "expectedEvent": "PRICE_CHANGED",
+        "expectedChangeType": "PRICE_DROP"
+      },
+      {
+        "initialPriceHuf": 50000000,
+        "newPriceHuf": 55000000,
+        "expectedDeltaHuf": 5000000,
+        "expectedEvent": "PRICE_CHANGED",
+        "expectedChangeType": "PRICE_INCREASE"
+      },
+      {
+        "initialPriceHuf": 50000000,
+        "newPriceHuf": 50000000,
+        "expectedDeltaHuf": 0,
+        "expectedEvent": "UNCHANGED",
+        "expectedChangeType": null
+      }
+    ],
+    "falseBargainPreventionCases": [
+      {
+        "id": "LOW_QUALITY_CHEAP_ITEM",
+        "city": "Debrecen",
+        "propertyType": "LAKAS",
+        "priceHuf": 20000000,
+        "areaM2": 50.0,
+        "qualityScore": 50,
+        "expectedIsBargain": false,
+        "reason": "Quality score below 70 quarantine threshold prevents bargain classification"
+      },
+      {
+        "id": "INSUFFICIENT_SAMPLE_SIZE_ITEM",
+        "city": "KisFalu",
+        "propertyType": "LAKAS",
+        "priceHuf": 15000000,
+        "areaM2": 50.0,
+        "qualityScore": 90,
+        "peerCount": 3,
+        "expectedIsBargain": false,
+        "reason": "Sample size N < 5 prevents reference median calculation and bargain classification"
+      }
+    ]
+  }
+}

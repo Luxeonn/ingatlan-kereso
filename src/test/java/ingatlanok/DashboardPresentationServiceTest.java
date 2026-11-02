@@ -33,12 +33,14 @@ class DashboardPresentationServiceTest {
     IngatlanItem item1 = new IngatlanItem();
     item1.setCity("Debrecen");
     item1.setNew(true);
+    item1.setQualityScore(100);
     item1.setPriceInfo(new PriceInfo("40 M Ft", 40_000_000L, 40.0));
     item1.setDetailsInfo(new PropertyDetails("40 m²", 40.0, 1.0, 1_000_000L));
 
     IngatlanItem item2 = new IngatlanItem();
     item2.setCity("Debrecen");
     item2.setNew(false);
+    item2.setQualityScore(100);
     item2.setPriceInfo(new PriceInfo("60 M Ft", 60_000_000L, 60.0));
     item2.setDetailsInfo(new PropertyDetails("50 m²", 50.0, 2.0, 1_200_000L));
 

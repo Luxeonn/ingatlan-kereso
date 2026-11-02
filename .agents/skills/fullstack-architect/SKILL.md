@@ -119,6 +119,7 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] Layer inversion is prohibited: lower layers must not import classes from higher layers.
 - [ ] The Spring Boot application is a fully headless REST API (`spring.web.resources.add-mappings: false`) and does not serve embedded static HTML from the backend JAR.
 - [ ] REST endpoint URLs and JSON DTO contracts remain consistent with the frontend client.
+- [ ] Business logic changes follow the Regression Test First protocol (`docs/business-logic-regression.md`): failing tests prove the defect before code edits, and core invariants (deduplication clustering, price/sqm calculation, market medians, bargain classification) are rigorously verified.
 
 ### B. Virtual Threads and Concurrency
 

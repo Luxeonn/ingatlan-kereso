@@ -115,6 +115,7 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] Unit and integration tests use MockMvc, WireMock, and embedded or in-memory persistence where appropriate.
 - [ ] ArchUnit JUnit 5 suite (`ArchitectureRulesTest.java`) passes with zero violations.
 - [ ] Frontend Vitest and Playwright E2E coverage is maintained.
+- [ ] Regression Test First protocol is verified for business logic modifications (`docs/business-logic-regression.md`): failing test cases prove defects prior to fixes, and regression suites run deterministically offline.
 
 ### B. Code Quality Gates
 
