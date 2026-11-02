@@ -148,9 +148,15 @@ The specialist must record the following concrete evidence during review:
 - **Coverage evidence**: JaCoCo report and the result of `calculate-jacoco.sh` / `jacocoTestCoverageVerification`.
 - **CI/CD and container evidence**: Workflow status, path-filter behavior, health checks, and Docker runtime user.
 
-### Review Output
+### Thematic Agent Approval Gate Output
 
-Summarize the concrete test, coverage, container, and CI evidence in the review. The PR description does not require thematic approval notes.
+Use the following text in the Pull Request's Thematic Gate block:
+
+```markdown
+- [x] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING / NOT_APPLICABLE] - [One concise sentence summarizing testing, coverage, Checkstyle, and CI/CD integrity]
+```
+
+*Note: For `FINDING`, leave the checkbox unchecked (`[ ]`), set the status to `[FINDING]`, and attach a detailed report in the PR description or a comment.*
 
 ---
 

@@ -69,7 +69,7 @@ echo ""
 # ------------------------------------------------------------------------------
 # 1. Frontmatter validation
 # ------------------------------------------------------------------------------
-echo "--- [1/6] Validating YAML frontmatter in specialist skills ---"
+echo "--- [1/7] Validating YAML frontmatter in specialist skills ---"
 
 SKILL_DIRS=(
   ".agents/skills/fullstack-architect"
@@ -119,7 +119,7 @@ done
 # 2. Mandatory English-language section validation
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [2/6] Validating the eight mandatory English-language sections ---"
+echo "--- [2/7] Validating the eight mandatory English-language sections ---"
 
 MANDATORY_SECTIONS=(
   "Purpose & Activation"
@@ -149,7 +149,7 @@ done
 # 3. Decision-token validation
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [3/6] Validating standard decision tokens ---"
+echo "--- [3/7] Validating standard decision tokens ---"
 
 DECISION_TOKENS=("FINDING" "NO_FINDING" "NOT_APPLICABLE" "NOT_VERIFIED")
 for dir in "${SKILL_DIRS[@]}"; do
@@ -169,13 +169,15 @@ done
 # 4. Markdown links and relative file paths
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [4/6] Validating relative Markdown links and file paths ---"
+echo "--- [4/7] Validating relative Markdown links and file paths ---"
 
 DOC_FILES=(
   "README.md"
   "AGENTS.md"
   "gemini.md"
   "GEMINI.md"
+  "CONTRIBUTING.md"
+  "SECURITY.md"
   ".github/pull_request_template.md"
   ".github/copilot-instructions.md"
 )
@@ -184,6 +186,8 @@ for dir in "${SKILL_DIRS[@]}"; do
   [ -f "$dir/SKILL.md" ] && DOC_FILES+=("$dir/SKILL.md")
 done
 [ -f "docs/architecture.md" ] && DOC_FILES+=("docs/architecture.md")
+[ -f "docs/pr-compliance.md" ] && DOC_FILES+=("docs/pr-compliance.md")
+[ -f "docs/PROJECT.md" ] && DOC_FILES+=("docs/PROJECT.md")
 
 for doc in "${DOC_FILES[@]}"; do
   [ -f "$doc" ] || continue
@@ -223,7 +227,7 @@ done
 # 5. Banned words and obsolete claims
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [5/6] Scanning for banned words and obsolete technology claims ---"
+echo "--- [5/7] Scanning for banned words and obsolete technology claims ---"
 
 while IFS= read -r match; do
   [ -n "$match" ] || continue
@@ -303,7 +307,7 @@ done < <(grep -rnI -E '^[[:space:]]*(import[[:space:]]+lombok\.(Data|EqualsAndHa
 # 6. Architectural guardrails & frontend OpenAPI derivation
 # ------------------------------------------------------------------------------
 echo ""
-echo "--- [6/6] Validating architectural guardrails & frontend OpenAPI derivation ---"
+echo "--- [6/7] Validating architectural guardrails & frontend OpenAPI derivation ---"
 
 # 6.1 Frontend OpenAPI type derivation (no manual DTO duplication in frontend/src/types/)
 for type_file in frontend/src/types/*.ts; do
@@ -362,6 +366,62 @@ while IFS= read -r match; do
   l=$(echo "$match" | cut -d: -f2)
   log_fail "Layer violation: lower layer imports presentation package" "$f" "$l"
 done < <(grep -rnI 'import ingatlanok\.presentation\.' src/main/java/ingatlanok/core/ src/main/java/ingatlanok/persistence/ src/main/java/ingatlanok/portal/ src/main/java/ingatlanok/model/ src/main/java/ingatlanok/common/ 2>/dev/null || true)
+
+# ------------------------------------------------------------------------------
+# 7. PR template compliance, banned review tokens & version alignment
+# ------------------------------------------------------------------------------
+echo ""
+echo "--- [7/7] Validating PR template compliance, review tokens & version alignment ---"
+
+PR_TEMPLATE=".github/pull_request_template.md"
+if [ ! -f "$PR_TEMPLATE" ]; then
+  log_fail "Missing PR template: $PR_TEMPLATE" "$PR_TEMPLATE"
+else
+  PR_SECTIONS=(
+    "Miért készült"
+    "Mit módosít"
+    "Acceptance Criteria Traceability"
+    "Tesztelés és Ellenőrzés"
+    "Thematic Agent Approval Gate"
+  )
+  for sec in "${PR_SECTIONS[@]}"; do
+    if ! grep -qiE "^##.*${sec}" "$PR_TEMPLATE"; then
+      log_fail "PR template missing section: '$sec'" "$PR_TEMPLATE"
+    else
+      log_pass "PR template contains section '$sec'"
+    fi
+  done
+  if grep -q "\[OK\]" "$PR_TEMPLATE"; then
+    log_fail "PR template contains forbidden/legacy token '[OK]' (use [NO_FINDING] or [NOT_APPLICABLE])" "$PR_TEMPLATE"
+  else
+    log_pass "PR template uses standard decision tokens"
+  fi
+fi
+
+# 7.2 No legacy [OK]/[NOK] in approval gate instructions
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Legacy review token '[OK]' found in governance instruction" "$f" "$l"
+done < <(grep -rnI -E '^\s*[-*]\s*\[[ xX]\]\s*.*\[OK\]' .github/ .agents/skills/ docs/ 2>/dev/null || true)
+
+# 7.3 Spring Boot version alignment: no obsolete 4.1.1 in active instructions
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  log_fail "Obsolete Spring Boot version '4.1.1' found (expected 4.1.2 per build.gradle.kts)" "$f" "$l"
+done < <(grep -rnI 'Spring Boot 4\.1\.1' README.md AGENTS.md GEMINI.md gemini.md SECURITY.md docs/ .agents/skills/ .github/ 2>/dev/null || true)
+
+# 7.4 Execute PR compliance unit tests
+if command -v node >/dev/null 2>&1; then
+  if node --test scripts/test-verify-pr-compliance.mjs >/dev/null 2>&1; then
+    log_pass "PR compliance test suite passed (14 unit tests)"
+  else
+    log_fail "PR compliance test suite failed (scripts/test-verify-pr-compliance.mjs)" "scripts/test-verify-pr-compliance.mjs"
+  fi
+fi
 
 echo ""
 echo "=============================================================================="

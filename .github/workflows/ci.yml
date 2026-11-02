@@ -42,6 +42,7 @@ jobs:
       backend: ${{ steps.result.outputs.backend }}
       openapi: ${{ steps.result.outputs.openapi }}
       container: ${{ steps.result.outputs.container }}
+      governance: ${{ steps.result.outputs.governance }}
     steps:
       - name: Checkout repository
         if: inputs.run_all != true
@@ -84,6 +85,15 @@ jobs:
               - 'Dockerfile*'
               - 'docker-compose.yml'
               - 'build.gradle.kts'
+            governance:
+              - 'AGENTS.md'
+              - 'CONTRIBUTING.md'
+              - 'GEMINI.md'
+              - 'gemini.md'
+              - 'docs/**'
+              - '.agents/**'
+              - 'scripts/**'
+              - '.github/**'
             documentation:
               - '**/*.md'
               - '.gitignore'
@@ -99,12 +109,14 @@ jobs:
           BACKEND_CHANGED: ${{ steps.filter.outputs.backend }}
           OPENAPI_CHANGED: ${{ steps.filter.outputs.openapi }}
           CONTAINER_CHANGED: ${{ steps.filter.outputs.container }}
+          GOVERNANCE_CHANGED: ${{ steps.filter.outputs.governance }}
           DOCS_CHANGED: ${{ steps.filter.outputs.documentation }}
         run: |
           if [ "$RUN_ALL" = "true" ]; then
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
             echo "openapi=true" >> "$GITHUB_OUTPUT"
+            echo "governance=true" >> "$GITHUB_OUTPUT"
             if [ "$SKIP_CONTAINER_SCAN" = "true" ]; then
               echo "container=false" >> "$GITHUB_OUTPUT"
             else
@@ -115,17 +127,26 @@ jobs:
             echo "backend=$BACKEND_CHANGED" >> "$GITHUB_OUTPUT"
             echo "openapi=$OPENAPI_CHANGED" >> "$GITHUB_OUTPUT"
             echo "container=$CONTAINER_CHANGED" >> "$GITHUB_OUTPUT"
+            echo "governance=$GOVERNANCE_CHANGED" >> "$GITHUB_OUTPUT"
+          elif [ "$GOVERNANCE_CHANGED" = "true" ]; then
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+            echo "openapi=false" >> "$GITHUB_OUTPUT"
+            echo "container=false" >> "$GITHUB_OUTPUT"
+            echo "governance=true" >> "$GITHUB_OUTPUT"
           elif [ "$DOCS_CHANGED" = "true" ]; then
             echo "frontend=false" >> "$GITHUB_OUTPUT"
             echo "backend=false" >> "$GITHUB_OUTPUT"
             echo "openapi=false" >> "$GITHUB_OUTPUT"
             echo "container=false" >> "$GITHUB_OUTPUT"
+            echo "governance=false" >> "$GITHUB_OUTPUT"
           else
             echo "Unclassified changes detected; running all component suites."
             echo "frontend=true" >> "$GITHUB_OUTPUT"
             echo "backend=true" >> "$GITHUB_OUTPUT"
             echo "openapi=true" >> "$GITHUB_OUTPUT"
             echo "container=true" >> "$GITHUB_OUTPUT"
+            echo "governance=true" >> "$GITHUB_OUTPUT"
           fi
 
   gitleaks:
@@ -285,9 +306,27 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
+  governance:
+    name: Skills & Governance
+    needs: detect
+    if: needs.detect.outputs.governance == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+
+      - name: Validate skills & directives
+        run: bash scripts/validate-skills.sh -v
+
   gate:
     name: CI Build
-    needs: [detect, gitleaks, openapi-drift, frontend, backend, trivy]
+    needs: [detect, gitleaks, openapi-drift, frontend, backend, trivy, governance]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -304,6 +343,8 @@ jobs:
           BACKEND_REQUIRED: ${{ needs.detect.outputs.backend }}
           TRIVY_RESULT: ${{ needs.trivy.result }}
           TRIVY_REQUIRED: ${{ needs.detect.outputs.container }}
+          GOVERNANCE_RESULT: ${{ needs.governance.result }}
+          GOVERNANCE_REQUIRED: ${{ needs.detect.outputs.governance }}
         run: |
           failed=0
 
@@ -346,6 +387,14 @@ jobs:
             failed=1
           elif [ "$TRIVY_REQUIRED" != "true" ] && [ "$TRIVY_RESULT" != "skipped" ]; then
             echo "Trivy container scan was not expected to run but finished with: $TRIVY_RESULT"
+            failed=1
+          fi
+
+          if [ "$GOVERNANCE_REQUIRED" = "true" ] && [ "$GOVERNANCE_RESULT" != "success" ]; then
+            echo "Skills & Governance validation was required but finished with: $GOVERNANCE_RESULT"
+            failed=1
+          elif [ "$GOVERNANCE_REQUIRED" != "true" ] && [ "$GOVERNANCE_RESULT" != "skipped" ]; then
+            echo "Skills & Governance validation was not expected to run but finished with: $GOVERNANCE_RESULT"
             failed=1
           fi
 

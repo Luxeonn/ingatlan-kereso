@@ -2,7 +2,7 @@
 
 **Version**: 1.1.0  
 **Status**: Authoritative Reference Specification  
-**Tech Stack Baseline**: Java 25 LTS, Spring Boot 4.1.1, Spring Data JPA, Hibernate, Embedded H2 / PostgreSQL 17, React 19, TypeScript 5.9, Tailwind CSS v4, Vite 8.3, Nginx, Docker Compose.
+**Tech Stack Baseline**: Java 25 LTS, Spring Boot 4.1.2, Spring Data JPA, Hibernate, Embedded H2 / PostgreSQL 17, React 19, TypeScript 5.9, Tailwind CSS v4, Vite 8.3, Nginx, Docker Compose.
 
 ---
 
@@ -26,7 +26,7 @@ flowchart TD
         ProdProxy["Nginx Reverse Proxy :80/:8080\n(Production Docker Stack)"]
     end
 
-    subgraph Server ["Server Layer (Headless Spring Boot 4.1.1 / Java 25)"]
+    subgraph Server ["Server Layer (Headless Spring Boot 4.1.2 / Java 25)"]
         REST["RestApiController (/api/*)"]
         Cors["GlobalCorsFilter & SpaWebMvcConfig (CORS & Preflight)"]
         ExHandler["GlobalExceptionHandler (@RestControllerAdvice)"]
@@ -138,7 +138,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
 
 ---
 
-## 3. Backend Architecture (Java 25 LTS & Spring Boot 4.1.1)
+## 3. Backend Architecture (Java 25 LTS & Spring Boot 4.1.2)
 
 ### 3.1 Pure Headless REST API
 Spring Boot operates in 100% headless mode. Monolithic static asset serving is disabled in `application.yml`:
@@ -336,3 +336,32 @@ The UI is decomposed into distinct, single-responsibility panel views and reusab
 | **Monolithic Static Bundle** | HTML/JS packaged in `src/main/resources/static/` | **Autonomous React 19 SPA served via Vite (dev) or Nginx (prod)** | True decoupling of frontend and backend. Enables independent scaling, caching, and modern web development workflow. |
 | **Backend Boilerplate & Mapping** | Hand-written getters/setters/constructors & manual DTO/entity field copying | **Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` + MapStruct (`JpaEntityMapper`, `PresentationMapper` with `ReportingPolicy.ERROR`)** | Eliminated accessor/setter-chain boilerplate, made read-only DTOs/value objects immutable after construction, and enforced compile-time verified object mappings. |
 | **Frontend Types, Helpers & Primitives** | Hand-duplicated DTO interfaces, repeated domain math, duplicate steppers/popover listeners | **OpenAPI-derived types (`generated-api.ts`), centralized `utils/formatters.ts`, `NumericStepper`, and `useOutsideDismiss`** | Single source of truth for API schemas, domain price/quality calculations, and accessible UI primitives with zero dead wrappers. |
+
+---
+
+## 10. Review-Kockázati Mátrix & AI-Agent Governance
+
+A módosítások minőségének és integritásának védelmében a repository szigorú Review-Kockázati Mátrixot alkalmaz. A részletes irányelvek és a CI megfelelőségi kapuk specifikációja a [PR Megfelelőségi Útmutatóban](pr-compliance.md) található.
+
+### 10.1 Review-Kockázati Mátrix
+
+| Módosítás típusa | Érintett fájlok és útvonalak | Elvárt ellenőrzések | Kötelezően bevonandó specialista |
+| :--- | :--- | :--- | :--- |
+| **Backend üzleti logika** | `src/main/java/ingatlanok/core/**`, `src/main/java/ingatlanok/model/**` | Egység- és integrációs tesztek, JaCoCo $\ge 80\%$, Checkstyle | `fullstack-architect`, `quality-devops-engineer` |
+| **API & OpenAPI szerződés** | `openapi/**`, `src/main/java/ingatlanok/web/**`, `src/main/java/ingatlanok/presentation/**`, `frontend/src/types/generated-api.ts` | OpenAPI drift ellenőrzés (`npm run generate-api`), DTO integritás | `fullstack-architect` |
+| **DB & Perzisztencia** | `src/main/java/ingatlanok/persistence/**` | JPA entitás- és repository-tesztek, perzisztencia absztrakció ellenőrzése | `fullstack-architect` |
+| **Scraper, parser & külső I/O** | `src/main/java/ingatlanok/portal/**`, `HttpFetcher.java`, `PropertyParser.java`, `tools/scrapers/**` | Scraper stabilitás (0-crash), ReDoS védelem, SSRF izoláció, timeout kezelés | `scraper-security-engineer` |
+| **Frontend UI & Állapot** | `frontend/**` (kivéve `generated-api.ts`) | ESLint (`--max-warnings 0`), `npm run typecheck`, Vitest tesztek, Playwright E2E | `fullstack-architect` |
+| **CI, tesztek & Governance** | `.github/**`, `.agents/**`, `scripts/**`, `AGENTS.md`, `GEMINI.md`, `gemini.md`, `CONTRIBUTING.md`, `docs/**` | Governance validátor (`validate-skills.sh`), PR megfelelőségi tesztek | `quality-devops-engineer` |
+| **Architektúra & Modulhatárok** | `package-info.java`, réteghatárok, `build.gradle.kts` függőségek | ArchUnit (`ArchitectureRulesTest.java`), fordító -Werror szabályok | `fullstack-architect` |
+
+### 10.2 Szabványos Döntési Státuszok (Decision Tokens)
+
+Minden Pull Request leírás Thematic Gate blokkjában kizárólag az alábbi négy szabványos token használható:
+- **`[NO_FINDING]`**: Az ellenőrzés sikeresen lefutott, hibát vagy szabálysértést nem talált.
+- **`[NOT_APPLICABLE]`**: Az adott szakterületet a PR módosításai nem érintik (kötelezően 1 mondatos indoklással).
+- **`[NOT_VERIFIED]`**: Nem tekinthető sikeres ellenőrzésnek; a CI compliance gate hibát jelez és blokkolja a jóváhagyást.
+- **`[FINDING]`**: Szabálysértés vagy hiba található; javításig blokkoló jellegű.
+
+A korábbi nem szabványos jelölések (pl. `[OK]`, `[NOK]`, `[PASS]`) használata szigorúan tilos.
+

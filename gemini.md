@@ -6,7 +6,7 @@ This document establishes the technical system architecture, 4-layer component b
 
 ## 1. System Architecture & High-Level Flow
 
-**ingatlan-kereso** is built on Java 25 LTS with Spring Boot 4.1.1, Virtual Threads, Spring Data JPA persistence (embedded H2 for dev/CLI, PostgreSQL 17 for production), a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served via Vite (dev) or Nginx reverse proxy (Docker Compose). Authoritative architecture reference: [docs/architecture.md](docs/architecture.md).
+**ingatlan-kereso** is built on Java 25 LTS with Spring Boot 4.1.2, Virtual Threads, Spring Data JPA persistence (embedded H2 for dev/CLI, PostgreSQL 17 for production), a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend served via Vite (dev) or Nginx reverse proxy (Docker Compose). Authoritative architecture reference: [docs/architecture.md](docs/architecture.md).
 
 ```mermaid
 flowchart TD
@@ -16,7 +16,7 @@ flowchart TD
         SPA --> Panels
     end
 
-    subgraph Server ["Server Layer (Headless Spring Boot 4.1.1 / Java 25)"]
+    subgraph Server ["Server Layer (Headless Spring Boot 4.1.2 / Java 25)"]
         HTTP["Spring MVC REST Controllers (Port 8080)"]
         VThread["Virtual Threads Dispatcher"]
         Cors["GlobalCorsFilter & SpaWebMvcConfig"]
@@ -64,7 +64,7 @@ ingatlan-kereso/
 │   ├── start-docker.bat                         # Windows launcher (local build, GHCR latest, or custom tag)
 │   ├── smoke-test-docker-compose.sh             # Manual Compose integration smoke test
 │   └── validate-skills.sh                       # Offline specialist-skill & architectural guardrail validator (6 checks)
-├── build.gradle.kts                             # Gradle Kotlin DSL (Java 25, Spring Boot 4.1.1, -Werror, JaCoCo >=80%)
+├── build.gradle.kts                             # Gradle Kotlin DSL (Java 25, Spring Boot 4.1.2, -Werror, JaCoCo >=80%)
 ├── Dockerfile & docker-compose.yml              # Multi-stage Temurin JRE 25 & 3-tier stack (Postgres, Backend, Nginx UI)
 ├── docs/architecture.md                         # Authoritative system architecture reference
 ├── frontend/                                    # Decoupled React 19 + TypeScript + Vite SPA (ESLint max-lines <= 350)
@@ -97,7 +97,7 @@ ingatlan-kereso/
 
 ## 3. Core Architectural Principles
 
-1. **Spring Boot 4.1.1 & Java 25 Virtual Threads:** Headless REST service with `spring.threads.virtual.enabled=true`. Scraping I/O and REST requests never block carrier threads.
+1. **Spring Boot 4.1.2 & Java 25 Virtual Threads:** Headless REST service with `spring.threads.virtual.enabled=true`. Scraping I/O and REST requests never block carrier threads.
 2. **0-Crash Resilience:** Network failures, DOM changes, or WAF challenges on one portal never crash the server; portal engines return structured status cards (`BOT_PROTECTED`, `FAILED`, `SPA_FALLBACK`).
 3. **Decoupled 3-Tier Persistence (Dual-Mode):** Hidden behind `ListingStorage` and `ConfigStorage`. `JpaIngatlanStorage` and `PropertyPersistenceHelper` use Spring Data JPA with embedded H2 (`data/ingatlanok_jpa.mv.db`) for dev/CLI, PostgreSQL 17 for Docker Compose, and in-memory H2 for hermetic tests.
 4. **Modern Decoupled Frontend & Clean Versioning:** Autonomous React 19 + TypeScript + Vite SPA served by Nginx in production. GHCR images use clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without a `v` prefix.
@@ -137,9 +137,9 @@ ingatlan-kereso/
 > 4. **Pipeline Concurrency:** Cancel obsolete workflow runs (`gh run cancel <run-id>`).
 > 5. **PR Conventions & UTF-8 Encoding:**
 >    - **Title & Labels:** English Conventional Commit title; apply labels (`enhancement`, `bug`, `documentation`) and request `@copilot` review (`gh pr edit <id> --add-reviewer "@copilot"`).
->    - **Hungarian 4-Section Body:** Write concise, high-signal Hungarian descriptions strictly with: **🎯 Miért készült?**, **🛠️ Mit módosít / Mit javít?**, **🧪 Tesztelés és Ellenőrzés**, and **🛡️ Thematic Agent Approval Gate**, ending with `Closes #<id>` / `Fixes #<id>`. Always pass `--body-file` encoded in clean UTF-8 without BOM.
+>    - **Hungarian 5-Section Body:** Write concise, high-signal Hungarian descriptions strictly with: **🎯 Miért készült?**, **🛠️ Mit módosít / Mit javít?**, **📋 Acceptance Criteria Traceability**, **🧪 Tesztelés és Ellenőrzés**, and **🛡️ Thematic Agent Approval Gate**, ending with `Closes #<id>` / `Fixes #<id>`. Always pass `--body-file` encoded in clean UTF-8 without BOM.
 >    - **Direct PR Link:** Always include a clickable GitHub PR link in the final response.
-> 6. **Thematic Agent Approval Gate:** Require sign-off from `fullstack-architect`, `scraper-security-engineer`, and `quality-devops-engineer` using standard tokens (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, `[NOT_VERIFIED]`) with one concise sentence rationale. Refer to [docs/architecture.md](docs/architecture.md).
+> 6. **Thematic Agent Approval Gate & Review Risk Matrix:** Require sign-off from `fullstack-architect`, `scraper-security-engineer`, and `quality-devops-engineer` adhering to the Review Risk Matrix (`docs/pr-compliance.md`) using standard tokens (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, `[NOT_VERIFIED]`) with one concise sentence rationale. Legacy tokens like `[OK]` are strictly forbidden. Refer to [docs/architecture.md](docs/architecture.md) and [docs/pr-compliance.md](docs/pr-compliance.md).
 > 7. **Green Gate & Never Auto-Merge:** PRs are mergeable only when 100% of CI checks are green. Never run `gh pr merge`; merging is reserved for the human repository owner.
 > 8. **Standardized Issue Templates:** Always follow `.github/ISSUE_TEMPLATE/bug_report.yml` (`fix: <summary>`, `bug` label) and `.github/ISSUE_TEMPLATE/feature_request.yml` (`feat: <summary>`, `enhancement` label) as the single source of truth.
 
