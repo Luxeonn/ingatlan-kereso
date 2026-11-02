@@ -94,7 +94,13 @@ function printPass(msg, verbose = false) {
  * Strips HTML comments from markdown content.
  */
 function stripHtmlComments(text) {
-  return text.replace(/<!--[\s\S]*?-->/g, '');
+  let sanitized = text;
+  let previous;
+  do {
+    previous = sanitized;
+    sanitized = sanitized.replace(/<!--[\s\S]*?-->/g, '');
+  } while (sanitized !== previous);
+  return sanitized;
 }
 
 /**
