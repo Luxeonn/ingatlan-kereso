@@ -55,6 +55,9 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Configure `GlobalCorsFilter` to accept only approved origins; never combine wildcard `*` with `allowCredentials=true`.
    - Keep security headers active, including `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
    - Route all frontend external portal/listing window openings through the centralized `openExternalUrl` helper (`frontend/src/utils/formatters.ts`) so `noopener,noreferrer` window features and URL validation are uniformly enforced; direct `window.open` in components is blocked by ESLint AST rule and `scripts/validate-skills.sh`.
+6. **Portal independence and issue-scope boundaries**:
+   - Ensure portal scrapers remain strictly decoupled from core business logic (`PORTAL_DOES_NOT_DEPEND_ON_CORE`) and persistence layers (`PORTAL_DOES_NOT_DEPEND_ON_PERSISTENCE`).
+   - Confine changes strictly to the issue scope; reject unrequested scraper refactors or unsolicited dependency updates.
 
 ### Explicit Non-Goals
 
@@ -111,6 +114,8 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] No scraper method allows an expected external network or parsing exception to escape without appropriate handling.
 - [ ] On network or parsing failure, the engine returns a `BOT_PROTECTED` or `FAILED` result and includes a direct search link where possible.
 - [ ] A slow or stalled engine cannot freeze the parallel aggregator (`SearchExecutionEngine`).
+- [ ] Changes adhere strictly to issue scope: no out-of-scope scraping engine refactors or unrequested dependency updates.
+- [ ] Portal scrapers do not depend on persistence or core layers (asserted by ArchUnit).
 
 ### B. Network Requests and Timeouts
 

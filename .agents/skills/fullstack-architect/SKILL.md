@@ -58,6 +58,9 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Reuse shared UI primitives (`NumericStepper` for `AreaStepper`/`PriceStepper`, `useOutsideDismiss` for popovers/dropdowns, `SORT_OPTIONS` and `updateCriteria` in `useFilterStore`) and forbid redundant pass-through wrapper components.
    - Client state management (Zustand) and server-state synchronization (TanStack Query).
    - Responsive layout (360px through 4K), light/dark themes, skeleton loading, and Google Fonts CDN typography (Plus Jakarta Sans).
+6. **Issue-scope modification boundaries & anti-scope-creep enforcement**:
+   - Verify that all modified files and architectural edits directly serve the target issue's requirements and acceptance criteria.
+   - Reject unrequested refactoring, unsolicited dependency bumps, package reorganizations, or unapproved API/DB schema modifications.
 
 ### Explicit Non-Goals
 
@@ -120,6 +123,8 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] The Spring Boot application is a fully headless REST API (`spring.web.resources.add-mappings: false`) and does not serve embedded static HTML from the backend JAR.
 - [ ] REST endpoint URLs and JSON DTO contracts remain consistent with the frontend client.
 - [ ] Business logic changes follow the Regression Test First protocol (`docs/business-logic-regression.md`): failing tests prove the defect before code edits, and core invariants (deduplication clustering, price/sqm calculation, market medians, bargain classification) are rigorously verified.
+- [ ] Changes strictly conform to issue scope: no unsolicited refactoring, version bumps, or unrequested contract shifts.
+- [ ] New ArchUnit regression rules (controller placement, framework isolation, persistence encapsulation, portal independence) pass without exceptions.
 
 ### B. Virtual Threads and Concurrency
 
