@@ -50,9 +50,9 @@ val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
 val caffeineVersion = "3.3.1"
-val lombokVersion = "1.18.42"
+val lombokVersion = "1.18.48"
 val mapstructVersion = "1.6.3"
-val archunitVersion = "1.4.1"
+val archunitVersion = "1.5.1"
 
 dependencies {
     constraints {
