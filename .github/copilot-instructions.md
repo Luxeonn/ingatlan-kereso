@@ -1,6 +1,6 @@
 # GitHub Copilot & AI Code Review Instructions for Ingatlan Kereső
 
-This repository is **ingatlan-kereso**, a high-performance Hungarian real estate aggregator built on Java 25 LTS with Spring Boot 4.1.1, Spring Data JPA / H2, Virtual Threads, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend.
+This repository is **ingatlan-kereso**, a high-performance Hungarian real estate aggregator built on Java 25 LTS with Spring Boot 4.1.2, Spring Data JPA / H2, Virtual Threads, a pure headless JSON REST API, and an autonomous modern React 19 SPA frontend.
 
 When generating code, reviewing Pull Requests, or proposing refactors, strictly adhere to the following architectural directives and coding standards:
 
@@ -67,4 +67,5 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 1. **Conventional Commits:** PR titles and commits must follow `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `chore: ...`.
 2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop`. Branch naming follows `feature/<name>`, `fix/<name>`, `refactor/<name>`.
-3. **Thematic Agent Approval Gate:** Every PR requires formal sign-off from designated specialist personas (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`) using standardized decision semantics (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, `[NOT_VERIFIED]`) and a mandatory 1-sentence rationale. See `docs/architecture.md` for the authoritative architectural specification.
+3. **Acceptance Criteria Traceability:** Every PR must include an explicit mapping of issue acceptance criteria to modified files and verification evidence in `📋 Acceptance Criteria Traceability`.
+4. **Thematic Agent Approval Gate:** Every PR requires formal sign-off from designated specialist personas (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`) adhering to the Review Risk Matrix (`docs/pr-compliance.md`) using standardized decision semantics (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, `[NOT_VERIFIED]`) and a mandatory 1-sentence rationale. Alternative tokens like `[OK]` are strictly forbidden. See `docs/pr-compliance.md` and `docs/architecture.md` for authoritative governance specifications.

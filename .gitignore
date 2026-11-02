@@ -158,6 +158,7 @@ secrets/
 .gemini/*.jsonl
 .agents/brain/
 .agents/cache/
+.agents/teamwork/
 temp_*.md
 
 # ==============================================================================

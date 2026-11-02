@@ -1,6 +1,6 @@
 ---
 name: fullstack-architect
-description: Full-stack software architecture and product engineering specialist. Use this skill for the Java 25 backend (Spring Boot 4.1.1, Spring Framework 7.0.9, virtual threads, and a headless Spring MVC REST API), persistence (Spring Data JPA, Hibernate, embedded H2, and PostgreSQL 17), and the modern React 19 + TypeScript + Tailwind SPA frontend, including UI/UX micro-interactions and type-safe UI integrity.
+description: Full-stack software architecture and product engineering specialist. Use this skill for the Java 25 backend (Spring Boot 4.1.2, Spring Framework 7.0.10, virtual threads, and a headless Spring MVC REST API), persistence (Spring Data JPA, Hibernate, embedded H2, and PostgreSQL 17), and the modern React 19 + TypeScript + Tailwind SPA frontend, including UI/UX micro-interactions and type-safe UI integrity.
 ---
 
 # Fullstack Architect Specialist
