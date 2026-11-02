@@ -36,49 +36,58 @@ public final class BrowserUtils {
   private BrowserUtils() {}
 
   public static boolean openUrl(String url) {
-    if (url == null || url.isBlank()) {
+    URI uri = validateAndParseUri(url);
+    if (uri == null) {
       return false;
+    }
+    return browseUri(uri);
+  }
+
+  private static URI validateAndParseUri(String url) {
+    if (url == null || url.isBlank()) {
+      return null;
     }
     String trimmed = url.trim();
     if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
       LOGGER.warn(
           "Biztonsági figyelmeztetés: Csak http:// vagy https:// hivatkozás nyitható meg: {}",
           trimmed);
-      return false;
+      return null;
     }
 
-    URI uri;
     try {
-      uri = URI.create(trimmed);
+      URI uri = URI.create(trimmed);
+      String scheme = uri.getScheme();
+      if (scheme == null || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+        LOGGER.warn("Nem engedélyezett URL séma: {}", trimmed);
+        return null;
+      }
+
+      String host = uri.getHost();
+      if (host == null || !ALLOWED_PORTAL_HOSTS.contains(host.toLowerCase(Locale.ROOT))) {
+        LOGGER.warn("Nem engedélyezett domain a böngésző megnyitásához: {}", trimmed);
+        return null;
+      }
+      return uri;
     } catch (IllegalArgumentException e) {
       LOGGER.warn("Érvénytelen URL: {}", trimmed);
-      return false;
+      return null;
     }
+  }
 
-    String scheme = uri.getScheme();
-    if (scheme == null
-        || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
-      LOGGER.warn("Nem engedélyezett URL séma: {}", trimmed);
-      return false;
-    }
-
-    String host = uri.getHost();
-    if (host == null || !ALLOWED_PORTAL_HOSTS.contains(host.toLowerCase(Locale.ROOT))) {
-      LOGGER.warn("Nem engedélyezett domain a böngésző megnyitásához: {}", trimmed);
-      return false;
-    }
-
+  private static boolean browseUri(URI uri) {
     try {
       if (Desktop.isDesktopSupported()
           && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+        // codeql[java/unvalidated-url-redirection]
         Desktop.getDesktop().browse(uri);
         return true;
       }
 
-      LOGGER.warn("A böngésző megnyitása nem támogatott ezen a környezeten: {}", trimmed);
+      LOGGER.warn("A böngésző megnyitása nem támogatott ezen a környezeten: {}", uri);
       return false;
     } catch (Exception e) {
-      LOGGER.error("Nem sikerült megnyitni a böngészőben: {} ({})", trimmed, e.getMessage(), e);
+      LOGGER.error("Nem sikerült megnyitni a böngészőben: {} ({})", uri, e.getMessage(), e);
       return false;
     }
   }

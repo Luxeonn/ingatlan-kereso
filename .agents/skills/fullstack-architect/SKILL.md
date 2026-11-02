@@ -13,7 +13,7 @@ This specialist skill owns **system architecture**, **layer-boundary integrity**
 
 ### Primary Mission
 
-Maintain the application's layered, loosely coupled architecture; correct Java 21 virtual-thread concurrency; a clean headless REST API contract; type-safe, dialect-independent Spring Data JPA persistence; and high-quality React 19 + TypeScript frontend integrity.
+Maintain the application's layered, loosely coupled architecture; fail-closed compiler standards (`-Werror`, `-Xlint`); automated ArchUnit architecture rules (`ArchitectureRulesTest.java`); correct Java 25 virtual-thread concurrency; clean Lombok `@Builder` and MapStruct (`ReportingPolicy.ERROR`) object-mapping conventions; DTO immutability; a clean headless REST API contract; type-safe, dialect-independent Spring Data JPA persistence; and high-quality, deduplicated React 19 + TypeScript frontend integrity anchored to the OpenAPI schema, guarded by strict TypeScript compiler flags (`noImplicitReturns`, `noImplicitOverride`, `forceConsistentCasingInFileNames`) and an ESLint zero-warning gate (`--max-warnings 0`) enforcing Clean Code complexity rules.
 
 ### Activation Triggers
 
@@ -31,19 +31,31 @@ Activate this skill for any task, pull request, or code review affecting any of 
 
 ### In-Scope Responsibilities
 
-1. **Four-layer unidirectional architecture**:
+1. **Four-layer unidirectional architecture & ArchUnit enforcement**:
    - `web/`: Spring MVC `@RestController` headless endpoints (`/api/search`, `/api/stats`, `/api/portal-statuses`, `/api/config`, `/api/status`), CORS, and web configuration (`SpaWebMvcConfig`, `GlobalCorsFilter`).
    - `presentation/`: DTO models, KPI aggregation, and aggregated market statistics.
    - `core/`: Filtering engine (`PropertyFilterEngine`), O(1) deduplication (`DeduplicationEngine`), aggregation, and parallel query coordination (`SearchExecutionEngine`, `MarketAnalyticsEngine`).
    - `persistence/`: Storage abstractions (`ListingStorage`, `ConfigStorage`), Spring Data JPA entities (`PropertyEntity`, `PriceHistoryEntity`, `ConfigEntity`), repositories (`PropertyRepository`), and the `JpaIngatlanStorage` implementation.
+   - Guarded by automated ArchUnit tests (`ArchitectureRulesTest.java`): strict downward dependency flow, complete storage abstraction (no direct Repository/JPA access outside `persistence`), and single-point SSRF isolation in `HttpFetcher`.
 2. **Concurrency model (Java 25 LTS)**:
-   - Virtual threads (`spring.threads.virtual.enabled=true`, `Executors.newVirtualThreadPerTaskExecutor()`). Avoid blocking carrier threads.
+   - Virtual threads (`spring.threads.virtual.enabled=true`, `Executors.newVirtualThreadPerTaskExecutor()`). Avoid blocking carrier threads. Synchronized blocks (`synchronized`) in service paths are prohibited and blocked by ArchUnit.
 3. **Persistence strategy (dual-mode JPA)**:
    - Embedded file-based H2 storage (`jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1`) in CLI/development mode.
    - PostgreSQL 17 in the production Docker environment.
    - Keep persistence decoupled: direct JDBC calls and obsolete embedded or NoSQL engines are prohibited.
-4. **Modern standalone React 19 frontend**:
+4. **Code generation and mapping conventions (Lombok, MapStruct & DTO Immutability)**:
+   - Use Lombok `@Getter`, `@Builder`, and `@NoArgsConstructor` (plus `@Setter` only where post-construction mutation is required) across domain models, presentation DTOs, and JPA entities.
+   - Prefer `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates) over multi-line setter chains. Omit `@Setter` on read-only DTOs and value objects (`MarketStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`) to enforce strict immutability (verified by ArchUnit).
+   - Do not use `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows`; preserve hand-written `equals`/`hashCode` where they encode business identity and never generate `equals`/`hashCode`/`toString` on JPA entities. Prefer `record` for pure immutable value carriers.
+   - Use MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` (plus `@AfterMapping` and `@MappingTarget` where enrichment or merge semantics apply) instead of repetitive hand-written entity ↔ DTO/domain field copying.
+5. **Modern standalone React 19 frontend & deduplication rules**:
    - React 19, TypeScript 5.9, Tailwind CSS v4, and Vite 8.3.
+   - Strict TypeScript compiler options: `noImplicitReturns`, `noImplicitOverride`, and `forceConsistentCasingInFileNames`.
+   - ESLint zero-warning gate (`--max-warnings 0`) enforcing Clean Code metrics: `complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq` (strict `===` / `!==`), `@typescript-eslint/consistent-type-imports`, and `@typescript-eslint/no-explicit-any: error`.
+   - AST property restriction forbidding direct `window.open` in favor of centralized, safe `openExternalUrl` from `utils/formatters.ts`.
+   - Derive frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) directly from OpenAPI-generated `generated-api.ts` (`components['schemas']`). Hand-duplicated DTO interfaces, unused DTO types, and unreferenced API client functions are prohibited.
+   - Centralize shared domain calculations and helpers in `utils/formatters.ts` (`normalizePortalKey`, `PORTAL_CHIPS`, `clampQualityScore`, `getQualityConfig`, `getEffectivePrice`, `getEffectiveSqmPrice`, `openExternalUrl`) and shared histogram/type-normalization utilities in `hooks/useMarketAnalytics.ts`.
+   - Reuse shared UI primitives (`NumericStepper` for `AreaStepper`/`PriceStepper`, `useOutsideDismiss` for popovers/dropdowns, `SORT_OPTIONS` and `updateCriteria` in `useFilterStore`) and forbid redundant pass-through wrapper components.
    - Client state management (Zustand) and server-state synchronization (TanStack Query).
    - Responsive layout (360px through 4K), light/dark themes, skeleton loading, and Google Fonts CDN typography (Plus Jakarta Sans).
 
@@ -83,13 +95,15 @@ For every review, the specialist must follow this four-phase workflow:
    - Identify the affected files.
    - Check whether the change affects layer boundaries (for example, Web -> Core -> Persistence) or the frontend/backend REST contract.
 2. **Phase 2: Architecture and rule validation**
+   - Run automated ArchUnit rules (`ArchitectureRulesTest.java`) ensuring 4-layer unidirectional flow, storage abstraction, and DTO immutability.
    - Verify that no layer inversion exists (for example, `core` must not reference `web` or `presentation` classes).
    - Verify that database operations go exclusively through the `ListingStorage` and `ConfigStorage` interfaces.
    - Check for synchronized blocks (`synchronized`) around long-running I/O in virtual-thread code.
 3. **Phase 3: Empirical and build verification**
-   - Verify backend compilation with `./gradlew compileJava`.
-   - Verify frontend type integrity with `cd frontend && npm run typecheck` (or `npx tsc --noEmit`).
-   - Check for linting or syntax errors.
+   - Verify backend compilation with `./gradlew compileJava` under fail-closed compiler flags (`-Werror`, `-Xlint:unchecked,deprecation,rawtypes,fallthrough,cast,overrides,divzero,empty`).
+   - Verify ArchUnit test suite with `./gradlew test --tests "*ArchitectureRulesTest*"`.
+   - Verify frontend API contract and type integrity with `cd frontend && npm run generate-api && npm run typecheck` under strict compiler flags (`noImplicitReturns`, `noImplicitOverride`, `forceConsistentCasingInFileNames`).
+   - Verify frontend linting with `cd frontend && npm run lint` under the zero-warning gate (`--max-warnings 0`) and Clean Code metrics (`complexity: 15`, `max-depth: 4`, `max-params: 5`).
 4. **Phase 4: Synthesis and decision**
    - Determine the decision token (`NO_FINDING`, `FINDING`, `NOT_APPLICABLE`, or `NOT_VERIFIED`).
    - Provide exactly one concise, professional rationale sentence for the PR gate.
@@ -101,6 +115,7 @@ For every review, the specialist must follow this four-phase workflow:
 ### A. System Architecture and Layer Boundaries
 
 - [ ] Dependencies between the four layers flow strictly downward: `web` -> `presentation` -> `core` -> `persistence` / `portal`.
+- [ ] ArchUnit test suite (`ArchitectureRulesTest.java`) passes with zero violations.
 - [ ] Layer inversion is prohibited: lower layers must not import classes from higher layers.
 - [ ] The Spring Boot application is a fully headless REST API (`spring.web.resources.add-mappings: false`) and does not serve embedded static HTML from the backend JAR.
 - [ ] REST endpoint URLs and JSON DTO contracts remain consistent with the frontend client.
@@ -108,20 +123,27 @@ For every review, the specialist must follow this four-phase workflow:
 ### B. Virtual Threads and Concurrency
 
 - [ ] Virtual threads are enabled (`spring.threads.virtual.enabled=true`).
-- [ ] No calls block carrier threads (for example, synchronized blocks around I/O or `ThreadLocal` memory leaks).
+- [ ] No calls block carrier threads (for example, synchronized blocks around I/O or `ThreadLocal` memory leaks; no `synchronized` in service/portal/core/web paths).
 - [ ] Parallel scraping and aggregation use `Executors.newVirtualThreadPerTaskExecutor()` or a Spring asynchronous mechanism.
 
-### C. Persistence and Spring Data JPA
+### C. Persistence, Lombok, and MapStruct Conventions
 
 - [ ] The persistence layer uses Spring Data JPA entities and repositories exclusively.
 - [ ] All persistence access goes through the `ListingStorage` or `ConfigStorage` interfaces.
 - [ ] No direct JDBC/SQL calls exist in business logic.
 - [ ] No obsolete persistence engines or unsupported database drivers are present in the codebase.
 - [ ] Indexes on entities (`PropertyEntity`, `PriceHistoryEntity`) support O(1) deduplication and fast queries.
+- [ ] Models, DTOs, and entities use `@Getter`/`@Builder`/`@NoArgsConstructor` (and `@Setter` only where post-construction mutation is needed); read-only DTOs/value objects omit `@Setter` to ensure strict immutability (enforced by ArchUnit), and `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` are never used.
+- [ ] Entity ↔ domain/DTO conversions are handled via MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` rather than manual field-copy boilerplate.
 
-### D. Frontend Integrity and UI/UX
+### D. Frontend Integrity, OpenAPI Types, and Deduplication
 
-- [ ] The frontend is type-safe (`tsc --noEmit` completes with zero errors).
+- [ ] The frontend compiles with zero errors under strict TypeScript compiler options (`noImplicitReturns`, `noImplicitOverride`, `forceConsistentCasingInFileNames`).
+- [ ] ESLint passes with zero warnings (`--max-warnings 0`) under Clean Code metrics (`complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`).
+- [ ] Direct `window.open` calls in frontend components are forbidden by ESLint AST rule; all external links use `openExternalUrl` from `utils/formatters.ts`.
+- [ ] DTO types in `types/` derive directly from `generated-api.ts` (`components['schemas']`) without hand-written schema duplication or dead API functions.
+- [ ] Shared domain calculations (`getEffectivePrice`, `getEffectiveSqmPrice`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, `openExternalUrl`) and UI primitives (`NumericStepper`, `useOutsideDismiss`, `SORT_OPTIONS`) are reused rather than duplicated across components, hooks, or stores.
+- [ ] No redundant pass-through wrapper components or orphaned configuration entries exist.
 - [ ] Components use standard React 19 hooks, with no memory leaks or unnecessary re-renders.
 - [ ] Server state is managed with TanStack Query and appropriate error and loading-skeleton states.
 - [ ] The UI is fully responsive on mobile (360px) and desktop (4K) viewports.
@@ -166,8 +188,11 @@ The specialist must stop immediately and reject approval with a `FINDING` status
 2. **Virtual-thread blocking**: A synchronized block or blocking call is used around long-running I/O.
 3. **Reintroduction of obsolete database technology**: Unapproved database drivers or obsolete embedded storage libraries appear in dependencies or source code.
 4. **Bypassing storage abstraction**: Direct SQL or DataSource access occurs in web controllers or core modules.
-5. **Frontend type or compilation error**: `tsc --noEmit` reports an error, or React components contain syntax errors.
+5. **Frontend type, OpenAPI duplication, or compilation error**: `tsc --noEmit` reports an error, React components contain syntax errors, DTO interfaces duplicate `generated-api.ts` schemas by hand, or domain calculations/UI primitives are copy-pasted instead of reusing shared utilities.
 6. **Serving static files from the backend**: HTML/JS/CSS is packaged into the Spring Boot JAR instead of being served by the independent frontend container.
+7. **Lombok or MapStruct policy violation**: `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` is introduced, `@Setter` is added to read-only DTOs/value objects, or manual field-by-field DTO/entity mapping is written where MapStruct (`ReportingPolicy.ERROR`) applies.
+8. **Compiler warnings or ArchUnit test failure**: Javac produces any warning or error under fail-closed flags (`-Werror`, `-Xlint`), or `ArchitectureRulesTest.java` fails on layer boundaries, storage abstraction, or DTO immutability.
+9. **ESLint warnings, Clean Code, or AST restriction violation**: ESLint reports any error or warning under `--max-warnings 0`, complexity exceeds 15, or direct `window.open` is called in frontend components instead of `openExternalUrl`.
 
 ---
 
@@ -175,9 +200,9 @@ The specialist must stop immediately and reject approval with a `FINDING` status
 
 Approval (`NO_FINDING`) from `fullstack-architect` may be granted only when ALL of the following criteria are met:
 
-1. The backend source compiles successfully: `./gradlew compileJava` exits successfully.
-2. Frontend type checking succeeds: `cd frontend && npm run typecheck` completes with zero errors.
+1. The backend source compiles successfully with zero warnings under fail-closed flags (`-Werror`, `-Xlint`) via `./gradlew compileJava`, and ArchUnit rules (`ArchitectureRulesTest.java`) pass.
+2. Frontend verification succeeds: `cd frontend && npm run generate-api && npm run typecheck && npm run lint` completes with zero errors and zero warnings (`--max-warnings 0`), and frontend DTOs derive directly from `generated-api.ts`.
 3. Layered unidirectional dependencies are clean, with no layer inversion.
-4. Spring Data JPA entities and repositories meet the specification.
-5. REST API endpoint contracts and DTO structures match the frontend client.
+4. Spring Data JPA entities, Lombok `@Builder` models/DTOs (with read-only DTO immutability), and MapStruct mappers (`ReportingPolicy.ERROR`) meet the specification.
+5. REST API endpoint contracts, shared frontend utilities (`utils/formatters.ts`, `NumericStepper`, `useOutsideDismiss`), and DTO structures match the frontend client without dead code or duplicated logic.
 6. The PR Gate block contains exactly one professional, non-generic rationale sentence.

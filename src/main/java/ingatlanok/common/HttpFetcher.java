@@ -3,25 +3,41 @@ package ingatlanok.common;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Locale;
+import java.util.Set;
 
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import ingatlanok.core.resilience.PortalCircuitBreaker;
-import ingatlanok.core.resilience.PortalRateLimiter;
+import ingatlanok.common.resilience.PortalCircuitBreaker;
+import ingatlanok.common.resilience.PortalRateLimiter;
 
 /** Centralized resilient HTTP fetcher with domain whitelisting, rate limiting, and circuit breaking. */
 public final class HttpFetcher {
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
-  private static final PortalCircuitBreaker CIRCUIT_BREAKER = new PortalCircuitBreaker();
-  private static final PortalRateLimiter RATE_LIMITER = new PortalRateLimiter();
 
   public static final String DEFAULT_USER_AGENT =
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
           + " Chrome/133.0.0.0 Safari/537.36";
   public static final int DEFAULT_TIMEOUT_MS = 15000;
+
+  private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
+  private static final PortalCircuitBreaker CIRCUIT_BREAKER = new PortalCircuitBreaker();
+  private static final PortalRateLimiter RATE_LIMITER = new PortalRateLimiter();
+  private static final Set<String> ALLOWED_HOST_PREFIXES = Set.of(
+      "https://dh.hu/",
+      "https://www.dh.hu/",
+      "https://oc.hu/",
+      "https://www.oc.hu/",
+      "https://jofogas.hu/",
+      "https://www.jofogas.hu/",
+      "https://ingatlan.jofogas.hu/",
+      "https://koltozzbe.hu/",
+      "https://www.koltozzbe.hu/",
+      "https://ingatlanbazar.hu/",
+      "https://www.ingatlanbazar.hu/",
+      "https://ingatlan.com/",
+      "https://www.ingatlan.com/"
+  );
 
   private HttpFetcher() {}
 
@@ -74,7 +90,7 @@ public final class HttpFetcher {
 
       CIRCUIT_BREAKER.recordSuccess(circuitKey);
       long elapsed = System.currentTimeMillis() - startTime;
-      LOGGER.debug(
+      LOGGER.info(
           "HTTP GET Document sikeres [{} ms] (cím: '{}'): {}",
           elapsed,
           document.title(),
@@ -150,7 +166,7 @@ public final class HttpFetcher {
       CIRCUIT_BREAKER.recordSuccess(circuitKey);
       long elapsed = System.currentTimeMillis() - startTime;
       int length = body != null ? body.length() : 0;
-      LOGGER.debug("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
+      LOGGER.info("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
       return body;
     } catch (HttpStatusException e) {
       CIRCUIT_BREAKER.recordFailure(circuitKey);
@@ -179,23 +195,15 @@ public final class HttpFetcher {
       return false;
     }
     String url = targetUrl.trim();
-    if (Boolean.getBoolean("app.test-mode")
-        && (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:"))) {
+    if (isAllowedLocalTestUrl(url)) {
       return true;
     }
-    return url.startsWith("https://dh.hu/")
-        || url.startsWith("https://www.dh.hu/")
-        || url.startsWith("https://oc.hu/")
-        || url.startsWith("https://www.oc.hu/")
-        || url.startsWith("https://jofogas.hu/")
-        || url.startsWith("https://www.jofogas.hu/")
-        || url.startsWith("https://ingatlan.jofogas.hu/")
-        || url.startsWith("https://koltozzbe.hu/")
-        || url.startsWith("https://www.koltozzbe.hu/")
-        || url.startsWith("https://ingatlanbazar.hu/")
-        || url.startsWith("https://www.ingatlanbazar.hu/")
-        || url.startsWith("https://ingatlan.com/")
-        || url.startsWith("https://www.ingatlan.com/");
+    return ALLOWED_HOST_PREFIXES.stream().anyMatch(url::startsWith);
+  }
+
+  private static boolean isAllowedLocalTestUrl(String url) {
+    return Boolean.getBoolean("app.test-mode")
+        && (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:"));
   }
 
   private static String extractHost(String targetUrl) {

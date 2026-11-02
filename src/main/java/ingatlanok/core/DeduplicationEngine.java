@@ -3,14 +3,30 @@ package ingatlanok.core;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
+import ingatlanok.common.CityUtils;
+import ingatlanok.core.dedup.ClusterConsolidationHelper;
+import ingatlanok.core.dedup.LocationConflictDetector;
+import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
+import ingatlanok.core.dedup.SemanticConflictDetector;
+import ingatlanok.core.dedup.TextualSimilarityMatcher;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PropertyType;
+import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.ListingStorage;
 
 public class DeduplicationEngine {
+
+  private static final double MAX_AREA_TOLERANCE_RATIO = 0.05; // ±5%
+  private static final double MAX_ROOM_DIFFERENCE = 0.5; // within ±0.5 rooms
+  private static final double MAX_PRICE_BAND_RATIO = 0.20; // within ±20%
+  private static final double MISSING_AREA_MAX_PRICE_DIFF_RATIO = 0.01; // ±1%
 
   private final ListingStorage listingStorage;
 
@@ -18,17 +34,347 @@ public class DeduplicationEngine {
     this.listingStorage = listingStorage;
   }
 
+  /**
+   * Fast O(1) URL deduplication preserving iteration order.
+   */
   public List<IngatlanItem> deduplicateByUrl(Collection<IngatlanItem> items) {
     if (items == null || items.isEmpty()) {
       return Collections.emptyList();
     }
     Map<String, IngatlanItem> unique = new LinkedHashMap<>();
     for (IngatlanItem item : items) {
-      if (item != null && item.getUrl() != null) {
-        unique.putIfAbsent(item.getUrl(), item);
+      if (item != null && item.getUrl() != null && !item.getUrl().isBlank()) {
+        unique.putIfAbsent(item.getUrl().trim(), item);
       }
     }
     return new ArrayList<>(unique.values());
+  }
+
+  /**
+   * Multi-signal cross-portal clustering and consolidation.
+   */
+  public List<IngatlanItem> deduplicateMultiSignal(Collection<IngatlanItem> items) {
+    if (items == null || items.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    // Stage 1: Fast O(1) URL deduplication
+    List<IngatlanItem> stage1Items = deduplicateByUrl(items);
+    if (stage1Items.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    // Stage 2: Cross-portal multi-signal clustering
+    List<List<IngatlanItem>> clusters = new ArrayList<>();
+    for (IngatlanItem candidate : stage1Items) {
+      boolean addedToCluster = false;
+      for (List<IngatlanItem> cluster : clusters) {
+        if (matchesCluster(candidate, cluster)) {
+          cluster.add(candidate);
+          addedToCluster = true;
+          break;
+        }
+      }
+      if (!addedToCluster) {
+        List<IngatlanItem> newCluster = new ArrayList<>();
+        newCluster.add(candidate);
+        clusters.add(newCluster);
+      }
+    }
+
+    // Stage 3: Consolidation into grouped IngatlanItem
+    List<IngatlanItem> consolidatedItems = new ArrayList<>(clusters.size());
+    for (List<IngatlanItem> cluster : clusters) {
+      consolidatedItems.add(consolidateCluster(cluster));
+    }
+
+    return consolidatedItems;
+  }
+
+  public List<IngatlanItem> deduplicate(Collection<IngatlanItem> items) {
+    return deduplicateMultiSignal(items);
+  }
+
+  private boolean matchesCluster(IngatlanItem candidate, List<IngatlanItem> cluster) {
+    if (cluster == null || cluster.isEmpty() || candidate == null) {
+      return false;
+    }
+    for (IngatlanItem member : cluster) {
+      if (!isMatch(candidate, member)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public boolean isMatch(IngatlanItem a, IngatlanItem b) {
+    if (a == null || b == null || !isMatchingCity(a, b) || !isSupportedPropertyType(a, b)) {
+      return false;
+    }
+
+    boolean bothAreasKnown =
+        ClusterConsolidationHelper.hasPositiveArea(a) && ClusterConsolidationHelper.hasPositiveArea(b);
+    if (!isAreaAndPriceCompatible(a, b, bothAreasKnown)) {
+      return false;
+    }
+
+    String normCity = CityUtils.normalizeCityKey(a.getCity());
+    ExtractedLocation locA = LocationConflictDetector.extractLocation(a, normCity);
+    ExtractedLocation locB = LocationConflictDetector.extractLocation(b, normCity);
+    if (hasStructuralConflict(a, b, normCity, locA, locB)) {
+      return false;
+    }
+    boolean hasAffirmativeLocation = LocationConflictDetector.hasAffirmativeMatch(locA, locB);
+
+    Set<String> tokensA = TextualSimilarityMatcher.extractDistinctiveTokens(a);
+    Set<String> tokensB = TextualSimilarityMatcher.extractDistinctiveTokens(b);
+    if (TextualSimilarityMatcher.hasDirectTitleConflict(
+        a, b, tokensA, tokensB, hasAffirmativeLocation)) {
+      return false;
+    }
+
+    if (!isRoomCountCompatible(
+        a, b, a.getPropertyType(), tokensA, tokensB, hasAffirmativeLocation)) {
+      return false;
+    }
+
+    return bothAreasKnown
+        || hasCorroboratingMissingAreaEvidence(a, b, tokensA, tokensB, hasAffirmativeLocation);
+  }
+
+  private boolean isAreaAndPriceCompatible(IngatlanItem a, IngatlanItem b, boolean bothAreasKnown) {
+    if (bothAreasKnown) {
+      return isWithinAreaTolerance(a, b) && isWithinPriceBand(a, b);
+    }
+    return isWithinMissingAreaPriceBand(a, b);
+  }
+
+  private boolean hasStructuralConflict(
+      IngatlanItem a,
+      IngatlanItem b,
+      String normCity,
+      ExtractedLocation locA,
+      ExtractedLocation locB) {
+    return LocationConflictDetector.hasConflict(locA, locB, normCity)
+        || SemanticConflictDetector.hasConflict(a, b);
+  }
+
+  private boolean hasCorroboratingMissingAreaEvidence(
+      IngatlanItem a,
+      IngatlanItem b,
+      Set<String> tokensA,
+      Set<String> tokensB,
+      boolean hasAffirmativeLocation) {
+    return ClusterConsolidationHelper.hasMatchingImage(a, b)
+        || TextualSimilarityMatcher.hasStrongTitleSimilarity(
+            a, b, tokensA, tokensB, hasAffirmativeLocation);
+  }
+
+  private boolean isMatchingCity(IngatlanItem a, IngatlanItem b) {
+    String cityA = a.getCity();
+    String cityB = b.getCity();
+    if (cityA == null || cityB == null || cityA.isBlank() || cityB.isBlank()) {
+      return false;
+    }
+    return CityUtils.normalizeCityKey(cityA).equals(CityUtils.normalizeCityKey(cityB));
+  }
+
+  private boolean isSupportedPropertyType(IngatlanItem a, IngatlanItem b) {
+    PropertyType typeA = a.getPropertyType();
+    PropertyType typeB = b.getPropertyType();
+    if (typeA == null || typeB == null || typeA != typeB) {
+      return false;
+    }
+    return typeA == PropertyType.LAKAS || typeA == PropertyType.HAZ || typeA == PropertyType.TELEK;
+  }
+
+  private boolean isWithinAreaTolerance(IngatlanItem a, IngatlanItem b) {
+    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
+    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
+    if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
+      return false;
+    }
+    double maxArea = Math.max(areaA, areaB);
+    return (Math.abs(areaA - areaB) / maxArea) <= MAX_AREA_TOLERANCE_RATIO;
+  }
+
+  private boolean isWithinPriceBand(IngatlanItem a, IngatlanItem b) {
+    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
+    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
+    if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
+      return false;
+    }
+    long maxPrice = Math.max(priceA, priceB);
+    return ((double) Math.abs(priceA - priceB) / (double) maxPrice) <= MAX_PRICE_BAND_RATIO;
+  }
+
+  private boolean isWithinMissingAreaPriceBand(IngatlanItem a, IngatlanItem b) {
+    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
+    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
+    if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
+      return false;
+    }
+    long maxPrice = Math.max(priceA, priceB);
+    return ((double) Math.abs(priceA - priceB) / (double) maxPrice) <= MISSING_AREA_MAX_PRICE_DIFF_RATIO;
+  }
+
+  private boolean isRoomCountCompatible(
+      IngatlanItem a,
+      IngatlanItem b,
+      PropertyType type,
+      Set<String> tokensA,
+      Set<String> tokensB,
+      boolean hasAffirmativeLocation) {
+    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
+    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
+    if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
+      return true;
+    }
+    double diff = Math.abs(roomsA - roomsB);
+    if (type == PropertyType.TELEK) {
+      return diff < 1.0;
+    }
+    if (diff <= MAX_ROOM_DIFFERENCE) {
+      return true;
+    }
+    return isAdaptiveRoomDiffAllowed(a, b, diff, tokensA, tokensB, hasAffirmativeLocation);
+  }
+
+  private boolean isAdaptiveRoomDiffAllowed(
+      IngatlanItem a,
+      IngatlanItem b,
+      double roomDiff,
+      Set<String> tokensA,
+      Set<String> tokensB,
+      boolean hasAffirmativeLocation) {
+    if (!isAdaptiveAreaEligible(a, b, roomDiff)) {
+      return false;
+    }
+    boolean multiGen =
+        TextualSimilarityMatcher.isMultiGeneration(a)
+            || TextualSimilarityMatcher.isMultiGeneration(b);
+    boolean keywordOverlap =
+        TextualSimilarityMatcher.hasDistinctiveKeywordOverlap(tokensA, tokensB);
+    return multiGen || keywordOverlap || hasAffirmativeLocation;
+  }
+
+  private boolean isAdaptiveAreaEligible(IngatlanItem a, IngatlanItem b, double roomDiff) {
+    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
+    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
+    if (areaA == null || areaB == null) {
+      return false;
+    }
+    double maxArea = Math.max(areaA, areaB);
+    double areaDiffRatio = Math.abs(areaA - areaB) / maxArea;
+    boolean largeOrHouse = a.getPropertyType() == PropertyType.HAZ || maxArea >= 120.0;
+    double maxAllowedDiff = maxArea >= 150.0 ? 3.0 : 2.5;
+    return largeOrHouse && roomDiff <= maxAllowedDiff && areaDiffRatio <= 0.035;
+  }
+
+  private IngatlanItem consolidateCluster(List<IngatlanItem> cluster) {
+    IngatlanItem primary = findLowestActivePriceSource(cluster);
+
+    ClusterConsolidationHelper.adoptMissingDetailsFromCluster(primary, cluster);
+
+    Double clusterArea = primary != null && primary.getDetailsInfo() != null
+        ? primary.getDetailsInfo().getAreaSquareMeters()
+        : null;
+
+    List<SourceListing> sourceListings = cluster.stream()
+        .filter(Objects::nonNull)
+        .map(item -> toSourceListing(item, clusterArea))
+        .sorted(Comparator.comparing(
+            SourceListing::getPriceHuf,
+            Comparator.nullsLast(Long::compareTo)))
+        .toList();
+
+    primary.setSourcesCount(cluster.size());
+    primary.setSourceListings(sourceListings);
+
+    // If primary has no image, adopt image from any cluster member that has one
+    if (primary.getImageUrl() == null || primary.getImageUrl().isBlank()) {
+      for (IngatlanItem member : cluster) {
+        if (member != null && member.getImageUrl() != null && !member.getImageUrl().isBlank()) {
+          primary.setImageUrl(member.getImageUrl());
+          break;
+        }
+      }
+    }
+
+    boolean anyNew = cluster.stream().filter(Objects::nonNull).anyMatch(IngatlanItem::isNew);
+    boolean allViewed = cluster.stream().filter(Objects::nonNull).allMatch(IngatlanItem::isViewed);
+    primary.setNew(anyNew);
+    primary.setViewed(allViewed);
+
+    return primary;
+  }
+
+  private IngatlanItem findLowestActivePriceSource(List<IngatlanItem> cluster) {
+    if (cluster == null || cluster.isEmpty()) {
+      return null;
+    }
+    // 1. Minimum active source price
+    List<IngatlanItem> activeWithPrice = cluster.stream()
+        .filter(Objects::nonNull)
+        .filter(i -> i.getStatus() == null || "ACTIVE".equalsIgnoreCase(i.getStatus()))
+        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
+            && i.getPriceInfo().getAmountHuf() > 0)
+        .toList();
+
+    if (!activeWithPrice.isEmpty()) {
+      return activeWithPrice.stream()
+          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
+          .orElse(cluster.get(0));
+    }
+
+    // 2. Minimum price among all items
+    List<IngatlanItem> anyWithPrice = cluster.stream()
+        .filter(Objects::nonNull)
+        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
+            && i.getPriceInfo().getAmountHuf() > 0)
+        .toList();
+
+    if (!anyWithPrice.isEmpty()) {
+      return anyWithPrice.stream()
+          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
+          .orElse(cluster.get(0));
+    }
+
+    return cluster.get(0);
+  }
+
+  public SourceListing toSourceListing(IngatlanItem item) {
+    return toSourceListing(item, null);
+  }
+
+  public SourceListing toSourceListing(IngatlanItem item, Double fallbackArea) {
+    if (item == null) {
+      return null;
+    }
+    String portal = resolveSourcePortal(item);
+    Long priceHuf = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
+    Long pricePerM2 = ClusterConsolidationHelper.resolveSourcePricePerM2(item, priceHuf, fallbackArea);
+
+    return SourceListing.builder()
+        .portal(portal)
+        .externalListingId(item.getId())
+        .url(item.getUrl())
+        .title(item.getTitle())
+        .imageUrl(item.getImageUrl())
+        .firstSeenAt(item.getDiscoveredAt())
+        .lastSeenAt(item.getDiscoveredAt())
+        .status(item.getStatus() != null ? item.getStatus() : "ACTIVE")
+        .priceHuf(priceHuf)
+        .pricePerM2(pricePerM2)
+        .build();
+  }
+
+  private String resolveSourcePortal(IngatlanItem item) {
+    String portal = item.getPortal();
+    if ((portal == null || portal.isBlank()) && item.getSource() != null) {
+      portal = item.getSource().getPortalName();
+    }
+    return (portal != null && !portal.isBlank()) ? portal : "Ismeretlen";
   }
 
   public void applyNewStatus(String city, Collection<IngatlanItem> items, boolean isFirstSearch) {

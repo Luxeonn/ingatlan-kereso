@@ -21,11 +21,27 @@ class PriceHistoryTrackerTest {
     tracker = new PriceHistoryTracker();
   }
 
+  private PriceDeltaCalculation calculate(
+      boolean isNew,
+      Long prevAmount,
+      Long newAmount,
+      Long existingDelta,
+      Double existingPct,
+      String existingLastChangeAt,
+      String currentStatus,
+      String title,
+      String now) {
+    PriceHistoryTracker.ExistingPriceState state =
+        new PriceHistoryTracker.ExistingPriceState(
+            isNew, prevAmount, existingDelta, existingPct, existingLastChangeAt, currentStatus);
+    return tracker.calculate(state, newAmount, title, now);
+  }
+
   @Test
   @DisplayName("Initial discovery records new price with delta 0")
   void testInitialPriceDiscovery() {
     PriceDeltaCalculation calc =
-        tracker.calculate(
+        calculate(
             true,
             null,
             50_000_000L,
@@ -49,7 +65,7 @@ class PriceHistoryTrackerTest {
   @DisplayName("Price drop correctly calculates negative delta and PRICE_DROP status")
   void testPriceDrop() {
     PriceDeltaCalculation calc =
-        tracker.calculate(
+        calculate(
             false,
             60_000_000L,
             54_000_000L,
@@ -73,7 +89,7 @@ class PriceHistoryTrackerTest {
   @DisplayName("Price increase correctly calculates positive delta and PRICE_INCREASE status")
   void testPriceIncrease() {
     PriceDeltaCalculation calc =
-        tracker.calculate(
+        calculate(
             false,
             50_000_000L,
             55_000_000L,
@@ -96,7 +112,7 @@ class PriceHistoryTrackerTest {
   @DisplayName("Unchanged price preserves existing delta and status")
   void testNoPriceChange() {
     PriceDeltaCalculation calc =
-        tracker.calculate(
+        calculate(
             false,
             50_000_000L,
             50_000_000L,
@@ -119,13 +135,13 @@ class PriceHistoryTrackerTest {
   @DisplayName("Null or zero new price safely handled without arithmetic exception")
   void testNullOrZeroPrice() {
     PriceDeltaCalculation calcNull =
-        tracker.calculate(
+        calculate(
             false, 50_000_000L, null, null, null, null, null, "Családi ház", "2026-03-01 10:00:00");
     assertFalse(calcNull.priceChanged());
     assertEquals("ACTIVE", calcNull.resolvedStatus());
 
     PriceDeltaCalculation calcZero =
-        tracker.calculate(
+        calculate(
             false, 50_000_000L, 0L, null, null, null, null, "Családi ház", "2026-03-01 10:00:00");
     assertFalse(calcZero.priceChanged());
     assertEquals("ACTIVE", calcZero.resolvedStatus());
@@ -135,7 +151,7 @@ class PriceHistoryTrackerTest {
   @DisplayName("Percentage rounding rounded to 2 decimal places")
   void testPercentageRounding() {
     PriceDeltaCalculation calc =
-        tracker.calculate(
+        calculate(
             false,
             30_000_000L,
             29_000_000L,

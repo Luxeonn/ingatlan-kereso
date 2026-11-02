@@ -16,14 +16,57 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-hooks/preserve-manual-memoization': 'off',
       'react-refresh/only-export-components': [
-        'warn',
+        'error',
         { allowConstantExport: true },
       ],
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+      ],
+      'complexity': ['error', 15],
+      'max-depth': ['error', 4],
+      'max-params': ['error', 5],
+      'max-lines': ['error', { max: 350, skipBlankLines: true, skipComments: true }],
+      'eqeqeq': ['error', 'always'],
+      'no-lonely-if': 'error',
+      'no-else-return': 'error',
+      'object-shorthand': ['error', 'always'],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'window',
+          property: 'open',
+          message: 'Direct window.open is forbidden. Use openExternalUrl from src/utils/formatters.ts instead.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/types/generated-api.ts'],
+    rules: {
+      'max-lines': 'off',
+    },
+  },
+  {
+    files: ['src/utils/formatters.ts', 'src/test/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-properties': 'off',
+    },
+  },
+  {
+    files: ['src/test/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}'],
+    rules: {
+      'complexity': 'off',
+      'max-params': 'off',
+      'max-lines': 'off',
     },
   }
 );

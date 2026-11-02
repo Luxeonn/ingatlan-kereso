@@ -1,63 +1,29 @@
-export interface PriceInfo {
-  rawText?: string
-  amountHuf?: number
-  amountMillion?: number
+import type { components } from './generated-api'
+
+export type PriceInfo = components['schemas']['PriceInfo']
+export type PropertyDetails = components['schemas']['PropertyDetails']
+export type PortalSource = components['schemas']['PortalSource']
+export type CanonicalPropertyType = components['schemas']['PropertyType']
+export type PropertyType = CanonicalPropertyType | string
+export type SourceListing = components['schemas']['SourceListing']
+
+export interface BargainInfo {
+  isBargain: boolean
+  currentPricePerSqm: number
+  referenceMedianPricePerSqm: number
+  deltaPercent: number // e.g. -24.1
+  percentageBelowMedian?: number // e.g. 24.1
+  sampleSize: number // e.g. 18
+  referenceCity?: string
+  referencePropertyType?: string
 }
 
-export interface PropertyDetails {
-  rawText?: string
-  areaSquareMeters?: number
-  roomCount?: number
-  pricePerSquareMeter?: number
+export type IngatlanItem = Omit<
+  components['schemas']['IngatlanItem'],
+  'propertyType' | 'sourcesCount'
+> & {
+  propertyType?: PropertyType
+  sourcesCount?: number
+  bargainInfo?: BargainInfo
 }
 
-export interface PortalSource {
-  portalId?: string
-  portalName?: string
-  themeColor?: string
-  directListing?: boolean
-}
-
-export interface PriceHistoryEntry {
-  id: number
-  propertyId: string
-  recordedAt: string
-  priceRaw: string
-  priceAmount: number
-  priceMillions: number
-  pricePerSqm?: number
-  previousPriceAmount?: number
-  priceDelta?: number
-  changePercent?: number
-}
-
-export interface StatusLogEntry {
-  id: number
-  propertyId: string
-  status: string
-  changedAt: string
-  note: string
-}
-
-export interface IngatlanItem {
-  id: string
-  portal: string
-  url: string
-  title: string
-  price: string
-  location: string
-  city: string
-  details?: string
-  discoveredAt?: string
-  isNew?: boolean
-  viewed?: boolean
-  viewedAt?: string
-  imageUrl?: string
-  status?: string
-  priceDelta?: number
-  priceChangePercent?: number
-  lastPriceChangeAt?: string
-  priceInfo?: PriceInfo
-  detailsInfo?: PropertyDetails
-  source?: PortalSource
-}

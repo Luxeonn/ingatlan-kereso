@@ -1,43 +1,51 @@
 package ingatlanok.portal.ingatlancom;
 
-import ingatlanok.common.SlugUtils;
-import ingatlanok.model.SearchCriteria;
+import java.util.ArrayList;
+import java.util.List;
 
-public class IngatlanComUrlBuilder {
+import ingatlanok.model.SearchCriteria;
+import ingatlanok.portal.PortalSupport;
+import ingatlanok.portal.PortalUrlBuilder;
+
+public class IngatlanComUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://ingatlan.com";
 
+  @Override
   public String buildSearchUrl(SearchCriteria criteria) {
-    if (criteria == null) {
-      criteria = new SearchCriteria();
+    SearchCriteria safe = PortalSupport.normalizeCriteria(criteria);
+    String citySlug = PortalSupport.resolveCitySlug(safe);
+    String typeSlug = PortalSupport.resolvePropertyTypeSlug(safe);
+
+    List<String> segments = new ArrayList<>();
+    segments.add("elado");
+    segments.add(typeSlug);
+
+    String areaSlug = buildRangeSlug(safe.getMinArea(), safe.getMaxArea(), "m2");
+    if (!areaSlug.isEmpty()) {
+      segments.add(areaSlug);
     }
 
-    String citySlug = SlugUtils.toSlug(criteria.getCity());
-    if (citySlug.isEmpty()) {
-      citySlug = "debrecen";
+    String priceSlug = buildRangeSlug(safe.getMinPriceMillion(), safe.getMaxPriceMillion(), "mFt");
+    if (!priceSlug.isEmpty()) {
+      segments.add(priceSlug);
     }
 
-    String rawType =
-        criteria.getPropertyType() != null
-            ? criteria.getPropertyType().toLowerCase().trim()
-            : "lakas";
-    String typeSlug =
-        switch (rawType) {
-          case "haz" -> "haz";
-          case "telek" -> "telek";
-          default -> "lakas";
-        };
+    segments.add(citySlug);
 
-    String priceSlug = "";
-    if (criteria.getMinPriceMillion() != null && criteria.getMaxPriceMillion() != null) {
-      priceSlug =
-          "+" + criteria.getMinPriceMillion() + "-" + criteria.getMaxPriceMillion() + "-mFt";
-    } else if (criteria.getMinPriceMillion() != null) {
-      priceSlug = "+" + criteria.getMinPriceMillion() + "-mFt-tol";
-    } else if (criteria.getMaxPriceMillion() != null) {
-      priceSlug = "+" + criteria.getMaxPriceMillion() + "-mFt-ig";
+    return BASE_URL + "/lista/" + String.join("+", segments);
+  }
+
+  private String buildRangeSlug(Integer min, Integer max, String unit) {
+    if (min != null && max != null) {
+      return min + "-" + max + "-" + unit;
     }
-
-    return BASE_URL + "/lista/elado+" + typeSlug + "+" + citySlug + priceSlug;
+    if (min != null) {
+      return min + "-" + unit + "-tol";
+    }
+    if (max != null) {
+      return max + "-" + unit + "-ig";
+    }
+    return "";
   }
 }

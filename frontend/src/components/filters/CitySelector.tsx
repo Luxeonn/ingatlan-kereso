@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo, type FC, type KeyboardEvent } from 'react'
+import { useState, useRef, useMemo, useCallback, type FC, type KeyboardEvent } from 'react'
 import { MapPin, X, ChevronDown } from 'lucide-react'
 import { useCities } from '../../hooks/useCities'
+import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 import { PresetButtons } from './PresetButtons'
 
 interface CitySelectorProps {
@@ -26,6 +27,9 @@ export const CitySelector: FC<CitySelectorProps> = ({
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const closeDropdown = useCallback(() => setIsOpen(false), [])
+
+  useOutsideDismiss(containerRef, isOpen, closeDropdown)
 
   const allCities = useMemo(() => {
     if (!citiesData?.predefined || !Array.isArray(citiesData.predefined)) {
@@ -59,7 +63,7 @@ export const CitySelector: FC<CitySelectorProps> = ({
       const found = citiesData.trackedCities.find(
         (t) => t.name?.toLowerCase() === city.toLowerCase() || t.key?.toLowerCase() === city.toLowerCase()
       )
-      return found != null && typeof found.count === 'number' ? found.count : null
+      return found !== null && found !== undefined && typeof found.count === 'number' ? found.count : null
     }
     if (typeof citiesData.trackedCities === 'object') {
       const val = (citiesData.trackedCities as Record<string, number>)[city]
@@ -67,17 +71,6 @@ export const CitySelector: FC<CitySelectorProps> = ({
     }
     return null
   }
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const handleSelect = (city: string) => {
     onAddCity(city)
@@ -161,7 +154,7 @@ export const CitySelector: FC<CitySelectorProps> = ({
                 <span>{city}</span>
                 {(() => {
                   const count = getTrackedCount(city)
-                  return count != null && count > 0 ? (
+                  return count !== null && count !== undefined && count > 0 ? (
                     <span className="text-[10px] opacity-75">
                       {count} találat
                     </span>

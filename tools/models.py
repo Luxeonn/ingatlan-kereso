@@ -1,6 +1,6 @@
 """
 Sidecar JSON kimeneti adatmodellek.
-A Java oldal (SidecarCliExecutor) ezeket a struktúrákat deszerializálja Gson-nal.
+A Java oldal (SidecarCliExecutor) ezeket a struktúrákat deszerializálja Jackson-nal.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ class SidecarItem(BaseModel):
     price_raw: str = Field("", alias="priceRaw")
     area_square_meters: float | None = Field(None, alias="areaSquareMeters")
     room_count: float | None = Field(None, alias="roomCount")
+    image_url: str | None = Field(None, alias="imageUrl")
 
     model_config = {"populate_by_name": True}
 

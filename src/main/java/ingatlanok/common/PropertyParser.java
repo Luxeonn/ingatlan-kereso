@@ -1,5 +1,6 @@
 package ingatlanok.common;
 
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,9 +13,11 @@ public final class PropertyParser {
       Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)", Pattern.CASE_INSENSITIVE);
   private static final Pattern DETAILS_PATTERN =
       Pattern.compile(
-          "(\\d+[,.]?\\d*\\s*m²[^\\n"
-              + "•|]*\\d+\\s*szoba|\\d+\\s*szoba[^\\d•|]*[•|]?\\s*\\d+[,.]?\\d*\\s*m²|\\d+[,.]?\\d*\\s*m²)",
-          Pattern.CASE_INSENSITIVE);
+          "(\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter)[^\\n•|]*\\d+\\s*szoba[a-záéíóöőúüű]*"
+              + "|\\d+\\s*szoba[a-záéíóöőúüű]*[^\\d•|]*[•|]?"
+              + "\\s*\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter)"
+              + "|\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter))",
+          Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
   private static final Pattern MILLION_PRICE_PATTERN =
       Pattern.compile("(\\d+[,.]?\\d*)\\s*M\\s*Ft", Pattern.CASE_INSENSITIVE);
@@ -22,9 +25,27 @@ public final class PropertyParser {
       Pattern.compile("(\\d[\\d\\s]*)\\s*Ft", Pattern.CASE_INSENSITIVE);
 
   private static final Pattern AREA_PATTERN =
-      Pattern.compile("(\\d+[,.]?\\d*)\\s*m²", Pattern.CASE_INSENSITIVE);
+      Pattern.compile(
+          "(\\d+[,.]?\\d*)\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter\\b)",
+          Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern ROOM_PATTERN =
       Pattern.compile("(\\d+[,.]?\\d*)\\s*szoba", Pattern.CASE_INSENSITIVE);
+
+  private static final Pattern POSTAL_CITY_PATTERN =
+      Pattern.compile("\\b(\\d{4})\\s+([A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ\\-]+)");
+  private static final Pattern DH_URL_CITY_PATTERN =
+      Pattern.compile(
+          "/ingatlan/[A-Za-z0-9\\-]+/elado-[a-z]+-(?:[a-z\\-]+-megye-)?"
+              + "([a-z\\-]+?)(?:-\\d{4}|-falu|-varos|-utca|-kertvaros|/|$)");
+
+  private static final Set<String> NEW_CONSTRUCTION_KEYWORDS = Set.of(
+      "uj-epitesu",
+      "ujepitesu",
+      "szerkezetkesz",
+      "kulcsrakesz-uj",
+      "uj-projekt",
+      "lakopark-projekt"
+  );
 
   private PropertyParser() {}
 
@@ -39,7 +60,7 @@ public final class PropertyParser {
   public static PriceInfo parsePrice(String text) {
     String raw = extractPrice(text);
     if ("Ár a hirdetésben".equals(raw)) {
-      return new PriceInfo(raw, null, null);
+      return PriceInfo.builder().rawText(raw).build();
     }
 
     Matcher mMillion = MILLION_PRICE_PATTERN.matcher(raw);
@@ -47,7 +68,7 @@ public final class PropertyParser {
       try {
         double million = Double.parseDouble(mMillion.group(1).replace(",", "."));
         long huf = Math.round(million * 1_000_000.0);
-        return new PriceInfo(raw, huf, million);
+        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and continue with the next supported price format.
       }
@@ -59,13 +80,13 @@ public final class PropertyParser {
         String cleanDigits = mHuf.group(1).replaceAll("\\s+", "");
         long huf = Long.parseLong(cleanDigits);
         double million = Math.round((huf / 1_000_000.0) * 100.0) / 100.0;
-        return new PriceInfo(raw, huf, million);
+        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and return an unknown price below.
       }
     }
 
-    return new PriceInfo(raw, null, null);
+    return PriceInfo.builder().rawText(raw).build();
   }
 
   public static String extractDetails(String text) {
@@ -106,7 +127,12 @@ public final class PropertyParser {
       pricePerM2 = Math.round((double) priceInfo.getAmountHuf() / area);
     }
 
-    return new PropertyDetails(raw, area, rooms, pricePerM2);
+    return PropertyDetails.builder()
+        .rawText(raw)
+        .areaSquareMeters(area)
+        .roomCount(rooms)
+        .pricePerSquareMeter(pricePerM2)
+        .build();
   }
 
   public static String extractFirstGroup(String text, Pattern pattern, String fallback) {
@@ -116,13 +142,6 @@ public final class PropertyParser {
     Matcher matcher = pattern.matcher(text);
     return matcher.find() ? matcher.group(1).trim() : fallback;
   }
-
-  private static final Pattern POSTAL_CITY_PATTERN =
-      Pattern.compile("\\b(\\d{4})\\s+([A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ\\-]+)");
-  private static final Pattern DH_URL_CITY_PATTERN =
-      Pattern.compile(
-          "/ingatlan/[A-Za-z0-9\\-]+/elado-[a-z]+-(?:[a-z\\-]+-megye-)?"
-              + "([a-z\\-]+?)(?:-\\d{4}|-falu|-varos|-utca|-kertvaros|/|$)");
 
   public static boolean isPriceInRange(
       PriceInfo priceInfo, Integer minMillion, Integer maxMillion) {
@@ -193,10 +212,16 @@ public final class PropertyParser {
     if (img == null) {
       return null;
     }
-    String[] attrs = {"data-src", "data-original", "data-lazy-src", "src"};
+    String[] attrs = {"data-src", "data-original", "data-lazy-src", "src", "data-srcset", "srcset"};
     for (String attr : attrs) {
       String src = img.attr(attr);
       if (src != null && !src.isBlank() && !src.startsWith("data:image")) {
+        if (attr.endsWith("srcset")) {
+          src = src.split(",")[0].trim().split("\\s+")[0].trim();
+        }
+        if (src.isBlank() || src.startsWith("data:image")) {
+          continue;
+        }
         if (src.startsWith("//")) {
           return "https:" + src;
         }
@@ -204,5 +229,21 @@ public final class PropertyParser {
       }
     }
     return null;
+  }
+
+  public static boolean isNewConstructionText(String... texts) {
+    if (texts == null) {
+      return false;
+    }
+    for (String text : texts) {
+      if (text == null || text.isBlank()) {
+        continue;
+      }
+      String slug = SlugUtils.toSlug(text);
+      if (NEW_CONSTRUCTION_KEYWORDS.stream().anyMatch(slug::contains)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

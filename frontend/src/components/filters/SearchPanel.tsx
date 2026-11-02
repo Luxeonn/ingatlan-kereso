@@ -1,24 +1,109 @@
 import type { FC, FormEvent } from 'react'
-import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react'
-import { useFilterStore } from '../../store/useFilterStore'
+import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal, AlertTriangle } from 'lucide-react'
+import { useFilterStore, DEFAULT_PORTALS } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
 import { CitySelector } from './CitySelector'
 import { PropertyTypeTabs } from './PropertyTypeTabs'
 import { PriceStepper } from './PriceStepper'
 import { AreaStepper } from './AreaStepper'
 import { PortalToggleGroup } from './PortalToggleGroup'
-import { QuickToggles } from './QuickToggles'
 
 interface SearchPanelProps {
   onSearch: () => void
   isLoading: boolean
 }
 
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  lakas: 'Lakás',
+  haz: 'Családi ház',
+  telek: 'Telek',
+}
+
+function getValidationWarnings(minPrice: number, maxPrice: number, minArea: number, maxArea: number): string[] {
+  const warnings: string[] = []
+  if (minPrice < 0 || maxPrice < 0) {
+    warnings.push('Az ár nem lehet negatív.')
+  } else if (minPrice > maxPrice) {
+    warnings.push(
+      `A minimális ár (${minPrice} M Ft) nem lehet nagyobb a maximális árnál (${maxPrice} M Ft).`,
+    )
+  }
+
+  if (minArea < 1 || maxArea < 1) {
+    warnings.push('Az alapterületnek legalább 1 m²-nek kell lennie.')
+  } else if (minArea > maxArea) {
+    warnings.push(
+      `A minimális alapterület (${minArea} m²) nem lehet nagyobb a maximális alapterületnél (${maxArea} m²).`,
+    )
+  }
+  return warnings
+}
+
+function resolveCitiesSummary(cities?: string[], defaultCity?: string): string {
+  if (cities && cities.length > 0) return cities.join(', ')
+  return defaultCity || 'Hajdúszoboszló'
+}
+
+function resolveTypeLabel(propertyType?: string): string {
+  const key = (propertyType || 'lakas').toLowerCase()
+  return PROPERTY_TYPE_LABELS[key] || propertyType || 'Lakás'
+}
+
+interface CollapsedFilterSummaryProps {
+  citiesSummary: string
+  typeLabel: string
+  minPriceMillion: number
+  maxPriceMillion: number
+  minArea: number
+  maxArea: number
+  portalsCount: number
+}
+
+const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
+  citiesSummary,
+  typeLabel,
+  minPriceMillion,
+  maxPriceMillion,
+  minArea,
+  maxArea,
+  portalsCount,
+}) => (
+  <div
+    data-testid="collapsed-filter-summary"
+    className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--text-secondary)]"
+  >
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-semibold text-[var(--text-primary)]">
+      <span>📍</span>
+      <span>{citiesSummary}</span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>🏠</span>
+      <span>{typeLabel}</span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>💰</span>
+      <span>
+        {minPriceMillion} - {maxPriceMillion} M Ft
+      </span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>📐</span>
+      <span>
+        {minArea} - {maxArea} m²
+      </span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
+      <span>🌐</span>
+      <span>
+        {portalsCount}/{DEFAULT_PORTALS.length} portál
+      </span>
+    </span>
+  </div>
+)
+
 export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   const {
     criteria,
-    sortOption,
-    onlyNew,
     addCity,
     removeCity,
     setCities,
@@ -29,22 +114,32 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
     setMaxArea,
     togglePortal,
     setAllPortals,
-    setAutoOpen,
-    setExcludeViewed,
-    setSortOption,
-    setOnlyNew,
   } = useFilterStore()
 
   const { isFiltersCollapsed, setFiltersCollapsed } = useUiStore()
 
+  const validationWarnings = getValidationWarnings(
+    criteria.minPriceMillion,
+    criteria.maxPriceMillion,
+    criteria.minArea,
+    criteria.maxArea,
+  )
+
+  const hasValidationErrors = validationWarnings.length > 0
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
+    if (hasValidationErrors) return
     onSearch()
   }
+
+  const citiesSummary = resolveCitiesSummary(criteria.cities, criteria.city)
+  const typeLabel = resolveTypeLabel(criteria.propertyType)
 
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-xl transition-all duration-200 sm:p-5"
     >
       {/* Panel Header */}
@@ -64,6 +159,19 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
           {isFiltersCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
         </button>
       </div>
+
+      {/* Collapsed summary bar (#157) */}
+      {isFiltersCollapsed && (
+        <CollapsedFilterSummary
+          citiesSummary={citiesSummary}
+          typeLabel={typeLabel}
+          minPriceMillion={criteria.minPriceMillion}
+          maxPriceMillion={criteria.maxPriceMillion}
+          minArea={criteria.minArea}
+          maxArea={criteria.maxArea}
+          portalsCount={criteria.portals.length}
+        />
+      )}
 
       {/* Main filters content */}
       {!isFiltersCollapsed && (
@@ -89,15 +197,13 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
               value={criteria.minPriceMillion}
               onChange={setMinPriceMillion}
               min={0}
-              max={criteria.maxPriceMillion - 1}
               step={1}
             />
             <PriceStepper
               label="Maximális ár"
               value={criteria.maxPriceMillion}
               onChange={setMaxPriceMillion}
-              min={criteria.minPriceMillion + 1}
-              max={1000}
+              min={0}
               step={1}
             />
             <AreaStepper
@@ -105,15 +211,13 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
               value={criteria.minArea}
               onChange={setMinArea}
               min={1}
-              max={criteria.maxArea - 1}
               step={1}
             />
             <AreaStepper
               label="Maximális alapterület"
               value={criteria.maxArea}
               onChange={setMaxArea}
-              min={criteria.minArea + 1}
-              max={1000}
+              min={1}
               step={1}
             />
           </div>
@@ -124,26 +228,27 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
             onToggle={togglePortal}
             onSelectAll={setAllPortals}
           />
-
-          {/* Quick toggles & Sort */}
-          <QuickToggles
-            onlyNew={onlyNew}
-            onToggleOnlyNew={setOnlyNew}
-            excludeViewed={criteria.excludeViewed}
-            onToggleExcludeViewed={setExcludeViewed}
-            autoOpen={criteria.autoOpenBrowser}
-            onToggleAutoOpen={setAutoOpen}
-            sortOption={sortOption}
-            onChangeSortOption={setSortOption}
-          />
         </div>
       )}
 
       {/* Submit button bar */}
-      <div className="mt-4 flex items-center justify-end gap-3 border-t border-[var(--border-color)] pt-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-color)] pt-3">
+        {hasValidationErrors ? (
+          <div
+            role="alert"
+            data-testid="search-validation-warning"
+            className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-400"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+            <span>{validationWarnings.join(' ')}</span>
+          </div>
+        ) : (
+          <div />
+        )}
+
         <button
           type="submit"
-          disabled={isLoading || criteria.portals.length === 0}
+          disabled={isLoading || criteria.portals.length === 0 || hasValidationErrors}
           className="flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (

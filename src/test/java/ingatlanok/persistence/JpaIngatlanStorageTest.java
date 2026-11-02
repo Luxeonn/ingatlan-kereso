@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jakarta.persistence.Column;
+import org.hibernate.annotations.ColumnDefault;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +24,7 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.persistence.entity.PropertyEntity;
 
 @SpringBootTest
 @DisplayName("JpaIngatlanStorage Integration Tests")
@@ -489,6 +493,7 @@ class JpaIngatlanStorageTest {
             90.0,
             3.0,
             "2026-03-02");
+    i1.setNewConstruction(true);
     storage.saveAll(List.of(i1, i2));
 
     PropertySearchCriteria filter =
@@ -503,17 +508,19 @@ class JpaIngatlanStorageTest {
             null,
             false,
             false,
+            true,
             "PRICE_ASC",
             0,
             20);
     List<IngatlanItem> result = storage.findByCriteria(filter);
     assertEquals(1, result.size());
     assertEquals("https://dh.hu/f1", result.get(0).getUrl());
+    assertTrue(result.get(0).isNewConstruction());
   }
 
   @Test
   @DisplayName("ConfigStorage roundtrip for search criteria")
-  void testConfigStorage() {
+  void testConfigStorage() throws NoSuchFieldException {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Budapest", "Debrecen"));
     criteria.setMaxPriceMillion(80);
@@ -526,5 +533,97 @@ class JpaIngatlanStorageTest {
     assertEquals(List.of("Budapest", "Debrecen"), loaded.getCities());
     assertEquals(80, loaded.getMaxPriceMillion());
     assertEquals(45, loaded.getMinArea());
+
+    for (String fieldName : List.of("newConstruction", "isNew", "viewed")) {
+      Field field = PropertyEntity.class.getDeclaredField(fieldName);
+      Column column = field.getAnnotation(Column.class);
+      assertNotNull(column, "Missing @Column on " + fieldName);
+      assertFalse(column.nullable(), "Expected nullable = false on " + fieldName);
+      ColumnDefault colDefault = field.getAnnotation(ColumnDefault.class);
+      assertNotNull(colDefault, "Missing @ColumnDefault on " + fieldName);
+      assertEquals("false", colDefault.value(), "Expected default 'false' on " + fieldName);
+    }
+  }
+
+  @Test
+  @DisplayName("findByUrls returns persisted items in a single batch and SearchExecutionEngine enriches state")
+  void testFindByUrlsAndSearchExecutionEngineIntegration() {
+    assertEquals(Map.of(), storage.findByUrls(null));
+    assertEquals(Map.of(), storage.findByUrls(List.of()));
+    assertEquals(Map.of(), storage.findByUrls(List.of(" ", "")));
+
+    java.util.concurrent.atomic.AtomicReference<Long> priceHufRef =
+        new java.util.concurrent.atomic.AtomicReference<>(50_000_000L);
+    ingatlanok.portal.PortalEngine stubEngine =
+        new ingatlanok.portal.PortalEngine() {
+          @Override
+          public ingatlanok.portal.PortalDescriptor getDescriptor() {
+            return new ingatlanok.portal.PortalDescriptor(
+                "dh", "Duna House", "#ef4444", "https://dh.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public ingatlanok.model.PortalScrapeResult scrape(SearchCriteria criteria) {
+            long huf = priceHufRef.get();
+            double m = huf / 1_000_000.0;
+            IngatlanItem item =
+                createItem(
+                    "dh_int",
+                    "https://dh.hu/int-1",
+                    "Duna House",
+                    "Debrecen",
+                    "Debreceni lakás",
+                    m + " M Ft",
+                    huf,
+                    m,
+                    "60 m2, 2 szoba",
+                    60.0,
+                    2.0,
+                    "2026-03-01 10:00:00");
+            return ingatlanok.model.PortalScrapeResult.success("dh", "Duna House", List.of(item), 5);
+          }
+        };
+
+    ingatlanok.core.SearchExecutionEngine searchEngine =
+        new ingatlanok.core.SearchExecutionEngine(
+            new ingatlanok.portal.PortalEngineRegistry(List.of(stubEngine)),
+            storage,
+            storage,
+            new ingatlanok.core.PropertyFilterEngine(),
+            new ingatlanok.core.DeduplicationEngine(storage),
+            new ingatlanok.core.MarketAnalyticsEngine());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen"));
+    criteria.setPortals(List.of("dh"));
+    criteria.setMinPriceMillion(30);
+    criteria.setMaxPriceMillion(70);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(100);
+
+    // 1. futás: 50 M Ft baseline
+    ingatlanok.model.SearchResult r1 = searchEngine.executeSearch(criteria);
+    assertEquals(1, r1.getItems().size());
+    assertEquals(0L, r1.getItems().get(0).getPriceDelta());
+
+    // Megjelöljük megtekintettként
+    assertTrue(storage.markAsViewed("https://dh.hu/int-1"));
+
+    // 2. futás: ár csökken 45 M Ft-ra, onlyDiscounted=true
+    priceHufRef.set(45_000_000L);
+    criteria.setOnlyDiscounted(true);
+    ingatlanok.model.SearchResult r2 = searchEngine.executeSearch(criteria);
+    assertEquals(1, r2.getItems().size());
+    IngatlanItem enriched = r2.getItems().get(0);
+    assertEquals(-5_000_000L, enriched.getPriceDelta());
+    assertEquals(-10.0, enriched.getPriceChangePercent());
+    assertEquals("PRICE_DROP", enriched.getStatus());
+    assertTrue(enriched.isViewed());
+    assertNotNull(enriched.getViewedAt());
+
+    // 3. futás: excludeViewed=true -> kiszűri a megtekintett elemet
+    criteria.setExcludeViewed(true);
+    ingatlanok.model.SearchResult r3 = searchEngine.executeSearch(criteria);
+    assertEquals(0, r3.getItems().size());
   }
 }

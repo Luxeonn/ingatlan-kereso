@@ -1,4 +1,5 @@
-import { useState, FC } from 'react'
+import type { FC } from 'react';
+import { useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -11,7 +12,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { Ruler, DollarSign, Info } from 'lucide-react'
-import { HistogramBin } from '../../hooks/useMarketAnalytics'
+import type { HistogramBin } from '../../hooks/useMarketAnalytics'
 import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
 
 interface PriceDistributionChartProps {
@@ -21,6 +22,7 @@ interface PriceDistributionChartProps {
   medianPrice: number
   avgSqmPrice: number
   medianSqmPrice: number
+  categoryLabel?: string | null
   onSelectRange?: (type: 'price' | 'sqmPrice', min: number, max: number) => void
 }
 
@@ -31,6 +33,7 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
   medianPrice,
   avgSqmPrice,
   medianSqmPrice,
+  categoryLabel,
   onSelectRange,
 }) => {
   const [metric, setMetric] = useState<'sqmPrice' | 'price'>('sqmPrice')
@@ -54,7 +57,11 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
-              {metric === 'sqmPrice' ? 'Négyzetméterár Eloszlás (Ft/m²)' : 'Kínálati Ár Eloszlás (M Ft)'}
+              {metric === 'sqmPrice'
+                ? categoryLabel
+                  ? `${categoryLabel} Fajlagos Ár Eloszlás (Ft/m²)`
+                  : 'Négyzetméterár Eloszlás (Ft/m²)'
+                : 'Kínálati Ár Eloszlás (M Ft)'}
             </h3>
             <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
               Hisztogram

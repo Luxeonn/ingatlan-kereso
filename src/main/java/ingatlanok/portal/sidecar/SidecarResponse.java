@@ -6,11 +6,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class SidecarResponse implements Serializable {
 
   private String portalId;
@@ -23,50 +30,12 @@ public class SidecarResponse implements Serializable {
 
   private long elapsedMs;
 
-  public SidecarResponse() {}
-
   public boolean isSuccess() {
     return "SUCCESS".equalsIgnoreCase(status);
   }
 
-  public String getPortalId() {
-    return portalId;
-  }
-
-  public void setPortalId(String portalId) {
-    this.portalId = portalId;
-  }
-
-  public String getStatus() {
-    return status;
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
-  }
-
   public List<SidecarItem> getItems() {
     return items != null ? items : new ArrayList<>();
-  }
-
-  public void setItems(List<SidecarItem> items) {
-    this.items = items;
-  }
-
-  public String getErrorMessage() {
-    return errorMessage;
-  }
-
-  public void setErrorMessage(String errorMessage) {
-    this.errorMessage = errorMessage;
-  }
-
-  public long getElapsedMs() {
-    return elapsedMs;
-  }
-
-  public void setElapsedMs(long elapsedMs) {
-    this.elapsedMs = elapsedMs;
   }
 
   public static class SidecarItem implements Serializable {
@@ -157,18 +126,45 @@ public class SidecarResponse implements Serializable {
 
     public IngatlanItem toIngatlanItem(
         PortalSource source, String city, String discoveredAt, boolean isNew) {
-      PriceInfo priceInfo;
+      PriceInfo priceInfo = buildPriceInfo();
+      PropertyDetails detailsInfo = buildPropertyDetails(priceInfo);
+
+      String displayTitle =
+          (title != null && !title.isBlank()) ? title : (city + " - Ingatlan (" + id + ")");
+
+      return IngatlanItem.builder()
+          .id(id)
+          .source(source)
+          .url(url)
+          .title(displayTitle)
+          .priceInfo(priceInfo)
+          .city(city)
+          .location(city)
+          .detailsInfo(detailsInfo)
+          .discoveredAt(discoveredAt)
+          .isNew(isNew)
+          .imageUrl(imageUrl)
+          .build();
+    }
+
+    private PriceInfo buildPriceInfo() {
       if (priceMillion != null && priceMillion > 0) {
         long priceHuf = Math.round(priceMillion * 1_000_000L);
-        NumberFormat nf = NumberFormat.getInstance(new Locale("hu", "HU"));
+        NumberFormat nf = NumberFormat.getInstance(Locale.of("hu", "HU"));
         String formatted = nf.format(priceHuf) + " Ft";
-        priceInfo = new PriceInfo(formatted, priceHuf, priceMillion);
-      } else if (priceRaw != null && !priceRaw.isBlank()) {
-        priceInfo = new PriceInfo(priceRaw, null, null);
-      } else {
-        priceInfo = new PriceInfo("Ár a hirdetésben", null, null);
+        return PriceInfo.builder()
+            .rawText(formatted)
+            .amountHuf(priceHuf)
+            .amountMillion(priceMillion)
+            .build();
       }
+      if (priceRaw != null && !priceRaw.isBlank()) {
+        return PriceInfo.builder().rawText(priceRaw).build();
+      }
+      return PriceInfo.builder().rawText("Ár a hirdetésben").build();
+    }
 
+    private PropertyDetails buildPropertyDetails(PriceInfo priceInfo) {
       StringBuilder detailsSb = new StringBuilder();
       if (areaSquareMeters != null && areaSquareMeters > 0) {
         detailsSb.append(Math.round(areaSquareMeters)).append(" m²");
@@ -189,18 +185,12 @@ public class SidecarResponse implements Serializable {
         sqmPrice = Math.round(priceInfo.getAmountHuf() / areaSquareMeters);
       }
 
-      PropertyDetails detailsInfo =
-          new PropertyDetails(detailsSb.toString(), areaSquareMeters, roomCount, sqmPrice);
-
-      String displayTitle =
-          (title != null && !title.isBlank()) ? title : (city + " - Ingatlan (" + id + ")");
-
-      IngatlanItem item =
-          new IngatlanItem(
-              id, source, url, displayTitle, priceInfo, city, detailsInfo, discoveredAt, isNew);
-      item.setLocation(city);
-      item.setImageUrl(imageUrl);
-      return item;
+      return PropertyDetails.builder()
+          .rawText(detailsSb.toString())
+          .areaSquareMeters(areaSquareMeters)
+          .roomCount(roomCount)
+          .pricePerSquareMeter(sqmPrice)
+          .build();
     }
   }
 }

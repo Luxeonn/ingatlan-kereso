@@ -1,8 +1,9 @@
-import { FC, useState } from 'react'
+import type { FC} from 'react';
+import { useState } from 'react'
 import { TrendingDown, Sparkles, ExternalLink, Percent, Tag, Eye } from 'lucide-react'
-import { IngatlanItem } from '../../types/property'
-import { BargainItem } from '../../hooks/useMarketAnalytics'
-import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
+import type { IngatlanItem } from '../../types/property'
+import type { BargainItem } from '../../hooks/useMarketAnalytics'
+import { formatPriceMillion, formatPricePerSqm, openExternalUrl } from '../../utils/formatters'
 
 interface BargainHunterTableProps {
   topPriceDrops: IngatlanItem[]
@@ -20,11 +21,11 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
   const [activeTab, setActiveTab] = useState<'belowMarket' | 'priceDrops'>('belowMarket')
 
   const handleOpen = (item: IngatlanItem) => {
-    if (onMarkViewed) onMarkViewed(item.url)
+    onMarkViewed?.(item.url)
     if (onOpenListing) {
       onOpenListing(item.url)
     } else {
-      window.open(item.url, '_blank', 'noopener,noreferrer')
+      openExternalUrl(item.url)
     }
   }
 
@@ -203,7 +204,7 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
                         {priceMillion ? formatPriceMillion(priceMillion) : item.price}
                       </span>
                     </div>
-                    {item.priceChangePercent != null && (
+                    {item.priceChangePercent !== null && item.priceChangePercent !== undefined && (
                       <div className="flex justify-between text-emerald-400 font-semibold">
                         <span>Változás aránya:</span>
                         <span>{item.priceChangePercent > 0 ? `+${item.priceChangePercent}%` : `${item.priceChangePercent}%`}</span>

@@ -1,0 +1,35 @@
+name: PR Guards
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-guards-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  up-to-date:
+    name: Branch up-to-date with develop
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require PR branch to contain latest base branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          behind=$(gh api "repos/$REPO/compare/$BASE...$HEAD_SHA" --jq '.behind_by')
+          if [[ "$behind" != "0" ]]; then
+            echo "::error::A PR ága $behind committal le van maradva a(z) $BASE ágtól."
+            echo "Frissítsd a branch-et: git fetch origin && git rebase origin/$BASE (vagy git merge origin/$BASE), majd pusholj újra."
+            exit 1
+          fi
+          echo "A branch naprakész a(z) $BASE ággal."

@@ -1,6 +1,7 @@
 package ingatlanok.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,9 +22,11 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.ConfigStorage;
+import ingatlanok.persistence.InMemoryListingStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
@@ -207,5 +212,451 @@ class SearchExecutionEngineTest {
 
     assertTrue(hasSuccess, "A jó portálnak sikeresnek kell lennie");
     assertTrue(hasFailure, "A hibás portálnak hibaállapotot kell rögzítenie leállás nélkül");
+  }
+
+  @Test
+  @DisplayName("onlyDiscounted szűrés és ár-delta dúsítás mentés után")
+  void testOnlyDiscountedEnrichmentAfterPersistence() {
+    AtomicReference<Long> currentPriceHuf = new AtomicReference<>(50_000_000L);
+    AtomicInteger findByUrlsCallCount = new AtomicInteger(0);
+
+    InMemoryListingStorage baseStorage =
+        new InMemoryListingStorage() {
+          @Override
+          public Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
+            findByUrlsCallCount.incrementAndGet();
+            return super.findByUrls(urls);
+          }
+        };
+
+    PortalEngine stubEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "stub", "Stub Portal", "#112233", "https://stub.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            long huf = currentPriceHuf.get();
+            double million = huf / 1_000_000.0;
+            IngatlanItem item =
+                new IngatlanItem(
+                    "s1",
+                    PortalSource.of("stub"),
+                    "https://stub.hu/ingatlan/1",
+                    "Debreceni lakás",
+                    new PriceInfo(million + " M Ft", huf, million),
+                    "Debrecen",
+                    new PropertyDetails("60 m²", 60.0, 2.0, huf / 60),
+                    "2026-10-20 10:00:00",
+                    false);
+            return PortalScrapeResult.success("stub", "Stub Portal", List.of(item), 10);
+          }
+        };
+
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(stubEngine)),
+            baseStorage,
+            baseStorage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(baseStorage),
+            new MarketAnalyticsEngine());
+
+    SearchCriteria firstRun = new SearchCriteria();
+    firstRun.setCities(List.of("Debrecen"));
+    firstRun.setPortals(List.of("stub"));
+    firstRun.setMinPriceMillion(30);
+    firstRun.setMaxPriceMillion(70);
+    firstRun.setMinArea(40);
+    firstRun.setMaxArea(100);
+
+    SearchResult result1 = engine.executeSearch(firstRun);
+    assertEquals(1, result1.getItems().size());
+    assertEquals(0L, result1.getItems().get(0).getPriceDelta());
+    assertEquals(1, findByUrlsCallCount.get());
+
+    currentPriceHuf.set(45_000_000L);
+    SearchCriteria secondRun = firstRun.cloneForCity("Debrecen");
+    secondRun.setOnlyDiscounted(true);
+
+    SearchResult result2 = engine.executeSearch(secondRun);
+    assertEquals(1, result2.getItems().size());
+    IngatlanItem discountedItem = result2.getItems().get(0);
+    assertEquals(-5_000_000L, discountedItem.getPriceDelta());
+    assertEquals(-10.0, discountedItem.getPriceChangePercent());
+    assertEquals("PRICE_DROP", discountedItem.getStatus());
+    assertTrue(discountedItem.isDiscounted());
+    assertEquals(2, findByUrlsCallCount.get());
+  }
+
+  @Test
+  @DisplayName("Korábban megtekintett hirdetés újrakeresés után viewed=true és excludeViewed kiszűri")
+  void testViewedEnrichmentAndExcludeViewedFilter() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+
+    PortalEngine stubEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "stub", "Stub Portal", "#112233", "https://stub.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            IngatlanItem item1 =
+                new IngatlanItem(
+                    "s1",
+                    PortalSource.of("stub"),
+                    "https://stub.hu/ingatlan/viewed",
+                    "Megtekintett lakás",
+                    new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                    "Debrecen",
+                    new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                    "2026-10-20 10:00:00",
+                    false);
+            IngatlanItem item2 =
+                new IngatlanItem(
+                    "s2",
+                    PortalSource.of("stub"),
+                    "https://stub.hu/ingatlan/unviewed",
+                    "Nem megtekintett lakás",
+                    new PriceInfo("55 M Ft", 55_000_000L, 55.0),
+                    "Debrecen",
+                    new PropertyDetails("65 m²", 65.0, 2.0, 846_153L),
+                    "2026-10-20 10:00:00",
+                    false);
+            return PortalScrapeResult.success("stub", "Stub Portal", List.of(item1, item2), 10);
+          }
+        };
+
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(stubEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            new MarketAnalyticsEngine());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen"));
+    criteria.setPortals(List.of("stub"));
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(70);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(100);
+
+    SearchResult r1 = engine.executeSearch(criteria);
+    assertEquals(2, r1.getItems().size());
+    assertTrue(storage.markAsViewed("https://stub.hu/ingatlan/viewed"));
+
+    // Újrakeresés excludeViewed=false mellett: viewed állapot visszatér a találaton
+    SearchResult r2 = engine.executeSearch(criteria);
+    assertEquals(2, r2.getItems().size());
+    IngatlanItem viewedInR2 =
+        r2.getItems().stream()
+            .filter(i -> "https://stub.hu/ingatlan/viewed".equals(i.getUrl()))
+            .findFirst()
+            .orElseThrow();
+    assertTrue(viewedInR2.isViewed());
+
+    // Újrakeresés excludeViewed=true mellett: a megtekintett elem kimarad
+    criteria.setExcludeViewed(true);
+    SearchResult r3 = engine.executeSearch(criteria);
+    assertEquals(1, r3.getItems().size());
+    assertEquals("https://stub.hu/ingatlan/unviewed", r3.getItems().get(0).getUrl());
+    assertFalse(r3.getItems().get(0).isViewed());
+  }
+
+  @Test
+  @DisplayName("onlyNewConstruction nézetszűrő nem rontja el a város baseline-t és az isNew jelölést")
+  void testViewFilterDoesNotCorruptCityBaseline() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+
+    PortalEngine stubEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "stub", "Stub Portal", "#112233", "https://stub.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            IngatlanItem newBuild =
+                new IngatlanItem(
+                    "a",
+                    PortalSource.of("stub"),
+                    "https://stub.hu/ingatlan/new-build",
+                    "Új építésű lakás",
+                    new PriceInfo("60 M Ft", 60_000_000L, 60.0),
+                    "Debrecen",
+                    new PropertyDetails("60 m²", 60.0, 2.0, 1_000_000L),
+                    "2026-10-20 10:00:00",
+                    false);
+            newBuild.setNewConstruction(true);
+
+            IngatlanItem usedHome =
+                new IngatlanItem(
+                    "b",
+                    PortalSource.of("stub"),
+                    "https://stub.hu/ingatlan/used-home",
+                    "Használt lakás",
+                    new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                    "Debrecen",
+                    new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                    "2026-10-20 10:00:00",
+                    false);
+            usedHome.setNewConstruction(false);
+
+            return PortalScrapeResult.success(
+                "stub", "Stub Portal", List.of(newBuild, usedHome), 10);
+          }
+        };
+
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(stubEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            new MarketAnalyticsEngine());
+
+    SearchCriteria firstRun = new SearchCriteria();
+    firstRun.setCities(List.of("Debrecen"));
+    firstRun.setPortals(List.of("stub"));
+    firstRun.setMinPriceMillion(40);
+    firstRun.setMaxPriceMillion(70);
+    firstRun.setMinArea(40);
+    firstRun.setMaxArea(100);
+    firstRun.setOnlyNewConstruction(true);
+
+    SearchResult r1 = engine.executeSearch(firstRun);
+    assertEquals(1, r1.getItems().size());
+    assertEquals("https://stub.hu/ingatlan/new-build", r1.getItems().get(0).getUrl());
+    // A használt lakásnak is be kellett kerülnie a baseline adatbázisba!
+    assertTrue(storage.containsUrl("https://stub.hu/ingatlan/used-home"));
+
+    SearchCriteria secondRun = firstRun.cloneForCity("Debrecen");
+    secondRun.setOnlyNewConstruction(false);
+    SearchResult r2 = engine.executeSearch(secondRun);
+    assertEquals(2, r2.getItems().size());
+    IngatlanItem usedInR2 =
+        r2.getItems().stream()
+            .filter(i -> "https://stub.hu/ingatlan/used-home".equals(i.getUrl()))
+            .findFirst()
+            .orElseThrow();
+    assertFalse(usedInR2.isNew(), "A meglévő nem-újépítésű hirdetés nem lehet hamisan ÚJ");
+  }
+
+  @Test
+  @DisplayName(
+      "portalCounts a releváns és deduplikált darabszámot mutatja, összege megegyezik a totalFound"
+          + " értékkel (#251)")
+  void testPortalCountsReflectRelevantAndDeduplicatedItems() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+
+    PortalEngine dhEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "dh", "Duna House", "#008638", "https://dh.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            IngatlanItem relevant =
+                new IngatlanItem(
+                    "dh1",
+                    PortalSource.of("Duna House"),
+                    "https://dh.hu/ingatlan/1",
+                    "Megfelelő lakás",
+                    new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                    criteria.getCity(),
+                    new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                    "2026-10-20 10:00:00",
+                    false);
+            IngatlanItem duplicate =
+                new IngatlanItem(
+                    "dh1-dup",
+                    PortalSource.of("Duna House"),
+                    "https://dh.hu/ingatlan/1",
+                    "Duplikált lakás",
+                    new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                    criteria.getCity(),
+                    new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                    "2026-10-20 10:00:00",
+                    false);
+            IngatlanItem outOfPrice =
+                new IngatlanItem(
+                    "dh2",
+                    PortalSource.of("Duna House"),
+                    "https://dh.hu/ingatlan/2",
+                    "Túl drága lakás",
+                    new PriceInfo("150 M Ft", 150_000_000L, 150.0),
+                    criteria.getCity(),
+                    new PropertyDetails("60 m²", 60.0, 2.0, 2_500_000L),
+                    "2026-10-20 10:00:00",
+                    false);
+            return PortalScrapeResult.success(
+                "dh", "Duna House", List.of(relevant, duplicate, outOfPrice), 120);
+          }
+        };
+
+    PortalEngine ibEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "ingatlanbazar",
+                "Ingatlanbazár",
+                "#7c3aed",
+                "https://ingatlanbazar.hu",
+                true,
+                List.of("lakas"),
+                true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            IngatlanItem relevant1 =
+                new IngatlanItem(
+                    "ib1",
+                    PortalSource.of("Ingatlanbazár"),
+                    "https://ingatlanbazar.hu/1",
+                    "IB lakás 1",
+                    new PriceInfo("45 M Ft", 45_000_000L, 45.0),
+                    criteria.getCity(),
+                    new PropertyDetails("55 m²", 55.0, 2.0, 818_181L),
+                    "2026-10-20 10:00:00",
+                    false);
+            relevant1.setNewConstruction(true);
+            IngatlanItem usedFilteredByView =
+                new IngatlanItem(
+                    "ib2",
+                    PortalSource.of("Ingatlanbazár"),
+                    "https://ingatlanbazar.hu/2",
+                    "IB használt lakás",
+                    new PriceInfo("48 M Ft", 48_000_000L, 48.0),
+                    criteria.getCity(),
+                    new PropertyDetails("58 m²", 58.0, 2.0, 827_586L),
+                    "2026-10-20 10:00:00",
+                    false);
+            usedFilteredByView.setNewConstruction(false);
+            return PortalScrapeResult.success(
+                "ingatlanbazar",
+                "Ingatlanbazár",
+                List.of(relevant1, usedFilteredByView),
+                90);
+          }
+        };
+
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine, ibEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            new MarketAnalyticsEngine());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen"));
+    criteria.setPortals(List.of("dh", "ingatlanbazar"));
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(70);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(100);
+    criteria.setOnlyNewConstruction(true);
+
+    // dh1 nem újépítésű -> view filter kiszűri (0 marad), ib1 újépítésű -> 1 marad
+    SearchResult r1 = engine.executeSearch(criteria);
+    assertEquals(1, r1.getTotalFound());
+    assertEquals(0, r1.getPortalCounts().get("Duna House"));
+    assertEquals(1, r1.getPortalCounts().get("Ingatlanbazár"));
+    int sum1 = r1.getPortalCounts().values().stream().mapToInt(Integer::intValue).sum();
+    assertEquals(r1.getTotalFound(), sum1);
+
+    // Második futás onlyNewConstruction=false mellett: dh=1 (duplikált és túl drága kiszűrve), ib=2
+    criteria.setOnlyNewConstruction(false);
+    SearchResult r2 = engine.executeSearch(criteria);
+    assertEquals(3, r2.getTotalFound());
+    assertEquals(1, r2.getPortalCounts().get("Duna House"));
+    assertEquals(2, r2.getPortalCounts().get("Ingatlanbazár"));
+    int sum2 = r2.getPortalCounts().values().stream().mapToInt(Integer::intValue).sum();
+    assertEquals(r2.getTotalFound(), sum2);
+  }
+
+  @Test
+  @DisplayName("Milestone R5: SearchExecutionEngine evaluates data quality scores during search pipeline")
+  void testQualityScoringIntegratedIntoSearchExecution() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+
+    IngatlanItem item = new IngatlanItem();
+    item.setId("qs-1");
+    item.setUrl("https://dh.hu/1");
+    item.setTitle("Szép lakás");
+    item.setCity("Debrecen");
+    item.setLocation("Debrecen");
+    item.setPortal("Duna House");
+    item.setPrice("50 M Ft");
+    item.setPriceInfo(new PriceInfo("50 M Ft", 50_000_000L, 50.0));
+    item.setDetails("50 m² • 2 szoba");
+    item.setDetailsInfo(new PropertyDetails("50 m² • 2 szoba", 50.0, 2.0, 1_000_000L));
+    item.setPropertyType(PropertyType.LAKAS);
+    item.setImageUrl("https://dh.hu/img1.jpg");
+
+    PortalEngine dhEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "dh",
+                "Duna House",
+                "#d32f2f",
+                "https://dh.hu",
+                true,
+                List.of("lakas"),
+                true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            return PortalScrapeResult.success("dh", "Duna House", List.of(item), 100);
+          }
+        };
+
+    DataQualityEngine qualityEngine = new DataQualityEngine();
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            new MarketAnalyticsEngine(qualityEngine),
+            qualityEngine);
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen"));
+    criteria.setPortals(List.of("dh"));
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(60);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(60);
+
+    SearchResult result = engine.executeSearch(criteria);
+    assertEquals(1, result.getTotalFound());
+    IngatlanItem resultItem = result.getItems().getFirst();
+    assertNotNull(resultItem.getQualityScore());
+    assertEquals(100, resultItem.getQualityScore());
+    assertNotNull(resultItem.getQualityDeductions());
+    assertTrue(resultItem.getQualityDeductions().isEmpty());
   }
 }

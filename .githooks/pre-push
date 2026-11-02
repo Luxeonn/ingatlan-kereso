@@ -10,4 +10,19 @@ if [ "$current_branch" = "main" ] || [ "$current_branch" = "develop" ]; then
     exit 1
 fi
 
+# Feature/fix ág nem lehet elavult az origin/develop-hoz képest.
+if ! git fetch origin develop --quiet 2>/dev/null; then
+    echo "⚠️  Az origin/develop nem érhető el, az up-to-date ellenőrzés kimarad."
+    exit 0
+fi
+
+DEVELOP_HEAD=$(git rev-parse origin/develop)
+MERGE_BASE=$(git merge-base HEAD origin/develop)
+if [ "$MERGE_BASE" != "$DEVELOP_HEAD" ]; then
+    echo "❌ HIBA: A jelenlegi branch ($current_branch) elavult a távoli origin/develop-hoz képest!"
+    echo "👉 Kérlek, frissítsd a branch-ed: git fetch origin && git rebase origin/develop"
+    echo "   (vagy: git merge origin/develop), majd pusholj újra."
+    exit 1
+fi
+
 exit 0

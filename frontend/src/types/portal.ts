@@ -1,18 +1,5 @@
-export interface PortalDescriptor {
-  id: string
-  name: string
-  color: string
-  searchUrl: string
-  supportedTypes: string[]
-  savedListingCount?: number
-}
+import type { components } from './generated-api'
 
-export interface PortalStatusDto {
-  portalId: string
-  portalName: string
-  status: string
-  durationMs: number
-  itemCount: number
-  errorMessage?: string
-  botProtected: boolean
-}
+export type PortalDescriptor = components['schemas']['PortalDescriptor']
+export type PortalStatusDto = components['schemas']['PortalStatusDto']
+

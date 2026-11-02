@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.StatusLogEntry;
 
@@ -53,11 +54,19 @@ public interface ListingStorage {
     return List.of();
   }
 
+  default List<ListingObservation> getListingObservations(String idOrUrl) {
+    return List.of();
+  }
+
   default List<IngatlanItem> getDiscountedProperties(String city) {
     return List.of();
   }
 
   default List<IngatlanItem> findByCriteria(PropertySearchCriteria filter) {
     return List.of();
+  }
+
+  default Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
+    return Map.of();
   }
 }

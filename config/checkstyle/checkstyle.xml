@@ -6,6 +6,9 @@
     <property name="severity" value="error"/>
     <property name="fileExtensions" value="java, properties, xml"/>
 
+    <module name="FileLength">
+        <property name="max" value="450"/>
+    </module>
     <module name="FileTabCharacter">
         <property name="eachLine" value="true"/>
     </module>
@@ -14,7 +17,37 @@
         <property name="ignorePattern" value="^package |^import |https?://|^\s*\*|^\s*&lt;[^&gt;]+&gt;$|^\s*data-[A-Za-z0-9_-]+="/>
     </module>
 
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="FileLength|MethodLength|ParameterNumber|CyclomaticComplexity"/>
+        <property name="files" value="[/\\]src[/\\]test[/\\]"/>
+    </module>
+
     <module name="TreeWalker">
+        <module name="Indentation">
+            <property name="basicOffset" value="2"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="2"/>
+            <property name="throwsIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="4"/>
+            <property name="arrayInitIndent" value="2"/>
+        </module>
+        <module name="WhitespaceAround">
+            <property name="allowEmptyConstructors" value="true"/>
+            <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
+            <property name="allowEmptyLoops" value="true"/>
+            <property name="allowEmptyLambdas" value="true"/>
+            <property name="allowEmptyCatches" value="true"/>
+        </module>
+        <module name="WhitespaceAfter"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="GenericWhitespace"/>
+        <module name="EmptyLineSeparator">
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+            <property name="allowMultipleEmptyLines" value="false"/>
+            <property name="allowMultipleEmptyLinesInsideClassMembers" value="false"/>
+        </module>
+
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
@@ -41,6 +74,44 @@
         <module name="OneStatementPerLine"/>
         <module name="StringLiteralEquality"/>
         <module name="MissingSwitchDefault"/>
+        <module name="DefaultComesLast"/>
+        <module name="FallThrough"/>
+        <module name="EqualsHashCode"/>
+        <module name="CovariantEquals"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="MissingOverride"/>
+        <module name="MutableException"/>
+        <module name="NoFinalizer"/>
+        <module name="ParameterAssignment"/>
+        <module name="ModifiedControlVariable"/>
+        <module name="InnerAssignment"/>
+        <module name="UpperEll"/>
+        <module name="ArrayTypeStyle"/>
+        <module name="DeclarationOrder"/>
+        <module name="OverloadMethodsDeclarationOrder"/>
+        <module name="MethodLength">
+            <property name="max" value="80"/>
+            <property name="countEmpty" value="false"/>
+        </module>
+        <module name="ParameterNumber">
+            <property name="max" value="6"/>
+            <property name="ignoreOverriddenMethods" value="true"/>
+            <property name="tokens" value="METHOD_DEF"/>
+        </module>
+        <module name="CyclomaticComplexity">
+            <property name="max" value="12"/>
+            <property name="switchBlockAsSingleDecisionPoint" value="true"/>
+        </module>
+        <module name="BooleanExpressionComplexity">
+            <property name="max" value="4"/>
+        </module>
+        <module name="NestedIfDepth">
+            <property name="max" value="3"/>
+        </module>
+        <module name="NestedTryDepth">
+            <property name="max" value="2"/>
+        </module>
 
         <module name="PackageName">
             <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
@@ -62,6 +133,21 @@
             <property name="format" value="\.printStackTrace\(\)"/>
             <property name="ignoreComments" value="true"/>
             <property name="message" value="printStackTrace() is forbidden. Use SLF4J log.error(..., e) instead."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*import\s+lombok\.Data;|^\s*@(lombok\.)?Data\b"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Lombok @Data is forbidden. Use explicit @Getter, @Builder, @NoArgsConstructor (and @Setter only where post-construction mutation is required) instead."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*import\s+lombok\.(EqualsAndHashCode|ToString);|^\s*@(lombok\.)?(EqualsAndHashCode|ToString)\b"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Lombok @EqualsAndHashCode and @ToString are forbidden. Keep hand-written equals/hashCode where business identity applies and never generate them on JPA entities."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*import\s+lombok\.SneakyThrows;|^\s*@(lombok\.)?SneakyThrows\b"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Lombok @SneakyThrows is forbidden. Handle checked exceptions explicitly to preserve 0-crash resilience."/>
         </module>
     </module>
 </module>

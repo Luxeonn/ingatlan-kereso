@@ -7,9 +7,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "app_config")
+@Getter
+@Setter
+@NoArgsConstructor
 public class ConfigEntity implements Serializable {
 
   @Id
@@ -20,26 +27,9 @@ public class ConfigEntity implements Serializable {
   @Column(name = "config_value", columnDefinition = "TEXT")
   private String value;
 
-  public ConfigEntity() {}
-
+  @Builder
   public ConfigEntity(String key, String value) {
     this.key = key;
-    this.value = value;
-  }
-
-  public String getKey() {
-    return key;
-  }
-
-  public void setKey(String key) {
-    this.key = key;
-  }
-
-  public String getValue() {
-    return value;
-  }
-
-  public void setValue(String value) {
     this.value = value;
   }
 }

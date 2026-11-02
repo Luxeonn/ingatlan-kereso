@@ -5,7 +5,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class PortalScrapeResult implements Serializable {
 
   private String portalId;
@@ -18,8 +25,6 @@ public class PortalScrapeResult implements Serializable {
   private Integer httpStatusCode;
   private String technicalDetails;
 
-  public PortalScrapeResult() {}
-
   public PortalScrapeResult(
       String portalId,
       String portalName,
@@ -31,6 +36,7 @@ public class PortalScrapeResult implements Serializable {
     this(portalId, portalName, status, items, fallbackUrl, message, executionTimeMs, null, null);
   }
 
+  @Builder
   public PortalScrapeResult(
       String portalId,
       String portalName,
@@ -59,72 +65,77 @@ public class PortalScrapeResult implements Serializable {
     int count = (items != null ? items.size() : 0);
     String msg =
         (count > 0) ? "Sikeres letöltés (" + count + " találat)" : "0 találat a megadott szűrőkre";
-    return new PortalScrapeResult(
-        portalId,
-        portalName,
-        status,
-        items,
-        null,
-        msg,
-        executionTimeMs,
-        200,
-        "Sikeres HTTP 200 válasz");
+    return PortalScrapeResult.builder()
+        .portalId(portalId)
+        .portalName(portalName)
+        .status(status)
+        .items(items)
+        .fallbackUrl(null)
+        .message(msg)
+        .executionTimeMs(executionTimeMs)
+        .httpStatusCode(200)
+        .technicalDetails("Sikeres HTTP 200 válasz")
+        .build();
   }
 
   public static PortalScrapeResult empty(
       String portalId, String portalName, String fallbackUrl, long executionTimeMs) {
-    return new PortalScrapeResult(
-        portalId,
-        portalName,
-        PortalScrapeStatus.EMPTY,
-        Collections.emptyList(),
-        fallbackUrl,
-        "Nincs találat a megadott feltételekkel",
-        executionTimeMs,
-        200,
-        "A lekérdezés 0 találatot eredményezett a keresési kritériumok alapján");
+    return PortalScrapeResult.builder()
+        .portalId(portalId)
+        .portalName(portalName)
+        .status(PortalScrapeStatus.EMPTY)
+        .items(Collections.emptyList())
+        .fallbackUrl(fallbackUrl)
+        .message("Nincs találat a megadott feltételekkel")
+        .executionTimeMs(executionTimeMs)
+        .httpStatusCode(200)
+        .technicalDetails("A lekérdezés 0 találatot eredményezett a keresési kritériumok alapján")
+        .build();
   }
 
   public static PortalScrapeResult botProtected(
       String portalId, String portalName, String fallbackUrl, long executionTimeMs) {
-    return new PortalScrapeResult(
-        portalId,
-        portalName,
-        PortalScrapeStatus.BOT_PROTECTED,
-        Collections.emptyList(),
-        fallbackUrl,
-        "Cloudflare WAF bot-védelem aktív; közvetlen keresőlink biztosítva",
-        executionTimeMs,
-        403,
-        "HTTP 403 Forbidden / Cloudflare Turnstile JavaScript challenge detektálva");
+    return PortalScrapeResult.builder()
+        .portalId(portalId)
+        .portalName(portalName)
+        .status(PortalScrapeStatus.BOT_PROTECTED)
+        .items(Collections.emptyList())
+        .fallbackUrl(fallbackUrl)
+        .message("Cloudflare WAF bot-védelem aktív; közvetlen keresőlink biztosítva")
+        .executionTimeMs(executionTimeMs)
+        .httpStatusCode(403)
+        .technicalDetails("HTTP 403 Forbidden / Cloudflare Turnstile JavaScript challenge detektálva")
+        .build();
   }
 
   public static PortalScrapeResult spaFallback(
       String portalId, String portalName, String fallbackUrl, long executionTimeMs) {
-    return new PortalScrapeResult(
-        portalId,
-        portalName,
-        PortalScrapeStatus.SPA_FALLBACK,
-        Collections.emptyList(),
-        fallbackUrl,
-        "Kliensoldali SPA alkalmazás; közvetlen portállink biztosítva",
-        executionTimeMs,
-        200,
-        "Dinamikus kliensoldali JavaScript renderelés szükséges");
+    return PortalScrapeResult.builder()
+        .portalId(portalId)
+        .portalName(portalName)
+        .status(PortalScrapeStatus.SPA_FALLBACK)
+        .items(Collections.emptyList())
+        .fallbackUrl(fallbackUrl)
+        .message("Kliensoldali SPA alkalmazás; közvetlen portállink biztosítva")
+        .executionTimeMs(executionTimeMs)
+        .httpStatusCode(200)
+        .technicalDetails("Dinamikus kliensoldali JavaScript renderelés szükséges")
+        .build();
   }
 
   public static PortalScrapeResult failure(
       String portalId, String portalName, String errorMsg, long executionTimeMs) {
-    return new PortalScrapeResult(
-        portalId,
-        portalName,
-        PortalScrapeStatus.FAILED,
-        Collections.emptyList(),
-        null,
-        "Hiba a letöltés során: " + errorMsg,
-        executionTimeMs,
-        500,
-        errorMsg);
+    return PortalScrapeResult.builder()
+        .portalId(portalId)
+        .portalName(portalName)
+        .status(PortalScrapeStatus.FAILED)
+        .items(Collections.emptyList())
+        .fallbackUrl(null)
+        .message("Hiba a letöltés során: " + errorMsg)
+        .executionTimeMs(executionTimeMs)
+        .httpStatusCode(500)
+        .technicalDetails(errorMsg)
+        .build();
   }
 
   public static PortalScrapeResult failure(
@@ -134,87 +145,16 @@ public class PortalScrapeResult implements Serializable {
       long executionTimeMs,
       Integer httpStatusCode,
       String fallbackUrl) {
-    return new PortalScrapeResult(
-        portalId,
-        portalName,
-        PortalScrapeStatus.FAILED,
-        Collections.emptyList(),
-        fallbackUrl,
-        "Hiba a letöltés során: " + errorMsg,
-        executionTimeMs,
-        httpStatusCode,
-        errorMsg);
-  }
-
-  public String getPortalId() {
-    return portalId;
-  }
-
-  public void setPortalId(String portalId) {
-    this.portalId = portalId;
-  }
-
-  public String getPortalName() {
-    return portalName;
-  }
-
-  public void setPortalName(String portalName) {
-    this.portalName = portalName;
-  }
-
-  public PortalScrapeStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(PortalScrapeStatus status) {
-    this.status = status;
-  }
-
-  public List<IngatlanItem> getItems() {
-    return items;
-  }
-
-  public void setItems(List<IngatlanItem> items) {
-    this.items = items;
-  }
-
-  public String getFallbackUrl() {
-    return fallbackUrl;
-  }
-
-  public void setFallbackUrl(String fallbackUrl) {
-    this.fallbackUrl = fallbackUrl;
-  }
-
-  public String getMessage() {
-    return message;
-  }
-
-  public void setMessage(String message) {
-    this.message = message;
-  }
-
-  public long getExecutionTimeMs() {
-    return executionTimeMs;
-  }
-
-  public void setExecutionTimeMs(long executionTimeMs) {
-    this.executionTimeMs = executionTimeMs;
-  }
-
-  public Integer getHttpStatusCode() {
-    return httpStatusCode;
-  }
-
-  public void setHttpStatusCode(Integer httpStatusCode) {
-    this.httpStatusCode = httpStatusCode;
-  }
-
-  public String getTechnicalDetails() {
-    return technicalDetails;
-  }
-
-  public void setTechnicalDetails(String technicalDetails) {
-    this.technicalDetails = technicalDetails;
+    return PortalScrapeResult.builder()
+        .portalId(portalId)
+        .portalName(portalName)
+        .status(PortalScrapeStatus.FAILED)
+        .items(Collections.emptyList())
+        .fallbackUrl(fallbackUrl)
+        .message("Hiba a letöltés során: " + errorMsg)
+        .executionTimeMs(executionTimeMs)
+        .httpStatusCode(httpStatusCode)
+        .technicalDetails(errorMsg)
+        .build();
   }
 }

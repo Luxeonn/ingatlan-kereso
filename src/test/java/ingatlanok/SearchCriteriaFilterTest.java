@@ -98,6 +98,7 @@ class SearchCriteriaFilterTest {
   @Test
   void testFloorAreaFiltering() {
     SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
     criteria.setMinPriceMillion(10);
     criteria.setMaxPriceMillion(200);
     criteria.setMinArea(90);

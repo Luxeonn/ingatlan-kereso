@@ -2,7 +2,6 @@ package ingatlanok.web;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -13,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,14 +20,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.ListingStorage;
-import ingatlanok.persistence.PropertySearchCriteria;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
@@ -125,41 +124,13 @@ public class RestApiController {
   }
 
   @GetMapping("/history")
-  public ResponseEntity<List<IngatlanItem>> getHistory(
-      @RequestParam(value = "city", required = false) String city,
-      @RequestParam(value = "onlyDiscounted", defaultValue = "false") boolean onlyDiscounted,
-      @RequestParam(value = "portal", required = false) String portal,
-      @RequestParam(value = "minPrice", required = false) Double minPrice,
-      @RequestParam(value = "maxPrice", required = false) Double maxPrice,
-      @RequestParam(value = "minArea", required = false) Double minArea,
-      @RequestParam(value = "maxArea", required = false) Double maxArea,
-      @RequestParam(value = "minRooms", required = false) Double minRooms,
-      @RequestParam(value = "maxRooms", required = false) Double maxRooms,
-      @RequestParam(value = "excludeViewed", defaultValue = "false") boolean excludeViewed,
-      @RequestParam(value = "sortBy", defaultValue = "DISCOVERED_DESC") String sortBy,
-      @RequestParam(value = "limit", required = false) Integer limit,
-      @RequestParam(value = "offset", required = false) Integer offset) {
-    List<String> cities = (city != null && !city.isBlank()) ? List.of(city) : null;
-    List<String> portals = (portal != null && !portal.isBlank()) ? List.of(portal) : null;
-
-    int pageSize = limit == null || limit <= 0 ? 50 : Math.min(limit, 200);
-    PropertySearchCriteria filter =
-        new PropertySearchCriteria(
-            cities,
-            portals,
-            minPrice,
-            maxPrice,
-            minArea,
-            maxArea,
-            minRooms,
-            maxRooms,
-            excludeViewed,
-            onlyDiscounted,
-            sortBy,
-            offset == null || offset <= 0 ? 0 : offset,
-            pageSize);
-
-    List<IngatlanItem> dtoList = listingStorage.findByCriteria(filter);
+  public ResponseEntity<List<IngatlanItem>> getHistory(@ModelAttribute HistoryQueryDto query) {
+    HistoryQueryDto effectiveQuery =
+        query != null
+            ? query
+            : new HistoryQueryDto(
+                null, false, null, null, null, null, null, null, null, false, false, "DISCOVERED_DESC", 50, 0);
+    List<IngatlanItem> dtoList = listingStorage.findByCriteria(effectiveQuery.toCriteria());
     return ResponseEntity.ok(dtoList);
   }
 
@@ -197,6 +168,23 @@ public class RestApiController {
     return ResponseEntity.ok(log);
   }
 
+  @GetMapping({"/properties/observations", "/properties/{id}/observations"})
+  public ResponseEntity<?> getListingObservations(
+      @PathVariable(value = "id", required = false) String pathId,
+      @RequestParam(value = "id", required = false) String paramId,
+      @RequestParam(value = "url", required = false) String paramUrl) {
+    String key =
+        pathId != null && !pathId.isBlank()
+            ? pathId
+            : (paramId != null && !paramId.isBlank() ? paramId : paramUrl);
+    if (key == null || key.isBlank()) {
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "Hiányzó 'id' vagy 'url' paraméter!"));
+    }
+    List<ListingObservation> observations = listingStorage.getListingObservations(key);
+    return ResponseEntity.ok(observations);
+  }
+
   @GetMapping("/properties/discounted")
   public ResponseEntity<List<IngatlanItem>> getDiscountedProperties(
       @RequestParam(value = "city", required = false) String city) {
@@ -207,10 +195,8 @@ public class RestApiController {
   @PostMapping("/search")
   public ResponseEntity<DashboardResponseDto> executeSearch(
       @RequestBody(required = false) SearchCriteria criteria) {
-    if (criteria == null) {
-      criteria = new SearchCriteria();
-    }
-    DashboardResponseDto result = dashboardPresentationService.executeSearch(criteria);
+    SearchCriteria effectiveCriteria = criteria != null ? criteria : new SearchCriteria();
+    DashboardResponseDto result = dashboardPresentationService.executeSearch(effectiveCriteria);
     return ResponseEntity.ok(result);
   }
 
@@ -220,11 +206,6 @@ public class RestApiController {
     if (urls != null && !urls.isEmpty()) {
       for (String url : urls) {
         listingStorage.markAsViewed(url);
-      }
-      boolean forceServerOpen =
-          "true".equalsIgnoreCase(System.getProperty("server.open.desktop", "false"));
-      if (forceServerOpen && !java.awt.GraphicsEnvironment.isHeadless()) {
-        BrowserUtils.openUrls(new LinkedHashSet<>(urls));
       }
     }
     return ResponseEntity.ok(Map.of("success", true, "count", urls != null ? urls.size() : 0));

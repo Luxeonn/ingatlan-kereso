@@ -1,9 +1,22 @@
 import { useState, type FC } from 'react'
-import { X, Activity, CheckCircle, AlertTriangle, XCircle, ShieldAlert, Copy, Check, Clock, Layers } from 'lucide-react'
-import { PortalStatusDto } from '../../types/portal'
+import {
+  X,
+  Activity,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  ShieldAlert,
+  Copy,
+  Check,
+  Clock,
+  Layers,
+  ExternalLink,
+} from 'lucide-react'
+import type { PortalStatusDto } from '../../types/portal'
 import { useUiStore } from '../../store/useUiStore'
 import { usePortals } from '../../hooks/usePortals'
 import { cn } from '../../utils/cn'
+import { openExternalUrl } from '../../utils/formatters'
 
 interface DiagnosticsModalProps {
   portalStatuses?: PortalStatusDto[]
@@ -20,9 +33,9 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
     const summary = portalStatuses
       .map(
         (p) =>
-          `[${p.portalId.toUpperCase()}] ${p.portalName}: ${p.status} (${p.durationMs}ms, ${p.itemCount} találat)${
-            p.errorMessage ? ` - Hiba: ${p.errorMessage}` : ''
-          }`
+          `[${p.portalId.toUpperCase()}] ${p.portalName}: ${p.status} (${p.latencyMs}ms, ${p.foundCount} találat)${
+            p.message ? ` - Infó: ${p.message}` : ''
+          }${p.fallbackUrl ? ` - Fallback: ${p.fallbackUrl}` : ''}`
       )
       .join('\n')
     navigator.clipboard.writeText(summary)
@@ -74,7 +87,7 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
           {portalStatuses.length > 0 ? (
             portalStatuses.map((p) => {
               const isSuccess = p.status === 'SUCCESS'
-              const isBot = p.botProtected || p.status === 'BOT_PROTECTED'
+              const isBot = p.status === 'BOT_PROTECTED'
               const isError = !isSuccess && !isBot
 
               return (
@@ -100,11 +113,11 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
                         <Clock className="h-3.5 w-3.5" />
-                        <span>{p.durationMs} ms</span>
+                        <span>{p.latencyMs} ms</span>
                       </span>
                       <span className="flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)]">
                         <Layers className="h-3.5 w-3.5 text-blue-400" />
-                        <span>{p.itemCount} találat</span>
+                        <span>{p.foundCount} találat</span>
                       </span>
                       <span
                         className={cn(
@@ -121,19 +134,46 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
                     </div>
                   </div>
 
-                  {/* Error / Bot explanation */}
-                  {p.errorMessage && (
+                  {/* Error / Technical explanation */}
+                  {p.message && !isBot && (
                     <div className="mt-3 rounded-lg bg-black/20 p-2.5 text-xs font-mono text-rose-300 border border-rose-500/20">
-                      {p.errorMessage}
+                      {p.message}
                     </div>
                   )}
 
                   {isBot && (
-                    <div className="mt-2.5 flex items-start gap-2 rounded-lg bg-amber-500/10 p-2.5 text-xs text-amber-300 border border-amber-500/20">
-                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                      <span>
-                        A portál Cloudflare / WAF bot-védelmet alkalmaz. A rendszer automatikus graceful fallbackként közvetlen keresőlinket generált.
-                      </span>
+                    <div className="mt-2.5 flex flex-col gap-2.5 rounded-lg bg-amber-500/10 p-3 text-xs text-amber-300 border border-amber-500/20">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span>
+                          A portál Cloudflare / WAF bot-védelmet alkalmaz. A rendszer automatikus graceful fallbackként közvetlen keresőlinket generált.
+                        </span>
+                      </div>
+                      {p.fallbackUrl && (
+                        <button
+                          type="button"
+                          data-testid={`fallback-link-${p.portalId}`}
+                          onClick={() => openExternalUrl(p.fallbackUrl)}
+                          className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-500/30"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span>Keresés megnyitása itt: {p.portalName}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {!isBot && p.fallbackUrl && p.foundCount === 0 && (
+                    <div className="mt-2.5 flex items-center justify-end">
+                      <button
+                        type="button"
+                        data-testid={`fallback-link-${p.portalId}`}
+                        onClick={() => openExternalUrl(p.fallbackUrl)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-blue-500/40"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+                        <span>Keresés megnyitása itt: {p.portalName}</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -150,16 +190,16 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
                     key={p.id}
                     className="flex items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] p-3.5"
                   >
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-blue-400" />
-                    <span className="text-xs font-bold text-[var(--text-primary)]">{p.name}</span>
-                    <span className="text-[11px] font-mono text-[var(--text-secondary)]">({p.id})</span>
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-blue-400" />
+                      <span className="text-xs font-bold text-[var(--text-primary)]">{p.name}</span>
+                      <span className="text-[11px] font-mono text-[var(--text-secondary)]">({p.id})</span>
+                    </div>
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      {p.savedListingCount ?? 0} elmentett hirdetés az adatbázisban
+                    </span>
                   </div>
-                  <span className="text-xs text-[var(--text-secondary)]">
-                    {p.savedListingCount ?? 0} elmentett hirdetés az adatbázisban
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </div>

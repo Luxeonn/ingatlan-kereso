@@ -1,0 +1,25 @@
+{
+  "hits": [
+    {
+      "propertyId": "IB999",
+      "seoUrl": "/ingatlan/hajduszoboszlo/IB999",
+      "title": "Felújított családi ház",
+      "priceHUF": 92000000,
+      "area": 115.0,
+      "rooms": 4.0,
+      "settlement": "Hajdúszoboszló",
+      "renderPictures": [
+        "https://images2.ingatlanbazar.hu/static/property/images/b3/4c/44/2d/b34c442d-c20e-11f1-b393-bc2411815210/4455ddbb-8d38-453a-a0c7-063fd4872b56"
+      ]
+    },
+    {
+      "propertyId": "IB1000",
+      "seoUrl": "/ingatlan/hajduszoboszlo/IB1000",
+      "title": "Új építésű ikerház",
+      "priceHUF": 85000000,
+      "area": 98.0,
+      "rooms": 3.0,
+      "settlement": "Hajdúszoboszló"
+    }
+  ]
+}

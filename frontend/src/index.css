@@ -73,3 +73,17 @@ html:not(.dark) .animate-shimmer {
   background-size: 200% 100%;
   animation: shimmer 1.8s infinite;
 }
+
+/* Subtle title pulse for new unseen listings (#157) */
+@keyframes pulse-title-anim {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.pulse-title {
+  animation: pulse-title-anim 2.2s ease-in-out infinite;
+}

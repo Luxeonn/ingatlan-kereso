@@ -8,9 +8,9 @@ buildscript {
             force("org.apache.httpcomponents.core5:httpcore5:5.4.4")
             force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
             force("org.apache.commons:commons-lang3:3.21.0")
-            force("org.springframework:spring-core:7.0.9")
-            force("tools.jackson.core:jackson-core:3.2.3")
-            force("tools.jackson.core:jackson-databind:3.2.3")
+            force("org.springframework:spring-core:7.0.10")
+            force("tools.jackson.core:jackson-core:3.2.4")
+            force("tools.jackson.core:jackson-databind:3.2.4")
         }
     }
 }
@@ -20,7 +20,7 @@ plugins {
     application
     jacoco
     checkstyle
-    id("org.springframework.boot") version "4.1.1"
+    id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -50,12 +50,15 @@ val jsoupVersion = "1.23.2"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
 val caffeineVersion = "3.3.1"
+val lombokVersion = "1.18.48"
+val mapstructVersion = "1.6.3"
+val archunitVersion = "1.5.1"
 
 dependencies {
     constraints {
         implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.27")
-        implementation("tools.jackson.core:jackson-core:3.2.3")
-        implementation("tools.jackson.core:jackson-databind:3.2.3")
+        implementation("tools.jackson.core:jackson-core:3.2.4")
+        implementation("tools.jackson.core:jackson-databind:3.2.4")
         implementation("org.postgresql:postgresql:42.7.14")
         implementation("org.apache.logging.log4j:log4j-api:2.26.1")
         implementation("org.apache.httpcomponents.client5:httpclient5:5.6.5")
@@ -72,12 +75,33 @@ dependencies {
     implementation("org.brotli:dec:0.1.2")
     implementation("commons-io:commons-io:$commonsIoVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    implementation("org.mapstruct:mapstruct:$mapstructVersion")
+    annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    testCompileOnly("org.projectlombok:lombok:$lombokVersion")
+    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+    options.compilerArgs.addAll(
+        listOf(
+            "-Xlint:unchecked",
+            "-Xlint:deprecation",
+            "-Xlint:rawtypes",
+            "-Xlint:fallthrough",
+            "-Xlint:cast",
+            "-Xlint:overrides",
+            "-Xlint:divzero",
+            "-Xlint:empty",
+            "-Werror"
+        )
+    )
 }
 
 tasks.test {
@@ -103,6 +127,23 @@ tasks.jacocoTestReport {
     }
 }
 
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
 checkstyle {
     toolVersion = "10.21.4"
     configFile = file("config/checkstyle/checkstyle.xml")
@@ -114,6 +155,7 @@ configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     resolutionStrategy {
         force("org.codehaus.plexus:plexus-utils:4.1.0")
         force("commons-beanutils:commons-beanutils:1.11.0")
+        force("com.google.guava:guava:33.7.2-jre")
     }
 }
 

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Sort;
@@ -19,21 +20,21 @@ import tools.jackson.databind.ObjectMapper;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
-import ingatlanok.model.PriceInfo;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.entity.ConfigEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.mapper.JpaEntityMapper;
 import ingatlanok.persistence.repository.ConfigRepository;
+import ingatlanok.persistence.repository.ListingObservationRepository;
 import ingatlanok.persistence.repository.PriceHistoryRepository;
 import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
 import ingatlanok.persistence.service.PriceHistoryTracker;
-import ingatlanok.persistence.service.PriceHistoryTracker.PriceDeltaCalculation;
+import ingatlanok.persistence.service.PropertyPersistenceHelper;
 import ingatlanok.persistence.service.StatusLogTracker;
-import ingatlanok.persistence.service.StatusLogTracker.StatusDecision;
 import ingatlanok.persistence.specification.PropertySpecifications;
 
 @Service
@@ -51,8 +52,37 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   private final ConfigRepository configRepo;
   private final JpaEntityMapper mapper;
   private final ObjectMapper objectMapper;
-  private final PriceHistoryTracker priceTracker;
-  private final StatusLogTracker statusTracker;
+  private final ListingObservationRepository listingObservationRepo;
+  private final PropertyPersistenceHelper persistenceHelper;
+
+  @Autowired
+  public JpaIngatlanStorage(
+      PropertyRepository propertyRepo,
+      PriceHistoryRepository priceHistoryRepo,
+      StatusLogRepository statusLogRepo,
+      ConfigRepository configRepo,
+      JpaEntityMapper mapper,
+      ObjectMapper objectMapper,
+      PriceHistoryTracker priceTracker,
+      StatusLogTracker statusTracker,
+      ListingObservationRepository listingObservationRepo) {
+    this.propertyRepo = propertyRepo;
+    this.priceHistoryRepo = priceHistoryRepo;
+    this.statusLogRepo = statusLogRepo;
+    this.configRepo = configRepo;
+    this.mapper = mapper;
+    this.objectMapper = objectMapper;
+    this.listingObservationRepo = listingObservationRepo;
+    this.persistenceHelper =
+        new PropertyPersistenceHelper(
+            propertyRepo,
+            priceHistoryRepo,
+            statusLogRepo,
+            listingObservationRepo,
+            mapper,
+            priceTracker,
+            statusTracker);
+  }
 
   public JpaIngatlanStorage(
       PropertyRepository propertyRepo,
@@ -63,14 +93,16 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       ObjectMapper objectMapper,
       PriceHistoryTracker priceTracker,
       StatusLogTracker statusTracker) {
-    this.propertyRepo = propertyRepo;
-    this.priceHistoryRepo = priceHistoryRepo;
-    this.statusLogRepo = statusLogRepo;
-    this.configRepo = configRepo;
-    this.mapper = mapper;
-    this.objectMapper = objectMapper;
-    this.priceTracker = priceTracker;
-    this.statusTracker = statusTracker;
+    this(
+        propertyRepo,
+        priceHistoryRepo,
+        statusLogRepo,
+        configRepo,
+        mapper,
+        objectMapper,
+        priceTracker,
+        statusTracker,
+        null);
   }
 
   @Override
@@ -88,91 +120,9 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     String now = LocalDateTime.now().format(DATE_TIME_FORMATTER);
     for (IngatlanItem item : items) {
       if (item != null && item.getUrl() != null && !item.getUrl().trim().isBlank()) {
-        saveItem(item, now);
+        persistenceHelper.saveItem(item, now);
       }
     }
-  }
-
-  private void saveItem(IngatlanItem item, String now) {
-    mapper.normalizeItem(item);
-    String url = item.getUrl().trim();
-    PropertyEntity existing = propertyRepo.findByUrl(url).orElse(null);
-    String propId =
-        existing != null
-            ? existing.getPropertyId()
-            : mapper.generatePropertyId(item.getPortal(), item.getId(), url);
-    PriceInfo pi = item.getPriceInfo();
-    Long priceAmount = pi != null ? pi.getAmountHuf() : null;
-    Long prevAmount = existing != null ? existing.getPriceAmount() : null;
-
-    PriceDeltaCalculation calc =
-        priceTracker.calculate(
-            existing == null,
-            prevAmount,
-            priceAmount,
-            existing != null ? existing.getPriceDelta() : null,
-            existing != null ? existing.getPriceChangePercent() : null,
-            existing != null ? existing.getLastPriceChangeAt() : null,
-            item.getStatus(),
-            item.getTitle(),
-            now);
-
-    if (priceAmount != null && priceAmount > 0) {
-      Double m = pi.getAmountMillion();
-      String raw =
-          pi.getRawText() != null
-              ? pi.getRawText()
-              : (item.getPrice() != null ? item.getPrice() : "");
-      Long perSqm =
-          item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
-      if (calc.isNewPriceRecord()) {
-        priceHistoryRepo.save(
-            mapper.createPriceHistoryEntity(
-                propId,
-                url,
-                item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now,
-                raw,
-                priceAmount,
-                m,
-                perSqm,
-                null,
-                0L,
-                0.0));
-      } else if (calc.priceChanged()) {
-        priceHistoryRepo.save(
-            mapper.createPriceHistoryEntity(
-                propId,
-                url,
-                now,
-                raw,
-                priceAmount,
-                m,
-                perSqm,
-                calc.previousPriceAmount(),
-                calc.delta(),
-                calc.changePercent()));
-      }
-    }
-
-    StatusDecision sd =
-        statusTracker.evaluate(
-            existing == null,
-            existing != null ? existing.getStatus() : null,
-            calc.resolvedStatus(),
-            existing == null && item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now);
-    if (sd.shouldRecord()) {
-      statusLogRepo.save(
-          mapper.createStatusLogEntity(propId, url, sd.status(), sd.changedAt(), sd.note()));
-    }
-    propertyRepo.save(
-        mapper.toEntity(
-            item,
-            existing,
-            now,
-            calc.delta(),
-            calc.changePercent(),
-            calc.lastPriceChangeAt(),
-            calc.resolvedStatus()));
   }
 
   @Override
@@ -265,18 +215,13 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
             .map(PropertyEntity::getUrl)
             .toList();
     propertyRepo.deleteByNormalizedCity(key);
-    if (!urls.isEmpty()) {
-      priceHistoryRepo.deleteByUrlIn(urls);
-      statusLogRepo.deleteByUrlIn(urls);
-    }
+    persistenceHelper.deleteCityRelatedHistory(urls);
   }
 
   @Override
   @CacheEvict(cacheNames = {"portals", "cities"}, allEntries = true)
   public void clearHistory() {
-    propertyRepo.deleteAll();
-    priceHistoryRepo.deleteAll();
-    statusLogRepo.deleteAll();
+    persistenceHelper.deleteAllHistory();
   }
 
   @Override
@@ -325,10 +270,33 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
 
   @Override
   @Transactional(readOnly = true)
+  public List<ListingObservation> getListingObservations(String idOrUrl) {
+    return (idOrUrl == null || idOrUrl.isBlank() || listingObservationRepo == null)
+        ? Collections.emptyList()
+        : listingObservationRepo.findByUrlOrPropertyIdOrCanonicalId(idOrUrl.trim()).stream()
+            .map(mapper::toListingObservation)
+            .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
   public List<IngatlanItem> getDiscountedProperties(String city) {
-    var spec = PropertySpecifications.from(new PropertySearchCriteria(
-        city == null || city.isBlank() ? null : List.of(city), null, null, null, null, null,
-        null, null, false, true, "DISCOVERED_DESC", 0, 1000));
+    var spec =
+        PropertySpecifications.from(
+            new PropertySearchCriteria(
+                city == null || city.isBlank() ? null : List.of(city),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                true,
+                "DISCOVERED_DESC",
+                0,
+                1000));
     return mapper.toItems(
         propertyRepo.findAll(spec, Sort.by(Sort.Direction.DESC, "discoveredAt")));
   }
@@ -336,9 +304,23 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   @Override
   @Transactional(readOnly = true)
   public List<IngatlanItem> findByCriteria(PropertySearchCriteria filter) {
-    PropertySearchCriteria criteria = filter != null ? filter : new PropertySearchCriteria(
-        null, null, null, null, null, null, null, null, false, false,
-        "DISCOVERED_DESC", 0, 100);
+    PropertySearchCriteria criteria =
+        filter != null
+            ? filter
+            : new PropertySearchCriteria(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                "DISCOVERED_DESC",
+                0,
+                100);
     Sort sort = switch (criteria.sortBy() == null ? "" : criteria.sortBy().toUpperCase()) {
       case "PRICE_ASC" -> Sort.by(Sort.Direction.ASC, "priceMillions");
       case "PRICE_DESC" -> Sort.by(Sort.Direction.DESC, "priceMillions");
@@ -350,8 +332,35 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     };
     int offset = Math.max(0, criteria.offset());
     int size = Math.max(1, Math.min(200, criteria.size()));
-    return mapper.toItems(propertyRepo.findAll(PropertySpecifications.from(criteria),
-        new OffsetPageRequest(offset, size, sort)).getContent());
+    return mapper.toItems(
+        propertyRepo
+            .findAll(PropertySpecifications.from(criteria), new OffsetPageRequest(offset, size, sort))
+            .getContent());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
+    if (urls == null || urls.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    List<String> cleanedUrls =
+        urls.stream()
+            .filter(u -> u != null && !u.isBlank())
+            .map(String::trim)
+            .distinct()
+            .toList();
+    if (cleanedUrls.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    Map<String, IngatlanItem> result = new HashMap<>();
+    for (PropertyEntity entity : propertyRepo.findByUrlIn(cleanedUrls)) {
+      IngatlanItem item = mapper.toItem(entity);
+      if (item != null && item.getUrl() != null) {
+        result.put(item.getUrl(), item);
+      }
+    }
+    return result;
   }
 
   @Override
@@ -374,8 +383,8 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   @Override
   public void saveLastCriteria(SearchCriteria criteria) {
     if (criteria != null) {
-      configRepo.save(new ConfigEntity(CONFIG_KEY_LAST_CRITERIA,
-          objectMapper.writeValueAsString(criteria)));
+      configRepo.save(
+          new ConfigEntity(CONFIG_KEY_LAST_CRITERIA, objectMapper.writeValueAsString(criteria)));
     }
   }
 }

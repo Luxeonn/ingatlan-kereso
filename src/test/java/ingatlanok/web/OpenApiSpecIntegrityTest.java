@@ -39,6 +39,8 @@ class OpenApiSpecIntegrityTest {
             "/api/properties/{id}/price-history:",
             "/api/properties/status-log:",
             "/api/properties/{id}/status-log:",
+            "/api/properties/observations:",
+            "/api/properties/{id}/observations:",
             "/api/properties/discounted:",
             "/api/search:",
             "/api/open-urls:",
@@ -60,9 +62,12 @@ class OpenApiSpecIntegrityTest {
             "PortalStatusDto:",
             "PriceHistoryEntry:",
             "StatusLogEntry:",
+            "SourceListing:",
+            "ListingObservation:",
             "MarketStatsDto:",
             "CitiesResponse:",
-            "StatusResponse:");
+            "StatusResponse:",
+            "PropertyType:");
 
     for (String schema : requiredSchemas) {
       assertTrue(

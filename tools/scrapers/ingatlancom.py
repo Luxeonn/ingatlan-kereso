@@ -4,8 +4,6 @@ Ingatlan.com scraper – curl_cffi Chrome TLS impersonation segítségével.
 A Cloudflare WAF bot-védelmet úgy kerüli meg, hogy a curl_cffi a Chrome böngésző
 pontos TLS ujjlenyomatát (JA3/JA4) és HTTP/2 beállításait emulálja, így a szerver
 nem különbözteti meg a kérést egy valódi böngészőétől.
-
-Nincs szükség headless böngészőre: a válaszidő < 1 mp, memóriahasználat < 30 MB.
 """
 
 from __future__ import annotations
@@ -15,25 +13,34 @@ import time
 import unicodedata
 from typing import Optional
 
+from bs4 import BeautifulSoup, Tag
 from curl_cffi import requests as curl_requests
-from bs4 import BeautifulSoup
 
 from models import SidecarItem, SidecarResponse
 
-
-# Ingatlan.com állandók
 BASE_URL = "https://ingatlan.com"
-ID_PATTERN = re.compile(r"/ingatlan/(\d+)")
+LISTING_ID_URL_PATTERN = re.compile(r"/(?:ingatlan/)?(\d{6,12})(?:[/?#]|$)")
 
-# Ékezet eltávolító a URL slug képzéséhez (a Java SlugUtils.toSlug() tükrözése)
+
 def _to_slug(text: str) -> str:
     """Ékezetmentesítés és kisbetűs slug konverzió."""
     if not text:
         return ""
-    # NFD normalizálás: szétbontja az ékezetes karaktereket alap + módosítóra
     nfkd = unicodedata.normalize("NFKD", text)
     ascii_only = "".join(c for c in nfkd if not unicodedata.combining(c))
     return ascii_only.lower().strip().replace(" ", "-")
+
+
+def _build_range_slug(min_val: Optional[int], max_val: Optional[int], unit: str) -> str:
+    norm_min = min_val if min_val is not None and min_val > 0 else None
+    norm_max = max_val if max_val is not None and 0 < max_val < 9999 else None
+    if norm_min is not None and norm_max is not None:
+        return f"{norm_min}-{norm_max}-{unit}"
+    if norm_min is not None:
+        return f"{norm_min}-{unit}-tol"
+    if norm_max is not None:
+        return f"{norm_max}-{unit}-ig"
+    return ""
 
 
 def _build_search_url(
@@ -41,8 +48,11 @@ def _build_search_url(
     property_type: str = "lakas",
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
+    min_area: Optional[int] = None,
+    max_area: Optional[int] = None,
+    page: int = 1,
 ) -> str:
-    """Az IngatlanComScraper.buildSearchUrl() Java logikájának Python megfelelője."""
+    """Az IngatlanComUrlBuilder.buildSearchUrl() Java logikájának Python megfelelője."""
     city_slug = _to_slug(city) if city else "debrecen"
     if not city_slug:
         city_slug = "debrecen"
@@ -57,27 +67,32 @@ def _build_search_url(
     }
     type_slug = type_map.get(property_type.lower().strip(), "lakas") if property_type else "lakas"
 
-    price_slug = ""
-    if min_price is not None and max_price is not None:
-        price_slug = f"+{min_price}-{max_price}-mFt"
-    elif min_price is not None:
-        price_slug = f"+{min_price}-mFt-tol"
-    elif max_price is not None:
-        price_slug = f"+{max_price}-mFt-ig"
+    segments = ["elado", type_slug]
 
-    return f"{BASE_URL}/lista/elado+{type_slug}+{city_slug}{price_slug}"
+    area_slug = _build_range_slug(min_area, max_area, "m2")
+    if area_slug:
+        segments.append(area_slug)
+
+    price_slug = _build_range_slug(min_price, max_price, "mFt")
+    if price_slug:
+        segments.append(price_slug)
+
+    segments.append(city_slug)
+    if page == 2:
+        segments.append("ar-szerint")
+    elif page >= 3:
+        segments.append("m2-ar-szerint")
+
+    return f"{BASE_URL}/lista/{'+'.join(segments)}"
 
 
 def _parse_price_million(text: str) -> tuple[Optional[float], str]:
-    """
-    Kinyeri az árat M Ft egységben a kártya szövegéből.
-    Visszaadja a (millió Ft, nyers szöveg) párost.
-    """
+    """Kinyeri az árat M Ft egységben a kártya szövegéből."""
     if not text:
         return None, ""
 
-    # "42,5 M Ft" vagy "42.5 M Ft" mintázat
-    m = re.search(r"(\d[\d\s,.]*)\s*M\s*Ft", text, re.IGNORECASE)
+    normalized = text.replace("\xa0", " ")
+    m = re.search(r"(\d[\d\s,.]*)\s*M\s*Ft", normalized, re.IGNORECASE)
     if m:
         raw = m.group(0).strip()
         num_str = m.group(1).replace(" ", "").replace(",", ".")
@@ -86,8 +101,7 @@ def _parse_price_million(text: str) -> tuple[Optional[float], str]:
         except ValueError:
             return None, raw
 
-    # "42 500 000 Ft" vagy "42500000 Ft" mintázat
-    m = re.search(r"(\d[\d\s]*)\s*Ft", text, re.IGNORECASE)
+    m = re.search(r"(\d[\d\s]*)\s*Ft(?!\s*/)", normalized, re.IGNORECASE)
     if m:
         raw = m.group(0).strip()
         num_str = m.group(1).replace(" ", "")
@@ -102,7 +116,12 @@ def _parse_price_million(text: str) -> tuple[Optional[float], str]:
 
 def _parse_area(text: str) -> Optional[float]:
     """Kinyeri az alapterületet m²-ben."""
-    m = re.search(r"(\d[\d,.\s]*)\s*m[²2]", text, re.IGNORECASE)
+    if not text:
+        return None
+    normalized = text.replace("\xa0", " ")
+    m = re.search(r"Alapterület\s*(\d[\d,.\s]*)\s*m[²2]?", normalized, re.IGNORECASE)
+    if not m:
+        m = re.search(r"(?<!/\s)(\d[\d,.\s]*)\s*m[²2]", normalized, re.IGNORECASE)
     if m:
         try:
             return float(m.group(1).replace(" ", "").replace(",", "."))
@@ -113,20 +132,116 @@ def _parse_area(text: str) -> Optional[float]:
 
 def _parse_rooms(text: str) -> Optional[float]:
     """Kinyeri a szobaszámot."""
-    m = re.search(r"(\d+(?:[.,]\d+)?)\s*szob", text, re.IGNORECASE)
-    if m:
-        try:
-            return float(m.group(1).replace(",", "."))
-        except ValueError:
-            pass
-    # "2+1 szoba" formátum
-    m = re.search(r"(\d+)\s*\+\s*(\d+)\s*(?:fél\s*)?szob", text, re.IGNORECASE)
+    if not text:
+        return None
+    normalized = text.replace("\xa0", " ")
+    m = re.search(r"Szobák\s*(\d+)\s*\+\s*(\d+)", normalized, re.IGNORECASE)
     if m:
         try:
             return float(m.group(1)) + 0.5 * float(m.group(2))
         except ValueError:
             pass
+
+    m = re.search(r"Szobák\s*(\d+(?:[.,]\d+)?)", normalized, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1).replace(",", "."))
+        except ValueError:
+            pass
+
+    m = re.search(r"(\d+)\s*\+\s*(\d+)\s*(?:fél\s*)?szob", normalized, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1)) + 0.5 * float(m.group(2))
+        except ValueError:
+            pass
+
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*szob", normalized, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1).replace(",", "."))
+        except ValueError:
+            pass
     return None
+
+
+def _extract_card_fields(card: Tag, city: str, item_id: str) -> tuple[str, Optional[float], str, Optional[float], Optional[float], Optional[str]]:
+    card_text = card.get_text(" ", strip=True).replace("\xa0", " ")
+
+    price_el = card.select_one(".fw-bold.fs-5, .price, .listing-card__price")
+    price_source = price_el.get_text(" ", strip=True) if price_el else card_text
+    price_million, price_raw = _parse_price_million(price_source)
+    if price_million is None:
+        price_million, price_raw = _parse_price_million(card_text)
+
+    addr_el = card.select_one("span.d-block.fs-7.text-gray-900, .address, .listing-card__title")
+    address_text = addr_el.get_text(" ", strip=True) if addr_el else ""
+
+    is_new_label = card.select_one("[data-slug='uj-epitesu'], .listing-label")
+    new_prefix = ""
+    if is_new_label and "új építésű" in is_new_label.get_text(" ", strip=True).lower():
+        new_prefix = " [Új építésű]"
+
+    if address_text:
+        title = f"{address_text}{new_prefix}"
+    elif len(card_text) > 5:
+        title = card_text[:65].strip() + "..."
+    else:
+        title = f"{city} - Ingatlan ({item_id})"
+
+    area = _parse_area(card_text)
+    rooms = _parse_rooms(card_text)
+
+    img_el = card.select_one("img.listing-card-image, img[src*='ingatlancdn.com/resize']")
+    image_url = None
+    if img_el:
+        src = img_el.get("src") or img_el.get("data-src")
+        if isinstance(src, str) and src.startswith("http") and "listing-image-error" not in src:
+            image_url = src
+
+    return title, price_million, price_raw, area, rooms, image_url
+
+
+def _parse_page_cards(html: str, city: str, seen_urls: set[str]) -> list[SidecarItem]:
+    soup = BeautifulSoup(html, "html.parser")
+    page_items: list[SidecarItem] = []
+
+    cards = soup.select("a.listing-card, a[data-listing-id], div.listing-card, a[href*='/ingatlan/']")
+    for card in cards:
+        href = card.get("href", "") if card.name == "a" else ""
+        if not href:
+            inner_a = card.select_one("a[href]")
+            href = inner_a.get("href", "") if inner_a else ""
+        if not isinstance(href, str) or not href.strip():
+            continue
+
+        full_url = href if href.startswith("http") else BASE_URL + ("" if href.startswith("/") else "/") + href
+        data_id = card.get("data-listing-id") or card.get("data-id")
+        item_id = str(data_id).strip() if data_id else ""
+        if not item_id:
+            id_match = LISTING_ID_URL_PATTERN.search(full_url)
+            if id_match:
+                item_id = id_match.group(1)
+
+        if not item_id or full_url in seen_urls:
+            continue
+        seen_urls.add(full_url)
+
+        title, price_million, price_raw, area, rooms, image_url = _extract_card_fields(card, city, item_id)
+        page_items.append(
+            SidecarItem(
+                id=item_id,
+                url=full_url,
+                title=title,
+                priceMillion=price_million,
+                priceRaw=price_raw,
+                areaSquareMeters=area,
+                roomCount=rooms,
+                imageUrl=image_url,
+            )
+        )
+
+    return page_items
 
 
 def scrape(
@@ -134,103 +249,65 @@ def scrape(
     property_type: str = "lakas",
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
+    min_area: Optional[int] = None,
+    max_area: Optional[int] = None,
+    max_pages: int = 1,
 ) -> SidecarResponse:
     """
     Letölti az Ingatlan.com találati oldalát curl_cffi Chrome impersonation-nel,
     és visszaadja a strukturált SidecarResponse-t.
     """
     start_ms = int(time.time() * 1000)
-    search_url = _build_search_url(city, property_type, min_price, max_price)
+    items: list[SidecarItem] = []
+    seen_urls: set[str] = set()
+    pages_to_fetch = max(1, min(max_pages, 5))
 
     try:
-        # Chrome 120 TLS ujjlenyomat emuláció
-        session = curl_requests.Session(impersonate="chrome120")
-        resp = session.get(
-            search_url,
-            headers={
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                "Accept-Language": "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7",
-                "Referer": BASE_URL + "/",
-            },
-            timeout=10,
-        )
-
-        if resp.status_code == 403:
-            elapsed = int(time.time() * 1000) - start_ms
-            return SidecarResponse(
-                portalId="ingatlancom",
-                status="FAILED",
-                items=[],
-                errorMessage=f"Cloudflare 403 Forbidden – TLS impersonation blocked (HTTP {resp.status_code})",
-                elapsedMs=elapsed,
+        session = curl_requests.Session(impersonate="chrome")
+        for page in range(1, pages_to_fetch + 1):
+            search_url = _build_search_url(
+                city, property_type, min_price, max_price, min_area, max_area, page=page
+            )
+            resp = session.get(
+                search_url,
+                headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                    "Accept-Language": "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Referer": BASE_URL + "/",
+                },
+                timeout=12,
             )
 
-        if resp.status_code != 200:
-            elapsed = int(time.time() * 1000) - start_ms
-            return SidecarResponse(
-                portalId="ingatlancom",
-                status="FAILED",
-                items=[],
-                errorMessage=f"HTTP {resp.status_code} hiba",
-                elapsedMs=elapsed,
-            )
-
-        soup = BeautifulSoup(resp.text, "html.parser")
-        items: list[SidecarItem] = []
-        seen_urls: set[str] = set()
-
-        # Hirdetéskártyák keresése – az Ingatlan.com a hirdetéseket /ingatlan/<id> linkekkel tartalmazza
-        for a_tag in soup.select("a[href*='/ingatlan/']"):
-            href = a_tag.get("href", "")
-            if not href:
-                continue
-
-            full_url = href if href.startswith("http") else BASE_URL + ("" if href.startswith("/") else "/") + href
-
-            # Csak valódi hirdetéslinkek (/ingatlan/<számok>)
-            if not re.search(r"/ingatlan/\d+", full_url):
-                continue
-            if full_url in seen_urls:
-                continue
-            seen_urls.add(full_url)
-
-            card_text = a_tag.get_text(" ", strip=True)
-
-            # ID kinyerés
-            id_match = ID_PATTERN.search(full_url)
-            item_id = id_match.group(1) if id_match else ""
-
-            # Adatok kinyerése a kártya szövegéből
-            price_million, price_raw = _parse_price_million(card_text)
-            area = _parse_area(card_text)
-            rooms = _parse_rooms(card_text)
-
-            # Cím konstruálás
-            title = card_text[:65].strip() + "..." if len(card_text) > 5 else f"{city} - Ingatlan ({item_id})"
-
-            items.append(
-                SidecarItem(
-                    id=item_id,
-                    url=full_url,
-                    title=f"{city} - {title}",
-                    priceMillion=price_million,
-                    priceRaw=price_raw,
-                    areaSquareMeters=area,
-                    roomCount=rooms,
+            if resp.status_code == 403 and page == 1:
+                elapsed = int(time.time() * 1000) - start_ms
+                return SidecarResponse(
+                    portalId="ingatlancom",
+                    status="FAILED",
+                    items=[],
+                    errorMessage=f"Cloudflare 403 Forbidden – TLS impersonation blocked (HTTP {resp.status_code})",
+                    elapsedMs=elapsed,
                 )
-            )
+
+            if resp.status_code != 200:
+                if page == 1:
+                    elapsed = int(time.time() * 1000) - start_ms
+                    return SidecarResponse(
+                        portalId="ingatlancom",
+                        status="FAILED",
+                        items=[],
+                        errorMessage=f"HTTP {resp.status_code} hiba",
+                        elapsedMs=elapsed,
+                    )
+                break
+
+            page_items = _parse_page_cards(resp.text, city, seen_urls)
+            if not page_items:
+                break
+            items.extend(page_items)
+            if len(page_items) < 5 and page == 1:
+                break
 
         elapsed = int(time.time() * 1000) - start_ms
-
-        if not items:
-            return SidecarResponse(
-                portalId="ingatlancom",
-                status="SUCCESS",
-                items=[],
-                errorMessage=None,
-                elapsedMs=elapsed,
-            )
-
         return SidecarResponse(
             portalId="ingatlancom",
             status="SUCCESS",

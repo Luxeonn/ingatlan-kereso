@@ -67,7 +67,6 @@ class JofogasPortalEngineTest {
     assertEquals("https://ingatlan.jofogas.hu/hajdu-bihar/debrecen/telek?st=s", url);
   }
 
-
   @Test
   @DisplayName("JofogasPortalEngine determinisztikus mock dokumentummal")
   void testEngineScrapeWithMockFetcher() {

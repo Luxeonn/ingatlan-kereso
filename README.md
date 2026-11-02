@@ -1,24 +1,107 @@
-# Ingatlan Kereső
+# 🏡 Ingatlan Kereső
 
-A real estate search and monitoring app for Hungarian property portals. The Java 25 / Spring Boot backend collects and deduplicates listings; a React and TypeScript frontend provides search, filters, and market summaries.
+[![CI Build](https://img.shields.io/github/actions/workflow/status/Luxeonn/ingatlan-kereso/ci.yml?branch=develop&style=flat-square&label=CI%20Build)](https://github.com/Luxeonn/ingatlan-kereso/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Luxeonn/ingatlan-kereso?style=flat-square&label=Verzi%C3%B3&color=007ec6)](https://github.com/Luxeonn/ingatlan-kereso/releases)
+[![License](https://img.shields.io/badge/Licenc-GPL--3.0-blue?style=flat-square)](LICENSE)
 
-## Supported portals
+![Java](https://img.shields.io/badge/Java-25%20LTS-ed8b00?style=flat-square)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.2-6db33f?style=flat-square)
+![React](https://img.shields.io/badge/React-19.0-61dafb?style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square)
+![Vite](https://img.shields.io/badge/Vite-8.3-646cff?style=flat-square)
+![Node.js](https://img.shields.io/badge/Node.js-22%2B-4c1?style=flat-square)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square)
 
-Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, and Ingatlan.com. Ingatlan.com currently uses a fallback because the portal restricts automated access.
+<br />
 
-## Run locally
+> **Láss át a hazai ingatlanpiaci zajon.**  
+> Egyetlen felület, amely helyetted fésüli át a legnagyobb magyar ingatlanportálokat, kiszűri a trükkös duplikációkat, leleplezi a rejtett árcsökkenéseket, és megmutatja, hol vannak a valódi piaci lehetőségek.
 
-Requirements: JDK 25, Node.js 22, and npm.
+<br />
 
-Start the backend from the repository root:
+---
+
+<br />
+
+## ✨ Miért más az Ingatlan Kereső?
+
+A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti eltérő áron, pontatlan adatokkal és mesterségesen felpumpált kínálattal. Az **Ingatlan Kereső** a háttérben elvégzi a piszkos munkát, hogy neked már csak a tiszta képpel kelljen foglalkoznod:
+
+- 🚀 **Villámgyors, párhuzamos portál-aggregáció**  
+  Egyetlen kereséssel valós időben gyűjti össze a legfontosabb hazai ingatlanportálok kínálatát – több tucat megnyitott böngészőfül nélkül.
+
+- 🧩 **Intelligens duplikáció-szűrés és ár-összevetés**  
+  Felismeri, ha ugyanazt az ingatlant több helyen is hirdetik, egyetlen tiszta kártyára vonja össze őket, és azonnal a **legkedvezőbb elérhető árat** teszi eléd.
+
+- 💎 **Piaci radar és „Alkalmi vétel” vadász**  
+  Saját statisztikai elemzőmotorja folyamatosan méri a helyi piaci árszintet, és automatikusan megjelöli azokat az ingatlanokat, amelyek érdemben a piaci érték alatt érhetők el.
+
+- 🛡️ **Beépített adatminőség-védelem**  
+  Kiszűri a gyanús, hiányos vagy megtévesztő hirdetéseket, így sem a találati listádat, sem a piaci elemzéseket nem torzítják a hibás adatok.
+
+- 📉 **Ártörténet és árváltozás-követés**  
+  Nem felejt: rögzíti az árváltozásokat és az újrahirdetéseket, így pontosan látod, melyik eladó engedett az árból az elmúlt időszakban.
+
+<br />
+
+---
+
+<br />
+
+## 🏗️ Milyen komponensekből épül fel?
+
+A rendszer modern, egymástól függetlenül skálázható rétegekre épül:
+
+| Komponens | Technológiai alap | Mit csinál? |
+| :--- | :--- | :--- |
+| 🎨 **Webes Felület (SPA)** | React 19, TypeScript, Tailwind CSS | Gyors, letisztult keresőfelület, interaktív szűrők és vizuális piaci elemző dashboard. |
+| ⚡ **Központi API Szerver** | Java 25 LTS, Spring Boot | Nagy teljesítményű, virtuális szálakra épülő háttérszolgáltatás a kérések azonnali kiszolgálására. |
+| 🧠 **Elemző és Normalizáló Motor** | Saját üzleti algoritmusok | Hirdetések egységesítése, kereszt-portál összevonás, minőségellenőrzés és piaci statisztikák. |
+| 🕷️ **Portál Konnektorok** | Hibatűrő adatgyűjtő modulok | Párhuzamos és védett kapcsolat a hazai ingatlanportálokkal, automatikus tartalék-stratégiákkal. |
+| 🗄️ **Adattár (Perzisztencia)** | Spring Data JPA, H2 / PostgreSQL | Az ingatlanok, forráshirdetések és történeti ármozgások megbízható tárolása. |
+
+<br />
+
+---
+
+<br />
+
+## 🚀 Hogyan indítsd el?
+
+### 🐳 1. Indítás Dockerrel (A legegyszerűbb mód)
+
+Egyetlen lépésben elindítja a teljes rendszert (adatbázis, háttérszerver és webes felület):
 
 ```bash
-./gradlew bootRun
+# Előre felépített csomagok letöltése és indítása:
+docker compose pull backend frontend
+docker compose up -d --no-build
+
+# VAGY teljes felépítés helyi forráskódból:
+docker compose up -d --build
 ```
 
-On Windows, use `gradlew.bat bootRun`. The API is available at [http://localhost:8080/api/status](http://localhost:8080/api/status).
+> 💡 **Tipp Windows felhasználóknak:** Indítsd el a `scripts/start-docker.bat` fájlt, amely egy kényelmes menüből kínálja fel az indítási opciókat!
 
-In another terminal, start the frontend:
+👉 Indítás után nyisd meg a böngészőben: **[http://localhost:8080](http://localhost:8080)**
+
+<br />
+
+### 💻 2. Lokális fejlesztői indítás
+
+Ha közvetlenül a forráskódból szeretnéd futtatni (**JDK 25** és **Node.js 22+** szükséges):
+
+**1. Háttérszerver (Backend) indítása:**
+
+```bash
+# Linux / macOS
+./gradlew bootRun
+
+# Windows
+.\gradlew.bat bootRun
+```
+
+**2. Webes felület (Frontend) indítása** *(külön terminálban)*:
 
 ```bash
 cd frontend
@@ -26,50 +109,34 @@ npm ci
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Vite proxies API requests to the local backend.
+👉 Fejlesztői felület: **[http://localhost:5173](http://localhost:5173)** *(automatikusan kapcsolódik a `localhost:8080`-on futó szerverhez)*.
 
-## Run with Docker Compose
+<br />
 
-Install and start Docker Desktop, then choose one of these modes from the repository root.
+---
 
-**Build images from the local project:**
+<br />
 
-```bash
-docker compose build
-docker compose up -d --no-build
-```
-
-**Download and run the latest images from GHCR:**
+## 🧪 Minőségellenőrzés
 
 ```bash
-docker compose pull backend frontend
-docker compose up -d --no-build
-```
-
-The second mode pulls `ghcr.io/luxeonn/ingatlan-kereso-backend:latest` and `ghcr.io/luxeonn/ingatlan-kereso-frontend:latest` by default. Image names can be overridden with `BACKEND_IMAGE` and `FRONTEND_IMAGE` in a local `.env` file.
-
-The `Docker Build` workflow updates these `latest` images after pushes to `develop`. To publish a versioned release, run `Docker Release` manually from `main` and select a `patch`, `minor`, `major`, or custom SemVer version. It publishes both GHCR images before creating the matching `vX.Y.Z` Git tag and GitHub Release.
-
-On Windows, `scripts/start-docker.bat` presents both modes. Open [http://localhost:8080](http://localhost:8080) when the containers are healthy. Use `docker compose logs -f backend` to follow logs and `docker compose down` to stop the stack; this keeps the database volume.
-
-## Checks
-
-```bash
+# Backend ellenőrzés és csomagolás
 ./gradlew check bootJar
-cd frontend
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-npm run test:e2e
+
+# Frontend ellenőrzés, tesztek és build
+cd frontend && npm run lint && npm run typecheck && npm run test && npm run build
 ```
 
-The backend uses JUnit 5 and Checkstyle; frontend unit tests use Vitest and browser tests use Playwright.
+<br />
 
-## Project resources
+---
 
-- [Architecture](docs/architecture.md)
-- [REST API specification](openapi/api-spec.yaml)
-- [Security policy](SECURITY.md)
-- [Contributor guide](AGENTS.md)
-- [License](LICENSE) (GPL-3.0)
+<br />
+
+## 📚 További tudnivalók
+
+- 🏛️ [Rendszerarchitektúra részletesen](docs/architecture.md)
+- 🔌 [REST API Specifikáció (OpenAPI)](openapi/api-spec.yaml)
+- 🔒 [Biztonsági irányelvek](SECURITY.md)
+- 🤝 [Fejlesztői irányelvek](AGENTS.md)
+- ⚖️ [Licenc (GPL-3.0)](LICENSE)

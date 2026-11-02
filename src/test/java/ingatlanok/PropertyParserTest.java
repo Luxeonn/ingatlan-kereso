@@ -54,6 +54,9 @@ class PropertyParserTest {
         "2 szoba • 48 m²", PropertyParser.extractDetails("Debrecen 2 szoba • 48 m² tégla"));
     assertEquals("55 m²", PropertyParser.extractDetails("Kiadó lakás 55 m² erkélyes"));
     assertEquals("65 m² 3 szoba", PropertyParser.extractDetails("Felújított ház 65 m² 3 szoba"));
+    assertEquals("35 nm-es", PropertyParser.extractDetails("35 nm-es lakás eladó Miskolc"));
+    assertEquals("42 m2 2 szoba", PropertyParser.extractDetails("Kiadó 42 m2 2 szoba Szeged"));
+    assertEquals("120 négyzetméter", PropertyParser.extractDetails("Családi ház 120 négyzetméter"));
     assertEquals("", PropertyParser.extractDetails(null));
     assertEquals("", PropertyParser.extractDetails("Semmi méretadat"));
   }
@@ -72,6 +75,22 @@ class PropertyParserTest {
     assertEquals(75.0, d2.getAreaSquareMeters());
     assertEquals(3.0, d2.getRoomCount());
     assertEquals(666_667L, d2.getPricePerSquareMeter());
+
+    PriceInfo p20M = PropertyParser.parsePrice("20 M Ft");
+    PropertyDetails dNm = PropertyParser.parseDetails("35 nm-es lakás eladó Miskolc 1 szoba", p20M);
+    assertNotNull(dNm);
+    assertEquals(35.0, dNm.getAreaSquareMeters());
+    assertEquals(1.0, dNm.getRoomCount());
+    assertEquals(571_429L, dNm.getPricePerSquareMeter());
+
+    PropertyDetails dM2 = PropertyParser.parseDetails("45,5 m2 2 szoba", p20M);
+    assertNotNull(dM2);
+    assertEquals(45.5, dM2.getAreaSquareMeters());
+    assertEquals(2.0, dM2.getRoomCount());
+
+    PropertyDetails dNegyzetmeter = PropertyParser.parseDetails("100 négyzetméter", p20M);
+    assertNotNull(dNegyzetmeter);
+    assertEquals(100.0, dNegyzetmeter.getAreaSquareMeters());
   }
 
   @Test
@@ -85,5 +104,29 @@ class PropertyParserTest {
         "fallback",
         PropertyParser.extractFirstGroup("https://dh.hu/nincs-id", pattern, "fallback"));
     assertEquals("fallback", PropertyParser.extractFirstGroup(null, pattern, "fallback"));
+  }
+
+  @Test
+  void testExtractImageUrlAndNewConstructionText() {
+    org.jsoup.nodes.Document doc =
+        org.jsoup.Jsoup.parse(
+            "<div><img data-src=\"//cdn.dh.hu/img1.jpg\" src=\"data:image/png;base64,xxx\" /></div>"
+                + "<div id=\"srcset-div\"><img srcset=\"https://oc.hu/a.jpg 1x, https://oc.hu/b.jpg 2x\" /></div>");
+    assertEquals(
+        "https://cdn.dh.hu/img1.jpg", PropertyParser.extractImageUrl(doc.selectFirst("div")));
+    assertEquals(
+        "https://oc.hu/a.jpg", PropertyParser.extractImageUrl(doc.selectFirst("#srcset-div")));
+    assertNull(PropertyParser.extractImageUrl(null));
+
+    org.junit.jupiter.api.Assertions.assertTrue(
+        PropertyParser.isNewConstructionText("Eladó új építésű lakás Debrecenben"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        PropertyParser.isNewConstructionText("Szerkezetkész ikerház eladó"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        PropertyParser.isNewConstructionText("Ujepitesu lakopark projekt"));
+    org.junit.jupiter.api.Assertions.assertFalse(
+        PropertyParser.isNewConstructionText("Felújított panellakás", null, ""));
+    org.junit.jupiter.api.Assertions.assertFalse(
+        PropertyParser.isNewConstructionText((String[]) null));
   }
 }

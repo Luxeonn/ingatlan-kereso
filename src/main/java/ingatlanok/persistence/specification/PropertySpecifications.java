@@ -16,10 +16,17 @@ public final class PropertySpecifications {
   private PropertySpecifications() {}
 
   public static Specification<PropertyEntity> from(PropertySearchCriteria criteria) {
-    Specification<PropertyEntity> spec = (root, query, cb) -> cb.conjunction();
     if (criteria == null) {
-      return spec;
+      return (root, query, cb) -> cb.conjunction();
     }
+    Specification<PropertyEntity> spec = buildLocationAndPortalSpecs(criteria);
+    spec = spec.and(buildNumericRangeSpecs(criteria));
+    return spec.and(buildFlagSpecs(criteria));
+  }
+
+  private static Specification<PropertyEntity> buildLocationAndPortalSpecs(
+      PropertySearchCriteria criteria) {
+    Specification<PropertyEntity> spec = (root, query, cb) -> cb.conjunction();
     if (criteria.cities() != null && !criteria.cities().isEmpty()) {
       Set<String> cities =
           criteria.cities().stream().map(CityUtils::normalizeCityKey).collect(Collectors.toSet());
@@ -30,6 +37,12 @@ public final class PropertySpecifications {
           criteria.portals().stream().map(p -> p.toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
       spec = spec.and((root, query, cb) -> cb.lower(root.get("portal")).in(portals));
     }
+    return spec;
+  }
+
+  private static Specification<PropertyEntity> buildNumericRangeSpecs(
+      PropertySearchCriteria criteria) {
+    Specification<PropertyEntity> spec = (root, query, cb) -> cb.conjunction();
     if (criteria.minPrice() != null) {
       spec = spec.and((root, query, cb) -> cb.ge(root.get("priceMillions"), criteria.minPrice()));
     }
@@ -48,11 +61,19 @@ public final class PropertySpecifications {
     if (criteria.maxRooms() != null) {
       spec = spec.and((root, query, cb) -> cb.le(root.get("rooms"), criteria.maxRooms()));
     }
+    return spec;
+  }
+
+  private static Specification<PropertyEntity> buildFlagSpecs(PropertySearchCriteria criteria) {
+    Specification<PropertyEntity> spec = (root, query, cb) -> cb.conjunction();
     if (criteria.excludeViewed()) {
       spec = spec.and((root, query, cb) -> cb.isFalse(root.get("viewed")));
     }
     if (criteria.onlyDiscounted()) {
       spec = spec.and((root, query, cb) -> cb.lt(root.get("priceDelta"), 0L));
+    }
+    if (criteria.onlyNewConstruction()) {
+      spec = spec.and((root, query, cb) -> cb.isTrue(root.get("newConstruction")));
     }
     return spec;
   }
