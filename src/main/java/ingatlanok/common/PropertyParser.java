@@ -10,7 +10,9 @@ import ingatlanok.model.PropertyDetails;
 public final class PropertyParser {
 
   private static final Pattern PRICE_PATTERN =
-      Pattern.compile("(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d[\\d\\s]*\\s*Ft)", Pattern.CASE_INSENSITIVE);
+      Pattern.compile(
+          "(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d{1,3}(?:[.\\s\u00A0]\\d{3})+\\s*Ft|\\d[\\d\\s\u00A0]*\\s*Ft)",
+          Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern DETAILS_PATTERN =
       Pattern.compile(
           "(\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter)[^\\n•|]*\\d+\\s*szoba[a-záéíóöőúüű]*"
@@ -22,7 +24,7 @@ public final class PropertyParser {
   private static final Pattern MILLION_PRICE_PATTERN =
       Pattern.compile("(\\d+[,.]?\\d*)\\s*M\\s*Ft", Pattern.CASE_INSENSITIVE);
   private static final Pattern HUF_PRICE_PATTERN =
-      Pattern.compile("(\\d[\\d\\s]*)\\s*Ft", Pattern.CASE_INSENSITIVE);
+      Pattern.compile("([\\d\\s.\u00A0]+)\\s*Ft", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
   private static final Pattern AREA_PATTERN =
       Pattern.compile(
@@ -77,7 +79,7 @@ public final class PropertyParser {
     Matcher mHuf = HUF_PRICE_PATTERN.matcher(raw);
     if (mHuf.find()) {
       try {
-        String cleanDigits = mHuf.group(1).replaceAll("\\s+", "");
+        String cleanDigits = mHuf.group(1).replaceAll("[\\s.\u00A0]+", "");
         long huf = Long.parseLong(cleanDigits);
         double million = Math.round((huf / 1_000_000.0) * 100.0) / 100.0;
         return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
@@ -123,7 +125,8 @@ public final class PropertyParser {
     }
 
     Long pricePerM2 = null;
-    if (area != null && area > 0 && priceInfo != null && priceInfo.getAmountHuf() != null) {
+    if (area != null && area > 0 && priceInfo != null
+        && priceInfo.getAmountHuf() != null && priceInfo.getAmountHuf() > 0) {
       pricePerM2 = Math.round((double) priceInfo.getAmountHuf() / area);
     }
 

@@ -317,6 +317,7 @@ The UI is decomposed into distinct, single-responsibility panel views and reusab
 2. **JaCoCo Quality Gate**: Instruction and line coverage must exceed 80% across core, persistence, and domain packages (current achievement: **87.96%** line coverage).
 3. **Checkstyle Static Analysis**: Checkstyle 10.21.4 verifies compliance with `config/checkstyle/checkstyle.xml` (`FileLength <= 450`, 2-space `Indentation`, strict whitespace tokens, and Clean Code complexity caps; 0 warnings permitted).
 4. **Frontend Verification**: TypeScript compilation (`npm run typecheck`), ESLint (`npm run lint` with `--max-warnings 0` and `max-lines: 350`), Vitest unit tests (`npm test` using `testFixtures.ts`), and Playwright E2E browser tests (`npm run test:e2e`).
+5. **Business Logic Regression Protection & Regression Test First Protocol**: All business calculation modifications adhere strictly to the 6-step cycle documented in [docs/business-logic-regression.md](business-logic-regression.md), validated against the versioned static Golden Test Dataset (`src/test/resources/fixtures/golden/business-regression-dataset.json`) across unit, fixture, and persistence levels without external network or LLM dependencies.
 
 ---
 

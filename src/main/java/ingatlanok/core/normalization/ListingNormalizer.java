@@ -218,10 +218,11 @@ public class ListingNormalizer {
   }
 
   private long calculateSqmPrice(PriceInfo priceInfo, Double area) {
-    if (area == null || area <= 0 || priceInfo == null || priceInfo.getAmountHuf() == null) {
+    if (area == null || area <= 0 || priceInfo == null
+        || priceInfo.getAmountHuf() == null || priceInfo.getAmountHuf() <= 0) {
       return 0;
     }
-    return Math.round(priceInfo.getAmountHuf() / area);
+    return Math.round((double) priceInfo.getAmountHuf() / area);
   }
 
   private String resolveCity(RawPropertyListing raw, SearchCriteria criteria) {

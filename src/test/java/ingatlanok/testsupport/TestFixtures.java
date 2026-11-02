@@ -101,6 +101,52 @@ public final class TestFixtures {
     return item;
   }
 
+  public static IngatlanItem validHouseItem(
+      String id, String city, long amountHuf, double areaM2, double rooms) {
+    String url = "https://oc.hu/ingatlan/" + id;
+    PriceInfo priceInfo = validPriceInfo(amountHuf);
+    PropertyDetails detailsInfo = validPropertyDetails(areaM2, rooms, amountHuf);
+    IngatlanItem item =
+        IngatlanItem.builder()
+            .id(id)
+            .source(validPortalSource("oc", "Otthon Centrum"))
+            .url(url)
+            .title("Eladó családi ház " + city + " (" + id + ")")
+            .priceInfo(priceInfo)
+            .city(city)
+            .location(city + ", Kertváros")
+            .detailsInfo(detailsInfo)
+            .discoveredAt("2026-03-15 10:00:00")
+            .isNew(true)
+            .propertyType(PropertyType.HAZ)
+            .build();
+    item.setQualityScore(100);
+    return item;
+  }
+
+  public static IngatlanItem validItemWithQuality(
+      String id, String city, PropertyType type, long amountHuf, double areaM2, int qualityScore) {
+    String url = "https://dh.hu/ingatlan/" + id;
+    PriceInfo priceInfo = validPriceInfo(amountHuf);
+    PropertyDetails detailsInfo = validPropertyDetails(areaM2, 2.0, amountHuf);
+    IngatlanItem item =
+        IngatlanItem.builder()
+            .id(id)
+            .source(validPortalSource("dh", "Duna House"))
+            .url(url)
+            .title("Ingatlan " + city + " (" + id + ")")
+            .priceInfo(priceInfo)
+            .city(city)
+            .location(city)
+            .detailsInfo(detailsInfo)
+            .discoveredAt("2026-03-15 10:00:00")
+            .isNew(true)
+            .propertyType(type)
+            .build();
+    item.setQualityScore(qualityScore);
+    return item;
+  }
+
   public static SearchCriteria validSearchCriteria(String city) {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCity(city);

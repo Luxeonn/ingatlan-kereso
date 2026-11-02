@@ -87,6 +87,9 @@ public class MarketAnalyticsEngine {
   }
 
   private void accumulatePriceMillion(List<Double> pricesMillion, IngatlanItem item) {
+    if (!isEligibleForMedian(item)) {
+      return;
+    }
     if (item.getPriceInfo() != null
         && item.getPriceInfo().getAmountMillion() != null
         && item.getPriceInfo().getAmountMillion() > 0) {
@@ -95,14 +98,14 @@ public class MarketAnalyticsEngine {
   }
 
   private void accumulatePricePerM2(MarketStatsAccumulator acc, IngatlanItem item) {
+    if (!isEligibleForMedian(item)) {
+      return;
+    }
     Long pricePerM2 = resolvePricePerM2(item);
     if (pricePerM2 == null || pricePerM2 <= 0) {
       return;
     }
     acc.allPricesPerM2.add(pricePerM2);
-    if (!isEligibleForMedian(item)) {
-      return;
-    }
     PropertyType type = item.getPropertyType();
     if (type.isResidential()) {
       acc.residentialPricesM2.add(pricePerM2);

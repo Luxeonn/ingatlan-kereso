@@ -112,6 +112,8 @@ ingatlan-kereso/
 8. **AI Token-Efficiency & High-Signal Tooling:**
    - **Shared Test Fixtures (Object Mother):** Use `TestFixtures.java` (`src/test/java/ingatlanok/testsupport/TestFixtures.java`) in backend tests and `testFixtures.ts` (`frontend/src/test/testFixtures.ts`) in frontend tests instead of repeating 25-line item setup blocks.
    - **Quiet Test Logging & Compact Verification:** `src/test/resources/logback-test.xml` restricts test logs to `WARN`. Use `bash scripts/ai-verify.sh [--backend|--frontend|--all]` for compact, single-line PASS summaries or focused error excerpts.
+9. **Business Logic Regression Protection & Regression Test First Protocol:**
+   - Adhere strictly to the **Regression Test First** cycle documented in [docs/business-logic-regression.md](docs/business-logic-regression.md): identify and reproduce the defect, write a failing regression test (Red) proving the defect prior to implementation, apply the minimal targeted fix (Green), and verify against the versioned static Golden Test Dataset (`src/test/resources/fixtures/golden/business-regression-dataset.json`) without external network or LLM dependencies.
 
 ---
 
@@ -142,6 +144,7 @@ ingatlan-kereso/
 > 6. **Thematic Agent Approval Gate & Review Risk Matrix:** Require sign-off from `fullstack-architect`, `scraper-security-engineer`, and `quality-devops-engineer` adhering to the Review Risk Matrix (`docs/pr-compliance.md`) using standard tokens (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, `[NOT_VERIFIED]`) with one concise sentence rationale. Legacy tokens like `[OK]` are strictly forbidden. Refer to [docs/architecture.md](docs/architecture.md) and [docs/pr-compliance.md](docs/pr-compliance.md).
 > 7. **Green Gate & Never Auto-Merge:** PRs are mergeable only when 100% of CI checks are green. Never run `gh pr merge`; merging is reserved for the human repository owner.
 > 8. **Standardized Issue Templates:** Always follow `.github/ISSUE_TEMPLATE/bug_report.yml` (`fix: <summary>`, `bug` label) and `.github/ISSUE_TEMPLATE/feature_request.yml` (`feat: <summary>`, `enhancement` label) as the single source of truth.
+> 9. **Regression Test First Discipline:** Follow the 6-step cycle in [docs/business-logic-regression.md](docs/business-logic-regression.md); prove the defect with a failing test (Red) before fixing the implementation (Green).
 
 ---
 
