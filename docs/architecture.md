@@ -340,83 +340,83 @@ The UI is decomposed into distinct, single-responsibility panel views and reusab
 
 ---
 
-## 10. Review-Kockázati Mátrix & AI-Agent Governance
+## 10. Review Risk Matrix & AI Agent Governance
 
-A módosítások minőségének és integritásának védelmében a repository szigorú Review-Kockázati Mátrixot alkalmaz. A részletes irányelvek és a CI megfelelőségi kapuk specifikációja a [PR Megfelelőségi Útmutatóban](pr-compliance.md) található.
+To safeguard the quality and integrity of changes, the repository enforces a strict Review Risk Matrix. Detailed directives and CI compliance gate specifications are documented in the [PR Compliance Guide](pr-compliance.md).
 
-### 10.1 Review-Kockázati Mátrix
+### 10.1 Review Risk Matrix
 
-| Módosítás típusa | Érintett fájlok és útvonalak | Elvárt ellenőrzések | Kötelezően bevonandó specialista |
+| Modification Type | Affected Files & Paths | Expected Verifications | Mandatory Specialist Sign-Off |
 | :--- | :--- | :--- | :--- |
-| **Backend üzleti logika** | `src/main/java/ingatlanok/core/**`, `src/main/java/ingatlanok/model/**` | Egység- és integrációs tesztek, JaCoCo $\ge 80\%$, Checkstyle | `fullstack-architect`, `quality-devops-engineer` |
-| **API & OpenAPI szerződés** | `openapi/**`, `src/main/java/ingatlanok/web/**`, `src/main/java/ingatlanok/presentation/**`, `frontend/src/types/generated-api.ts` | OpenAPI drift ellenőrzés (`npm run generate-api`), DTO integritás | `fullstack-architect` |
-| **DB & Perzisztencia** | `src/main/java/ingatlanok/persistence/**` | JPA entitás- és repository-tesztek, perzisztencia absztrakció ellenőrzése | `fullstack-architect` |
-| **Scraper, parser & külső I/O** | `src/main/java/ingatlanok/portal/**`, `HttpFetcher.java`, `PropertyParser.java`, `tools/scrapers/**` | Scraper stabilitás (0-crash), ReDoS védelem, SSRF izoláció, timeout kezelés | `scraper-security-engineer` |
-| **Frontend UI & Állapot** | `frontend/**` (kivéve `generated-api.ts`) | ESLint (`--max-warnings 0`), `npm run typecheck`, Vitest tesztek, Playwright E2E | `fullstack-architect` |
-| **CI, tesztek & Governance** | `.github/**`, `.agents/**`, `scripts/**`, `AGENTS.md`, `GEMINI.md`, `gemini.md`, `CONTRIBUTING.md`, `docs/**` | Governance validátor (`validate-skills.sh`), PR megfelelőségi tesztek | `quality-devops-engineer` |
-| **Architektúra & Modulhatárok** | `package-info.java`, réteghatárok, `build.gradle.kts` függőségek | ArchUnit (`ArchitectureRulesTest.java`), fordító -Werror szabályok | `fullstack-architect` |
+| **Backend business logic** | `src/main/java/ingatlanok/core/**`, `src/main/java/ingatlanok/model/**` | Unit & integration tests, JaCoCo $\ge 80\%$, Checkstyle | `fullstack-architect`, `quality-devops-engineer` |
+| **API & OpenAPI contract** | `openapi/**`, `src/main/java/ingatlanok/web/**`, `src/main/java/ingatlanok/presentation/**`, `frontend/src/types/generated-api.ts` | OpenAPI drift check (`npm run generate-api`), DTO integrity | `fullstack-architect` |
+| **DB & Persistence** | `src/main/java/ingatlanok/persistence/**` | JPA entity & repository tests, storage abstraction verification | `fullstack-architect` |
+| **Scraper, parser & external I/O** | `src/main/java/ingatlanok/portal/**`, `HttpFetcher.java`, `PropertyParser.java`, `tools/scrapers/**` | Scraper resilience (0-crash), ReDoS protection, SSRF isolation, timeout handling | `scraper-security-engineer` |
+| **Frontend UI & State** | `frontend/**` (except `generated-api.ts`) | ESLint (`--max-warnings 0`), `npm run typecheck`, Vitest suites, Playwright E2E | `fullstack-architect` |
+| **CI, testing & Governance** | `.github/**`, `.agents/**`, `scripts/**`, `AGENTS.md`, `GEMINI.md`, `gemini.md`, `CONTRIBUTING.md`, `docs/**` | Governance validator (`validate-skills.sh`), PR compliance tests | `quality-devops-engineer` |
+| **Architecture & Module boundaries** | `package-info.java`, layer boundaries, `build.gradle.kts` dependencies | ArchUnit (`ArchitectureRulesTest.java`), javac -Werror rules | `fullstack-architect` |
 
-### 10.2 Szabványos Döntési Státuszok (Decision Tokens)
+### 10.2 Standard Decision Tokens
 
-Minden Pull Request leírás Thematic Gate blokkjában kizárólag az alábbi négy szabványos token használható:
-- **`[NO_FINDING]`**: Az ellenőrzés sikeresen lefutott, hibát vagy szabálysértést nem talált.
-- **`[NOT_APPLICABLE]`**: Az adott szakterületet a PR módosításai nem érintik (kötelezően 1 mondatos indoklással).
-- **`[NOT_VERIFIED]`**: Nem tekinthető sikeres ellenőrzésnek; a CI compliance gate hibát jelez és blokkolja a jóváhagyást.
-- **`[FINDING]`**: Szabálysértés vagy hiba található; javításig blokkoló jellegű.
+Every Pull Request description's Thematic Gate block must strictly use one of the following four standardized decision tokens:
+- **`[NO_FINDING]`**: The review completed successfully with no defect or violation identified.
+- **`[NOT_APPLICABLE]`**: The change does not affect the specialist's domain (mandatory 1-sentence rationale required).
+- **`[NOT_VERIFIED]`**: Review not completed or unable to verify; the CI compliance gate treats this as an error and blocks approval.
+- **`[FINDING]`**: A violation or defect was identified; blocking until remediated.
 
-A korábbi nem szabványos jelölések (pl. `[OK]`, `[NOK]`, `[PASS]`) használata szigorúan tilos.
+Legacy or informal status markers (such as `[OK]`, `[NOK]`, `[PASS]`) are strictly forbidden.
 
 ---
 
-## 11. Architektúra-regressziós Kapuk & Séma Evolúciós Szabályzat
+## 11. Architecture Regression Gates & Schema Evolution Policy
 
-### 11.1 Automatizált ArchUnit Szabálykészlet (`ArchitectureRulesTest.java`)
+### 11.1 Automated ArchUnit Rule Catalog (`ArchitectureRulesTest.java`)
 
-A kódbázis rétegintegritását és biztonsági határait az `ingatlanok.architecture.ArchitectureRulesTest` osztály bytecode-szintű ArchUnit tesztjei védik:
+Layer integrity and security boundaries are enforced at the bytecode level by `ingatlanok.architecture.ArchitectureRulesTest`:
 
-| ArchUnit Szabály | Ellenőrzött Feltétel | Architektúrális Cél & Indoklás |
+| ArchUnit Rule | Checked Invariant | Architectural Purpose & Rationale |
 | :--- | :--- | :--- |
-| `MODEL_AND_COMMON_INDEPENDENT` | `model` és `common` nem függ a felsőbb rétegektől | Alapvető típusok és segédosztályok függetlensége. |
-| `CORE_AND_PERSISTENCE_AND_PORTAL_DO_NOT_DEPEND_ON_WEB_OR_CONFIG` | Alsó rétegek nem függhetnek `web` vagy `config` csomagtól | Fentről lefelé mutató egyirányú rétegződés. |
-| `PERSISTENCE_AND_PORTAL_DO_NOT_DEPEND_ON_PRESENTATION` | `persistence` és `portal` nem importálhat `presentation` osztályt | Scraper és adatbázis réteg függetlensége a megjelenítési DTO-któl. |
-| `CORE_DOES_NOT_DEPEND_ON_PRESENTATION` | `core` üzleti logika nem importálhat `presentation` DTO-t | Üzleti motorok függetlensége a REST megjelenítési modelltől. |
-| `PORTAL_DOES_NOT_DEPEND_ON_PERSISTENCE` | `portal` csomag soha nem importálhat `persistence` osztályt | Portál scraper motorok izolációja az adatbázis/tárolási rétegtől. |
-| `PORTAL_DOES_NOT_DEPEND_ON_CORE` | `portal` csomag nem importálhat `core` osztályokat | Réteginverzió és ciklusok megelőzése; portálok `RawListingNormalizer` interfészt használnak. |
-| `CORE_AND_MODEL_AND_PORTAL_DO_NOT_DEPEND_ON_SPRING_WEB` | Belső rétegek nem függhetnek Spring Web és Servlet API-tól | Webes keretrendszer-szivárgás megakadályozása a belső rétegekben. |
-| `CONTROLLER_LOCATION_INTEGRITY` | `@RestController` és `@Controller` kizárólag `web` csomagban lehet | REST végpontok központosított elhelyezése a web rétegben. |
-| `CONTROLLERS_DO_NOT_DEPEND_ON_CORE_ENGINES` | `web` kontrollerek nem importálhatnak közvetlenül `core` motorokat | Végpontok kizárólag a `presentation` facádon keresztül orkesztrálnak. |
-| `STORAGE_ABSTRACTION_INTEGRITY` | Perzisztencián kívüli kód nem függhet entity/repository csomagoktól | Tárolási részletek kizárólag `ListingStorage` és `ConfigStorage` felületeken át érhetők el. |
-| `PERSISTENCE_INTERNALS_ENCAPSULATION` | Belső szolgáltatások és mappers nem szivároghatnak ki | Csak publikus tárolási szerződések érhetők el kívülről. |
-| `JPA_STORAGE_IMPLEMENTATION_ENCAPSULATION` | `JpaIngatlanStorage` nem hivatkozható közvetlenül | Konkrét implementáció elrejtése a tárolási interfészek mögé. |
-| `READ_ONLY_DTOS_MUST_NOT_HAVE_SETTERS` | DTO-k és értékobjektumok immutabilitása | `@Setter` tiltása olvasási DTO-kon; állapotmódosítás megelőzése. |
-| `MAPSTRUCT_MAPPERS_MUST_ENFORCE_ERROR_REPORTING` | MapStruct `unmappedTargetPolicy = ReportingPolicy.ERROR` | Lefedetlen mezők kötelező fordítási idejű elkapása. |
-| `SINGLE_POINT_SSRF_PROTECTION` | `Jsoup.connect` kizárólag `HttpFetcher`-ben futhat | Egypontos hálózati SSRF és timeout izoláció. |
-| `NO_SYNCHRONIZED_METHODS_IN_VIRTUAL_THREAD_PATHS` | `synchronized` kulcsszó tilalma szolgáltatási útvonalakon | Java 25 virtual thread carrier-thread pinning megelőzése. |
+| `MODEL_AND_COMMON_INDEPENDENT` | `model` and `common` must not depend on higher layers | Ensures foundational domain types and utilities remain strictly independent. |
+| `CORE_AND_PERSISTENCE_AND_PORTAL_DO_NOT_DEPEND_ON_WEB_OR_CONFIG` | Lower layers must not depend on `web` or `config` packages | Enforces strict downward unidirectional dependency flow. |
+| `PERSISTENCE_AND_PORTAL_DO_NOT_DEPEND_ON_PRESENTATION` | `persistence` and `portal` must not import `presentation` classes | Decouples scrapers and database persistence from presentation DTOs. |
+| `CORE_DOES_NOT_DEPEND_ON_PRESENTATION` | `core` business logic must not import `presentation` DTOs | Keeps core analytical engines independent of REST presentation models. |
+| `PORTAL_DOES_NOT_DEPEND_ON_PERSISTENCE` | `portal` package must never import `persistence` classes | Isolates portal scraper engines from storage and persistence layers. |
+| `PORTAL_DOES_NOT_DEPEND_ON_CORE` | `portal` package must not import `core` classes | Prevents layer inversion and circularity; portal engines use `RawListingNormalizer`. |
+| `CORE_AND_MODEL_AND_PORTAL_DO_NOT_DEPEND_ON_SPRING_WEB` | Internal layers must not depend on Spring Web or Servlet APIs | Prevents web framework leaking into domain, persistence, and scrapers. |
+| `CONTROLLER_LOCATION_INTEGRITY` | `@RestController` and `@Controller` must reside only in `web` | Centralizes REST endpoints strictly within the web presentation layer. |
+| `CONTROLLERS_DO_NOT_DEPEND_ON_CORE_ENGINES` | `web` controllers must not directly import `core` engines | Enforces controller orchestration exclusively through presentation facades. |
+| `STORAGE_ABSTRACTION_INTEGRITY` | Code outside persistence cannot depend on entity/repository packages | Storage details are accessed exclusively via `ListingStorage` and `ConfigStorage`. |
+| `PERSISTENCE_INTERNALS_ENCAPSULATION` | Internal persistence services and mappers must not leak | Only public storage contracts are exposed externally. |
+| `JPA_STORAGE_IMPLEMENTATION_ENCAPSULATION` | `JpaIngatlanStorage` cannot be referenced directly | Hides concrete storage implementation behind interfaces. |
+| `READ_ONLY_DTOS_MUST_NOT_HAVE_SETTERS` | DTO and value object immutability | Forbids `@Setter` on read-only DTOs; prevents post-construction mutation. |
+| `MAPSTRUCT_MAPPERS_MUST_ENFORCE_ERROR_REPORTING` | MapStruct `unmappedTargetPolicy = ReportingPolicy.ERROR` | Catches unmapped target fields at compile time. |
+| `SINGLE_POINT_SSRF_PROTECTION` | `Jsoup.connect` runs exclusively inside `HttpFetcher` | Centralizes outbound network SSRF and timeout containment. |
+| `NO_SYNCHRONIZED_METHODS_IN_VIRTUAL_THREAD_PATHS` | Forbids `synchronized` keywords on service paths | Prevents carrier thread pinning on Java 25 virtual threads. |
 
-A szabályok megbízható működését az `ingatlanok.architecture.ArchitectureRulesNegativeTest` negatív tesztjei demonstrálják szintetikus rétegsértések ellenében.
+Deterministic verification of these rules is demonstrated by `ingatlanok.architecture.ArchitectureRulesNegativeTest` using synthetic layer violations.
 
-### 11.2 Szerződés- és Séma Védelem
+### 11.2 Contract & Schema Protection
 
-1. **OpenAPI Végpont-leltár és Drift Védelem (`OpenApiSpecIntegrityTest`)**:
-   - Minden Spring MVC `@RestController` végpontnak automatikusan szerepelnie kell az `openapi/api-spec.yaml` specifikációban.
-   - A frontend TypeScript típusok (`generated-api.ts`) kizárólag a generátorból származnak; drift esetén a CI azonnal elbukik.
-2. **JPA Séma Integritás & Hibernate DDL Irányelvek (`JpaSchemaIntegrityTest`)**:
-   - Az alkalmazás Hibernate `ddl-auto: update` stratégiát alkalmaz éles és fejlesztői adatbázisokhoz.
-   - **Destruktív műveletek tilalma**: Meglévő oszlopok törlése, átnevezése vagy típusának szűkítése tilos, mert a Hibernate `update` nem hajt végre oszloptörlést, a típuseltérés pedig elindítási hibát okoz.
-   - **Biztonságos sémaevolúció**: Új oszlopok bevezetése kizárólag nullázhatóként (`nullable = true`) vagy meglévő alapértelmezett értékkel megengedett.
-   - Az összes entitás metamodelljének érvényességét a `JpaSchemaIntegrityTest` automatikusan ellenőrzi.
+1. **OpenAPI Endpoint Inventory & Drift Protection (`OpenApiSpecIntegrityTest`)**:
+   - Every Spring MVC `@RestController` endpoint mapping is reflectively verified against `openapi/api-spec.yaml`.
+   - Frontend TypeScript types (`generated-api.ts`) derive exclusively from the generated spec; any schema drift fails CI immediately.
+2. **JPA Schema Integrity & Hibernate DDL Evolution (`JpaSchemaIntegrityTest`)**:
+   - The application relies on Hibernate `ddl-auto: update` for production and development databases.
+   - **Destructive Operation Ban**: Dropping columns, renaming columns, or narrowing data types is prohibited, as Hibernate `update` does not drop columns and type mismatches cause startup failures.
+   - **Safe Schema Evolution**: New columns must be nullable (`nullable = true`) or define explicit default values.
+   - Metamodel validity across all JPA entities is automatically verified by `JpaSchemaIntegrityTest`.
 
-### 11.3 Issue-Scope Módosítási Korlátok & Kivételkezelési (Waiver) Folyamat
+### 11.3 Issue-Scope Boundaries & Architectural Waiver Process
 
-1. **Szigorú Scope-Határok**:
-   - Minden commitnak és diff-szegmensnek közvetlenül az adott issue elfogadási kritériumaihoz kell kapcsolódnia.
-   - Tilos az önálló, nem kért refaktor, verziófrissítés, kódformázási átírás vagy szerződésmódosítás.
-2. **Kismértékű Támogató Módosítások (Supporting Edits)**:
-   - Kizárólag akkor végezhetők el, ha nélkülük az elfogadási kritérium nem teljesíthető (pl. közös segédfüggvény paraméterezése).
-   - A PR leírás `🛠️ Mit módosít` és `📋 Acceptance Criteria Traceability` szekciójában kötelező az indoklás.
-3. **Out-of-Scope Felfedezések**:
-   - Ha egy agent vagy fejlesztő javítandó problémát talál a feladaton kívül, azt dokumentálja és javasoljon új issue-t; a kódot ne módosítsa automatikusan.
-4. **Architekturális Kivételkezelési (Waiver) Folyamat**:
-   - Ha egy architekturális szabály alól technikai kényszer miatt kivételt kell tenni, a fejlesztő köteles ArchUnit `@ArchIgnore` vagy Checkstyle suppress annotációt elhelyezni a kódban indoklással.
-   - A PR leírásában a `fullstack-architect` specialista jóváhagyása kötelező a kivétel explicit elfogadásával.
+1. **Strict Scope Containment**:
+   - Every commit and diff segment must directly trace back to the target issue's acceptance criteria.
+   - Unrequested refactoring, technology upgrades, unsolicited formatting changes, or contract modifications are strictly forbidden.
+2. **Supporting Edits**:
+   - Permitted only when strictly necessary to fulfill an acceptance criterion (e.g., parameterizing a shared utility).
+   - Must be explicitly documented in the PR body under `What changes` and `Acceptance Criteria Traceability`.
+3. **Out-of-Scope Discoveries**:
+   - When an agent or developer discovers an improvement outside the issue scope, document the motivation and propose a separate issue; do not execute it opportunistically.
+4. **Architectural Waiver Process**:
+   - When technical constraints require an exception to an architectural rule, use `@ArchIgnore` or Checkstyle suppression with an inline explanation.
+   - The PR description must receive explicit sign-off from `fullstack-architect` approving the waiver with documented rationale.
 
