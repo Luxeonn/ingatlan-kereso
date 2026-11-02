@@ -37,6 +37,8 @@ Formátum (Markdown táblázat vagy strukturált lista):
 | Kritérium 2 leírása | `frontend/src/.../MyView.tsx` | `npm run test` (Vitest PASS) |
 ```
 
+A Traceability táblázatnak igazolnia kell, hogy a diff-ben található módosítások szigorúan az issue scope-jához igazodnak. Unsolicited refaktorok, verzióemelések vagy nem kért szerződésmódosítások esetén a compliance kapu elutasítja a PR-t. Támogató jellegű kiegészítések csak explicit indoklással fogadhatók el.
+
 ### 2.4. 🧪 Tesztelés és Ellenőrzés
 A helyben lefuttatott ellenőrző parancsok és azok kimeneti eredményei (pl. `./gradlew check`, `npm run lint`, `bash scripts/validate-skills.sh -v`).
 

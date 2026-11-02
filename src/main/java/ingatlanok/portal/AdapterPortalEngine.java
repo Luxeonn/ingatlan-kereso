@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 
 import ingatlanok.common.AppLogger;
-import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
@@ -19,18 +18,18 @@ public class AdapterPortalEngine implements PortalEngine {
   private static final AppLogger LOGGER = AppLogger.getLogger(AdapterPortalEngine.class);
 
   private final PortalAdapter adapter;
-  private final ListingNormalizer normalizer;
+  private final RawListingNormalizer normalizer;
 
   public AdapterPortalEngine(PortalAdapter adapter) {
-    this(adapter, new ListingNormalizer());
+    this(adapter, RawListingNormalizer.getDefault());
   }
 
-  public AdapterPortalEngine(PortalAdapter adapter, ListingNormalizer normalizer) {
+  public AdapterPortalEngine(PortalAdapter adapter, RawListingNormalizer normalizer) {
     if (adapter == null) {
       throw new IllegalArgumentException("PortalAdapter cannot be null");
     }
     this.adapter = adapter;
-    this.normalizer = normalizer != null ? normalizer : new ListingNormalizer();
+    this.normalizer = normalizer != null ? normalizer : RawListingNormalizer.getDefault();
   }
 
   @Override
@@ -174,7 +173,7 @@ public class AdapterPortalEngine implements PortalEngine {
     return adapter;
   }
 
-  public ListingNormalizer getNormalizer() {
+  public RawListingNormalizer getNormalizer() {
     return normalizer;
   }
 }

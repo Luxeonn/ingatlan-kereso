@@ -56,6 +56,9 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Require a Conventional Commit PR title.
    - Run the shared CI checks on the selected commit before manual release or `develop` image publication.
    - Keep release tags and GHCR write permissions scoped to the publishing jobs.
+5. **Issue-scope CI verification and anti-scope-creep quality gates**:
+   - Verify that all changes in the PR diff map directly to the issue's requirements and acceptance criteria in the traceability table.
+   - Guard against unrequested technology version bumps, package moves, or opportunistic refactors in pull requests.
 
 ### Explicit Non-Goals
 
@@ -138,6 +141,8 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] The minimal CI gate fails if any required job fails or is skipped unexpectedly.
 - [ ] The PR build workflow blocks titles that do not follow Conventional Commits.
 - [ ] Docker publishing is gated on successful CI results.
+- [ ] PR changes map directly to issue acceptance criteria: no unsolicited refactoring or out-of-scope diffs.
+- [ ] Automated architecture regression gates (ArchUnit and negative tests) pass locally and in CI.
 
 ---
 

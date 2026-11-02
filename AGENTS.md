@@ -55,6 +55,13 @@ When creating GitHub issues (manually or via `gh issue create`), always use the 
 - After pushing, verify required checks against the PR's current head commit and inspect the failed job's steps/logs before changing code. Batch all fixes revealed by a run into one local correction, rerun the relevant local checks, then push once. Do not push a new commit merely to retrigger checks that already passed.
 - Prefer a small number of Conventional Commits, each representing a complete logical increment. Keep temporary checkpoints local; publish a commit only when its state is coherent and validated. A wide refactor can still use multiple commits when each is independently meaningful, but do not split mechanical fixups into separate remote commits.
 
+## Issue-Scope Modification Boundaries & Anti-Scope-Creep Guardrails
+
+- The scope of modifications must strictly correlate with the goal and acceptance criteria of the target issue. Every modified file and diff segment must be directly traceable to the issue requirements.
+- Unrequested refactoring, technology version upgrades, unsolicited reformatting, package restructuring, or API/DB contract alterations are strictly forbidden unless explicitly requested in the issue.
+- If an agent discovers a necessary or beneficial change outside the issue scope, the agent must document the motivation, risk, and recommend a dedicated tracking issue instead of applying it automatically.
+- Small supportive modifications are permitted only when indispensable to satisfy an acceptance criterion, and must be explicitly justified in the PR body under `🛠️ Mit módosít / Mit javít?` and `📋 Acceptance Criteria Traceability`.
+
 ## Configuration & Security
 
 Use `.env.example` as the configuration reference; never commit secrets or real credentials. Development uses embedded H2, while Docker Compose configures PostgreSQL. Review `SECURITY.md` before reporting vulnerabilities.

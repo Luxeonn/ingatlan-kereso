@@ -91,6 +91,84 @@ public final class ArchitectureRulesTest {
           .because("Storage details must be accessed exclusively through ListingStorage and ConfigStorage");
 
   @ArchTest
+  static final ArchRule PERSISTENCE_INTERNALS_ENCAPSULATION =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage("..ingatlanok.persistence..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "..ingatlanok.persistence.service..",
+              "..ingatlanok.persistence.mapper..")
+          .because("Internal persistence services and mappers must not leak outside persistence package");
+
+  @ArchTest
+  static final ArchRule JPA_STORAGE_IMPLEMENTATION_ENCAPSULATION =
+      noClasses()
+          .that()
+          .resideOutsideOfPackage("..ingatlanok.persistence..")
+          .should()
+          .dependOnClassesThat()
+          .haveFullyQualifiedName("ingatlanok.persistence.JpaIngatlanStorage")
+          .because("JpaIngatlanStorage must be consumed strictly through ListingStorage and ConfigStorage");
+
+  @ArchTest
+  static final ArchRule PORTAL_DOES_NOT_DEPEND_ON_PERSISTENCE =
+      noClasses()
+          .that()
+          .resideInAnyPackage("..ingatlanok.portal..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage("..ingatlanok.persistence..")
+          .because("Portal scraper engines must never depend on the persistence layer");
+
+  @ArchTest
+  static final ArchRule PORTAL_DOES_NOT_DEPEND_ON_CORE =
+      noClasses()
+          .that()
+          .resideInAnyPackage("..ingatlanok.portal..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage("..ingatlanok.core..")
+          .because("Portal scraper engines must not depend on core business logic or normalizers");
+
+  @ArchTest
+  static final ArchRule CORE_AND_MODEL_AND_PORTAL_DO_NOT_DEPEND_ON_SPRING_WEB =
+      noClasses()
+          .that()
+          .resideInAnyPackage(
+              "..ingatlanok.core..",
+              "..ingatlanok.model..",
+              "..ingatlanok.common..",
+              "..ingatlanok.persistence..",
+              "..ingatlanok.portal..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage("org.springframework.web..", "jakarta.servlet..")
+          .because("Internal layers must remain independent of Spring Web and Servlet container APIs");
+
+  @ArchTest
+  static final ArchRule CONTROLLER_LOCATION_INTEGRITY =
+      classes()
+          .that()
+          .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+          .or()
+          .areAnnotatedWith("org.springframework.stereotype.Controller")
+          .should()
+          .resideInAPackage("..ingatlanok.web..")
+          .because("REST and MVC controllers must reside exclusively in the web presentation layer");
+
+  @ArchTest
+  static final ArchRule CONTROLLERS_DO_NOT_DEPEND_ON_CORE_ENGINES =
+      noClasses()
+          .that()
+          .resideInAnyPackage("..ingatlanok.web..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage("..ingatlanok.core..")
+          .because("Web controllers must orchestrate via presentation facade and never directly access core engines");
+
+  @ArchTest
   static final ArchRule READ_ONLY_DTOS_MUST_NOT_HAVE_SETTERS =
       noMethods()
           .that()
