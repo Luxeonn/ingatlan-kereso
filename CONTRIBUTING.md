@@ -105,12 +105,13 @@ Apply at least one label when opening the PR:
 
 ### PR Description
 
-Write the description in **concise, high-signal Hungarian** using exactly these four sections from the [pull request template](.github/pull_request_template.md):
+Write the description in **concise, high-signal Hungarian** using exactly these five sections from the [pull request template](.github/pull_request_template.md):
 
 1. **🎯 Miért készült?** — Context and goal (1–2 sentences)
 2. **🛠️ Mit módosít / Mit javít?** — Key technical changes (bullet list)
-3. **🧪 Tesztelés és Ellenőrzés** — Verification commands and results
-4. **🛡️ Thematic Agent Approval Gate** — Sign-off from `fullstack-architect`, `scraper-security-engineer`, and `quality-devops-engineer` (status token + one-sentence rationale each)
+3. **📋 Acceptance Criteria Traceability** — Explicit mapping of issue acceptance criteria to modified files and verification evidence (see [PR Compliance Guide](docs/pr-compliance.md))
+4. **🧪 Tesztelés és Ellenőrzés** — Verification commands and results
+5. **🛡️ Thematic Agent Approval Gate** — Sign-off from `fullstack-architect`, `scraper-security-engineer`, and `quality-devops-engineer` adhering to the Review Risk Matrix (status token `[NO_FINDING]` or `[NOT_APPLICABLE]` + one-sentence rationale each; `[NOT_VERIFIED]`, `[FINDING]`, and legacy `[OK]` are rejected)
 
 Always close the description with a linking keyword: `Closes #<id>` or `Fixes #<id>`.
 

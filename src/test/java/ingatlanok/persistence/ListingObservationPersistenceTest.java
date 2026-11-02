@@ -397,4 +397,43 @@ class ListingObservationPersistenceTest {
     assertEquals(expectedTotal, propertyRepo.count(), "All concurrent properties should be saved");
     assertEquals(expectedTotal, observationRepo.count(), "All concurrent observations should be saved");
   }
+
+  @Test
+  @DisplayName("Idempotency: Repeated scraper saves preserve firstSeenAt, viewed, and newConstruction")
+  void testRepeatedScraperSaveIdempotencyPreservesAttributes() {
+    String url = "https://dh.hu/ingatlan/idempotent-test-1";
+    IngatlanItem item = createItem("DH-IDEM-1", url, "dh.hu", "Eger", 42_000_000L);
+    item.setNewConstruction(true);
+
+    storage.saveCityItems("Eger", List.of(item));
+    assertEquals(1, propertyRepo.count());
+
+    PropertyEntity firstSave = propertyRepo.findByUrl(url).orElseThrow();
+    String firstSeen = firstSave.getFirstSeenAt();
+    assertNotNull(firstSeen);
+    assertTrue(firstSave.isNewConstruction());
+
+    // Mark as viewed
+    storage.markAsViewed(url);
+    assertTrue(storage.isViewed(url));
+
+    // Scrape 2: identical price, viewed=false in scraper item
+    IngatlanItem itemScrape2 = createItem("DH-IDEM-1", url, "dh.hu", "Eger", 42_000_000L);
+    itemScrape2.setNewConstruction(true);
+    itemScrape2.setViewed(false);
+
+    storage.saveCityItems("Eger", List.of(itemScrape2));
+
+    // Idempotency checks: no duplicate property record
+    assertEquals(1, propertyRepo.count(), "Repeated scrape must not duplicate property entity");
+    PropertyEntity secondSave = propertyRepo.findByUrl(url).orElseThrow();
+    assertEquals(firstSeen, secondSave.getFirstSeenAt(), "firstSeenAt must remain unchanged across repeated scrapes");
+    assertTrue(secondSave.isViewed(), "User viewed state must be preserved across scrapes");
+    assertTrue(secondSave.isNewConstruction(), "newConstruction attribute must be preserved");
+
+    List<ListingObservation> observations = storage.getListingObservations(url);
+    assertEquals(2, observations.size());
+    assertEquals(ListingObservation.StatusEvent.NEW, observations.get(0).getStatusEvent());
+    assertEquals(ListingObservation.StatusEvent.UNCHANGED, observations.get(1).getStatusEvent());
+  }
 }

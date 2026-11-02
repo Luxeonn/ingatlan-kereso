@@ -303,8 +303,11 @@ public class DeduplicationEngine {
 
     boolean anyNew = cluster.stream().filter(Objects::nonNull).anyMatch(IngatlanItem::isNew);
     boolean allViewed = cluster.stream().filter(Objects::nonNull).allMatch(IngatlanItem::isViewed);
+    boolean anyNewConstruction =
+        cluster.stream().filter(Objects::nonNull).anyMatch(IngatlanItem::isNewConstruction);
     primary.setNew(anyNew);
     primary.setViewed(allViewed);
+    primary.setNewConstruction(anyNewConstruction);
 
     return primary;
   }

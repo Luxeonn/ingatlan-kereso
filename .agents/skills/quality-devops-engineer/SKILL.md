@@ -56,6 +56,9 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Require a Conventional Commit PR title.
    - Run the shared CI checks on the selected commit before manual release or `develop` image publication.
    - Keep release tags and GHCR write permissions scoped to the publishing jobs.
+5. **Issue-scope CI verification and anti-scope-creep quality gates**:
+   - Verify that all changes in the PR diff map directly to the issue's requirements and acceptance criteria in the traceability table.
+   - Guard against unrequested technology version bumps, package moves, or opportunistic refactors in pull requests.
 
 ### Explicit Non-Goals
 
@@ -115,6 +118,7 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] Unit and integration tests use MockMvc, WireMock, and embedded or in-memory persistence where appropriate.
 - [ ] ArchUnit JUnit 5 suite (`ArchitectureRulesTest.java`) passes with zero violations.
 - [ ] Frontend Vitest and Playwright E2E coverage is maintained.
+- [ ] Regression Test First protocol is verified for business logic modifications (`docs/business-logic-regression.md`): failing test cases prove defects prior to fixes, and regression suites run deterministically offline.
 
 ### B. Code Quality Gates
 
@@ -137,6 +141,8 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] The minimal CI gate fails if any required job fails or is skipped unexpectedly.
 - [ ] The PR build workflow blocks titles that do not follow Conventional Commits.
 - [ ] Docker publishing is gated on successful CI results.
+- [ ] PR changes map directly to issue acceptance criteria: no unsolicited refactoring or out-of-scope diffs.
+- [ ] Automated architecture regression gates (ArchUnit and negative tests) pass locally and in CI.
 
 ---
 
@@ -148,9 +154,15 @@ The specialist must record the following concrete evidence during review:
 - **Coverage evidence**: JaCoCo report and the result of `calculate-jacoco.sh` / `jacocoTestCoverageVerification`.
 - **CI/CD and container evidence**: Workflow status, path-filter behavior, health checks, and Docker runtime user.
 
-### Review Output
+### Thematic Agent Approval Gate Output
 
-Summarize the concrete test, coverage, container, and CI evidence in the review. The PR description does not require thematic approval notes.
+Use the following text in the Pull Request's Thematic Gate block:
+
+```markdown
+- [x] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING / NOT_APPLICABLE] - [One concise sentence summarizing testing, coverage, Checkstyle, and CI/CD integrity]
+```
+
+*Note: For `FINDING`, leave the checkbox unchecked (`[ ]`), set the status to `[FINDING]`, and attach a detailed report in the PR description or a comment.*
 
 ---
 

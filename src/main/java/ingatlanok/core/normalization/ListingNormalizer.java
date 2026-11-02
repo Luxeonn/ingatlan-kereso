@@ -15,8 +15,9 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalSupport;
+import ingatlanok.portal.RawListingNormalizer;
 
-public class ListingNormalizer {
+public class ListingNormalizer implements RawListingNormalizer {
 
   private static final Pattern OC_CATEGORY_PATTERN =
       Pattern.compile("\"item_category\"\\s*:\\s*\"([^\"]+)\"");
@@ -94,6 +95,7 @@ public class ListingNormalizer {
     this.validator = validator != null ? validator : new ListingValidator();
   }
 
+  @Override
   public IngatlanItem normalize(
       RawPropertyListing raw,
       PortalDescriptor descriptor,
@@ -218,10 +220,11 @@ public class ListingNormalizer {
   }
 
   private long calculateSqmPrice(PriceInfo priceInfo, Double area) {
-    if (area == null || area <= 0 || priceInfo == null || priceInfo.getAmountHuf() == null) {
+    if (area == null || area <= 0 || priceInfo == null
+        || priceInfo.getAmountHuf() == null || priceInfo.getAmountHuf() <= 0) {
       return 0;
     }
-    return Math.round(priceInfo.getAmountHuf() / area);
+    return Math.round((double) priceInfo.getAmountHuf() / area);
   }
 
   private String resolveCity(RawPropertyListing raw, SearchCriteria criteria) {

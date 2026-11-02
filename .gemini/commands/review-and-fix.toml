@@ -43,7 +43,7 @@ Follow these steps to conduct a thorough review:
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
-   * If all criteria pass, generate the formal Thematic Agent Approval Gate block at the top of the PR with standard decision tokens ([NO_FINDING] / [FINDING] / [NOT_APPLICABLE] / [NOT_VERIFIED] or [OK] / [NOK] / [N/A]) accompanied by a mandatory 1-sentence rationale for every thematic domain:
+   * If all criteria pass, generate the formal Thematic Agent Approval Gate block in the PR with standard decision tokens ([NO_FINDING] / [FINDING] / [NOT_APPLICABLE] / [NOT_VERIFIED]) accompanied by a mandatory 1-sentence rationale for every thematic domain:
      ```markdown
      ### 🛡️ Thematic Agent Approval Gate
      - [x] Fullstack Architecture & UI (`fullstack-architect`): [NO_FINDING] – A Clean Architecture réteghatárok, a Spring Data JPA perzisztencia és a React 19 UI integritás maradéktalanul érvényesül.
