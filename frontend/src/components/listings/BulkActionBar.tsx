@@ -13,7 +13,7 @@ import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
 import { useFilterStore, SORT_OPTIONS, type SortOption } from '../../store/useFilterStore'
 import { isItemBargain } from '../../hooks/useSearch'
-import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
+import { PORTAL_CHIPS, getTotalSourceListingsCount, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
 
@@ -29,12 +29,21 @@ interface BulkActionBarProps {
   hiddenCount?: number
 }
 
-function formatResultCount(visibleCount: number | undefined, itemsLength: number, totalRawCount: number): string {
+function formatResultCount(
+  visibleCount: number | undefined,
+  itemsLength: number,
+  totalRawCount: number,
+  totalSourceListingsCount: number,
+): string {
+  const sourceSuffix = totalSourceListingsCount > itemsLength ? ` (${totalSourceListingsCount} hirdetés)` : ''
   if (visibleCount !== null && visibleCount !== undefined && visibleCount < itemsLength) {
-    return `Megjelenítve: ${visibleCount} / ${itemsLength} db`
+    return `Megjelenítve: ${visibleCount} / ${itemsLength} db${sourceSuffix}`
   }
   if (itemsLength !== totalRawCount) {
-    return `${itemsLength} / ${totalRawCount} db`
+    return `${itemsLength} / ${totalRawCount} db${sourceSuffix}`
+  }
+  if (totalSourceListingsCount > itemsLength) {
+    return `${itemsLength} ingatlan (${totalSourceListingsCount} hirdetés)`
   }
   return `${itemsLength} db`
 }
@@ -73,6 +82,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   const [confirmClear, setConfirmClear] = useState(false)
 
   const unviewedCount = items.filter((item) => !item.viewed).length
+  const totalSourceListingsCount = useMemo(() => getTotalSourceListingsCount(items), [items])
   const sourceItems = rawItems ?? items
 
   const bargainCount = useMemo(
@@ -141,7 +151,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
-            <span>{formatResultCount(visibleCount, items.length, totalRawCount)}</span>
+            <span>{formatResultCount(visibleCount, items.length, totalRawCount, totalSourceListingsCount)}</span>
             {items.length !== totalRawCount && (visibleCount === null || visibleCount === undefined) && (
               <span className="text-[11px] font-normal text-[var(--text-secondary)]">
                 (szűrve)

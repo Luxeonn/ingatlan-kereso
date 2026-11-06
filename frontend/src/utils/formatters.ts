@@ -213,6 +213,14 @@ export function getEffectiveSqmPrice(item: IngatlanItem): number | null {
   return null
 }
 
+export function getItemSourceListingsCount(item: IngatlanItem): number {
+  return Math.max(item.sourcesCount ?? 1, item.sourceListings?.length ?? 1)
+}
+
+export function getTotalSourceListingsCount(items: IngatlanItem[]): number {
+  return items.reduce((sum, it) => sum + getItemSourceListingsCount(it), 0)
+}
+
 export function openExternalUrl(url?: string | null): void {
   if (!url) return
   window.open(url, '_blank', 'noopener,noreferrer')
