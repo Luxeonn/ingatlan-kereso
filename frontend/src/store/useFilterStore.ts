@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { SearchCriteria } from '../types/api'
 import { normalizePortalKey } from '../utils/formatters'
 
-export type SortOption = 'price_asc' | 'price_desc' | 'sqm_price_asc' | 'sqm_price_desc' | 'area_desc' | 'date_desc'
+export type SortOption = 'price_asc' | 'price_desc' | 'sqm_price_asc' | 'sqm_price_desc' | 'area_desc' | 'date_desc' | 'bargain_desc'
 
 export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
   { value: 'price_asc', label: 'Ár: Növekvő (alapértelmezett)' },
@@ -12,6 +12,7 @@ export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> =
   { value: 'sqm_price_desc', label: 'Ft/m²: Csökkenő' },
   { value: 'area_desc', label: 'Méret: Legnagyobb elöl' },
   { value: 'date_desc', label: 'Felfedezés: Legfrissebb' },
+  { value: 'bargain_desc', label: 'Alkalmi vétel: Legnagyobb kedvezmény elöl' },
 ]
 
 export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe']
@@ -71,7 +72,7 @@ const urlSchema = z.object({
   autoOpen: z.enum(['true', 'false']).optional(),
   excludeViewed: z.enum(['true', 'false']).optional(),
   onlyNewConstruction: z.enum(['true', 'false']).optional(),
-  sort: z.enum(['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc']).optional(),
+  sort: z.enum(['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc', 'bargain_desc']).optional(),
   onlyNew: z.enum(['true', 'false']).optional(),
   onlyBargain: z.enum(['true', 'false']).optional(),
   minQuality: z.coerce.number().finite().min(0).max(100).optional(),

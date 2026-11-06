@@ -179,6 +179,17 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
       expect(results).toHaveLength(1)
       expect(results[0].id).toBe('prop-1')
     })
+
+    it('sorts listings by bargain percentage descending (bargain_desc)', () => {
+      const results = filterAndSortItems(mockListings, {
+        sortOption: 'bargain_desc',
+      })
+      expect(results).toHaveLength(4)
+      expect(results[0].id).toBe('prop-3')
+      expect(results[1].id).toBe('prop-1')
+      expect(['prop-2', 'prop-4']).toContain(results[2].id)
+      expect(['prop-2', 'prop-4']).toContain(results[3].id)
+    })
   })
 
   describe('useFilterStore actions and state', () => {
