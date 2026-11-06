@@ -1,14 +1,9 @@
 import { create } from 'zustand'
 import { z } from 'zod'
 import type { SearchCriteria } from '../types/api'
+import { normalizePortalKey } from '../utils/formatters'
 
-export type SortOption =
-  | 'price_asc'
-  | 'price_desc'
-  | 'sqm_price_asc'
-  | 'sqm_price_desc'
-  | 'area_desc'
-  | 'date_desc'
+export type SortOption = 'price_asc' | 'price_desc' | 'sqm_price_asc' | 'sqm_price_desc' | 'area_desc' | 'date_desc'
 
 export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
   { value: 'price_asc', label: 'Ár: Növekvő (alapértelmezett)' },
@@ -238,25 +233,41 @@ function appendUiFilterParams(
   if (minQualityScore > 0) params.set('minQuality', String(minQualityScore))
 }
 
+function resolvePortalFilterForPortals(portals: string[] | undefined, currentFilter: string): string {
+  const normalized = (portals || []).map(normalizePortalKey).filter(Boolean)
+  if (normalized.length === 1) return normalized[0]
+  if (currentFilter !== 'all' && !normalized.includes(currentFilter)) return 'all'
+  return currentFilter
+}
+
 export const useFilterStore = create<FilterState>((set, get) => {
   const initial = parseUrlParams()
+  const initialCriteria: SearchCriteria = {
+    ...DEFAULT_CRITERIA,
+    excludeViewed: getStoredExcludeViewed(),
+    ...(initial.criteria || {}),
+  }
+
   const updateCriteria = (partial: Partial<SearchCriteria>) => {
-    set((state) => ({ criteria: { ...state.criteria, ...partial } }))
+    set((state) => {
+      const nextCriteria = { ...state.criteria, ...partial }
+      const nextPortalFilter =
+        partial.portals !== undefined
+          ? resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter)
+          : state.selectedPortalFilter
+      return { criteria: nextCriteria, selectedPortalFilter: nextPortalFilter }
+    })
     get().syncToUrl()
   }
 
   return {
-    criteria: {
-      ...DEFAULT_CRITERIA,
-      excludeViewed: getStoredExcludeViewed(),
-      ...(initial.criteria || {}),
-    },
+    criteria: initialCriteria,
     sortOption: initial.sort || getStoredSortOption(),
     onlyNew: initial.onlyNew || false,
     onlyBargain: initial.onlyBargain || false,
     minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
-    selectedPortalFilter: 'all',
+    selectedPortalFilter: resolvePortalFilterForPortals(initialCriteria.portals, 'all'),
     showHidden: false,
 
     setCriteria: updateCriteria,
@@ -347,13 +358,15 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     syncFromUrl: () => {
       const parsed = parseUrlParams()
-      set({
-        criteria: { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) },
+      const nextCriteria = { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) }
+      set((state) => ({
+        criteria: nextCriteria,
         sortOption: parsed.sort || getStoredSortOption(),
         onlyNew: parsed.onlyNew ?? false,
         onlyBargain: parsed.onlyBargain ?? false,
         minQualityScore: parsed.minQualityScore ?? 0,
-      })
+        selectedPortalFilter: resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter),
+      }))
     },
 
     syncToUrl: () => {

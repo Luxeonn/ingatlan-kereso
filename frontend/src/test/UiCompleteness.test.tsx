@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BulkActionBar } from '../components/listings/BulkActionBar'
 import { SearchPanel } from '../components/filters/SearchPanel'
@@ -200,6 +200,67 @@ describe('UI Completeness (#157, #202, #227)', () => {
 
     // Row 3: Portal chips container
     expect(screen.getByTestId('portal-quick-filter-chips')).toBeTruthy()
+  })
+
+  it('filters portal quick filter chips to searched portals in criteria.portals and auto-activates single searched portal (#356)', () => {
+    // 1. When only 2 portals are searched (dh, oc), only All, Duna House, and Otthon Centrum chips render
+    useFilterStore.getState().setAllPortals(['dh', 'oc'])
+    const { unmount } = render(
+      <BulkActionBar
+        items={sampleItems}
+        rawItems={sampleItems}
+        totalRawCount={2}
+        onOpenAll={() => {}}
+        onMarkAllViewed={() => {}}
+      />,
+    )
+
+    const chipsRow1 = within(screen.getByTestId('portal-quick-filter-chips'))
+    expect(chipsRow1.getByRole('button', { name: /Összes/i })).toBeTruthy()
+    expect(chipsRow1.getByRole('button', { name: /Duna House/i })).toBeTruthy()
+    expect(chipsRow1.getByRole('button', { name: /Otthon Centrum/i })).toBeTruthy()
+    expect(chipsRow1.queryByRole('button', { name: /Jófogás/i })).toBeNull()
+    expect(chipsRow1.queryByRole('button', { name: /Ingatlan\.com/i })).toBeNull()
+    expect(chipsRow1.queryByRole('button', { name: /Ingatlanbazár/i })).toBeNull()
+    expect(chipsRow1.queryByRole('button', { name: /Költözzbe/i })).toBeNull()
+    unmount()
+
+    // 2. When only 1 portal is searched (e.g., oc), selectedPortalFilter automatically becomes 'oc'
+    // and only the Otthon Centrum chip is rendered as active (without redundant 'Összes' or 0-count unsearched portals)
+    useFilterStore.getState().setAllPortals(['oc'])
+    expect(useFilterStore.getState().selectedPortalFilter).toBe('oc')
+
+    render(
+      <BulkActionBar
+        items={[sampleItems[1]]}
+        rawItems={[sampleItems[1]]}
+        totalRawCount={1}
+        onOpenAll={() => {}}
+        onMarkAllViewed={() => {}}
+      />,
+    )
+
+    const chipsRow2 = within(screen.getByTestId('portal-quick-filter-chips'))
+    const ocChip = chipsRow2.getByRole('button', { name: /Otthon Centrum/i })
+    expect(ocChip).toBeTruthy()
+    expect(ocChip.className).toContain('bg-blue-600')
+    expect(chipsRow2.queryByRole('button', { name: /Összes/i })).toBeNull()
+    expect(chipsRow2.queryByRole('button', { name: /Duna House/i })).toBeNull()
+
+    // 3. When toggling a second portal back in (oc + dh), both chips and 'Összes' appear;
+    // when toggling 'oc' off while it was the active filter, selectedPortalFilter resets to the remaining portal or 'all'
+    act(() => {
+      useFilterStore.getState().togglePortal('dh')
+    })
+    expect(useFilterStore.getState().criteria.portals).toEqual(['oc', 'dh'])
+    expect(useFilterStore.getState().selectedPortalFilter).toBe('oc')
+
+    act(() => {
+      useFilterStore.getState().togglePortal('jofogas')
+      useFilterStore.getState().togglePortal('oc')
+    })
+    // 'oc' was removed while 'dh' and 'jofogas' remain -> falls back to 'all'
+    expect(useFilterStore.getState().selectedPortalFilter).toBe('all')
   })
 
   it('allows free numeric typing across min/max ranges and displays warning near search button when min > max (#255)', () => {

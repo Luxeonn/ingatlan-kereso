@@ -258,6 +258,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         selectedPortalFilter={selectedPortalFilter}
         setSelectedPortalFilter={setSelectedPortalFilter}
         portalCounts={portalCounts}
+        searchedPortals={criteria.portals}
       />
     </div>
   )

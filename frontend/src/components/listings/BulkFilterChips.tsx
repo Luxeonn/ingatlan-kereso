@@ -7,7 +7,7 @@ import {
   Building2,
   Trash2,
 } from 'lucide-react'
-import { PORTAL_CHIPS } from '../../utils/formatters'
+import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 interface HiddenFilterChipProps {
@@ -226,45 +226,65 @@ export interface PortalFilterChipsRowProps {
   selectedPortalFilter: string
   setSelectedPortalFilter: (id: string) => void
   portalCounts: Record<string, number>
+  searchedPortals?: string[]
 }
 
 export const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
   selectedPortalFilter,
   setSelectedPortalFilter,
   portalCounts,
-}) => (
-  <div
-    data-testid="portal-quick-filter-chips"
-    className="flex flex-wrap items-center gap-1.5 border-t border-[var(--border-color)] pt-2.5"
-  >
-    {PORTAL_CHIPS.map((chip) => {
-      const count = portalCounts[chip.id] || 0
-      const isActive = selectedPortalFilter === chip.id
-      return (
-        <button
-          key={chip.id}
-          type="button"
-          onClick={() => setSelectedPortalFilter(chip.id)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all',
-            isActive
-              ? 'border-blue-500/50 bg-blue-600 text-white shadow-sm'
-              : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-          )}
-        >
-          <span>{chip.label}</span>
-          <span
+  searchedPortals,
+}) => {
+  const activePortalSet =
+    searchedPortals && searchedPortals.length > 0
+      ? new Set(searchedPortals.map(normalizePortalKey).filter(Boolean))
+      : null
+
+  const visibleChips = PORTAL_CHIPS.filter((chip) => {
+    if (!activePortalSet) return true
+    if (chip.id === 'all') return activePortalSet.size > 1
+    return activePortalSet.has(chip.id)
+  })
+
+  const effectiveSelectedId =
+    activePortalSet && activePortalSet.size === 1
+      ? Array.from(activePortalSet)[0]
+      : selectedPortalFilter
+
+  return (
+    <div
+      data-testid="portal-quick-filter-chips"
+      className="flex flex-wrap items-center gap-1.5 border-t border-[var(--border-color)] pt-2.5"
+    >
+      {visibleChips.map((chip) => {
+        const count = portalCounts[chip.id] || 0
+        const isActive = effectiveSelectedId === chip.id
+        return (
+          <button
+            key={chip.id}
+            type="button"
+            onClick={() => setSelectedPortalFilter(chip.id)}
             className={cn(
-              'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all',
               isActive
-                ? 'bg-white/20 text-white'
-                : 'bg-[var(--bg-card)] text-[var(--text-secondary)]',
+                ? 'border-blue-500/50 bg-blue-600 text-white shadow-sm'
+                : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
             )}
           >
-            {count}
-          </span>
-        </button>
-      )
-    })}
-  </div>
-)
+            <span>{chip.label}</span>
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)]',
+              )}
+            >
+              {count}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
