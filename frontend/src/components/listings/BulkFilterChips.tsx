@@ -5,9 +5,94 @@ import {
   ShieldCheck,
   Sparkles,
   Building2,
+  Trash2,
 } from 'lucide-react'
 import { PORTAL_CHIPS } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
+
+interface HiddenFilterChipProps {
+  showHidden?: boolean
+  setShowHidden: (val: boolean) => void
+  hiddenCount: number
+}
+
+const HiddenFilterChip: FC<HiddenFilterChipProps> = ({
+  showHidden,
+  setShowHidden,
+  hiddenCount,
+}) => (
+  <button
+    type="button"
+    data-testid="hidden-filter-toggle"
+    aria-pressed={showHidden}
+    onClick={() => setShowHidden(!showHidden)}
+    title="Elrejtett / kukázott hirdetések megtekintése"
+    className={cn(
+      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      showHidden
+        ? 'border border-purple-500/50 bg-purple-500/20 text-purple-300 shadow-sm ring-1 ring-purple-500/30'
+        : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-purple-400 hover:border-purple-500/30',
+    )}
+  >
+    <Trash2 className="h-3.5 w-3.5 text-purple-400" />
+    <span>Elrejtettek</span>
+    {hiddenCount > 0 && (
+      <span
+        data-testid="hidden-filter-count"
+        className={cn(
+          'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+          showHidden
+            ? 'bg-purple-500/30 text-purple-200'
+            : 'bg-[var(--bg-card)] text-purple-400',
+        )}
+      >
+        {hiddenCount}
+      </span>
+    )}
+  </button>
+)
+
+interface QualitySelectProps {
+  minQualityScore: number
+  setMinQualityScore: (val: number) => void
+}
+
+const QualitySelect: FC<QualitySelectProps> = ({ minQualityScore, setMinQualityScore }) => (
+  <div className="flex items-center gap-1.5 text-xs shrink-0">
+    <ShieldCheck
+      className={cn(
+        'h-3.5 w-3.5 shrink-0',
+        minQualityScore >= 85
+          ? 'text-emerald-400'
+          : minQualityScore >= 70
+            ? 'text-amber-400'
+            : 'text-[var(--text-secondary)]',
+      )}
+    />
+    <label htmlFor="listings-quality-select" className="text-[var(--text-secondary)] font-medium">
+      Minőség:
+    </label>
+    <select
+      id="listings-quality-select"
+      data-testid="quality-filter-select"
+      aria-label="Adatminőség szűrő"
+      value={minQualityScore}
+      onChange={(e) => setMinQualityScore(Number(e.target.value))}
+      className={cn(
+        'rounded-lg border px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 focus:outline-none transition-all',
+        minQualityScore >= 85
+          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+          : minQualityScore >= 70
+            ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+            : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-primary)]',
+      )}
+    >
+      <option value={0}>Összes minőség</option>
+      <option value={70}>Megbízható (≥70)</option>
+      <option value={85}>Kiváló (≥85)</option>
+    </select>
+  </div>
+)
 
 export interface QuickFilterChipsRowProps {
   onlyNew: boolean
@@ -21,6 +106,9 @@ export interface QuickFilterChipsRowProps {
   setExcludeViewed: (val: boolean) => void
   minQualityScore: number
   setMinQualityScore: (val: number) => void
+  showHidden?: boolean
+  setShowHidden?: (val: boolean) => void
+  hiddenCount?: number
 }
 
 export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
@@ -35,6 +123,9 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
   setExcludeViewed,
   minQualityScore,
   setMinQualityScore,
+  showHidden,
+  setShowHidden,
+  hiddenCount = 0,
 }) => (
   <div
     data-testid="filter-chips-row"
@@ -101,6 +192,14 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
       )}
     </button>
 
+    {setShowHidden && (
+      <HiddenFilterChip
+        showHidden={showHidden}
+        setShowHidden={setShowHidden}
+        hiddenCount={hiddenCount}
+      />
+    )}
+
     <button
       type="button"
       aria-pressed={excludeViewed}
@@ -116,40 +215,10 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
       <span>Megtekintettek rejtése</span>
     </button>
 
-    <div className="flex items-center gap-1.5 text-xs shrink-0">
-      <ShieldCheck
-        className={cn(
-          'h-3.5 w-3.5 shrink-0',
-          minQualityScore >= 85
-            ? 'text-emerald-400'
-            : minQualityScore >= 70
-              ? 'text-amber-400'
-              : 'text-[var(--text-secondary)]',
-        )}
-      />
-      <label htmlFor="listings-quality-select" className="text-[var(--text-secondary)] font-medium">
-        Minőség:
-      </label>
-      <select
-        id="listings-quality-select"
-        data-testid="quality-filter-select"
-        aria-label="Adatminőség szűrő"
-        value={minQualityScore}
-        onChange={(e) => setMinQualityScore(Number(e.target.value))}
-        className={cn(
-          'rounded-lg border px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 focus:outline-none transition-all',
-          minQualityScore >= 85
-            ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
-            : minQualityScore >= 70
-              ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
-              : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-primary)]',
-        )}
-      >
-        <option value={0}>Összes minőség</option>
-        <option value={70}>Megbízható (≥70)</option>
-        <option value={85}>Kiváló (≥85)</option>
-      </select>
-    </div>
+    <QualitySelect
+      minQualityScore={minQualityScore}
+      setMinQualityScore={setMinQualityScore}
+    />
   </div>
 )
 

@@ -23,6 +23,7 @@ import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchPreset;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.entity.PropertyEntity;
 
@@ -625,5 +626,88 @@ class JpaIngatlanStorageTest {
     criteria.setExcludeViewed(true);
     ingatlanok.model.SearchResult r3 = searchEngine.executeSearch(criteria);
     assertEquals(0, r3.getItems().size());
+  }
+
+  @Test
+  @DisplayName("Search presets persistence roundtrip in JpaIngatlanStorage")
+  void testPresetsPersistenceRoundtrip() {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("lakas");
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(75);
+
+    SearchPreset preset = new SearchPreset(null, "Debrecen Belváros", criteria, null, null, null);
+    SearchPreset saved = storage.savePreset(preset);
+
+    assertNotNull(saved.id());
+    assertEquals("Debrecen Belváros", saved.name());
+    assertEquals("Debrecen", saved.criteria().getCity());
+    assertNotNull(saved.createdAt());
+    assertNotNull(saved.updatedAt());
+
+    List<SearchPreset> presets = storage.getPresets();
+    assertFalse(presets.isEmpty());
+    assertTrue(presets.stream().anyMatch(p -> p.id().equals(saved.id())));
+
+    SearchPreset used = storage.markPresetAsUsed(saved.id()).orElseThrow();
+    assertNotNull(used.lastUsedAt());
+
+    SearchPreset updatePayload = new SearchPreset(saved.id(), "Debrecen Nagyerdei Lakások", null, null, null, null);
+    SearchPreset updated = storage.updatePreset(saved.id(), updatePayload).orElseThrow();
+    assertEquals("Debrecen Nagyerdei Lakások", updated.name());
+
+    assertTrue(storage.deletePreset(saved.id()));
+    assertFalse(storage.deletePreset(saved.id()));
+    assertTrue(storage.getPresetById(saved.id()).isEmpty());
+  }
+
+  @Test
+  @DisplayName("hideProperty and restoreProperty persist hidden state and exclude from normal queries (#318)")
+  void testHideAndRestoreProperty() {
+    IngatlanItem item =
+        createItem(
+            "dh-hide-1",
+            "https://dh.hu/hide-1",
+            "Duna House",
+            "Budapest",
+            "Elrejtendő ingatlan",
+            "60 M Ft",
+            60_000_000L,
+            60.0,
+            "70 m², 3 szoba",
+            70.0,
+            3.0,
+            "2026-03-01 10:00:00");
+
+    storage.saveCityItems("Budapest", List.of(item));
+
+    // kezdetben nem rejtett
+    assertFalse(storage.isHidden("https://dh.hu/hide-1"));
+    assertEquals(1, storage.getAll().size());
+    assertEquals(0, storage.getHiddenProperties().size());
+
+    // elrejtés url alapján
+    boolean hidden = storage.hideProperty("https://dh.hu/hide-1");
+    assertTrue(hidden);
+    assertTrue(storage.isHidden("https://dh.hu/hide-1"));
+
+    // getAll nem adja vissza a rejtettet
+    assertEquals(0, storage.getAll().size());
+
+    // getHiddenProperties visszaadja
+    List<IngatlanItem> hiddenList = storage.getHiddenProperties();
+    assertEquals(1, hiddenList.size());
+    assertTrue(hiddenList.get(0).isHidden());
+    assertNotNull(hiddenList.get(0).getHiddenAt());
+
+    // visszaállítás
+    boolean restored = storage.restoreProperty("https://dh.hu/hide-1");
+    assertTrue(restored);
+    assertFalse(storage.isHidden("https://dh.hu/hide-1"));
+
+    // újra elérhető a normál lekérdezésben
+    assertEquals(1, storage.getAll().size());
+    assertEquals(0, storage.getHiddenProperties().size());
   }
 }

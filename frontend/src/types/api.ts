@@ -23,4 +23,10 @@ export type DashboardResponseDto = Omit<
 export type PredefinedCity = components['schemas']['PredefinedCity']
 export type TrackedCityInfo = components['schemas']['TrackedCityInfo']
 export type CitiesResponse = components['schemas']['CitiesResponse']
+export type SearchPreset = Omit<components['schemas']['SearchPreset'], 'criteria'> & {
+  criteria: SearchCriteria
+}
+export type SearchPresetInput = Omit<components['schemas']['SearchPresetInput'], 'criteria'> & {
+  criteria?: SearchCriteria
+}
 

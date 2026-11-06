@@ -26,6 +26,7 @@ interface BulkActionBarProps {
   onClearHistory?: () => void
   isClearingHistory?: boolean
   visibleCount?: number
+  hiddenCount?: number
 }
 
 function formatResultCount(visibleCount: number | undefined, itemsLength: number, totalRawCount: number): string {
@@ -47,6 +48,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   onClearHistory,
   isClearingHistory = false,
   visibleCount,
+  hiddenCount = 0,
 }) => {
   const { viewMode, setViewMode } = useUiStore()
   const {
@@ -65,6 +67,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setQuickSearchQuery,
     selectedPortalFilter,
     setSelectedPortalFilter,
+    showHidden,
+    setShowHidden,
   } = useFilterStore()
   const [confirmClear, setConfirmClear] = useState(false)
 
@@ -245,6 +249,9 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         setExcludeViewed={setExcludeViewed}
         minQualityScore={minQualityScore}
         setMinQualityScore={setMinQualityScore}
+        showHidden={showHidden}
+        setShowHidden={setShowHidden}
+        hiddenCount={hiddenCount}
       />
 
       <PortalFilterChipsRow

@@ -42,6 +42,12 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
               excludeViewed: false,
             }),
           })
+        } else if (url.includes('/api/presets')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([]),
+          })
         } else if (url.includes('/api/portals')) {
           await route.fulfill({
             status: 200,
@@ -107,6 +113,12 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
                 cityBreakdown: { Debrecen: 1 },
               },
             }),
+          })
+        } else if (url.includes('/api/properties/hidden')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([]),
           })
         } else if (url.includes('/api/history/clear')) {
           await route.fulfill({

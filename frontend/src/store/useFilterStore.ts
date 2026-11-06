@@ -90,6 +90,7 @@ interface FilterState {
   minQualityScore: number
   quickSearchQuery: string
   selectedPortalFilter: string
+  showHidden: boolean
 
   setCriteria: (criteria: Partial<SearchCriteria>) => void
   addCity: (city: string) => void
@@ -111,6 +112,7 @@ interface FilterState {
   setMinQualityScore: (score: number) => void
   setQuickSearchQuery: (query: string) => void
   setSelectedPortalFilter: (portal: string) => void
+  setShowHidden: (show: boolean) => void
   resetToDefaults: () => void
   syncFromUrl: () => void
   syncToUrl: () => void
@@ -255,6 +257,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
     minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
     selectedPortalFilter: 'all',
+    showHidden: false,
 
     setCriteria: updateCriteria,
 
@@ -324,6 +327,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     setQuickSearchQuery: (quickSearchQuery) => set({ quickSearchQuery }),
     setSelectedPortalFilter: (selectedPortalFilter) => set({ selectedPortalFilter }),
+    setShowHidden: (showHidden) => set({ showHidden }),
 
     resetToDefaults: () => {
       set({
@@ -334,6 +338,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         minQualityScore: 0,
         quickSearchQuery: '',
         selectedPortalFilter: 'all',
+        showHidden: false,
       })
       if (typeof window !== 'undefined') {
         window.history.replaceState(null, '', window.location.pathname)
