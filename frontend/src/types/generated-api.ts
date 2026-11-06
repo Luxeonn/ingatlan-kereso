@@ -245,6 +245,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/properties/hidden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Elrejtett hirdetések lekérése */
+        get: operations["getHiddenProperties"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/properties/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingatlan elrejtése / kukázása */
+        post: operations["hideProperty"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/properties/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Elrejtett ingatlan visszaállítása */
+        post: operations["restoreProperty"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/properties/discounted": {
         parameters: {
             query?: never;
@@ -371,6 +422,11 @@ export interface components {
             name: string;
             criteria?: components["schemas"]["SearchCriteria"];
         };
+        PropertyHideResponse: {
+            success: boolean;
+            hidden: boolean;
+            id: string;
+        };
         SuccessResponse: {
             success: boolean;
         };
@@ -491,6 +547,8 @@ export interface components {
             pricePerM2?: number;
             viewed?: boolean;
             viewedAt?: string;
+            hidden?: boolean;
+            hiddenAt?: string;
         };
         ListingObservation: {
             observedAt?: string;
@@ -569,6 +627,8 @@ export interface components {
             isNew?: boolean;
             viewed?: boolean;
             viewedAt?: string;
+            hidden?: boolean;
+            hiddenAt?: string;
             imageUrl?: string;
             newConstruction?: boolean;
             status?: string;
@@ -1154,6 +1214,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getHiddenProperties: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Az adatbázisban elrejtett hirdetések listája */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngatlanItem"][];
+                };
+            };
+        };
+    };
+    hideProperty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ingatlan azonosítója vagy URL-je */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Ingatlan közvetlen URL-je */
+                    url?: string;
+                    /** @description Csoportosított hirdetéshez tartozó forrás URL-ek */
+                    urls?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Elrejtés eredménye */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyHideResponse"];
+                };
+            };
+        };
+    };
+    restoreProperty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ingatlan azonosítója vagy URL-je */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Ingatlan közvetlen URL-je */
+                    url?: string;
+                    /** @description Csoportosított hirdetéshez tartozó forrás URL-ek */
+                    urls?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Visszaállítás eredménye */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyHideResponse"];
                 };
             };
         };

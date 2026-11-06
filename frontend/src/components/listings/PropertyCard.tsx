@@ -22,6 +22,8 @@ import { cn } from '../../utils/cn'
 interface PropertyCardProps {
   item: IngatlanItem
   onMarkViewed: (url: string) => void
+  onHide?: (item: IngatlanItem) => void
+  onRestore?: (item: IngatlanItem) => void
   viewMode?: 'grid' | 'list'
 }
 
@@ -138,11 +140,102 @@ const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
   </div>
 )
 
-export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMode = 'grid' }) => {
+interface PropertyCardContentProps {
+  item: IngatlanItem
+  sourcesCount: number
+  portalStyle: ReturnType<typeof getPortalStyle>
+  priceMillion: number | null | undefined
+  sqmPrice?: number
+  floorArea?: number
+  rooms?: number
+  hasValidImage: boolean
+  isDrawerOpen: boolean
+  isStarred: boolean
+  viewMode: 'grid' | 'list'
+  onOpen: () => void
+  onImageError: () => void
+  onToggleDrawer: () => void
+  onToggleStarred: () => void
+  onHide?: () => void
+  onRestore?: () => void
+}
+
+const PropertyCardContent: FC<PropertyCardContentProps> = ({
+  item,
+  sourcesCount,
+  portalStyle,
+  priceMillion,
+  sqmPrice,
+  floorArea,
+  rooms,
+  hasValidImage,
+  isDrawerOpen,
+  isStarred,
+  viewMode,
+  onOpen,
+  onImageError,
+  onToggleDrawer,
+  onToggleStarred,
+  onHide,
+  onRestore,
+}) => (
+  <div
+    className={cn(
+      'flex flex-col justify-between w-full',
+      viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-5' : '',
+    )}
+  >
+    <PropertyThumbnail
+      item={item}
+      hasValidImage={hasValidImage}
+      portalStyle={portalStyle}
+      viewMode={viewMode}
+      onOpen={onOpen}
+      onImageError={onImageError}
+    />
+
+    <div className={cn('flex flex-col gap-2 min-w-0', viewMode === 'list' ? 'flex-1' : '')}>
+      <PropertyCardBadges
+        item={item}
+        sourcesCount={sourcesCount}
+        isDrawerOpen={isDrawerOpen}
+        isStarred={isStarred}
+        onToggleDrawer={onToggleDrawer}
+        onToggleStarred={onToggleStarred}
+        onHide={onHide}
+        onRestore={onRestore}
+      />
+
+      <PropertyTitleAndLocation
+        title={item.title}
+        city={item.city}
+        location={item.location}
+        isNew={item.isNew}
+        viewed={item.viewed}
+        onOpen={onOpen}
+      />
+
+      <PropertyParametersChips
+        floorArea={floorArea}
+        rooms={rooms}
+        sqmPrice={sqmPrice}
+      />
+    </div>
+
+    <PropertyPriceSection
+      priceMillion={priceMillion}
+      rawPrice={item.price}
+      viewMode={viewMode}
+    />
+  </div>
+)
+
+export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide, onRestore, viewMode = 'grid' }) => {
   const [imageError, setImageError] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const { starredUrls, toggleStarred } = useUiStore()
   const isStarred = starredUrls.includes(item.url)
+  const [isHiding, setIsHiding] = useState(false)
 
   const sourcesCount = item.sourcesCount ?? (item.sourceListings?.length || 1)
   const portalStyle = getPortalStyle(getPortalIdentifier(item))
@@ -161,6 +254,15 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
     }
   }
 
+  const handleHide = onHide
+    ? () => {
+        setIsHiding(true)
+        setTimeout(() => onHide(item), 150)
+      }
+    : undefined
+
+  const handleRestore = onRestore ? () => onRestore(item) : undefined
+
   return (
     <div
       data-testid="property-card"
@@ -168,55 +270,28 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, viewMo
       className={cn(
         'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
         getCardBorderClass(isStarred, item.viewed),
+        isHiding ? 'opacity-0 scale-95 transition-all duration-150 pointer-events-none' : '',
       )}
     >
-      <div
-        className={cn(
-          'flex flex-col justify-between w-full',
-          viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-5' : '',
-        )}
-      >
-        <PropertyThumbnail
-          item={item}
-          hasValidImage={hasValidImage}
-          portalStyle={portalStyle}
-          viewMode={viewMode}
-          onOpen={handleOpen}
-          onImageError={() => setImageError(true)}
-        />
-
-        <div className={cn('flex flex-col gap-2 min-w-0', viewMode === 'list' ? 'flex-1' : '')}>
-          <PropertyCardBadges
-            item={item}
-            sourcesCount={sourcesCount}
-            isDrawerOpen={isDrawerOpen}
-            isStarred={isStarred}
-            onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
-            onToggleStarred={() => toggleStarred(item)}
-          />
-
-          <PropertyTitleAndLocation
-            title={item.title}
-            city={item.city}
-            location={item.location}
-            isNew={item.isNew}
-            viewed={item.viewed}
-            onOpen={handleOpen}
-          />
-
-          <PropertyParametersChips
-            floorArea={floorArea}
-            rooms={rooms}
-            sqmPrice={sqmPrice}
-          />
-        </div>
-
-        <PropertyPriceSection
-          priceMillion={priceMillion}
-          rawPrice={item.price}
-          viewMode={viewMode}
-        />
-      </div>
+      <PropertyCardContent
+        item={item}
+        sourcesCount={sourcesCount}
+        portalStyle={portalStyle}
+        priceMillion={priceMillion}
+        sqmPrice={sqmPrice}
+        floorArea={floorArea}
+        rooms={rooms}
+        hasValidImage={hasValidImage}
+        isDrawerOpen={isDrawerOpen}
+        isStarred={isStarred}
+        viewMode={viewMode}
+        onOpen={handleOpen}
+        onImageError={() => setImageError(true)}
+        onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
+        onToggleStarred={() => toggleStarred(item)}
+        onHide={handleHide}
+        onRestore={handleRestore}
+      />
 
       {isDrawerOpen && <PropertyDetailsDrawer item={item} onMarkViewed={onMarkViewed} />}
     </div>

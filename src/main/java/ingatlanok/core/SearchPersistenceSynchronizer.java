@@ -61,6 +61,8 @@ public class SearchPersistenceSynchronizer {
     }
     item.setViewed(persisted.isViewed());
     item.setViewedAt(persisted.getViewedAt());
+    item.setHidden(persisted.isHidden());
+    item.setHiddenAt(persisted.getHiddenAt());
     item.setPriceDelta(persisted.getPriceDelta());
     item.setPriceChangePercent(persisted.getPriceChangePercent());
     item.setLastPriceChangeAt(persisted.getLastPriceChangeAt());

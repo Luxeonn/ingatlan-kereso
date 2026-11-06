@@ -470,6 +470,88 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/properties/hidden:
+    get:
+      summary: Elrejtett hirdetések lekérése
+      operationId: getHiddenProperties
+      responses:
+        '200':
+          description: Az adatbázisban elrejtett hirdetések listája
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IngatlanItem'
+
+  /api/properties/{id}/hide:
+    post:
+      summary: Ingatlan elrejtése / kukázása
+      operationId: hideProperty
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Ingatlan azonosítója vagy URL-je
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: Ingatlan közvetlen URL-je
+                urls:
+                  type: array
+                  items:
+                    type: string
+                  description: Csoportosított hirdetéshez tartozó forrás URL-ek
+      responses:
+        '200':
+          description: Elrejtés eredménye
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyHideResponse'
+
+  /api/properties/{id}/restore:
+    post:
+      summary: Elrejtett ingatlan visszaállítása
+      operationId: restoreProperty
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Ingatlan azonosítója vagy URL-je
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: Ingatlan közvetlen URL-je
+                urls:
+                  type: array
+                  items:
+                    type: string
+                  description: Csoportosított hirdetéshez tartozó forrás URL-ek
+      responses:
+        '200':
+          description: Visszaállítás eredménye
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyHideResponse'
+
   /api/properties/discounted:
     get:
       summary: Árcsökkentett ingatlanok listája
@@ -627,6 +709,20 @@ components:
           example: Hajdúszoboszló Ház 70-120M
         criteria:
           $ref: '#/components/schemas/SearchCriteria'
+
+    PropertyHideResponse:
+      type: object
+      required:
+        - success
+        - hidden
+        - id
+      properties:
+        success:
+          type: boolean
+        hidden:
+          type: boolean
+        id:
+          type: string
 
     SuccessResponse:
       type: object
@@ -916,6 +1012,10 @@ components:
           type: boolean
         viewedAt:
           type: string
+        hidden:
+          type: boolean
+        hiddenAt:
+          type: string
 
     ListingObservation:
       type: object
@@ -1077,6 +1177,10 @@ components:
         viewed:
           type: boolean
         viewedAt:
+          type: string
+        hidden:
+          type: boolean
+        hiddenAt:
           type: string
         imageUrl:
           type: string

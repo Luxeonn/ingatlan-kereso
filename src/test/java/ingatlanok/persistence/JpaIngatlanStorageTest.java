@@ -661,4 +661,53 @@ class JpaIngatlanStorageTest {
     assertFalse(storage.deletePreset(saved.id()));
     assertTrue(storage.getPresetById(saved.id()).isEmpty());
   }
+
+  @Test
+  @DisplayName("hideProperty and restoreProperty persist hidden state and exclude from normal queries (#318)")
+  void testHideAndRestoreProperty() {
+    IngatlanItem item =
+        createItem(
+            "dh-hide-1",
+            "https://dh.hu/hide-1",
+            "Duna House",
+            "Budapest",
+            "Elrejtendő ingatlan",
+            "60 M Ft",
+            60_000_000L,
+            60.0,
+            "70 m², 3 szoba",
+            70.0,
+            3.0,
+            "2026-03-01 10:00:00");
+
+    storage.saveCityItems("Budapest", List.of(item));
+
+    // kezdetben nem rejtett
+    assertFalse(storage.isHidden("https://dh.hu/hide-1"));
+    assertEquals(1, storage.getAll().size());
+    assertEquals(0, storage.getHiddenProperties().size());
+
+    // elrejtés url alapján
+    boolean hidden = storage.hideProperty("https://dh.hu/hide-1");
+    assertTrue(hidden);
+    assertTrue(storage.isHidden("https://dh.hu/hide-1"));
+
+    // getAll nem adja vissza a rejtettet
+    assertEquals(0, storage.getAll().size());
+
+    // getHiddenProperties visszaadja
+    List<IngatlanItem> hiddenList = storage.getHiddenProperties();
+    assertEquals(1, hiddenList.size());
+    assertTrue(hiddenList.get(0).isHidden());
+    assertNotNull(hiddenList.get(0).getHiddenAt());
+
+    // visszaállítás
+    boolean restored = storage.restoreProperty("https://dh.hu/hide-1");
+    assertTrue(restored);
+    assertFalse(storage.isHidden("https://dh.hu/hide-1"));
+
+    // újra elérhető a normál lekérdezésben
+    assertEquals(1, storage.getAll().size());
+    assertEquals(0, storage.getHiddenProperties().size());
+  }
 }

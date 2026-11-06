@@ -30,6 +30,22 @@ public interface ListingStorage {
 
   boolean isViewed(String url);
 
+  default boolean hideProperty(String idOrUrl) {
+    return false;
+  }
+
+  default boolean restoreProperty(String idOrUrl) {
+    return false;
+  }
+
+  default List<IngatlanItem> getHiddenProperties() {
+    return List.of();
+  }
+
+  default boolean isHidden(String url) {
+    return false;
+  }
+
   Set<String> getAllUrls();
 
   List<Map<String, Object>> getTrackedCitiesInfo();

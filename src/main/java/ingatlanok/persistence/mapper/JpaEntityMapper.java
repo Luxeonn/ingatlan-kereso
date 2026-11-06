@@ -135,6 +135,8 @@ public abstract class JpaEntityMapper {
   @Mapping(target = "new", source = "item.new")
   @Mapping(target = "viewed", ignore = true)
   @Mapping(target = "viewedAt", ignore = true)
+  @Mapping(target = "hidden", ignore = true)
+  @Mapping(target = "hiddenAt", ignore = true)
   @Mapping(target = "status", source = "ctx.targetStatus")
   @Mapping(target = "priceDelta", source = "ctx.priceDelta")
   @Mapping(target = "priceChangePercent", source = "ctx.priceChangePercent")
@@ -172,15 +174,30 @@ public abstract class JpaEntityMapper {
 
   private void applyEntityFlags(
       PropertyEntity entity, IngatlanItem item, PropertyEntity existing, String now) {
+    applyViewedAndHiddenFlags(entity, item, existing, now);
+    applyIdentityAndConstructionFlags(entity, item, existing, now);
+  }
+
+  private void applyViewedAndHiddenFlags(
+      PropertyEntity entity, IngatlanItem item, PropertyEntity existing, String now) {
     boolean prevViewed = existing != null && existing.isViewed();
     String prevViewedAt = existing != null ? existing.getViewedAt() : null;
+    boolean prevHidden = existing != null && existing.isHidden();
+    String prevHiddenAt = existing != null ? existing.getHiddenAt() : null;
+
+    entity.setViewed(prevViewed || item.isViewed());
+    entity.setViewedAt(resolveViewedAt(prevViewed, prevViewedAt, item, now));
+    entity.setHidden(prevHidden || item.isHidden());
+    entity.setHiddenAt(resolveHiddenAt(prevHidden, prevHiddenAt, item, now));
+  }
+
+  private void applyIdentityAndConstructionFlags(
+      PropertyEntity entity, IngatlanItem item, PropertyEntity existing, String now) {
     boolean prevNewConstruction = existing != null && existing.isNewConstruction();
     String prevFirstSeenAt = existing != null ? existing.getFirstSeenAt() : null;
     String prevCanonicalId = existing != null ? existing.getCanonicalId() : null;
 
     entity.setNewConstruction(item.isNewConstruction() || prevNewConstruction);
-    entity.setViewed(prevViewed || item.isViewed());
-    entity.setViewedAt(resolveViewedAt(prevViewed, prevViewedAt, item, now));
     entity.setFirstSeenAt(
         prevFirstSeenAt != null
             ? prevFirstSeenAt
@@ -188,6 +205,17 @@ public abstract class JpaEntityMapper {
     if (prevCanonicalId != null) {
       entity.setCanonicalId(prevCanonicalId);
     }
+  }
+
+  private String resolveHiddenAt(
+      boolean prevHidden, String prevHiddenAt, IngatlanItem item, String now) {
+    if (prevHidden) {
+      return prevHiddenAt;
+    }
+    if (item.isHidden()) {
+      return item.getHiddenAt() != null ? item.getHiddenAt() : now;
+    }
+    return null;
   }
 
   private String resolveViewedAt(

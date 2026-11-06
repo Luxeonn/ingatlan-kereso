@@ -25,6 +25,8 @@ public class SourceListing implements Serializable {
   private Long pricePerM2;
   private boolean viewed;
   private String viewedAt;
+  private boolean hidden;
+  private String hiddenAt;
 
   @Builder
   public SourceListing(
@@ -39,7 +41,9 @@ public class SourceListing implements Serializable {
       Long priceHuf,
       Long pricePerM2,
       boolean viewed,
-      String viewedAt) {
+      String viewedAt,
+      boolean hidden,
+      String hiddenAt) {
     this.portal = portal;
     this.externalListingId = externalListingId;
     this.url = url;
@@ -52,6 +56,38 @@ public class SourceListing implements Serializable {
     this.pricePerM2 = pricePerM2;
     this.viewed = viewed;
     this.viewedAt = viewedAt;
+    this.hidden = hidden;
+    this.hiddenAt = hiddenAt;
+  }
+
+  public SourceListing(
+      String portal,
+      String externalListingId,
+      String url,
+      String title,
+      String imageUrl,
+      String firstSeenAt,
+      String lastSeenAt,
+      String status,
+      Long priceHuf,
+      Long pricePerM2,
+      boolean viewed,
+      String viewedAt) {
+    this(
+        portal,
+        externalListingId,
+        url,
+        title,
+        imageUrl,
+        firstSeenAt,
+        lastSeenAt,
+        status,
+        priceHuf,
+        pricePerM2,
+        viewed,
+        viewedAt,
+        false,
+        null);
   }
 
   public String getStatus() {

@@ -114,6 +114,12 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
               },
             }),
           })
+        } else if (url.includes('/api/properties/hidden')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([]),
+          })
         } else if (url.includes('/api/history/clear')) {
           await route.fulfill({
             status: 200,

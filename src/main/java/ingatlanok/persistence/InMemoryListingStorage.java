@@ -23,6 +23,7 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   private final Map<String, List<IngatlanItem>> cityItems = new ConcurrentHashMap<>();
   private final Map<String, IngatlanItem> urlIndex = new ConcurrentHashMap<>();
   private final Set<String> viewedUrls = ConcurrentHashMap.newKeySet();
+  private final Set<String> hiddenUrls = ConcurrentHashMap.newKeySet();
   private final Map<Long, SearchPreset> presets = new ConcurrentHashMap<>();
   private final AtomicLong presetIdSequence = new AtomicLong(1);
   private volatile SearchCriteria lastCriteria = new SearchCriteria();
@@ -67,7 +68,22 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
     IngatlanItem existing = urlIndex.get(url);
     String now = java.time.LocalDateTime.now().toString();
     updateViewedState(item, existing, url, now);
+    updateHiddenState(item, existing, url, now);
     updatePriceAndStatus(item, existing, now);
+  }
+
+  private void updateHiddenState(IngatlanItem item, IngatlanItem existing, String url, String now) {
+    boolean isHidden =
+        hiddenUrls.contains(url) || (existing != null && existing.isHidden()) || item.isHidden();
+    if (!isHidden) {
+      return;
+    }
+    hiddenUrls.add(url);
+    item.setHidden(true);
+    if (item.getHiddenAt() == null) {
+      item.setHiddenAt(
+          existing != null && existing.getHiddenAt() != null ? existing.getHiddenAt() : now);
+    }
   }
 
   private void updateViewedState(IngatlanItem item, IngatlanItem existing, String url, String now) {
@@ -199,6 +215,74 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   }
 
   @Override
+  public boolean hideProperty(String idOrUrl) {
+    if (idOrUrl == null || idOrUrl.isBlank()) {
+      return false;
+    }
+    String key = idOrUrl.trim();
+    boolean found = false;
+    for (IngatlanItem item : urlIndex.values()) {
+      if (key.equals(item.getUrl()) || key.equals(item.getId())) {
+        hiddenUrls.add(item.getUrl());
+        item.setHidden(true);
+        item.setHiddenAt(java.time.LocalDateTime.now().toString());
+        found = true;
+      }
+    }
+    if (!found && urlIndex.containsKey(key)) {
+      hiddenUrls.add(key);
+      urlIndex.get(key).setHidden(true);
+      found = true;
+    }
+    return found;
+  }
+
+  @Override
+  public boolean restoreProperty(String idOrUrl) {
+    if (idOrUrl == null || idOrUrl.isBlank()) {
+      return false;
+    }
+    String key = idOrUrl.trim();
+    boolean found = false;
+    for (IngatlanItem item : urlIndex.values()) {
+      if (key.equals(item.getUrl()) || key.equals(item.getId())) {
+        hiddenUrls.remove(item.getUrl());
+        item.setHidden(false);
+        item.setHiddenAt(null);
+        found = true;
+      }
+    }
+    if (!found && hiddenUrls.contains(key)) {
+      hiddenUrls.remove(key);
+      if (urlIndex.containsKey(key)) {
+        urlIndex.get(key).setHidden(false);
+        urlIndex.get(key).setHiddenAt(null);
+      }
+      found = true;
+    }
+    return found;
+  }
+
+  @Override
+  public List<IngatlanItem> getHiddenProperties() {
+    List<IngatlanItem> result = new ArrayList<>();
+    for (IngatlanItem item : urlIndex.values()) {
+      if (item.isHidden() || hiddenUrls.contains(item.getUrl())) {
+        result.add(item);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public boolean isHidden(String url) {
+    if (url == null || url.isBlank()) {
+      return false;
+    }
+    return hiddenUrls.contains(url);
+  }
+
+  @Override
   public Set<String> getAllUrls() {
     return new HashSet<>(urlIndex.keySet());
   }
@@ -237,6 +321,7 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
     cityItems.clear();
     urlIndex.clear();
     viewedUrls.clear();
+    hiddenUrls.clear();
   }
 
   @Override
@@ -262,21 +347,17 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   @Override
   public List<SearchPreset> getPresets() {
     List<SearchPreset> list = new ArrayList<>(presets.values());
-    list.sort(
-        (a, b) -> {
-          String t1 = a.updatedAt() != null ? a.updatedAt() : "";
-          String t2 = b.updatedAt() != null ? b.updatedAt() : "";
-          return t2.compareTo(t1);
-        });
+    list.sort((a, b) -> {
+      String t1 = a.updatedAt() != null ? a.updatedAt() : "";
+      String t2 = b.updatedAt() != null ? b.updatedAt() : "";
+      return t2.compareTo(t1);
+    });
     return list;
   }
 
   @Override
   public Optional<SearchPreset> getPresetById(Long id) {
-    if (id == null) {
-      return Optional.empty();
-    }
-    return Optional.ofNullable(presets.get(id));
+    return id != null ? Optional.ofNullable(presets.get(id)) : Optional.empty();
   }
 
   @Override
@@ -291,64 +372,42 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
             id,
             preset.name() != null ? preset.name().trim() : "Névtelen sablon",
             preset.criteria() != null ? preset.criteria() : new SearchCriteria(),
-            now,
-            now,
-            preset.lastUsedAt());
+            now, now, preset.lastUsedAt());
     presets.put(id, saved);
     return saved;
   }
 
   @Override
   public Optional<SearchPreset> updatePreset(Long id, SearchPreset preset) {
-    if (id == null || preset == null) {
+    if (id == null || preset == null || !presets.containsKey(id)) {
       return Optional.empty();
     }
     SearchPreset existing = presets.get(id);
-    if (existing == null) {
-      return Optional.empty();
-    }
     String now = java.time.Instant.now().toString();
-    String name =
-        preset.name() != null && !preset.name().isBlank() ? preset.name().trim() : existing.name();
+    String name = (preset.name() != null && !preset.name().isBlank()) ? preset.name().trim() : existing.name();
     SearchCriteria criteria = preset.criteria() != null ? preset.criteria() : existing.criteria();
     SearchPreset updated =
         new SearchPreset(
-            id,
-            name,
-            criteria,
-            existing.createdAt() != null ? existing.createdAt() : now,
-            now,
-            existing.lastUsedAt());
+            id, name, criteria, existing.createdAt() != null ? existing.createdAt() : now, now, existing.lastUsedAt());
     presets.put(id, updated);
     return Optional.of(updated);
   }
 
   @Override
   public boolean deletePreset(Long id) {
-    if (id == null) {
-      return false;
-    }
-    return presets.remove(id) != null;
+    return id != null && presets.remove(id) != null;
   }
 
   @Override
   public Optional<SearchPreset> markPresetAsUsed(Long id) {
-    if (id == null) {
+    if (id == null || !presets.containsKey(id)) {
       return Optional.empty();
     }
     SearchPreset existing = presets.get(id);
-    if (existing == null) {
-      return Optional.empty();
-    }
-    String now = java.time.Instant.now().toString();
     SearchPreset updated =
         new SearchPreset(
-            id,
-            existing.name(),
-            existing.criteria(),
-            existing.createdAt(),
-            existing.updatedAt(),
-            now);
+            id, existing.name(), existing.criteria(), existing.createdAt(), existing.updatedAt(),
+            java.time.Instant.now().toString());
     presets.put(id, updated);
     return Optional.of(updated);
   }
