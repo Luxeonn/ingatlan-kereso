@@ -80,14 +80,61 @@ public final class SemanticConflictDetector {
     if (a.getPropertyType() != PropertyType.HAZ || b.getPropertyType() != PropertyType.HAZ) {
       return false;
     }
-    boolean tanyaA = isTanya(slugA);
-    boolean tanyaB = isTanya(slugB);
-    boolean twinA = isTwinOrRowHouse(slugA);
-    boolean twinB = isTwinOrRowHouse(slugB);
-    if ((tanyaA && twinB) || (tanyaB && twinA)) {
+    if (hasHouseSubtypeConflict(slugA, slugB) || hasHouseNewConstructionConflict(a, b, slugA, slugB)) {
       return true;
     }
     return hasLotDiscrepancy(textA, textB);
+  }
+
+  private static boolean hasHouseSubtypeConflict(String slugA, String slugB) {
+    boolean tanyaA = isTanya(slugA);
+    boolean tanyaB = isTanya(slugB);
+    boolean rowA = isRowHouse(slugA);
+    boolean rowB = isRowHouse(slugB);
+    boolean twinA = isTwinHouse(slugA);
+    boolean twinB = isTwinHouse(slugB);
+    boolean detachedA = isDetachedHouse(slugA);
+    boolean detachedB = isDetachedHouse(slugB);
+    boolean attachedA = rowA || twinA;
+    boolean attachedB = rowB || twinB;
+
+    return hasTanyaMismatch(tanyaA, tanyaB, attachedA, attachedB, detachedA, detachedB)
+        || hasAttachedMismatch(rowA, rowB, twinA, twinB)
+        || hasDetachedMismatch(attachedA, attachedB, detachedA, detachedB);
+  }
+
+  private static boolean hasAttachedMismatch(
+      boolean rowA, boolean rowB, boolean twinA, boolean twinB) {
+    return (rowA && twinB) || (rowB && twinA);
+  }
+
+  private static boolean hasDetachedMismatch(
+      boolean attachedA, boolean attachedB, boolean detachedA, boolean detachedB) {
+    return (attachedA && detachedB) || (attachedB && detachedA);
+  }
+
+  private static boolean hasTanyaMismatch(
+      boolean tanyaA,
+      boolean tanyaB,
+      boolean attachedA,
+      boolean attachedB,
+      boolean detachedA,
+      boolean detachedB) {
+    boolean nonTanyaA = attachedA || detachedA;
+    boolean nonTanyaB = attachedB || detachedB;
+    return (tanyaA && nonTanyaB) || (tanyaB && nonTanyaA);
+  }
+
+  private static boolean hasHouseNewConstructionConflict(
+      IngatlanItem a, IngatlanItem b, String slugA, String slugB) {
+    boolean newA = isNewConstruction(a, slugA);
+    boolean newB = isNewConstruction(b, slugB);
+    if (newA == newB) {
+      return false;
+    }
+    boolean attachedA = isTwinOrRowHouse(slugA);
+    boolean attachedB = isTwinOrRowHouse(slugB);
+    return attachedA != attachedB || a.isNewConstruction() != b.isNewConstruction();
   }
 
   private static boolean hasLotDiscrepancy(String textA, String textB) {
@@ -142,8 +189,22 @@ public final class SemanticConflictDetector {
   }
 
   private static boolean isTwinOrRowHouse(String slug) {
-    return slug.contains("ikerhaz") || slug.contains("iker-haz")
-        || slug.contains("sorhaz") || slug.contains("sor-haz");
+    return isTwinHouse(slug) || isRowHouse(slug);
+  }
+
+  private static boolean isTwinHouse(String slug) {
+    return slug.contains("ikerhaz") || slug.contains("iker-haz");
+  }
+
+  private static boolean isRowHouse(String slug) {
+    return slug.contains("sorhaz") || slug.contains("sor-haz");
+  }
+
+  private static boolean isDetachedHouse(String slug) {
+    return slug.contains("onallo-haz")
+        || slug.contains("onallo-csaladi")
+        || slug.contains("csaladi-haz")
+        || slug.contains("csaladihaz");
   }
 
   private static Double extractLotSize(String text) {
