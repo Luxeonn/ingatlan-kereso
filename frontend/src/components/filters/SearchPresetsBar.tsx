@@ -31,7 +31,8 @@ function generateDefaultName(criteria: ReturnType<typeof useFilterStore.getState
 
 export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
   const { criteria, setCriteria } = useFilterStore()
-  const { data: presets = [], isLoading } = usePresets()
+  const { data, isLoading } = usePresets()
+  const presets = Array.isArray(data) ? data : []
   const createMutation = useCreatePreset()
   const updateMutation = useUpdatePreset()
   const deleteMutation = useDeletePreset()
