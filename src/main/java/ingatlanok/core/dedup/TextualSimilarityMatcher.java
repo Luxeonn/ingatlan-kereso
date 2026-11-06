@@ -19,7 +19,8 @@ public final class TextualSimilarityMatcher {
           "otthon", "centrum", "duna", "house", "jofogas", "koltozzbe", "ingatlanbazar",
           "hirdetes", "forint", "alatt", "egy", "ket", "harom", "szoba", "szobas",
           "nagyon", "kivalo", "szep", "minden", "ahol", "ami", "itt", "van",
-          "meg", "csak", "mar", "vagy", "hogy", "mert", "akarmilyen");
+          "meg", "csak", "mar", "vagy", "hogy", "mert", "akarmilyen",
+          "fedezze", "fel", "almai", "otthonat", "varja", "ont", "sziveben");
 
   private static final Set<String> MULTI_GEN_MARKERS =
       Set.of(
@@ -39,6 +40,7 @@ public final class TextualSimilarityMatcher {
     String title = item.getTitle() != null ? item.getTitle() : "";
     String raw = title.toLowerCase(Locale.ROOT);
     String stripped = SlugUtils.stripAccents(raw);
+    String cityPrefix = extractNormalizedCityPrefix(item);
 
     String[] parts = stripped.split("[^a-z]+");
     Set<String> tokens = new HashSet<>();
@@ -47,11 +49,25 @@ public final class TextualSimilarityMatcher {
         continue;
       }
       String clean = part.trim();
-      if (clean.length() >= 3 && !STOPWORDS.contains(clean)) {
+      if (clean.length() >= 3
+          && !STOPWORDS.contains(clean)
+          && !isCityToken(clean, cityPrefix)) {
         tokens.add(clean);
       }
     }
     return tokens;
+  }
+
+  private static String extractNormalizedCityPrefix(IngatlanItem item) {
+    if (item == null || item.getCity() == null || item.getCity().isBlank()) {
+      return "";
+    }
+    return SlugUtils.stripAccents(item.getCity().trim().toLowerCase(Locale.ROOT))
+        .replaceAll("[^a-z]+", "");
+  }
+
+  private static boolean isCityToken(String token, String cityPrefix) {
+    return !cityPrefix.isBlank() && cityPrefix.length() >= 3 && token.startsWith(cityPrefix);
   }
 
   /**
@@ -145,6 +161,12 @@ public final class TextualSimilarityMatcher {
     String titleA = a != null ? a.getTitle() : "";
     String titleB = b != null ? b.getTitle() : "";
     return isSlugSimilar(titleA, titleB) || hasTokenSimilarity(tokensA, tokensB);
+  }
+
+  public static boolean hasIdenticalTitleSlug(IngatlanItem a, IngatlanItem b) {
+    String slugA = SlugUtils.toSlug(a != null ? a.getTitle() : "");
+    String slugB = SlugUtils.toSlug(b != null ? b.getTitle() : "");
+    return !slugA.isBlank() && slugA.equals(slugB);
   }
 
   private static boolean isSlugSimilar(String titleA, String titleB) {
