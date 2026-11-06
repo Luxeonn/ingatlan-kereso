@@ -3,6 +3,28 @@ import type { IngatlanItem } from '../types/property'
 
 export type DashboardTab = 'listings' | 'analytics'
 export type ListingSubView = 'listings' | 'favorites' | 'archive'
+export type QuickFilterId =
+  | 'bargain'
+  | 'onlyNew'
+  | 'hidden'
+  | 'excludeViewed'
+  | 'onlyNewConstruction'
+
+export const ALL_QUICK_FILTER_IDS: readonly QuickFilterId[] = [
+  'bargain',
+  'onlyNew',
+  'hidden',
+  'excludeViewed',
+  'onlyNewConstruction',
+]
+
+export const DEFAULT_PINNED_QUICK_FILTERS: QuickFilterId[] = [
+  'bargain',
+  'onlyNew',
+  'hidden',
+]
+
+export const MAX_PINNED_QUICK_FILTERS = 3
 
 interface UiState {
   theme: 'dark' | 'light'
@@ -13,6 +35,7 @@ interface UiState {
   isFiltersCollapsed: boolean
   starredUrls: string[]
   starredItemsCache: Record<string, IngatlanItem>
+  pinnedQuickFilters: QuickFilterId[]
   toggleTheme: () => void
   setViewMode: (mode: 'grid' | 'list') => void
   setDashboardTab: (tab: DashboardTab) => void
@@ -21,6 +44,8 @@ interface UiState {
   setFiltersCollapsed: (collapsed: boolean) => void
   toggleStarred: (itemOrUrl: IngatlanItem | string) => void
   isStarred: (url: string) => boolean
+  togglePinnedQuickFilter: (id: QuickFilterId) => void
+  setPinnedQuickFilters: (ids: QuickFilterId[]) => void
 }
 
 function getInitialTheme(): 'dark' | 'light' {
@@ -57,6 +82,33 @@ function getInitialStarredItemsCache(): Record<string, IngatlanItem> {
   }
 }
 
+function getInitialPinnedQuickFilters(): QuickFilterId[] {
+  if (typeof window === 'undefined') return [...DEFAULT_PINNED_QUICK_FILTERS]
+  try {
+    const raw = localStorage.getItem('pinned_quick_filters')
+    if (!raw) return [...DEFAULT_PINNED_QUICK_FILTERS]
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return [...DEFAULT_PINNED_QUICK_FILTERS]
+    const valid = parsed.filter(
+      (item): item is QuickFilterId =>
+        typeof item === 'string' && ALL_QUICK_FILTER_IDS.includes(item as QuickFilterId),
+    )
+    const unique = Array.from(new Set(valid)).slice(0, MAX_PINNED_QUICK_FILTERS)
+    return unique.length > 0 ? unique : [...DEFAULT_PINNED_QUICK_FILTERS]
+  } catch {
+    return [...DEFAULT_PINNED_QUICK_FILTERS]
+  }
+}
+
+function savePinnedQuickFilters(ids: QuickFilterId[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem('pinned_quick_filters', JSON.stringify(ids))
+  } catch {
+    // Ignore storage quota failure
+  }
+}
+
 export const useUiStore = create<UiState>((set, get) => {
   const initialTheme = getInitialTheme()
   if (typeof document !== 'undefined') {
@@ -76,6 +128,7 @@ export const useUiStore = create<UiState>((set, get) => {
     isFiltersCollapsed: false,
     starredUrls: getInitialStarredUrls(),
     starredItemsCache: getInitialStarredItemsCache(),
+    pinnedQuickFilters: getInitialPinnedQuickFilters(),
     toggleTheme: () =>
       set((state) => {
         const next = state.theme === 'dark' ? 'light' : 'dark'
@@ -145,5 +198,25 @@ export const useUiStore = create<UiState>((set, get) => {
         }
       }),
     isStarred: (url) => get().starredUrls.includes(url),
+    togglePinnedQuickFilter: (id) =>
+      set((state) => {
+        if (!ALL_QUICK_FILTER_IDS.includes(id)) return state
+        const exists = state.pinnedQuickFilters.includes(id)
+        if (!exists && state.pinnedQuickFilters.length >= MAX_PINNED_QUICK_FILTERS) {
+          return state
+        }
+        const next = exists
+          ? state.pinnedQuickFilters.filter((item) => item !== id)
+          : [...state.pinnedQuickFilters, id]
+        savePinnedQuickFilters(next)
+        return { pinnedQuickFilters: next }
+      }),
+    setPinnedQuickFilters: (ids) =>
+      set(() => {
+        const valid = ids.filter((id) => ALL_QUICK_FILTER_IDS.includes(id))
+        const next = Array.from(new Set(valid)).slice(0, MAX_PINNED_QUICK_FILTERS)
+        savePinnedQuickFilters(next)
+        return { pinnedQuickFilters: next }
+      }),
   }
 })
