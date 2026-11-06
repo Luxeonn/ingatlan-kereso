@@ -16,9 +16,10 @@ import { cn } from '../../utils/cn'
 export interface PropertyDetailsDrawerProps {
   item: IngatlanItem
   onMarkViewed?: (url: string) => void
+  className?: string
 }
 
-export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, onMarkViewed }) => {
+export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, onMarkViewed, className }) => {
   const sources: SourceListing[] =
     item.sourceListings && item.sourceListings.length > 0
       ? item.sourceListings
@@ -54,7 +55,10 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
       aria-label="Hirdetés részletei"
       data-testid="multi-source-drawer"
       data-drawer-component="property-details-drawer"
-      className="mt-3.5 flex flex-col gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)]/50 p-3.5 shadow-inner transition-all animate-in fade-in-50 duration-200 text-xs"
+      className={cn(
+        'mt-3.5 flex flex-col gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)]/50 p-3.5 shadow-inner transition-all animate-in fade-in-50 duration-200 text-xs',
+        className,
+      )}
     >
       {/* 1. SECTION: Besorolás és Kategória (letisztítva: m2 és időbélyegek nélkül) */}
       <div className="flex flex-col gap-1.5 pb-3 border-b border-[var(--border-color)]/50">

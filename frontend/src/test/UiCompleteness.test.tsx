@@ -6,7 +6,7 @@ import { SearchPanel } from '../components/filters/SearchPanel'
 import { DiagnosticsModal } from '../components/modals/DiagnosticsModal'
 import { filterAndSortItems } from '../hooks/useSearch'
 import { useFilterStore } from '../store/useFilterStore'
-import { useUiStore } from '../store/useUiStore'
+import { useUiStore, DEFAULT_PINNED_QUICK_FILTERS } from '../store/useUiStore'
 import type { IngatlanItem } from '../types/property'
 
 const sampleItems: IngatlanItem[] = [
@@ -50,6 +50,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
       listingSubView: 'listings',
       starredUrls: [],
       starredItemsCache: {},
+      pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS],
     })
   })
 
@@ -87,15 +88,13 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(byUnviewed[0].id).toBe('1')
   })
 
-  it('renders BulkActionBar with quick search input, exclude viewed, sort select, portal chips, and archive clear confirmation', () => {
+  it('renders BulkActionBar with quick search input, default pinned quick filters, sort select, portal chips, and archive clear confirmation (#359)', () => {
     const handleClear = vi.fn()
     render(
       <BulkActionBar
         items={sampleItems}
         rawItems={sampleItems}
         totalRawCount={2}
-        onOpenAll={() => {}}
-        onMarkAllViewed={() => {}}
         onClearHistory={handleClear}
       />,
     )
@@ -104,13 +103,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     fireEvent.change(searchInput, { target: { value: 'Nagyerdő 140' } })
     expect(useFilterStore.getState().quickSearchQuery).toBe('Nagyerdő 140')
 
-    // Exclude viewed toggle (#273)
-    const excludeViewedBtn = screen.getByRole('button', { name: /Megtekintettek rejtése/i })
-    expect(excludeViewedBtn).toBeTruthy()
-    fireEvent.click(excludeViewedBtn)
-    expect(useFilterStore.getState().criteria.excludeViewed).toBe(true)
-
-    // Sort select dropdown (#273)
+    // Sort select dropdown (#273, #359)
     const sortSelect = screen.getByLabelText('Rendezés')
     expect(sortSelect).toBeTruthy()
     fireEvent.change(sortSelect, { target: { value: 'price_desc' } })
@@ -120,16 +113,21 @@ describe('UI Completeness (#157, #202, #227)', () => {
     fireEvent.click(ocChip)
     expect(useFilterStore.getState().selectedPortalFilter).toBe('oc')
 
-    // Only new and only new construction filter chips in BulkActionBar (#303)
+    // Default 3 pinned quick filter chips in BulkActionBar (#359): Alkalmi vétel, Csak új találatok, Elrejtettek
+    const bargainBtn = screen.getByTestId('bargain-filter-toggle')
+    expect(bargainBtn).toBeTruthy()
+    fireEvent.click(bargainBtn)
+    expect(useFilterStore.getState().onlyBargain).toBe(true)
+
     const onlyNewBtn = screen.getByRole('button', { name: /Csak új találatok/i })
     expect(onlyNewBtn).toBeTruthy()
     fireEvent.click(onlyNewBtn)
     expect(useFilterStore.getState().onlyNew).toBe(true)
 
-    const newConstructionBtn = screen.getByRole('button', { name: /Csak új építésű/i })
-    expect(newConstructionBtn).toBeTruthy()
-    fireEvent.click(newConstructionBtn)
-    expect(useFilterStore.getState().criteria.onlyNewConstruction).toBe(true)
+    const hiddenBtn = screen.getByTestId('hidden-filter-toggle')
+    expect(hiddenBtn).toBeTruthy()
+    fireEvent.click(hiddenBtn)
+    expect(useFilterStore.getState().showHidden).toBe(true)
 
     // Clear history confirmation flow
     const clearBtn = screen.getByRole('button', { name: /Előzmények törlése/i })
@@ -173,29 +171,30 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(summary.textContent).toContain('6/6 portál')
   })
 
-  it('structures BulkActionBar in three logical tiers: Search/Actions, Filter Chips, and Portal Chips (#303)', () => {
+  it('structures BulkActionBar in three logical tiers: Search/Sort, Customizable Filter Chips (max 3), and Portal Chips (#303, #359)', () => {
     render(
       <BulkActionBar
         items={sampleItems}
         rawItems={sampleItems}
         totalRawCount={2}
-        onOpenAll={() => {}}
-        onMarkAllViewed={() => {}}
       />,
     )
 
-    // Row 1: Search input and sort select
+    // Row 1: Search input and sort select (without Összes megnyitása / Mind megtekintett)
     expect(screen.getByPlaceholderText(/Gyorskeresés a találatok között/i)).toBeTruthy()
     expect(screen.getByLabelText('Rendezés')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Összes megnyitása/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Összes megnyitása/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Mind megtekintett/i })).toBeNull()
 
-    // Row 2: Filter chips row container with 5 filters in logical order (#303)
+    // Row 2: Filter chips row container with 3 default pinned filters + selector button + quality select (#359)
     const filterChipsRow = screen.getByTestId('filter-chips-row')
     expect(filterChipsRow).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Csak új találatok/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Csak új építésű/i })).toBeTruthy()
     expect(screen.getByTestId('bargain-filter-toggle')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Csak új találatok/i })).toBeTruthy()
+    expect(screen.getByTestId('hidden-filter-toggle')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Csak új építésű/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Megtekintettek rejtése/i })).toBeNull()
+    expect(screen.getByTestId('quick-filter-selector-btn')).toBeTruthy()
     expect(screen.getByTestId('quality-filter-select')).toBeTruthy()
 
     // Row 3: Portal chips container
