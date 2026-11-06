@@ -13,8 +13,10 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 class OpenApiSpecIntegrityTest {
@@ -47,7 +49,9 @@ class OpenApiSpecIntegrityTest {
             "/api/search:",
             "/api/open-urls:",
             "/api/items/viewed:",
-            "/api/history/clear:");
+            "/api/history/clear:",
+            "/api/presets:",
+            "/api/presets/{id}:");
 
     for (String endpoint : requiredEndpoints) {
       assertTrue(
@@ -58,6 +62,8 @@ class OpenApiSpecIntegrityTest {
     List<String> requiredSchemas =
         List.of(
             "SearchCriteria:",
+            "SearchPreset:",
+            "SearchPresetInput:",
             "DashboardResponseDto:",
             "IngatlanItem:",
             "PortalDescriptor:",
@@ -98,6 +104,16 @@ class OpenApiSpecIntegrityTest {
       PostMapping post = method.getAnnotation(PostMapping.class);
       if (post != null) {
         String[] values = post.value().length > 0 ? post.value() : post.path();
+        methodPaths.addAll(Arrays.asList(values));
+      }
+      PutMapping put = method.getAnnotation(PutMapping.class);
+      if (put != null) {
+        String[] values = put.value().length > 0 ? put.value() : put.path();
+        methodPaths.addAll(Arrays.asList(values));
+      }
+      DeleteMapping delete = method.getAnnotation(DeleteMapping.class);
+      if (delete != null) {
+        String[] values = delete.value().length > 0 ? delete.value() : delete.path();
         methodPaths.addAll(Arrays.asList(values));
       }
 

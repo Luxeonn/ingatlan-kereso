@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchPreset;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.entity.ConfigEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
@@ -34,6 +36,7 @@ import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
 import ingatlanok.persistence.service.PriceHistoryTracker;
 import ingatlanok.persistence.service.PropertyPersistenceHelper;
+import ingatlanok.persistence.service.SearchPresetPersistenceHelper;
 import ingatlanok.persistence.service.StatusLogTracker;
 import ingatlanok.persistence.specification.PropertySpecifications;
 
@@ -54,6 +57,7 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   private final ObjectMapper objectMapper;
   private final ListingObservationRepository listingObservationRepo;
   private final PropertyPersistenceHelper persistenceHelper;
+  private final SearchPresetPersistenceHelper presetHelper;
 
   @Autowired
   public JpaIngatlanStorage(
@@ -65,7 +69,8 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       ObjectMapper objectMapper,
       PriceHistoryTracker priceTracker,
       StatusLogTracker statusTracker,
-      ListingObservationRepository listingObservationRepo) {
+      ListingObservationRepository listingObservationRepo,
+      SearchPresetPersistenceHelper presetHelper) {
     this.propertyRepo = propertyRepo;
     this.priceHistoryRepo = priceHistoryRepo;
     this.statusLogRepo = statusLogRepo;
@@ -73,6 +78,7 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     this.mapper = mapper;
     this.objectMapper = objectMapper;
     this.listingObservationRepo = listingObservationRepo;
+    this.presetHelper = presetHelper;
     this.persistenceHelper =
         new PropertyPersistenceHelper(
             propertyRepo,
@@ -82,27 +88,6 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
             mapper,
             priceTracker,
             statusTracker);
-  }
-
-  public JpaIngatlanStorage(
-      PropertyRepository propertyRepo,
-      PriceHistoryRepository priceHistoryRepo,
-      StatusLogRepository statusLogRepo,
-      ConfigRepository configRepo,
-      JpaEntityMapper mapper,
-      ObjectMapper objectMapper,
-      PriceHistoryTracker priceTracker,
-      StatusLogTracker statusTracker) {
-    this(
-        propertyRepo,
-        priceHistoryRepo,
-        statusLogRepo,
-        configRepo,
-        mapper,
-        objectMapper,
-        priceTracker,
-        statusTracker,
-        null);
   }
 
   @Override
@@ -419,5 +404,40 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       configRepo.save(
           new ConfigEntity(CONFIG_KEY_LAST_CRITERIA, objectMapper.writeValueAsString(criteria)));
     }
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<SearchPreset> getPresets() {
+    return presetHelper != null ? presetHelper.getPresets() : List.of();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Optional<SearchPreset> getPresetById(Long id) {
+    return presetHelper != null ? presetHelper.getPresetById(id) : Optional.empty();
+  }
+
+  @Override
+  public SearchPreset savePreset(SearchPreset preset) {
+    if (presetHelper == null) {
+      throw new IllegalStateException("Preset helper not configured");
+    }
+    return presetHelper.savePreset(preset);
+  }
+
+  @Override
+  public Optional<SearchPreset> updatePreset(Long id, SearchPreset preset) {
+    return presetHelper != null ? presetHelper.updatePreset(id, preset) : Optional.empty();
+  }
+
+  @Override
+  public boolean deletePreset(Long id) {
+    return presetHelper != null && presetHelper.deletePreset(id);
+  }
+
+  @Override
+  public Optional<SearchPreset> markPresetAsUsed(Long id) {
+    return presetHelper != null ? presetHelper.markPresetAsUsed(id) : Optional.empty();
   }
 }
