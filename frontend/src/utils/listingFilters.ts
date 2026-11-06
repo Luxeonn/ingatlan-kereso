@@ -36,6 +36,16 @@ function getSqmPrice(item: IngatlanItem, fallback: number): number {
   return fallback
 }
 
+export function getBargainPercentage(item: IngatlanItem): number {
+  if (item.percentageBelowMedian !== null && item.percentageBelowMedian !== undefined) {
+    return item.percentageBelowMedian
+  }
+  if (item.bargainInfo?.percentageBelowMedian !== null && item.bargainInfo?.percentageBelowMedian !== undefined) {
+    return item.bargainInfo.percentageBelowMedian
+  }
+  return -Infinity
+}
+
 function getArea(item: IngatlanItem): number {
   if (item.detailsInfo && item.detailsInfo.areaSquareMeters !== undefined) {
     return item.detailsInfo.areaSquareMeters
@@ -50,6 +60,7 @@ const COMPARATORS: Record<SortOption, (a: IngatlanItem, b: IngatlanItem) => numb
   sqm_price_desc: (a, b) => getSqmPrice(b, -Infinity) - getSqmPrice(a, -Infinity),
   area_desc: (a, b) => getArea(b) - getArea(a),
   date_desc: (a, b) => (b.discoveredAt || '').localeCompare(a.discoveredAt || ''),
+  bargain_desc: (a, b) => getBargainPercentage(b) - getBargainPercentage(a),
 }
 
 function compareItems(a: IngatlanItem, b: IngatlanItem, sortOption: SortOption): number {
