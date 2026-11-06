@@ -7,6 +7,7 @@ import { PropertyTypeTabs } from './PropertyTypeTabs'
 import { PriceStepper } from './PriceStepper'
 import { AreaStepper } from './AreaStepper'
 import { PortalToggleGroup } from './PortalToggleGroup'
+import { SearchPresetsBar } from './SearchPresetsBar'
 
 interface SearchPanelProps {
   onSearch: () => void
@@ -159,6 +160,9 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
           {isFiltersCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
         </button>
       </div>
+
+      {/* Quick Search Presets Bar */}
+      <SearchPresetsBar onSearch={onSearch} />
 
       {/* Collapsed summary bar (#157) */}
       {isFiltersCollapsed && (

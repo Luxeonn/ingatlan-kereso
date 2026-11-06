@@ -8,18 +8,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchPreset;
 
 public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
 
   private final Map<String, List<IngatlanItem>> cityItems = new ConcurrentHashMap<>();
   private final Map<String, IngatlanItem> urlIndex = new ConcurrentHashMap<>();
   private final Set<String> viewedUrls = ConcurrentHashMap.newKeySet();
+  private final Map<Long, SearchPreset> presets = new ConcurrentHashMap<>();
+  private final AtomicLong presetIdSequence = new AtomicLong(1);
   private volatile SearchCriteria lastCriteria = new SearchCriteria();
   private volatile String lastRunTime;
 
@@ -252,6 +257,100 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   @Override
   public void saveLastCriteria(SearchCriteria criteria) {
     this.lastCriteria = criteria;
+  }
+
+  @Override
+  public List<SearchPreset> getPresets() {
+    List<SearchPreset> list = new ArrayList<>(presets.values());
+    list.sort(
+        (a, b) -> {
+          String t1 = a.updatedAt() != null ? a.updatedAt() : "";
+          String t2 = b.updatedAt() != null ? b.updatedAt() : "";
+          return t2.compareTo(t1);
+        });
+    return list;
+  }
+
+  @Override
+  public Optional<SearchPreset> getPresetById(Long id) {
+    if (id == null) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(presets.get(id));
+  }
+
+  @Override
+  public SearchPreset savePreset(SearchPreset preset) {
+    if (preset == null) {
+      throw new IllegalArgumentException("Preset cannot be null");
+    }
+    long id = presetIdSequence.getAndIncrement();
+    String now = java.time.Instant.now().toString();
+    SearchPreset saved =
+        new SearchPreset(
+            id,
+            preset.name() != null ? preset.name().trim() : "Névtelen sablon",
+            preset.criteria() != null ? preset.criteria() : new SearchCriteria(),
+            now,
+            now,
+            preset.lastUsedAt());
+    presets.put(id, saved);
+    return saved;
+  }
+
+  @Override
+  public Optional<SearchPreset> updatePreset(Long id, SearchPreset preset) {
+    if (id == null || preset == null) {
+      return Optional.empty();
+    }
+    SearchPreset existing = presets.get(id);
+    if (existing == null) {
+      return Optional.empty();
+    }
+    String now = java.time.Instant.now().toString();
+    String name =
+        preset.name() != null && !preset.name().isBlank() ? preset.name().trim() : existing.name();
+    SearchCriteria criteria = preset.criteria() != null ? preset.criteria() : existing.criteria();
+    SearchPreset updated =
+        new SearchPreset(
+            id,
+            name,
+            criteria,
+            existing.createdAt() != null ? existing.createdAt() : now,
+            now,
+            existing.lastUsedAt());
+    presets.put(id, updated);
+    return Optional.of(updated);
+  }
+
+  @Override
+  public boolean deletePreset(Long id) {
+    if (id == null) {
+      return false;
+    }
+    return presets.remove(id) != null;
+  }
+
+  @Override
+  public Optional<SearchPreset> markPresetAsUsed(Long id) {
+    if (id == null) {
+      return Optional.empty();
+    }
+    SearchPreset existing = presets.get(id);
+    if (existing == null) {
+      return Optional.empty();
+    }
+    String now = java.time.Instant.now().toString();
+    SearchPreset updated =
+        new SearchPreset(
+            id,
+            existing.name(),
+            existing.criteria(),
+            existing.createdAt(),
+            existing.updatedAt(),
+            now);
+    presets.put(id, updated);
+    return Optional.of(updated);
   }
 
   @Override

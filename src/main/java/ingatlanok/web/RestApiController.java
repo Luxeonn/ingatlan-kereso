@@ -11,10 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,7 +27,9 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchPreset;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.persistence.ConfigStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngineRegistry;
@@ -117,10 +121,72 @@ public class RestApiController {
   @PostMapping("/config")
   public ResponseEntity<Map<String, Object>> saveLastCriteria(
       @RequestBody(required = false) SearchCriteria criteria) {
-    if (criteria != null && listingStorage instanceof ingatlanok.persistence.ConfigStorage cs) {
+    if (criteria != null && listingStorage instanceof ConfigStorage cs) {
       cs.saveLastCriteria(criteria);
     }
     return ResponseEntity.ok(Map.of("success", true));
+  }
+
+  @GetMapping("/presets")
+  public ResponseEntity<List<SearchPreset>> getPresets() {
+    ConfigStorage cs = getConfigStorage();
+    if (cs == null) {
+      return ResponseEntity.ok(List.of());
+    }
+    return ResponseEntity.ok(cs.getPresets());
+  }
+
+  @PostMapping("/presets")
+  public ResponseEntity<SearchPreset> createPreset(@RequestBody SearchPreset preset) {
+    ConfigStorage cs = getConfigStorage();
+    if (cs == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    if (preset == null || preset.name() == null || preset.name().isBlank()) {
+      return ResponseEntity.badRequest().build();
+    }
+    SearchPreset created = cs.savePreset(preset);
+    return ResponseEntity.ok(created);
+  }
+
+  @PutMapping("/presets/{id}")
+  public ResponseEntity<SearchPreset> updatePreset(
+      @PathVariable("id") Long id, @RequestBody SearchPreset preset) {
+    ConfigStorage cs = getConfigStorage();
+    if (cs == null || id == null || preset == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    return cs.updatePreset(id, preset)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
+  }
+
+  @DeleteMapping("/presets/{id}")
+  public ResponseEntity<Map<String, Object>> deletePreset(@PathVariable("id") Long id) {
+    ConfigStorage cs = getConfigStorage();
+    if (cs == null || id == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    boolean deleted = cs.deletePreset(id);
+    if (!deleted) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(Map.of("success", true));
+  }
+
+  @PostMapping("/presets/{id}/use")
+  public ResponseEntity<SearchPreset> usePreset(@PathVariable("id") Long id) {
+    ConfigStorage cs = getConfigStorage();
+    if (cs == null || id == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    return cs.markPresetAsUsed(id)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
+  }
+
+  private ConfigStorage getConfigStorage() {
+    return (listingStorage instanceof ConfigStorage cs) ? cs : null;
   }
 
   @GetMapping("/history")

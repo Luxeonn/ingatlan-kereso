@@ -23,6 +23,7 @@ import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchPreset;
 import ingatlanok.model.StatusLogEntry;
 import ingatlanok.persistence.entity.PropertyEntity;
 
@@ -625,5 +626,39 @@ class JpaIngatlanStorageTest {
     criteria.setExcludeViewed(true);
     ingatlanok.model.SearchResult r3 = searchEngine.executeSearch(criteria);
     assertEquals(0, r3.getItems().size());
+  }
+
+  @Test
+  @DisplayName("Search presets persistence roundtrip in JpaIngatlanStorage")
+  void testPresetsPersistenceRoundtrip() {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("lakas");
+    criteria.setMinPriceMillion(40);
+    criteria.setMaxPriceMillion(75);
+
+    SearchPreset preset = new SearchPreset(null, "Debrecen Belváros", criteria, null, null, null);
+    SearchPreset saved = storage.savePreset(preset);
+
+    assertNotNull(saved.id());
+    assertEquals("Debrecen Belváros", saved.name());
+    assertEquals("Debrecen", saved.criteria().getCity());
+    assertNotNull(saved.createdAt());
+    assertNotNull(saved.updatedAt());
+
+    List<SearchPreset> presets = storage.getPresets();
+    assertFalse(presets.isEmpty());
+    assertTrue(presets.stream().anyMatch(p -> p.id().equals(saved.id())));
+
+    SearchPreset used = storage.markPresetAsUsed(saved.id()).orElseThrow();
+    assertNotNull(used.lastUsedAt());
+
+    SearchPreset updatePayload = new SearchPreset(saved.id(), "Debrecen Nagyerdei Lakások", null, null, null, null);
+    SearchPreset updated = storage.updatePreset(saved.id(), updatePayload).orElseThrow();
+    assertEquals("Debrecen Nagyerdei Lakások", updated.name());
+
+    assertTrue(storage.deletePreset(saved.id()));
+    assertFalse(storage.deletePreset(saved.id()));
+    assertTrue(storage.getPresetById(saved.id()).isEmpty());
   }
 }

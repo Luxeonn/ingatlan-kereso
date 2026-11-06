@@ -1,7 +1,9 @@
 package ingatlanok.web;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,6 +23,7 @@ import ingatlanok.common.JsonSupport;
 import ingatlanok.config.GlobalCorsFilter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.SearchPreset;
 import ingatlanok.persistence.ListingStorage;
 
 @SpringBootTest
@@ -94,6 +97,71 @@ class RestApiControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.minPriceMillion").value(60))
         .andExpect(jsonPath("$.maxPriceMillion").value(110));
+  }
+
+  @Test
+  @DisplayName("GET, POST, PUT, USE, DELETE /api/presets - Keresési sablonok CRUD ciklusa")
+  void testPresetsCrudFlow() throws Exception {
+    mockMvc
+        .perform(get("/api/presets"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray());
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(70);
+    criteria.setMaxPriceMillion(120);
+
+    SearchPreset newPreset = new SearchPreset(null, "Hajdúszoboszló Ház 70-120M", criteria, null, null, null);
+
+    String createResponse =
+        mockMvc
+            .perform(
+                post("/api/presets")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(JsonSupport.mapper().writeValueAsString(newPreset)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").exists())
+            .andExpect(jsonPath("$.name").value("Hajdúszoboszló Ház 70-120M"))
+            .andExpect(jsonPath("$.criteria.city").value("Hajdúszoboszló"))
+            .andExpect(jsonPath("$.criteria.minPriceMillion").value(70))
+            .andExpect(jsonPath("$.createdAt").exists())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    SearchPreset created = JsonSupport.mapper().readValue(createResponse, SearchPreset.class);
+    Long presetId = created.id();
+
+    mockMvc
+        .perform(
+            post("/api/presets/" + presetId + "/use"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.lastUsedAt").exists());
+
+    SearchCriteria updatedCriteria = new SearchCriteria();
+    updatedCriteria.setCity("Debrecen");
+    updatedCriteria.setMinPriceMillion(80);
+    SearchPreset updatePayload = new SearchPreset(presetId, "Debrecen Ház 80M+", updatedCriteria, null, null, null);
+
+    mockMvc
+        .perform(
+            put("/api/presets/" + presetId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonSupport.mapper().writeValueAsString(updatePayload)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Debrecen Ház 80M+"))
+        .andExpect(jsonPath("$.criteria.city").value("Debrecen"));
+
+    mockMvc
+        .perform(delete("/api/presets/" + presetId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true));
+
+    mockMvc
+        .perform(delete("/api/presets/" + presetId))
+        .andExpect(status().isNotFound());
   }
 
   @Test
