@@ -5,6 +5,8 @@ import {
   Star,
   Building2,
   Info,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { getPropertyTypeConfig } from '../../utils/formatters'
@@ -90,7 +92,109 @@ export interface PropertyCardBadgesProps {
   isStarred: boolean
   onToggleDrawer: () => void
   onToggleStarred: () => void
+  onHide?: () => void
+  onRestore?: () => void
 }
+
+interface PropertyActionButtonsProps {
+  item: IngatlanItem
+  sourcesCount: number
+  isDrawerOpen: boolean
+  isStarred: boolean
+  onToggleDrawer: () => void
+  onToggleStarred: () => void
+  onHide?: () => void
+  onRestore?: () => void
+}
+
+const PropertyActionButtons: FC<PropertyActionButtonsProps> = ({
+  item,
+  sourcesCount,
+  isDrawerOpen,
+  isStarred,
+  onToggleDrawer,
+  onToggleStarred,
+  onHide,
+  onRestore,
+}) => (
+  <div className="flex shrink-0 items-center gap-1.5 ml-auto">
+    <button
+      type="button"
+      aria-expanded={isDrawerOpen}
+      aria-controls={`drawer-${item.id}`}
+      aria-label={
+        sourcesCount > 1
+          ? `${sourcesCount} forrás megjelenítése`
+          : 'Részletek és források megjelenítése'
+      }
+      title="Részletek és források"
+      data-testid={sourcesCount > 1 ? 'sources-count-badge' : 'details-button'}
+      onClick={(e) => {
+        e.stopPropagation()
+        onToggleDrawer()
+      }}
+      className={cn(
+        'flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer',
+        isDrawerOpen
+          ? 'border-blue-500/40 bg-blue-500/20 text-blue-300 shadow-sm'
+          : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-blue-400 hover:border-blue-500/30',
+      )}
+    >
+      <Info className="h-3.5 w-3.5" aria-hidden="true" />
+      <span className="text-[11px]">
+        {sourcesCount > 1 ? `${sourcesCount} forrás` : 'Részletek'}
+      </span>
+    </button>
+
+    <button
+      type="button"
+      onClick={onToggleStarred}
+      aria-label={isStarred ? 'Eltávolítás a kedvencekből' : 'Hozzáadás a kedvencekhez'}
+      title={isStarred ? 'Eltávolítás a kedvencekből' : 'Hozzáadás a kedvencekhez'}
+      className={cn(
+        'flex items-center justify-center rounded-lg border p-1.5 text-xs transition-all cursor-pointer',
+        isStarred
+          ? 'border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm'
+          : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-400',
+      )}
+    >
+      <Star className={cn('h-3.5 w-3.5', isStarred ? 'fill-amber-400 text-amber-400' : '')} />
+    </button>
+
+    {item.hidden && onRestore && (
+      <button
+        type="button"
+        data-testid="restore-property-button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onRestore()
+        }}
+        aria-label="Hirdetés visszaállítása"
+        title="Hirdetés visszaállítása"
+        className="flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2 py-1 text-xs font-semibold text-purple-300 hover:bg-purple-500/25 transition-all cursor-pointer"
+      >
+        <RotateCcw className="h-3.5 w-3.5" />
+        <span className="text-[11px]">Visszaállítás</span>
+      </button>
+    )}
+
+    {!item.hidden && onHide && (
+      <button
+        type="button"
+        data-testid="hide-property-button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onHide()
+        }}
+        aria-label="Hirdetés elrejtése"
+        title="Hirdetés elrejtése"
+        className="flex items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] p-1.5 text-xs text-[var(--text-secondary)] hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    )}
+  </div>
+)
 
 export const PropertyCardBadges: FC<PropertyCardBadgesProps> = ({
   item,
@@ -99,6 +203,8 @@ export const PropertyCardBadges: FC<PropertyCardBadgesProps> = ({
   isStarred,
   onToggleDrawer,
   onToggleStarred,
+  onHide,
+  onRestore,
 }) => (
   <div className="flex items-center justify-between gap-2 min-h-[28px]">
     <div className="flex items-center gap-1.5 flex-nowrap overflow-hidden">
@@ -118,49 +224,15 @@ export const PropertyCardBadges: FC<PropertyCardBadgesProps> = ({
       <BargainBadge item={item} />
     </div>
 
-    <div className="flex shrink-0 items-center gap-1.5 ml-auto">
-      <button
-        type="button"
-        aria-expanded={isDrawerOpen}
-        aria-controls={`drawer-${item.id}`}
-        aria-label={
-          sourcesCount > 1
-            ? `${sourcesCount} forrás megjelenítése`
-            : 'Részletek és források megjelenítése'
-        }
-        title="Részletek és források"
-        data-testid={sourcesCount > 1 ? 'sources-count-badge' : 'details-button'}
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleDrawer()
-        }}
-        className={cn(
-          'flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer',
-          isDrawerOpen
-            ? 'border-blue-500/40 bg-blue-500/20 text-blue-300 shadow-sm'
-            : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-blue-400 hover:border-blue-500/30',
-        )}
-      >
-        <Info className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="text-[11px]">
-          {sourcesCount > 1 ? `${sourcesCount} forrás` : 'Részletek'}
-        </span>
-      </button>
-
-      <button
-        type="button"
-        onClick={onToggleStarred}
-        aria-label={isStarred ? 'Eltávolítás a kedvencekből' : 'Hozzáadás a kedvencekhez'}
-        title={isStarred ? 'Eltávolítás a kedvencekből' : 'Hozzáadás a kedvencekhez'}
-        className={cn(
-          'flex items-center justify-center rounded-lg border p-1.5 text-xs transition-all cursor-pointer',
-          isStarred
-            ? 'border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm'
-            : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-400',
-        )}
-      >
-        <Star className={cn('h-3.5 w-3.5', isStarred ? 'fill-amber-400 text-amber-400' : '')} />
-      </button>
-    </div>
+    <PropertyActionButtons
+      item={item}
+      sourcesCount={sourcesCount}
+      isDrawerOpen={isDrawerOpen}
+      isStarred={isStarred}
+      onToggleDrawer={onToggleDrawer}
+      onToggleStarred={onToggleStarred}
+      onHide={onHide}
+      onRestore={onRestore}
+    />
   </div>
 )

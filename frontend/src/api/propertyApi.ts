@@ -34,4 +34,20 @@ export async function clearHistory(city?: string): Promise<{ success: boolean }>
     body: JSON.stringify(city ? { city } : {}),
   })
 }
+export async function hideProperty(id: string, urls?: string[]): Promise<{ success: boolean; hidden: boolean; id: string }> {
+  return apiClient<{ success: boolean; hidden: boolean; id: string }>(`/api/properties/${encodeURIComponent(id)}/hide`, {
+    method: 'POST',
+    body: JSON.stringify(urls && urls.length > 0 ? { urls } : {}),
+  })
+}
 
+export async function restoreProperty(id: string, urls?: string[]): Promise<{ success: boolean; hidden: boolean; id: string }> {
+  return apiClient<{ success: boolean; hidden: boolean; id: string }>(`/api/properties/${encodeURIComponent(id)}/restore`, {
+    method: 'POST',
+    body: JSON.stringify(urls && urls.length > 0 ? { urls } : {}),
+  })
+}
+
+export async function getHiddenProperties(): Promise<IngatlanItem[]> {
+  return apiClient<IngatlanItem[]>('/api/properties/hidden')
+}

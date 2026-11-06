@@ -6,162 +6,40 @@ import {
   openUrls as apiOpenUrls,
   getHistory as apiGetHistory,
   clearHistory as apiClearHistory,
+  hideProperty as apiHideProperty,
+  restoreProperty as apiRestoreProperty,
+  getHiddenProperties as apiGetHiddenProperties,
 } from '../api/propertyApi'
 import type { DashboardResponseDto, SearchCriteria } from '../types/api'
 import type { IngatlanItem } from '../types/property'
-import type { SortOption } from '../store/useFilterStore';
 import { useFilterStore } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
 import { detectPortalFromUrl, normalizePortalKey, openExternalUrl } from '../utils/formatters'
+import {
+  normalizeSearchText,
+  isItemBargain,
+  filterAndSortItems,
+} from '../utils/listingFilters'
 
-export { normalizePortalKey }
+export { normalizePortalKey, normalizeSearchText, isItemBargain, filterAndSortItems }
 
-export function normalizeSearchText(str?: string | null): string {
-  return (str || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-}
-
-export function isItemBargain(item: IngatlanItem): boolean {
-  return Boolean(
-    item.isBargain ||
-      item.bargainInfo?.isBargain ||
-      (item.percentageBelowMedian !== null &&
-        item.percentageBelowMedian !== undefined &&
-        item.percentageBelowMedian >= 20) ||
-      (item.bargainInfo?.percentageBelowMedian !== null &&
-        item.bargainInfo?.percentageBelowMedian !== undefined &&
-        item.bargainInfo.percentageBelowMedian >= 20),
-  )
-}
-
-function getPriceHuf(item: IngatlanItem, fallback: number): number {
-  if (item.priceInfo && item.priceInfo.amountHuf !== undefined) {
-    return item.priceInfo.amountHuf
+function buildOrphanItem(url: string): IngatlanItem {
+  const portalInfo = detectPortalFromUrl(url)
+  return {
+    id: `orphan-${url}`,
+    portal: portalInfo.portalName,
+    url,
+    title: `Elmentett hirdetés (${portalInfo.portalName})`,
+    price: 'N/A',
+    location: 'Elmentett hivatkozás',
+    city: 'Ismeretlen',
+    propertyType: 'EGYEB_ISMERETLEN',
+    source: {
+      portalId: portalInfo.portalId,
+      portalName: portalInfo.portalName,
+      directListing: true,
+    },
   }
-  return fallback
-}
-
-function getSqmPrice(item: IngatlanItem, fallback: number): number {
-  if (item.detailsInfo && item.detailsInfo.pricePerSquareMeter !== undefined) {
-    return item.detailsInfo.pricePerSquareMeter
-  }
-  return fallback
-}
-
-function getArea(item: IngatlanItem): number {
-  if (item.detailsInfo && item.detailsInfo.areaSquareMeters !== undefined) {
-    return item.detailsInfo.areaSquareMeters
-  }
-  return 0
-}
-
-const COMPARATORS: Record<SortOption, (a: IngatlanItem, b: IngatlanItem) => number> = {
-  price_asc: (a, b) => getPriceHuf(a, Infinity) - getPriceHuf(b, Infinity),
-  price_desc: (a, b) => getPriceHuf(b, -Infinity) - getPriceHuf(a, -Infinity),
-  sqm_price_asc: (a, b) => getSqmPrice(a, Infinity) - getSqmPrice(b, Infinity),
-  sqm_price_desc: (a, b) => getSqmPrice(b, -Infinity) - getSqmPrice(a, -Infinity),
-  area_desc: (a, b) => getArea(b) - getArea(a),
-  date_desc: (a, b) => (b.discoveredAt || '').localeCompare(a.discoveredAt || ''),
-}
-
-function compareItems(a: IngatlanItem, b: IngatlanItem, sortOption: SortOption): number {
-  const comparator = COMPARATORS[sortOption]
-  return comparator ? comparator(a, b) : 0
-}
-
-function buildSearchableText(item: IngatlanItem): string {
-  const area = item.detailsInfo?.areaSquareMeters
-  const areaStr = area ? `${Math.round(area)} m2 ${Math.round(area)} m²` : ''
-  const roomsStr = item.detailsInfo?.roomCount ? `${item.detailsInfo.roomCount} szoba` : ''
-  const priceStr = item.priceInfo?.amountMillion ? `${item.priceInfo.amountMillion} m ft` : ''
-  return normalizeSearchText(
-    [
-      item.title,
-      item.city,
-      item.location,
-      item.portal,
-      item.price,
-      priceStr,
-      item.details,
-      areaStr,
-      roomsStr,
-      item.newConstruction ? 'uj epitesu' : '',
-    ].join(' '),
-  )
-}
-
-function matchesQuickSearch(item: IngatlanItem, tokens: string[]): boolean {
-  const searchable = buildSearchableText(item)
-  return tokens.every((tok) => searchable.includes(tok))
-}
-
-interface FilterOptions {
-  onlyNew?: boolean
-  excludeViewed?: boolean
-  onlyNewConstruction?: boolean
-  onlyBargain?: boolean
-  minQualityScore?: number
-  selectedPortalFilter?: string
-  quickSearchQuery?: string
-}
-
-function applyItemFilters(rawItems: IngatlanItem[], options: FilterOptions): IngatlanItem[] {
-  let items = [...rawItems]
-
-  if (options.onlyNew) {
-    items = items.filter((item) => item.isNew)
-  }
-  if (options.excludeViewed) {
-    items = items.filter((item) => !item.viewed)
-  }
-  if (options.onlyNewConstruction) {
-    items = items.filter((item) => Boolean(item.newConstruction))
-  }
-  if (options.onlyBargain) {
-    items = items.filter(isItemBargain)
-  }
-  if (options.minQualityScore !== null && options.minQualityScore !== undefined && options.minQualityScore > 0) {
-    items = items.filter(
-      (item) =>
-        item.qualityScore !== null &&
-        item.qualityScore !== undefined &&
-        item.qualityScore >= options.minQualityScore!,
-    )
-  }
-  if (options.selectedPortalFilter && options.selectedPortalFilter !== 'all') {
-    items = items.filter(
-      (item) =>
-        normalizePortalKey(item.source?.portalId || item.portal) === options.selectedPortalFilter,
-    )
-  }
-
-  const q = normalizeSearchText(options.quickSearchQuery).trim()
-  if (q) {
-    const tokens = q.split(/\s+/).filter(Boolean)
-    items = items.filter((item) => matchesQuickSearch(item, tokens))
-  }
-
-  return items
-}
-
-export function filterAndSortItems(
-  rawItems: IngatlanItem[],
-  options: {
-    onlyNew?: boolean
-    excludeViewed?: boolean
-    onlyNewConstruction?: boolean
-    onlyBargain?: boolean
-    minQualityScore?: number
-    selectedPortalFilter?: string
-    quickSearchQuery?: string
-    sortOption: SortOption
-  },
-): IngatlanItem[] {
-  const items = applyItemFilters(rawItems, options)
-  items.sort((a, b) => compareItems(a, b, options.sortOption))
-  return items
 }
 
 export function useSearch() {
@@ -174,15 +52,24 @@ export function useSearch() {
     minQualityScore,
     quickSearchQuery,
     selectedPortalFilter,
+    showHidden,
   } = useFilterStore()
   const { dashboardTab, listingSubView, starredUrls, starredItemsCache } = useUiStore()
   const [data, setData] = useState<DashboardResponseDto | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [toastUndoItem, setToastUndoItem] = useState<IngatlanItem | null>(null)
 
   const historyQuery = useQuery({
     queryKey: ['history', criteria.onlyNewConstruction],
     queryFn: () => apiGetHistory(undefined, false, criteria.onlyNewConstruction),
     enabled: listingSubView === 'archive' || listingSubView === 'favorites',
     staleTime: 30_000,
+  })
+
+  const hiddenQuery = useQuery({
+    queryKey: ['hidden-properties'],
+    queryFn: () => apiGetHiddenProperties(),
+    staleTime: 10_000,
   })
 
   useEffect(() => {
@@ -195,6 +82,7 @@ export function useSearch() {
     queryClient.invalidateQueries({ queryKey: ['portals'] })
     queryClient.invalidateQueries({ queryKey: ['cities'] })
     queryClient.invalidateQueries({ queryKey: ['history'] })
+    queryClient.invalidateQueries({ queryKey: ['hidden-properties'] })
   }
 
   const searchMutation = useMutation({
@@ -246,6 +134,48 @@ export function useSearch() {
     },
   })
 
+  const hideMutation = useMutation({
+    mutationFn: (item: IngatlanItem) => {
+      const urls = item.sourceListings?.map((s) => s.url).filter((u): u is string => Boolean(u)) ?? [item.url]
+      return apiHideProperty(item.id, urls)
+    },
+    onSuccess: (_, item) => {
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: prev.items.map((i) => (i.id === item.id || i.url === item.url ? { ...i, hidden: true } : i)),
+            }
+          : prev,
+      )
+      setToastUndoItem(item)
+      setToastMessage('Hirdetés elrejtve')
+      invalidateDashboardQueries()
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (item: IngatlanItem) => {
+      const urls = item.sourceListings?.map((s) => s.url).filter((u): u is string => Boolean(u)) ?? [item.url]
+      return apiRestoreProperty(item.id, urls)
+    },
+    onSuccess: (_, item) => {
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: prev.items.map((i) => (i.id === item.id || i.url === item.url ? { ...i, hidden: false } : i)),
+            }
+          : prev,
+      )
+      if (toastUndoItem?.id === item.id) {
+        setToastMessage(null)
+        setToastUndoItem(null)
+      }
+      invalidateDashboardQueries()
+    },
+  })
+
   const openClientTabs = (urls: string[]) => {
     urls.forEach(openExternalUrl)
     openUrlsMutation.mutate(urls)
@@ -272,10 +202,22 @@ export function useSearch() {
     ],
   )
 
-  const processedItems = useMemo(
-    () => (data?.items ? filterAndSortItems(data.items, { ...sharedFilterOptions, onlyNew }) : []),
-    [data?.items, sharedFilterOptions, onlyNew],
+  const activeSearchItems = useMemo(
+    () => (data?.items ? data.items.filter((it) => !it.hidden) : []),
+    [data?.items],
   )
+
+  const hiddenItems = useMemo(() => {
+    const list = Array.isArray(hiddenQuery.data) ? hiddenQuery.data : []
+    return filterAndSortItems(list, { ...sharedFilterOptions, onlyNew: false })
+  }, [hiddenQuery.data, sharedFilterOptions])
+
+  const processedItems = useMemo(() => {
+    if (showHidden) {
+      return hiddenItems
+    }
+    return filterAndSortItems(activeSearchItems, { ...sharedFilterOptions, onlyNew })
+  }, [showHidden, hiddenItems, activeSearchItems, sharedFilterOptions, onlyNew])
 
   const archiveItems = useMemo(
     () => filterAndSortItems(historyQuery.data ?? [], { ...sharedFilterOptions, onlyNew: false }),
@@ -294,27 +236,7 @@ export function useSearch() {
       if (item.url) byUrl.set(item.url, item)
     })
 
-    return starredUrls.map((url) => {
-      const existing = byUrl.get(url)
-      if (existing) return existing
-
-      const portalInfo = detectPortalFromUrl(url)
-      return {
-        id: `orphan-${url}`,
-        portal: portalInfo.portalName,
-        url,
-        title: `Elmentett hirdetés (${portalInfo.portalName})`,
-        price: 'N/A',
-        location: 'Elmentett hivatkozás',
-        city: 'Ismeretlen',
-        propertyType: 'EGYEB_ISMERETLEN',
-        source: {
-          portalId: portalInfo.portalId,
-          portalName: portalInfo.portalName,
-          directListing: true,
-        },
-      } satisfies IngatlanItem
-    })
+    return starredUrls.map((url) => byUrl.get(url) ?? buildOrphanItem(url))
   }, [starredUrls, starredItemsCache, historyQuery.data, data?.items])
 
   const favoriteItems = useMemo(
@@ -325,8 +247,8 @@ export function useSearch() {
   return {
     data,
     items: processedItems,
-    rawItems: data?.items ?? [],
-    rawCount: data?.items?.length ?? 0,
+    rawItems: showHidden ? (hiddenQuery.data ?? []) : activeSearchItems,
+    rawCount: showHidden ? (hiddenQuery.data?.length ?? 0) : activeSearchItems.length,
     filteredCount: processedItems.length,
     archiveItems,
     rawArchiveItems: historyQuery.data ?? [],
@@ -334,6 +256,14 @@ export function useSearch() {
     favoriteItems,
     rawFavoriteItems,
     favoritesCount: rawFavoriteItems.length,
+    hiddenItems,
+    hiddenCount: hiddenQuery.data?.length ?? 0,
+    toastMessage,
+    toastUndoItem,
+    clearToast: () => {
+      setToastMessage(null)
+      setToastUndoItem(null)
+    },
     isLoading: searchMutation.isPending,
     isError: searchMutation.isError,
     error: searchMutation.error,
@@ -341,6 +271,8 @@ export function useSearch() {
       searchMutation.mutate({ ...criteria, ...(overrideCriteria || {}) })
     },
     markAsViewed: (url: string) => markViewedMutation.mutate(url),
+    hideProperty: (item: IngatlanItem) => hideMutation.mutate(item),
+    restoreProperty: (item: IngatlanItem) => restoreMutation.mutate(item),
     clearArchiveHistory: (city?: string) => clearHistoryMutation.mutateAsync(city),
     isClearingHistory: clearHistoryMutation.isPending,
     openAllTabs: (itemsToOpen: IngatlanItem[]) => {

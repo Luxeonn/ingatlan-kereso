@@ -185,6 +185,58 @@ public class RestApiController {
     return ResponseEntity.ok(observations);
   }
 
+  @GetMapping("/properties/hidden")
+  public ResponseEntity<List<IngatlanItem>> getHiddenProperties() {
+    List<IngatlanItem> hidden = listingStorage.getHiddenProperties();
+    return ResponseEntity.ok(hidden);
+  }
+
+  @PostMapping("/properties/{id}/hide")
+  public ResponseEntity<Map<String, Object>> hideProperty(
+      @PathVariable("id") String id,
+      @RequestBody(required = false) Map<String, Object> body) {
+    boolean success = listingStorage.hideProperty(id);
+    if (body != null) {
+      if (body.get("url") instanceof String u && !u.isBlank()) {
+        success = listingStorage.hideProperty(u) || success;
+      }
+      if (body.get("urls") instanceof List<?> list) {
+        for (Object item : list) {
+          if (item instanceof String u && !u.isBlank()) {
+            success = listingStorage.hideProperty(u) || success;
+          }
+        }
+      }
+    }
+    if (!success) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(Map.of("success", true, "hidden", true, "id", id));
+  }
+
+  @PostMapping("/properties/{id}/restore")
+  public ResponseEntity<Map<String, Object>> restoreProperty(
+      @PathVariable("id") String id,
+      @RequestBody(required = false) Map<String, Object> body) {
+    boolean success = listingStorage.restoreProperty(id);
+    if (body != null) {
+      if (body.get("url") instanceof String u && !u.isBlank()) {
+        success = listingStorage.restoreProperty(u) || success;
+      }
+      if (body.get("urls") instanceof List<?> list) {
+        for (Object item : list) {
+          if (item instanceof String u && !u.isBlank()) {
+            success = listingStorage.restoreProperty(u) || success;
+          }
+        }
+      }
+    }
+    if (!success) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(Map.of("success", true, "hidden", false, "id", id));
+  }
+
   @GetMapping("/properties/discounted")
   public ResponseEntity<List<IngatlanItem>> getDiscountedProperties(
       @RequestParam(value = "city", required = false) String city) {

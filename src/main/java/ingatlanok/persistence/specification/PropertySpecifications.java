@@ -65,7 +65,7 @@ public final class PropertySpecifications {
   }
 
   private static Specification<PropertyEntity> buildFlagSpecs(PropertySearchCriteria criteria) {
-    Specification<PropertyEntity> spec = (root, query, cb) -> cb.conjunction();
+    Specification<PropertyEntity> spec = (root, query, cb) -> cb.isFalse(root.get("hidden"));
     if (criteria.excludeViewed()) {
       spec = spec.and((root, query, cb) -> cb.isFalse(root.get("viewed")));
     }

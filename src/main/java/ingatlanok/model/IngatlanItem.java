@@ -27,6 +27,8 @@ public class IngatlanItem implements Serializable {
   private boolean isNew;
   private boolean viewed;
   private String viewedAt;
+  private boolean hidden;
+  private String hiddenAt;
   private String imageUrl;
   private boolean newConstruction;
   private String status = "ACTIVE";
