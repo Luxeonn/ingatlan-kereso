@@ -250,11 +250,11 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
   test('3. Search execution and Dashboard view switching triggers smoothly', async ({ page }) => {
     await page.goto('/')
 
-    // Verify Sort and ExcludeViewed controls in Listings Header (#227)
+    // Verify Listings Header does not contain duplicate Sort and ExcludeViewed controls (#359)
     const headerBar = page.getByTestId('listings-panel-header')
     await expect(headerBar).toBeVisible()
-    await expect(headerBar.getByRole('button', { name: /Megtekintettek rejtése/i })).toBeVisible()
-    await expect(headerBar.getByLabel('Rendezés')).toBeVisible()
+    await expect(headerBar.getByRole('button', { name: /Megtekintettek rejtése/i })).toHaveCount(0)
+    await expect(headerBar.getByLabel('Rendezés')).toHaveCount(0)
 
     // Trigger Search
     const searchBtn = page.getByRole('button', { name: /Ingatlanok Keresése/i })
@@ -269,7 +269,7 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     await searchBtn.click()
     await searchPromise
 
-    // Verify BulkActionBar 3-tier structure & filter chips (#303)
+    // Verify BulkActionBar 3-tier structure & customizable filter chips (#303, #359)
     const filterChipsRow = page.getByTestId('filter-chips-row')
     await expect(filterChipsRow).toBeVisible()
     const onlyNewToggle = filterChipsRow.getByRole('button', { name: /Csak új találatok/i })
@@ -277,10 +277,12 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     await onlyNewToggle.click()
     await onlyNewToggle.click() // toggle back off
 
-    const newConstructionToggle = filterChipsRow.getByRole('button', { name: /Csak új építésű/i })
-    await expect(newConstructionToggle).toBeVisible()
-    await newConstructionToggle.click()
-    await newConstructionToggle.click() // toggle back off
+    const bargainToggle = filterChipsRow.getByTestId('bargain-filter-toggle')
+    await expect(bargainToggle).toBeVisible()
+    const hiddenToggle = filterChipsRow.getByTestId('hidden-filter-toggle')
+    await expect(hiddenToggle).toBeVisible()
+    const filterSelectorBtn = filterChipsRow.getByTestId('quick-filter-selector-btn')
+    await expect(filterSelectorBtn).toBeVisible()
 
     // Verify static MarketStatsBar cards (#R3)
     const statsBar = page.getByTestId('market-stats-bar')
