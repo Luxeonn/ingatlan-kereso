@@ -66,7 +66,7 @@ public class AdapterPortalEngine implements PortalEngine {
         if (result.status() == PortalScrapeStatus.SUCCESS && !result.listings().isEmpty()) {
           List<IngatlanItem> items = normalizeListings(result, descriptor, safeCriteria);
           long elapsed = System.currentTimeMillis() - startTime;
-          return buildSuccessResult(descriptor, result, items, elapsed);
+          return buildSuccessResult(descriptor, result, items, defaultSearchUrl, elapsed);
         }
         if (result.status() == PortalScrapeStatus.BOT_PROTECTED) {
           lastBotProtected = result;
@@ -123,6 +123,7 @@ public class AdapterPortalEngine implements PortalEngine {
       PortalDescriptor descriptor,
       RawExtractionResult result,
       List<IngatlanItem> items,
+      String defaultSearchUrl,
       long elapsed) {
     PortalScrapeResult scrapeResult = PortalScrapeResult.success(
         descriptor.id(),
@@ -130,6 +131,8 @@ public class AdapterPortalEngine implements PortalEngine {
         items,
         elapsed
     );
+    scrapeResult.setFallbackUrl(
+        result.fallbackUrl() != null ? result.fallbackUrl() : defaultSearchUrl);
     if (result.usedMethod() != null) {
       scrapeResult.setTechnicalDetails("Strategy: " + result.usedMethod().name());
     }

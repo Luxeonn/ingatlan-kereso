@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { PORTAL_CHIPS } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
+import { useUiStore, type QuickFilterId } from '../../store/useUiStore'
+import { QuickFilterPopover } from './QuickFilterPopover'
 
 interface HiddenFilterChipProps {
   showHidden?: boolean
@@ -126,101 +128,119 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
   showHidden,
   setShowHidden,
   hiddenCount = 0,
-}) => (
-  <div
-    data-testid="filter-chips-row"
-    className="flex flex-wrap items-center gap-2 border-t border-[var(--border-color)] pt-2.5 text-xs"
-  >
-    <button
-      type="button"
-      aria-pressed={onlyNew}
-      onClick={() => setOnlyNew(!onlyNew)}
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        onlyNew
-          ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-      )}
-    >
-      <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-      <span>Csak új találatok</span>
-    </button>
+}) => {
+  const { pinnedQuickFilters, togglePinnedQuickFilter } = useUiStore()
+  const isPinned = (id: QuickFilterId) => pinnedQuickFilters.includes(id)
 
-    <button
-      type="button"
-      aria-pressed={onlyNewConstruction}
-      aria-label="Csak új építésű ingatlanok"
-      onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        onlyNewConstruction
-          ? 'border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-      )}
+  return (
+    <div
+      data-testid="filter-chips-row"
+      className="flex flex-wrap items-center gap-2 border-t border-[var(--border-color)] pt-2.5 text-xs"
     >
-      <Building2 className="h-3.5 w-3.5 text-cyan-400" />
-      <span>Csak új építésű</span>
-    </button>
-
-    <button
-      type="button"
-      data-testid="bargain-filter-toggle"
-      aria-pressed={onlyBargain}
-      onClick={() => setOnlyBargain(!onlyBargain)}
-      title="Kizárólag alkalmi vételek megjelenítése (mediánnál legalább 20%-kal olcsóbb ingatlanok)"
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        onlyBargain
-          ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30',
-      )}
-    >
-      <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
-      <span>Alkalmi vétel</span>
-      {bargainCount > 0 && (
-        <span
-          data-testid="bargain-filter-count"
+      {isPinned('bargain') && (
+        <button
+          type="button"
+          data-testid="bargain-filter-toggle"
+          aria-pressed={onlyBargain}
+          onClick={() => setOnlyBargain(!onlyBargain)}
+          title="Kizárólag alkalmi vételek megjelenítése (mediánnál legalább 20%-kal olcsóbb ingatlanok)"
           className={cn(
-            'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
             onlyBargain
-              ? 'bg-emerald-500/30 text-emerald-200'
-              : 'bg-[var(--bg-card)] text-emerald-400',
+              ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
+              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30',
           )}
         >
-          {bargainCount}
-        </span>
+          <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
+          <span>Alkalmi vétel</span>
+          {bargainCount > 0 && (
+            <span
+              data-testid="bargain-filter-count"
+              className={cn(
+                'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+                onlyBargain
+                  ? 'bg-emerald-500/30 text-emerald-200'
+                  : 'bg-[var(--bg-card)] text-emerald-400',
+              )}
+            >
+              {bargainCount}
+            </span>
+          )}
+        </button>
       )}
-    </button>
 
-    {setShowHidden && (
-      <HiddenFilterChip
-        showHidden={showHidden}
-        setShowHidden={setShowHidden}
-        hiddenCount={hiddenCount}
+      {isPinned('onlyNew') && (
+        <button
+          type="button"
+          aria-pressed={onlyNew}
+          onClick={() => setOnlyNew(!onlyNew)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+            onlyNew
+              ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm'
+              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+          )}
+        >
+          <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+          <span>Csak új találatok</span>
+        </button>
+      )}
+
+      {isPinned('hidden') && setShowHidden && (
+        <HiddenFilterChip
+          showHidden={showHidden}
+          setShowHidden={setShowHidden}
+          hiddenCount={hiddenCount}
+        />
+      )}
+
+      {isPinned('excludeViewed') && (
+        <button
+          type="button"
+          aria-pressed={excludeViewed}
+          onClick={() => setExcludeViewed(!excludeViewed)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+            excludeViewed
+              ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
+              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+          )}
+        >
+          <EyeOff className="h-3.5 w-3.5 text-blue-400" />
+          <span>Megtekintettek rejtése</span>
+        </button>
+      )}
+
+      {isPinned('onlyNewConstruction') && (
+        <button
+          type="button"
+          aria-pressed={onlyNewConstruction}
+          aria-label="Csak új építésű ingatlanok"
+          onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+            onlyNewConstruction
+              ? 'border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm'
+              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+          )}
+        >
+          <Building2 className="h-3.5 w-3.5 text-cyan-400" />
+          <span>Csak új építésű</span>
+        </button>
+      )}
+
+      <QuickFilterPopover
+        pinnedQuickFilters={pinnedQuickFilters}
+        onToggleFilter={togglePinnedQuickFilter}
       />
-    )}
 
-    <button
-      type="button"
-      aria-pressed={excludeViewed}
-      onClick={() => setExcludeViewed(!excludeViewed)}
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-        excludeViewed
-          ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
-          : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-      )}
-    >
-      <EyeOff className="h-3.5 w-3.5 text-blue-400" />
-      <span>Megtekintettek rejtése</span>
-    </button>
-
-    <QualitySelect
-      minQualityScore={minQualityScore}
-      setMinQualityScore={setMinQualityScore}
-    />
-  </div>
-)
+      <QualitySelect
+        minQualityScore={minQualityScore}
+        setMinQualityScore={setMinQualityScore}
+      />
+    </div>
+  )
+}
 
 export interface PortalFilterChipsRowProps {
   selectedPortalFilter: string

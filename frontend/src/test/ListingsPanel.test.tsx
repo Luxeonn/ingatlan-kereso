@@ -346,5 +346,46 @@ describe('ListingsPanel component (#264)', () => {
 
     vi.unstubAllGlobals()
   })
+
+  it('switches between grid view modal details and list view inline details in ListingsGrid (#357)', () => {
+    useUiStore.setState({ viewMode: 'grid', listingSubView: 'listings', dashboardTab: 'listings' })
+
+    render(
+      <ListingsPanel
+        items={sampleItems}
+        totalRawCount={2}
+        isLoading={false}
+        hasSearched={true}
+        mode="listings"
+        onMarkViewed={vi.fn()}
+        onOpenAll={vi.fn()}
+        onTriggerSearch={vi.fn()}
+      />,
+    )
+
+    // 1. In grid view, clicking details on card 2 opens modal outside card DOM
+    const detailsBtn = screen.getByTestId('details-button')
+    fireEvent.click(detailsBtn)
+
+    expect(screen.getByTestId('property-details-modal')).toBeTruthy()
+    const cardsInGrid = screen.getAllByTestId('property-card')
+    const drawerInGrid = screen.getByTestId('multi-source-drawer')
+    expect(cardsInGrid.some((c) => c.contains(drawerInGrid))).toBe(false)
+
+    // Close modal
+    fireEvent.click(screen.getByTestId('property-details-modal-close'))
+    expect(screen.queryByTestId('property-details-modal')).toBeNull()
+
+    // 2. Switch to list view and verify inline drawer inside card
+    const listToggleBtn = screen.getByTitle('Lista nézet')
+    fireEvent.click(listToggleBtn)
+    expect(useUiStore.getState().viewMode).toBe('list')
+
+    fireEvent.click(screen.getByTestId('details-button'))
+    expect(screen.queryByTestId('property-details-modal')).toBeNull()
+    const cardsInList = screen.getAllByTestId('property-card')
+    const drawerInList = screen.getByTestId('multi-source-drawer')
+    expect(cardsInList.some((c) => c.contains(drawerInList))).toBe(true)
+  })
 })
 

@@ -2,8 +2,6 @@ import { useMemo, useState, type FC } from 'react'
 import {
   LayoutGrid,
   List,
-  ExternalLink,
-  CheckCheck,
   Search,
   X,
   Trash2,
@@ -21,8 +19,8 @@ interface BulkActionBarProps {
   items: IngatlanItem[]
   rawItems?: IngatlanItem[]
   totalRawCount: number
-  onOpenAll: (items: IngatlanItem[]) => void
-  onMarkAllViewed: (items: IngatlanItem[]) => void
+  onOpenAll?: (items: IngatlanItem[]) => void
+  onMarkAllViewed?: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
   visibleCount?: number
@@ -52,8 +50,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   items,
   rawItems,
   totalRawCount,
-  onOpenAll,
-  onMarkAllViewed,
   onClearHistory,
   isClearingHistory = false,
   visibleCount,
@@ -81,7 +77,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   } = useFilterStore()
   const [confirmClear, setConfirmClear] = useState(false)
 
-  const unviewedCount = items.filter((item) => !item.viewed).length
   const totalSourceListingsCount = useMemo(() => getTotalSourceListingsCount(items), [items])
   const sourceItems = rawItems ?? items
 
@@ -158,29 +153,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
               </span>
             )}
           </div>
-
-          {items.length > 0 && (
-            <button
-              type="button"
-              onClick={() => onOpenAll(items.slice(0, 15))}
-              title="A listában látható első 15 ingatlan megnyitása új böngészőlapokon"
-              className="flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 transition-colors hover:bg-blue-500/20 shrink-0"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span>Összes megnyitása</span>
-            </button>
-          )}
-
-          {unviewedCount > 0 && (
-            <button
-              type="button"
-              onClick={() => onMarkAllViewed(items)}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] shrink-0"
-            >
-              <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Mind megtekintett</span>
-            </button>
-          )}
 
           {onClearHistory && (
             confirmClear ? (
