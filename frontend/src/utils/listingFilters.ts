@@ -94,6 +94,9 @@ export interface ItemFilterOptions {
 }
 
 export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions): IngatlanItem[] {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    return []
+  }
   let items = [...rawItems]
 
   if (options.onlyNew) {

@@ -208,7 +208,7 @@ export function useSearch() {
   )
 
   const hiddenItems = useMemo(() => {
-    const list = hiddenQuery.data ?? []
+    const list = Array.isArray(hiddenQuery.data) ? hiddenQuery.data : []
     return filterAndSortItems(list, { ...sharedFilterOptions, onlyNew: false })
   }, [hiddenQuery.data, sharedFilterOptions])
 
