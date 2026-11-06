@@ -90,8 +90,123 @@ class AdapterPortalEngineTest {
     assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
     assertEquals(1, result.getItems().size());
     assertEquals("101", result.getItems().get(0).getId());
+    assertEquals("https://testportal.hu", result.getFallbackUrl());
     assertNotNull(result.getTechnicalDetails());
     assertTrue(result.getTechnicalDetails().contains("API"));
+  }
+
+  @Test
+  @DisplayName(
+      "AdapterPortalEngine sikeres lekérdezésnél is beállítja a generált kereső URL-t"
+          + " (fallbackUrl) (#360)")
+  void testSuccessResultPopulatesFallbackUrlFromUrlBuilder() {
+    RawPropertyListing raw1 = RawPropertyListing.builder()
+        .portalId("testportal")
+        .nativeId("303")
+        .url("https://testportal.hu/303")
+        .title("Sikeres lakás hirdetés")
+        .priceHuf(50_000_000L)
+        .areaSquareMeters(65.0)
+        .roomCount(3.0)
+        .method(ExtractionMethod.HTML)
+        .build();
+
+    ExtractionStrategy htmlStrategy = new ExtractionStrategy() {
+      @Override
+      public ExtractionMethod method() {
+        return ExtractionMethod.HTML;
+      }
+
+      @Override
+      public RawExtractionResult extract(SearchCriteria criteria) {
+        return RawExtractionResult.success(List.of(raw1), method());
+      }
+    };
+
+    PortalAdapter adapter = new PortalAdapter() {
+      @Override
+      public PortalDescriptor getDescriptor() {
+        return DESCRIPTOR;
+      }
+
+      @Override
+      public PortalUrlBuilder getUrlBuilder() {
+        return criteria -> "https://testportal.hu/elado/lakas/debrecen";
+      }
+
+      @Override
+      public List<ExtractionStrategy> getStrategies() {
+        return List.of(htmlStrategy);
+      }
+    };
+
+    AdapterPortalEngine engine = new AdapterPortalEngine(adapter, new ListingNormalizer());
+    PortalScrapeResult result = engine.scrape(new SearchCriteria());
+
+    assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
+    assertEquals(1, result.getItems().size());
+    assertEquals("https://testportal.hu/elado/lakas/debrecen", result.getFallbackUrl());
+  }
+
+  @Test
+  @DisplayName(
+      "AdapterPortalEngine sikeres lekérdezésnél a stratégia által megadott fallbackUrl-t"
+          + " részesíti előnyben (#360)")
+  void testSuccessResultPrefersStrategyFallbackUrlOverDefaultSearchUrl() {
+    RawPropertyListing raw1 = RawPropertyListing.builder()
+        .portalId("testportal")
+        .nativeId("404")
+        .url("https://testportal.hu/404")
+        .title("Egyedi kereső URL találat")
+        .priceHuf(60_000_000L)
+        .areaSquareMeters(80.0)
+        .roomCount(3.0)
+        .method(ExtractionMethod.API)
+        .build();
+
+    ExtractionStrategy apiStrategy = new ExtractionStrategy() {
+      @Override
+      public ExtractionMethod method() {
+        return ExtractionMethod.API;
+      }
+
+      @Override
+      public RawExtractionResult extract(SearchCriteria criteria) {
+        return new RawExtractionResult(
+            PortalScrapeStatus.SUCCESS,
+            List.of(raw1),
+            method(),
+            "https://testportal.hu/custom-query-url",
+            null,
+            200,
+            null
+        );
+      }
+    };
+
+    PortalAdapter adapter = new PortalAdapter() {
+      @Override
+      public PortalDescriptor getDescriptor() {
+        return DESCRIPTOR;
+      }
+
+      @Override
+      public PortalUrlBuilder getUrlBuilder() {
+        return criteria -> "https://testportal.hu/default-search-url";
+      }
+
+      @Override
+      public List<ExtractionStrategy> getStrategies() {
+        return List.of(apiStrategy);
+      }
+    };
+
+    AdapterPortalEngine engine = new AdapterPortalEngine(adapter, new ListingNormalizer());
+    PortalScrapeResult result = engine.scrape(new SearchCriteria());
+
+    assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
+    assertEquals(1, result.getItems().size());
+    assertEquals("https://testportal.hu/custom-query-url", result.getFallbackUrl());
   }
 
   @Test
