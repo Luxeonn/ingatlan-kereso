@@ -1,13 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, type FC } from 'react'
-import { LayoutGrid, BarChart2, EyeOff, ArrowUpDown } from 'lucide-react'
+import { LayoutGrid, BarChart2 } from 'lucide-react'
 import { Header } from './components/layout/Header'
 import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { useSearch } from './hooks/useSearch'
-import type { SortOption } from './store/useFilterStore'
-import { useFilterStore, SORT_OPTIONS } from './store/useFilterStore'
+import { useFilterStore } from './store/useFilterStore'
 import { useUiStore } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
@@ -83,7 +82,7 @@ hiddenCount,
     restoreProperty,
     openAllTabs,
   } = useSearch()
-  const { criteria, sortOption, setCriteria, setExcludeViewed, setSortOption } = useFilterStore()
+  const { setCriteria } = useFilterStore()
   const { dashboardTab, setDashboardTab, listingSubView, setListingSubView } = useUiStore()
   const initialLoadDone = useRef(false)
 
@@ -182,43 +181,6 @@ hiddenCount,
               <span>Piaci Elemzés</span>
             </button>
           </nav>
-
-          {/* Right: Exclude Viewed toggle & Sort selector (#227) */}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setExcludeViewed(!criteria.excludeViewed)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
-                criteria.excludeViewed
-                  ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
-                  : 'border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <EyeOff className="h-3.5 w-3.5 text-blue-400" />
-              <span>Megtekintettek rejtése</span>
-            </button>
-
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown className="h-3.5 w-3.5 text-[var(--text-secondary)] shrink-0" />
-              <label htmlFor="listings-sort-select" className="text-[var(--text-secondary)] font-medium">
-                Rendezés:
-              </label>
-              <select
-                id="listings-sort-select"
-                aria-label="Rendezés"
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
         </div>
 
         {/* Decoupled Panel Routing (#264) */}
