@@ -150,26 +150,37 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
                         </span>
                       </div>
                       {p.fallbackUrl && (
-                        <button
-                          type="button"
-                          data-testid={`fallback-link-${p.portalId}`}
-                          onClick={() => openExternalUrl(p.fallbackUrl)}
-                          className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-500/30"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          <span>Keresés megnyitása itt: {p.portalName}</span>
-                        </button>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="truncate font-mono text-[11px] text-amber-200/80" title={p.fallbackUrl}>
+                            {p.fallbackUrl}
+                          </span>
+                          <button
+                            type="button"
+                            data-testid={`fallback-link-${p.portalId}`}
+                            onClick={() => openExternalUrl(p.fallbackUrl)}
+                            className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-500/30"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            <span>Keresés megnyitása itt: {p.portalName}</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
 
-                  {!isBot && p.fallbackUrl && p.foundCount === 0 && (
-                    <div className="mt-2.5 flex items-center justify-end">
+                  {!isBot && p.fallbackUrl && (
+                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                      <span
+                        className="truncate font-mono text-[11px] text-[var(--text-secondary)]"
+                        title={p.fallbackUrl}
+                      >
+                        {p.fallbackUrl}
+                      </span>
                       <button
                         type="button"
                         data-testid={`fallback-link-${p.portalId}`}
                         onClick={() => openExternalUrl(p.fallbackUrl)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-blue-500/40"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-blue-500/40"
                       >
                         <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
                         <span>Keresés megnyitása itt: {p.portalName}</span>
