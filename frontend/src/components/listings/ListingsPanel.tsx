@@ -4,6 +4,7 @@ import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
 import type { ListingSubView } from '../../store/useUiStore'
 import { useUiStore } from '../../store/useUiStore'
+import { getItemSourceListingsCount, getTotalSourceListingsCount } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 export interface ListingsPanelProps {
@@ -31,10 +32,7 @@ export interface ListingsPanelProps {
 }
 
 function isMultiSourceItem(it: IngatlanItem): boolean {
-  if (it.sourcesCount !== null && it.sourcesCount !== undefined && it.sourcesCount > 1) {
-    return true
-  }
-  return Boolean(it.sourceListings && it.sourceListings.length > 1)
+  return getItemSourceListingsCount(it) > 1
 }
 
 interface ListingsSubViewNavProps {
@@ -144,8 +142,9 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   const activeFavoritesCount = favoritesCount ?? (activeMode === 'favorites' ? totalRawCount : 0)
   const activeArchiveCount = archiveCount ?? (activeMode === 'archive' ? totalRawCount : 0)
 
-  // Multi-source grouped count calculation (#260, #261)
+  // Multi-source grouped count calculation (#260, #261, #358)
   const multiSourceCount = items.filter(isMultiSourceItem).length
+  const totalSourceListingsCount = getTotalSourceListingsCount(items)
 
   return (
     <section className="space-y-4" data-testid="listings-panel">
@@ -165,8 +164,9 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
           className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300"
         >
           <span>
-            <strong className="font-bold text-indigo-200">{items.length} db</strong> ingatlan jelenik meg{' '}
-            (ebből <strong className="font-bold text-indigo-200">{multiSourceCount} db</strong> több portálon is szereplő, csoportosított hirdetés).
+            <strong className="font-bold text-indigo-200">{items.length} db egyedi ingatlan</strong> jelenik meg{' '}
+            <strong className="font-bold text-indigo-200">összesen {totalSourceListingsCount} db hirdetés-találatból</strong>{' '}
+            (ebből <strong className="font-bold text-indigo-200">{multiSourceCount} db ingatlan</strong> több forrásból összevonva).
           </span>
         </div>
       )}

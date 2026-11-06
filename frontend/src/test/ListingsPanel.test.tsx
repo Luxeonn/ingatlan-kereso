@@ -53,7 +53,7 @@ describe('ListingsPanel component (#264)', () => {
     useUiStore.setState({ listingSubView: 'listings', dashboardTab: 'listings' })
   })
 
-  it('renders listings panel with multi-source summary notice', () => {
+  it('renders listings panel with multi-source summary notice showing total source listings count (#358)', () => {
     render(
       <ListingsPanel
         items={sampleItems}
@@ -69,11 +69,69 @@ describe('ListingsPanel component (#264)', () => {
 
     expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-    // Multi-source summary notice
+    // Multi-source summary notice: 2 unique items (1x2 sources + 1x1 source = 3 total source listings, 1 multi-source item)
     const notice = screen.getByTestId('multi-source-summary-notice')
     expect(notice).toBeTruthy()
-    expect(notice.textContent).toMatch(/2 db ingatlan jelenik meg/i)
-    expect(notice.textContent).toMatch(/1 db több portálon is szereplő/i)
+    expect(notice.textContent).toMatch(/2 db egyedi ingatlan jelenik meg/i)
+    expect(notice.textContent).toMatch(/összesen 3 db hirdetés-találatból/i)
+    expect(notice.textContent).toMatch(/ebből 1 db ingatlan több forrásból összevonva/i)
+    expect(notice.textContent).not.toMatch(/több portálon is szereplő/i)
+  })
+
+  it('accurately calculates 6 unique properties and 9 total source listings for 4x1 + 1x2 + 1x3 source items (#358)', () => {
+    const sixItemsNineSources: IngatlanItem[] = [
+      { id: 'dh-1', portal: 'Duna House', url: 'https://dh.hu/1', title: 'Ház 1', price: '50 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
+      { id: 'dh-2', portal: 'Duna House', url: 'https://dh.hu/2', title: 'Ház 2', price: '55 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
+      { id: 'dh-3', portal: 'Duna House', url: 'https://dh.hu/3', title: 'Ház 3', price: '60 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
+      { id: 'dh-4', portal: 'Duna House', url: 'https://dh.hu/4', title: 'Ház 4', price: '65 M Ft', location: 'Szekszárd', city: 'Szekszárd' }, // fallback 1
+      {
+        id: 'dh-5',
+        portal: 'Duna House',
+        url: 'https://dh.hu/5',
+        title: 'Ház 5 (2 forrás)',
+        price: '70 M Ft',
+        location: 'Szekszárd',
+        city: 'Szekszárd',
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/5a' },
+          { portal: 'dh', url: 'https://dh.hu/5b' },
+        ],
+      },
+      {
+        id: 'dh-6',
+        portal: 'Duna House',
+        url: 'https://dh.hu/6',
+        title: 'Ház 6 (3 forrás)',
+        price: '75 M Ft',
+        location: 'Szekszárd',
+        city: 'Szekszárd',
+        sourcesCount: 1, // sourceListings.length (3) is larger -> Math.max picks 3
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/6a' },
+          { portal: 'dh', url: 'https://dh.hu/6b' },
+          { portal: 'oc', url: 'https://oc.hu/6c' },
+        ],
+      },
+    ]
+
+    render(
+      <ListingsPanel
+        items={sixItemsNineSources}
+        totalRawCount={6}
+        isLoading={false}
+        hasSearched={true}
+        mode="listings"
+        onMarkViewed={vi.fn()}
+        onOpenAll={vi.fn()}
+        onTriggerSearch={vi.fn()}
+      />
+    )
+
+    const notice = screen.getByTestId('multi-source-summary-notice')
+    expect(notice.textContent).toBe(
+      '6 db egyedi ingatlan jelenik meg összesen 9 db hirdetés-találatból (ebből 2 db ingatlan több forrásból összevonva).',
+    )
   })
 
   it('renders live status announcement for screen readers', () => {
