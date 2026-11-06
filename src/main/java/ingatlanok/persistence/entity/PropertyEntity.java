@@ -36,7 +36,8 @@ import ingatlanok.model.PropertyType;
       @Index(name = "idx_properties_viewed", columnList = "viewed"),
       @Index(name = "idx_properties_price_delta", columnList = "priceDelta"),
       @Index(name = "idx_properties_property_type", columnList = "property_type"),
-      @Index(name = "idx_properties_canonical_id", columnList = "canonicalId")
+      @Index(name = "idx_properties_canonical_id", columnList = "canonicalId"),
+      @Index(name = "idx_properties_hidden", columnList = "hidden")
     })
 @Getter
 @Setter
@@ -106,6 +107,13 @@ public class PropertyEntity implements Serializable {
 
   @Column(length = 50)
   private String viewedAt;
+
+  @Column(nullable = false)
+  @ColumnDefault("false")
+  private boolean hidden;
+
+  @Column(length = 50)
+  private String hiddenAt;
 
   @Column(length = 50)
   @Builder.Default

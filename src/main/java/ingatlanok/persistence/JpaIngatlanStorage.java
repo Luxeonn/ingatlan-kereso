@@ -131,14 +131,14 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     return (city == null || city.isBlank())
         ? Collections.emptyList()
         : mapper.toItems(
-            propertyRepo.findByNormalizedCityOrderByDiscoveredAtDesc(
+            propertyRepo.findByNormalizedCityAndHiddenFalseOrderByDiscoveredAtDesc(
                 CityUtils.normalizeCityKey(city)));
   }
 
   @Override
   @Transactional(readOnly = true)
   public List<IngatlanItem> getAll() {
-    return mapper.toItems(propertyRepo.findAllByOrderByDiscoveredAtDesc());
+    return mapper.toItems(propertyRepo.findAllByHiddenFalseOrderByDiscoveredAtDesc());
   }
 
   @Override
@@ -182,6 +182,39 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     return url != null
         && !url.isBlank()
         && propertyRepo.findByUrl(url.trim()).map(PropertyEntity::isViewed).orElse(false);
+  }
+
+  @Override
+  @Transactional
+  public boolean hideProperty(String idOrUrl) {
+    if (idOrUrl == null || idOrUrl.isBlank()) {
+      return false;
+    }
+    String now = LocalDateTime.now().format(DATE_TIME_FORMATTER);
+    return propertyRepo.markKeyAsHidden(idOrUrl.trim(), now) > 0;
+  }
+
+  @Override
+  @Transactional
+  public boolean restoreProperty(String idOrUrl) {
+    if (idOrUrl == null || idOrUrl.isBlank()) {
+      return false;
+    }
+    return propertyRepo.restoreKeyFromHidden(idOrUrl.trim()) > 0;
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<IngatlanItem> getHiddenProperties() {
+    return mapper.toItems(propertyRepo.findByHiddenTrueOrderByDiscoveredAtDesc());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public boolean isHidden(String url) {
+    return url != null
+        && !url.isBlank()
+        && propertyRepo.findByUrl(url.trim()).map(PropertyEntity::isHidden).orElse(false);
   }
 
   @Override

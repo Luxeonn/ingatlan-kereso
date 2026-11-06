@@ -19,6 +19,9 @@ export interface ListingsPanelProps {
   favoritesCount?: number
   archiveCount?: number
   onMarkViewed: (url: string) => void
+  onHide?: (item: IngatlanItem) => void
+  onRestore?: (item: IngatlanItem) => void
+  hiddenCount?: number
   onOpenAll: (items: IngatlanItem[]) => void
   onTriggerSearch: () => void
   onClearHistory?: () => void
@@ -119,6 +122,9 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   favoritesCount,
   archiveCount,
   onMarkViewed,
+  onHide,
+  onRestore,
+  hiddenCount,
   onOpenAll,
   onTriggerSearch,
   onClearHistory,
@@ -181,6 +187,9 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         hasSearched={hasSearched}
         mode={activeMode}
         onMarkViewed={onMarkViewed}
+        onHide={onHide}
+        onRestore={onRestore}
+        hiddenCount={hiddenCount}
         onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
         onClearHistory={onClearHistory}

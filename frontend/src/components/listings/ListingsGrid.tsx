@@ -16,6 +16,9 @@ interface ListingsGridProps {
   hasSearched: boolean
   mode?: 'listings' | 'favorites' | 'archive'
   onMarkViewed: (url: string) => void
+  onHide?: (item: IngatlanItem) => void
+  onRestore?: (item: IngatlanItem) => void
+  hiddenCount?: number
   onOpenAll: (items: IngatlanItem[]) => void
   onTriggerSearch: () => void
   onClearHistory?: () => void
@@ -106,6 +109,9 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   hasSearched,
   mode = 'listings',
   onMarkViewed,
+  onHide,
+  onRestore,
+  hiddenCount = 0,
   onOpenAll,
   onTriggerSearch,
   onClearHistory,
@@ -216,6 +222,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
         onClearHistory={mode === 'archive' ? onClearHistory : undefined}
         isClearingHistory={isClearingHistory}
         visibleCount={visibleItems.length}
+        hiddenCount={hiddenCount}
       />
 
       {items.length === 0 ? (
@@ -258,6 +265,8 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
                       key={item.url || item.id}
                       item={item}
                       onMarkViewed={onMarkViewed}
+                      onHide={onHide}
+                      onRestore={onRestore}
                       viewMode={viewMode}
                     />
                   ))}

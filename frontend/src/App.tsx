@@ -75,6 +75,12 @@ export const App: FC = () => {
     markAsViewed,
     clearArchiveHistory,
     isClearingHistory,
+hiddenCount,
+    toastMessage,
+    toastUndoItem,
+    clearToast,
+    hideProperty,
+    restoreProperty,
     openAllTabs,
   } = useSearch()
   const { criteria, sortOption, setCriteria, setExcludeViewed, setSortOption } = useFilterStore()
@@ -239,7 +245,10 @@ export const App: FC = () => {
                   }
                 : undefined
             }
-            isClearingHistory={isClearingHistory}
+isClearingHistory={isClearingHistory}
+            onHide={hideProperty}
+            onRestore={restoreProperty}
+            hiddenCount={hiddenCount}
           />
         ) : (
           <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
@@ -254,6 +263,38 @@ export const App: FC = () => {
           </Suspense>
         )}
       </main>
+
+{/* Toast Notification */}
+      {toastMessage && (
+        <aside
+          role="status"
+          aria-live="polite"
+          data-testid="undo-hide-toast"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-3 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-200"
+        >
+          <span className="text-xs font-semibold text-[var(--text-primary)]">{toastMessage}</span>
+          {toastUndoItem && (
+            <button
+              type="button"
+              onClick={() => {
+                restoreProperty(toastUndoItem)
+                clearToast()
+              }}
+              className="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
+            >
+              Visszavonás
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={clearToast}
+            aria-label="Bezárás"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs"
+          >
+            ✕
+          </button>
+        </aside>
+      )}
 
       {/* Modals */}
       <DiagnosticsModal portalStatuses={data?.portalStatuses} />
