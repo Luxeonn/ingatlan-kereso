@@ -373,6 +373,120 @@ class DeduplicationEngineRationalizationTest {
     assertEquals(2, clustered.size());
   }
 
+  @Test
+  @DisplayName("#354: Otthon Centrum Kertváros új építésű ház vs Belváros használt sorház nem vonható össze")
+  void testIssue354OtthonCentrumHajduszoboszloKertvarosVsBelvarosNotMerged() {
+    IngatlanItem u0050372 =
+        createItem(
+            "U0050372",
+            "oc",
+            "https://www.oc.hu/ingatlanok/U0050372",
+            "Fedezze fel álmai otthonát Hajdúszoboszlón – új 4 szobás ház várja Önt!",
+            "Hajdúszoboszló",
+            PropertyType.HAZ,
+            107.0,
+            4.0,
+            104_900_000L,
+            "ACTIVE");
+    u0050372.setDetails("107m² Kertváros 4 szoba");
+    u0050372.setDetailsInfo(
+        u0050372.getDetailsInfo().toBuilder().rawText("107m² Kertváros 4 szoba").build());
+    u0050372.setNewConstruction(true);
+    u0050372.setImageUrl("https://www.oc.hu/images/u0050372.jpg");
+
+    IngatlanItem h526222 =
+        createItem(
+            "H526222",
+            "oc",
+            "https://www.oc.hu/ingatlanok/H526222",
+            "Fedezze fel álmai otthonát Hajdúszoboszló szívében – Nappali +3 szobás sorház a városközpontban!",
+            "Hajdúszoboszló",
+            PropertyType.HAZ,
+            107.0,
+            4.0,
+            111_000_000L,
+            "ACTIVE");
+    h526222.setDetails("107m² Belváros 4 szoba");
+    h526222.setDetailsInfo(
+        h526222.getDetailsInfo().toBuilder().rawText("107m² Belváros 4 szoba").build());
+    h526222.setNewConstruction(false);
+    h526222.setImageUrl("https://www.oc.hu/images/h526222.jpg");
+
+    assertFalse(
+        engine.isMatch(u0050372, h526222),
+        "#354: Kertvárosi új építésű ház és Belvárosi használt sorház nem vonható össze");
+    List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(u0050372, h526222));
+    assertEquals(2, clustered.size(), "A két hirdetésnek két különálló találati kártyaként kell megjelennie");
+    assertEquals(1, clustered.get(0).getSourcesCount());
+    assertEquals(1, clustered.get(1).getSourcesCount());
+  }
+
+  @Test
+  @DisplayName("#354: Azonos portálon belüli eltérő hirdetések (>1% ár vagy eltérő kép/cím) nem vonhatók össze")
+  void testIssue354IntraPortalStrictGuard() {
+    // Ugyanaz a portál (oc), 5% árkülönbség, eltérő kép és cím -> NEM vonható össze
+    IngatlanItem oc1 =
+        createItem(
+            "H1",
+            "oc",
+            "https://www.oc.hu/ingatlanok/H1",
+            "Csendes utcában eladó tágas családi ház",
+            "Debrecen",
+            PropertyType.HAZ,
+            110.0,
+            4.0,
+            95_000_000L,
+            "ACTIVE");
+    oc1.setImageUrl("https://www.oc.hu/img/h1.jpg");
+
+    IngatlanItem oc2 =
+        createItem(
+            "H2",
+            "oc",
+            "https://www.oc.hu/ingatlanok/H2",
+            "Jó elosztású eladó családi ház kerttel",
+            "Debrecen",
+            PropertyType.HAZ,
+            110.0,
+            4.0,
+            100_000_000L,
+            "ACTIVE");
+    oc2.setImageUrl("https://www.oc.hu/img/h2.jpg");
+
+    assertFalse(engine.isMatch(oc1, oc2), "Azonos portálon belül 5% áreltérés és eltérő kép/cím nem vonható össze");
+
+    // Ugyanaz a portál, azonos ár (<=1%), és azonos kép -> duplikátum-spam összevonható (#338)
+    IngatlanItem spam1 =
+        createItem(
+            "S1",
+            "koltozzbe",
+            "https://koltozzbe.hu/ingatlan/1",
+            "Eladó lakás Debrecen 50 M Ft",
+            "Debrecen",
+            PropertyType.LAKAS,
+            55.0,
+            2.0,
+            50_000_000L,
+            "ACTIVE");
+    spam1.setImageUrl("https://img.koltozzbe.hu/shared.jpg");
+
+    IngatlanItem spam2 =
+        createItem(
+            "S2",
+            "koltozzbe",
+            "https://koltozzbe.hu/ingatlan/2",
+            "Debreceni 2 szobás lakás eladó",
+            "Debrecen",
+            PropertyType.LAKAS,
+            55.0,
+            2.0,
+            50_200_000L,
+            "ACTIVE");
+    spam2.setImageUrl("https://img.koltozzbe.hu/shared.jpg");
+
+    assertTrue(engine.isMatch(spam1, spam2), "Azonos portálon belüli <=1% árú, azonos képű spam összevonható");
+  }
+
   private IngatlanItem createItem(
       String id,
       String portal,

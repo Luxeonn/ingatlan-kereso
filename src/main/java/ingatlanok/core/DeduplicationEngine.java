@@ -108,13 +108,13 @@ public class DeduplicationEngine {
   }
 
   public boolean isMatch(IngatlanItem a, IngatlanItem b) {
-    if (a == null || b == null || !isMatchingCity(a, b) || !isSupportedPropertyType(a, b)) {
+    if (!isBaseCompatible(a, b)) {
       return false;
     }
 
     boolean bothAreasKnown =
         ClusterConsolidationHelper.hasPositiveArea(a) && ClusterConsolidationHelper.hasPositiveArea(b);
-    if (!isAreaAndPriceCompatible(a, b, bothAreasKnown)) {
+    if (!isAreaAndPriceCompatible(a, b, bothAreasKnown) || hasIntraPortalConflict(a, b)) {
       return false;
     }
 
@@ -140,6 +140,23 @@ public class DeduplicationEngine {
 
     return bothAreasKnown
         || hasCorroboratingMissingAreaEvidence(a, b, tokensA, tokensB, hasAffirmativeLocation);
+  }
+
+  private boolean isBaseCompatible(IngatlanItem a, IngatlanItem b) {
+    return a != null && b != null && isMatchingCity(a, b) && isSupportedPropertyType(a, b);
+  }
+
+  private boolean hasIntraPortalConflict(IngatlanItem a, IngatlanItem b) {
+    return ClusterConsolidationHelper.isSamePortalDifferentUrl(a, b)
+        && !isIntraPortalDuplicateSpam(a, b);
+  }
+
+  private boolean isIntraPortalDuplicateSpam(IngatlanItem a, IngatlanItem b) {
+    if (a.isNewConstruction() != b.isNewConstruction() || !isWithinMissingAreaPriceBand(a, b)) {
+      return false;
+    }
+    return ClusterConsolidationHelper.hasMatchingImage(a, b)
+        || TextualSimilarityMatcher.hasIdenticalTitleSlug(a, b);
   }
 
   private boolean isAreaAndPriceCompatible(IngatlanItem a, IngatlanItem b, boolean bothAreasKnown) {

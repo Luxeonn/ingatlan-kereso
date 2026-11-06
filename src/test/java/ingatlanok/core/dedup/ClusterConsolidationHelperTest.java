@@ -111,4 +111,32 @@ class ClusterConsolidationHelperTest {
     assertEquals("", ClusterConsolidationHelper.normalizeImageUrl("https://img.hu/default.jpg"));
     assertEquals("img.hu/pic.jpg", ClusterConsolidationHelper.normalizeImageUrl("https://img.hu/pic.jpg?x=1"));
   }
+
+  @Test
+  @DisplayName("isSamePortalDifferentUrl felismeri az azonos portálon belüli eltérő URL-eket")
+  void testIsSamePortalDifferentUrl() {
+    assertFalse(ClusterConsolidationHelper.isSamePortalDifferentUrl(null, null));
+
+    IngatlanItem a = new IngatlanItem();
+    a.setUrl("https://www.oc.hu/ingatlanok/U0050372");
+    a.setPortal("Otthon Centrum");
+
+    IngatlanItem b = new IngatlanItem();
+    b.setUrl("https://www.oc.hu/ingatlanok/H526222");
+    b.setPortal("oc");
+
+    assertTrue(ClusterConsolidationHelper.isSamePortalDifferentUrl(a, b));
+
+    // Same URL -> false
+    IngatlanItem sameUrl = new IngatlanItem();
+    sameUrl.setUrl("https://www.oc.hu/ingatlanok/U0050372");
+    sameUrl.setPortal("oc");
+    assertFalse(ClusterConsolidationHelper.isSamePortalDifferentUrl(a, sameUrl));
+
+    // Different portal -> false
+    IngatlanItem dh = new IngatlanItem();
+    dh.setUrl("https://dh.hu/ingatlan/DH123");
+    dh.setPortal("Duna House");
+    assertFalse(ClusterConsolidationHelper.isSamePortalDifferentUrl(a, dh));
+  }
 }
