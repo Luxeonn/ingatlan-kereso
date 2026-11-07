@@ -54,65 +54,117 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
 
     List<RawPropertyListing> allListings = new ArrayList<>();
     Set<String> processedUrls = new HashSet<>();
+    Set<String> processedNativeIds = new HashSet<>();
+    Set<String> visitedPageUrls = new HashSet<>();
+    int pagesProcessed = 0;
+    String stopReason = "MAX_PAGES_REACHED";
 
-    try {
-      for (int page = 1; page <= maxPages; page++) {
-        String pageUrl = urlBuilder.buildPageUrl(searchUrl, page);
-        Document doc = documentFetcher.apply(pageUrl);
-        if (doc == null) {
-          LOGGER.warn("Nem sikerült letölteni a Költözzbe oldalt: {}", pageUrl);
-          if (page == 1) {
-            return RawExtractionResult.failure(method(), searchUrl, "Nem sikerült letölteni az oldalt", 500);
-          }
-          break;
-        }
+    for (int page = 1; page <= maxPages; page++) {
+      String pageUrl = urlBuilder.buildPageUrl(searchUrl, page);
+      if (pageUrl == null || !visitedPageUrls.add(pageUrl)) {
+        stopReason = "DUPLICATE_PAGE_URL";
+        break;
+      }
 
-        if (PortalSupport.isCommonBotChallenge(doc)) {
-          LOGGER.warn("Költözzbe: Bot-védelem detektálva");
+      PageFetchOutcome fetchOutcome = fetchPageDocument(pageUrl, page);
+      if (fetchOutcome.botProtected()) {
+        if (allListings.isEmpty()) {
           return RawExtractionResult.botProtected(method(), searchUrl, "Bot-védelem detektálva");
         }
-
-        if (!collectPageListings(doc, page, processedUrls, allListings)) {
-          break;
+        stopReason = "INTERMEDIATE_PAGE_BOT_PROTECTED";
+        break;
+      }
+      if (fetchOutcome.document() == null) {
+        if (page == 1 && allListings.isEmpty()) {
+          return RawExtractionResult.failure(
+              method(), searchUrl, fetchOutcome.errorMessage(), 500);
         }
+        stopReason = fetchOutcome.stopReason();
+        break;
       }
 
-      if (allListings.isEmpty()) {
-        return RawExtractionResult.empty(method(), searchUrl);
+      pagesProcessed++;
+      String pageStopReason = collectPageListings(
+          fetchOutcome.document(), page, processedUrls, processedNativeIds, allListings);
+      if (pageStopReason != null) {
+        stopReason = pageStopReason;
+        break;
       }
-      return RawExtractionResult.success(allListings, method());
+    }
+
+    LOGGER.info("Költözzbe lapozás befejezve: feldolgozott oldalak={}, találatok={}, leállás oka={}",
+        pagesProcessed, allListings.size(), stopReason);
+
+    if (allListings.isEmpty()) {
+      return RawExtractionResult.empty(method(), searchUrl);
+    }
+    String details = String.format("pages=%d, stopReason=%s", pagesProcessed, stopReason);
+    return RawExtractionResult.success(allListings, method(), details);
+  }
+
+  private PageFetchOutcome fetchPageDocument(String pageUrl, int page) {
+    try {
+      Document doc = documentFetcher.apply(pageUrl);
+      if (doc == null) {
+        LOGGER.warn("Nem sikerült letölteni a Költözzbe {}. oldalt: {}", page, pageUrl);
+        return new PageFetchOutcome(
+            null, false, "INTERMEDIATE_PAGE_FETCH_FAILED", "Nem sikerült letölteni az oldalt");
+      }
+      if (PortalSupport.isCommonBotChallenge(doc)) {
+        LOGGER.warn("Költözzbe: Bot-védelem detektálva");
+        return new PageFetchOutcome(null, true, "BOT_PROTECTED", "Bot-védelem detektálva");
+      }
+      return new PageFetchOutcome(doc, false, null, null);
     } catch (Exception e) {
-      LOGGER.error("Hiba a Költözzbe stratégia futásakor: {}", e.getMessage(), e);
-      return RawExtractionResult.failure(method(), searchUrl, e.getMessage(), 500);
+      LOGGER.error("Hiba a Költözzbe {}. oldal lekérésekor: {}", page, e.getMessage(), e);
+      return new PageFetchOutcome(null, false, "INTERMEDIATE_PAGE_EXCEPTION", e.getMessage());
     }
   }
 
-  private boolean collectPageListings(
+  private record PageFetchOutcome(
+      Document document, boolean botProtected, String stopReason, String errorMessage) {}
+
+  private String collectPageListings(
       Document doc,
       int page,
       Set<String> processedUrls,
+      Set<String> processedNativeIds,
       List<RawPropertyListing> allListings) {
     List<RawPropertyListing> pageHtml = rawParser.parseHtmlListings(doc);
-    addUniqueListings(pageHtml, processedUrls, allListings);
+    int addedHtml = addUniqueListings(pageHtml, processedUrls, processedNativeIds, allListings);
 
     List<RawPropertyListing> pageJsonLd = rawParser.parseJsonLdListings(doc);
-    addUniqueListings(pageJsonLd, processedUrls, allListings);
+    int addedJsonLd = addUniqueListings(pageJsonLd, processedUrls, processedNativeIds, allListings);
 
     boolean hasContent = !pageHtml.isEmpty() || !pageJsonLd.isEmpty();
-    return hasContent && rawParser.hasNextPage(doc, page);
+    if (!hasContent) {
+      return page == 1 ? "FIRST_PAGE_EMPTY" : "EMPTY_PAGE";
+    }
+    if (addedHtml + addedJsonLd == 0) {
+      return "REPEATED_PAGE_CONTENT";
+    }
+    if (!rawParser.hasNextPage(doc, page)) {
+      return "NO_NEXT_PAGE";
+    }
+    return null;
   }
 
-  private void addUniqueListings(
+  private int addUniqueListings(
       List<RawPropertyListing> candidates,
       Set<String> processedUrls,
+      Set<String> processedNativeIds,
       List<RawPropertyListing> target) {
     if (candidates == null) {
-      return;
+      return 0;
     }
+    int added = 0;
     for (RawPropertyListing raw : candidates) {
-      if (raw != null && raw.url() != null && processedUrls.add(raw.url())) {
+      if (raw != null && PortalSupport.markProcessedListing(
+          processedUrls, processedNativeIds, raw.url(), raw.nativeId())) {
         target.add(raw);
+        added++;
       }
     }
+    return added;
   }
 }

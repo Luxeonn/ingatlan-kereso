@@ -48,11 +48,15 @@ public class OtthonCentrumRawParser {
 
   private RawPropertyListing parseCard(Element card) {
     String href = extractHref(card);
-    if (href == null || href.isBlank() || !href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
+    if (href == null || href.isBlank()) {
       return null;
     }
 
-    String fullLink = PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href);
+    String fullLink = PortalSupport.canonicalListingUrl(
+        PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href));
+    if (!fullLink.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
+      return null;
+    }
     String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
     if (id == null || "lista".equalsIgnoreCase(id) || "terkep".equalsIgnoreCase(id)) {
       return null;

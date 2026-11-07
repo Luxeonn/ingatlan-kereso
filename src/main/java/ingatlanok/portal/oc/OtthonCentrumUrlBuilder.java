@@ -36,6 +36,13 @@ public class OtthonCentrumUrlBuilder implements PortalUrlBuilder {
     return BASE_URL + "/ingatlanok/lista/" + String.join(";", segments);
   }
 
+  public String buildPageUrl(String searchUrl, int page) {
+    if (page <= 1) {
+      return searchUrl;
+    }
+    return searchUrl + "?page=" + page;
+  }
+
   private String buildRangeSegment(String key, Integer min, Integer max) {
     if (min != null && max != null) {
       return key + ":" + min + "~" + max;

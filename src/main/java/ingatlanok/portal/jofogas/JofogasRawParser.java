@@ -40,11 +40,15 @@ public class JofogasRawParser {
 
   private RawPropertyListing parseSingleLink(Element a) {
     String href = a.attr("href");
-    if (href == null || href.isBlank() || !href.endsWith(".htm")) {
+    if (href == null || href.isBlank()) {
       return null;
     }
 
-    String fullLink = PortalSupport.resolveUrl(JofogasUrlBuilder.BASE_URL, href);
+    String fullLink = PortalSupport.canonicalListingUrl(
+        PortalSupport.resolveUrl(JofogasUrlBuilder.BASE_URL, href));
+    if (!fullLink.endsWith(".htm")) {
+      return null;
+    }
     String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
     if (id == null || id.isBlank()) {
       return null;

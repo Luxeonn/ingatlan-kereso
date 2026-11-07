@@ -514,9 +514,9 @@ class PortalAdaptersModularTest {
             + "?property_location=1462&price_max=60&property_floor_area=-80&property__2=3",
         new IngatlanBazarQueryBuilder().buildSearchUrl(maxOnly));
 
-    PortalScrapeResult dhEmpty = new DunaHousePortalEngine().scrape(minOnly, u -> null);
-    assertEquals(PortalScrapeStatus.EMPTY, dhEmpty.getStatus());
-    assertTrue(dhEmpty.getFallbackUrl().contains("hajdu-bihar-megye/hajduszoboszlo"));
+    PortalScrapeResult dhFail = new DunaHousePortalEngine().scrape(minOnly, u -> null);
+    assertEquals(PortalScrapeStatus.FAILED, dhFail.getStatus());
+    assertTrue(dhFail.getFallbackUrl().contains("hajdu-bihar-megye/hajduszoboszlo"));
 
     PortalScrapeResult ocFail = new OtthonCentrumPortalEngine().scrape(minOnly, u -> null);
     assertEquals(PortalScrapeStatus.FAILED, ocFail.getStatus());

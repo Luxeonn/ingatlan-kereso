@@ -52,9 +52,17 @@ public class KoltozzbePortalEngine implements PortalEngine {
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
+    return scrape(criteria, documentFetcher, maxPages);
+  }
+
+  public PortalScrapeResult scrape(
+      SearchCriteria criteria,
+      java.util.function.Function<String, Document> documentFetcher,
+      int customMaxPages) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new KoltozzbePortalAdapter(urlBuilder,
         List.of(
-            new KoltozzbeExtractionStrategy(urlBuilder, new KoltozzbeRawParser(), documentFetcher, maxPages)
+            new KoltozzbeExtractionStrategy(
+                urlBuilder, new KoltozzbeRawParser(), documentFetcher, customMaxPages)
         )));
     return dynamicEngine.scrape(criteria);
   }

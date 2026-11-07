@@ -40,8 +40,15 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, String> jsonFetcher) {
+    return scrape(criteria, jsonFetcher, 2);
+  }
+
+  public PortalScrapeResult scrape(
+      SearchCriteria criteria,
+      java.util.function.Function<String, String> jsonFetcher,
+      int maxPages) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new IngatlanBazarPortalAdapter(queryBuilder,
-        List.of(new IngatlanBazarApiStrategy(queryBuilder, new IngatlanBazarRawParser(), jsonFetcher))));
+        List.of(new IngatlanBazarApiStrategy(queryBuilder, new IngatlanBazarRawParser(), jsonFetcher, maxPages))));
     return dynamicEngine.scrape(criteria);
   }
 
