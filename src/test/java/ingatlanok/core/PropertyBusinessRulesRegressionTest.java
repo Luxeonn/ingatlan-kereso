@@ -7,21 +7,31 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.MarketStats;
+import ingatlanok.model.PortalScrapeResult;
+import ingatlanok.model.PortalScrapeStatus;
+import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.model.SourceListing;
+import ingatlanok.persistence.ListingStorage;
+import ingatlanok.portal.PortalEngineRegistry;
+import ingatlanok.portal.dh.DunaHousePortalEngine;
+import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.testsupport.TestFixtures;
 
 /**
@@ -431,6 +441,44 @@ class PropertyBusinessRulesRegressionTest {
       assertEquals(2, sources.size());
       assertEquals(39_500_000L, sources.get(0).getPriceHuf());
       assertEquals(42_000_000L, sources.get(1).getPriceHuf());
+    }
+
+    @Test
+    @DisplayName("Többforrásos kluszterbe olvadt másodlagos portál is megtartja a SUCCESS státuszt és számlálást")
+    void testSecondaryPortalInMergedClusterRetainsSuccessStatus() {
+      IngatlanItem ocPrimary = TestFixtures.validResidentialItem("OC-1", "Debrecen", 39_500_000L, 60.0, 2.0);
+      ocPrimary.setPortal("Otthon Centrum");
+      ocPrimary.setSource(PortalSource.of("Otthon Centrum"));
+      ocPrimary.setSourcesCount(2);
+      ocPrimary.setSourceListings(List.of(
+          SourceListing.builder().portal("Otthon Centrum").url("https://oc.hu/1").priceHuf(39_500_000L).build(),
+          SourceListing.builder().portal("Duna House").url("https://dh.hu/1").priceHuf(42_000_000L).build()));
+
+      SearchPersistenceSynchronizer sync = new SearchPersistenceSynchronizer(
+          new PortalEngineRegistry(List.of(
+              new DunaHousePortalEngine(),
+              new OtthonCentrumPortalEngine())),
+          Mockito.mock(ListingStorage.class));
+
+      Map<String, Integer> counts = new LinkedHashMap<>();
+      counts.put("Duna House", 0);
+      counts.put("Otthon Centrum", 0);
+      sync.recalculateRelevantPortalCounts(counts, List.of(ocPrimary));
+      assertEquals(1, counts.get("Duna House"), "A másodlagos forrásként beolvadt DH találatot is számolni kell");
+      assertEquals(1, counts.get("Otthon Centrum"));
+
+      List<PortalScrapeResult> rawResults = List.of(
+          PortalScrapeResult.builder()
+              .portalId("dh")
+              .portalName("Duna House")
+              .status(PortalScrapeStatus.SUCCESS)
+              .items(List.of(ocPrimary))
+              .build());
+      List<PortalScrapeResult> agg =
+          sync.aggregatePortalResultsByPortal(rawResults, List.of(ocPrimary));
+      assertEquals(1, agg.size());
+      assertEquals(PortalScrapeStatus.SUCCESS, agg.get(0).getStatus(),
+          "A másodlagos forrásként beolvadt portál státusza nem eshet vissza EMPTY-re");
     }
   }
 

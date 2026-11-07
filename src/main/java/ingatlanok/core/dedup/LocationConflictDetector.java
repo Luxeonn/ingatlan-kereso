@@ -257,7 +257,20 @@ public final class LocationConflictDetector {
     if (slug == null || slug.isBlank() || prefix == null || prefix.isBlank()) {
       return false;
     }
-    return Pattern.compile("(?:^|-)" + Pattern.quote(prefix)).matcher(slug).find();
+    for (String token : slug.split("-")) {
+      if (isQuarterTokenMatch(token, prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isQuarterTokenMatch(String token, String prefix) {
+    if (token == null || !token.startsWith(prefix)) {
+      return false;
+    }
+    String suffix = token.substring(prefix.length());
+    return !suffix.startsWith("ias") && !suffix.startsWith("ies") && !suffix.startsWith("kozel");
   }
 
   private static String normalizeQuarterSynonym(String quarter) {

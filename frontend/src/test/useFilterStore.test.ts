@@ -158,6 +158,7 @@ describe('useFilterStore', () => {
       useFilterStore.getState().addCity('Debrecen')
       useFilterStore.getState().setOnlyBargain(true)
       useFilterStore.getState().setSortOption('bargain_desc')
+      useFilterStore.getState().setExcludeViewed(true)
       useFilterStore.getState().setMinQualityScore(70)
 
       useFilterStore.getState().resetToDefaults()
@@ -166,6 +167,9 @@ describe('useFilterStore', () => {
       expect(state.criteria.cities).toEqual(['Hajdúszoboszló'])
       expect(state.onlyBargain).toBe(false)
       expect(state.sortOption).toBe('price_asc')
+      expect(state.criteria.excludeViewed).toBe(false)
+      expect(localStorage.getItem('preferred_sort_option')).toBe('price_asc')
+      expect(localStorage.getItem('preferred_exclude_viewed')).toBe('false')
       expect(state.minQualityScore).toBe(0)
       expect(state.quickSearchQuery).toBe('')
       expect(state.selectedPortalFilter).toBe('all')

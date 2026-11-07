@@ -2,15 +2,18 @@ package ingatlanok.core;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
+import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
@@ -82,8 +85,18 @@ public class SearchPersistenceSynchronizer {
       if (item == null) {
         continue;
       }
-      String key = resolvePortalCountKey(item);
-      portalCounts.merge(key, 1, Integer::sum);
+      Set<String> countedKeys = new LinkedHashSet<>();
+      countedKeys.add(resolvePortalCountKey(item));
+      if (item.getSourceListings() != null) {
+        for (SourceListing sl : item.getSourceListings()) {
+          if (sl != null && sl.getPortal() != null && !sl.getPortal().isBlank()) {
+            countedKeys.add(resolvePortalCountKeyByName(sl.getPortal().trim()));
+          }
+        }
+      }
+      for (String key : countedKeys) {
+        portalCounts.merge(key, 1, Integer::sum);
+      }
     }
   }
 
@@ -101,6 +114,10 @@ public class SearchPersistenceSynchronizer {
             : (item.getSource() != null && item.getSource().getPortalName() != null
                 ? item.getSource().getPortalName().trim()
                 : "Ismeretlen");
+    return resolvePortalCountKeyByName(rawPortal);
+  }
+
+  private String resolvePortalCountKeyByName(String rawPortal) {
     for (PortalEngine engine : portalRegistry.getAllEngines()) {
       if (engine.getName().equalsIgnoreCase(rawPortal)
           || engine.getId().equalsIgnoreCase(rawPortal)) {
@@ -137,7 +154,37 @@ public class SearchPersistenceSynchronizer {
     return matchesPortalId(item, portalId)
         || matchesPortalName(item, portalName)
         || matchesPortalIdToName(item, portalId)
-        || matchesResolvedKey(item, portalName);
+        || matchesResolvedKey(item, portalName)
+        || matchesSourceListings(item, portalId, portalName);
+  }
+
+  private boolean matchesSourceListings(IngatlanItem item, String portalId, String portalName) {
+    List<SourceListing> listings = item.getSourceListings();
+    if (listings == null || listings.isEmpty()) {
+      return false;
+    }
+    for (SourceListing sl : listings) {
+      if (matchesSingleSourceListing(sl, portalId, portalName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean matchesSingleSourceListing(
+      SourceListing sl, String portalId, String portalName) {
+    if (sl == null || sl.getPortal() == null || sl.getPortal().isBlank()) {
+      return false;
+    }
+    String slPortal = sl.getPortal().trim();
+    if (portalId != null && portalId.equalsIgnoreCase(slPortal)) {
+      return true;
+    }
+    if (portalName == null) {
+      return false;
+    }
+    return portalName.equalsIgnoreCase(slPortal)
+        || portalName.equalsIgnoreCase(resolvePortalCountKeyByName(slPortal));
   }
 
   private boolean matchesPortalId(IngatlanItem item, String portalId) {

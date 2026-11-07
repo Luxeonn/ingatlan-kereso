@@ -221,9 +221,11 @@ export const useFilterStore = create<FilterState>((set, get) => {
     setShowHidden: (showHidden) => set({ showHidden }),
 
     resetToDefaults: () => {
+      safeSetStorageItem('preferred_sort_option', 'price_asc')
+      safeSetStorageItem('preferred_exclude_viewed', 'false')
       safeSetStorageItem('preferred_exclude_multi_source', 'false')
       set({
-        criteria: { ...DEFAULT_CRITERIA },
+        criteria: { ...DEFAULT_CRITERIA, excludeViewed: false },
         sortOption: 'price_asc',
         onlyNew: false,
         onlyBargain: false,
