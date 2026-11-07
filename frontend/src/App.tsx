@@ -13,6 +13,8 @@ import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
 import { cn } from './utils/cn'
 import type { IngatlanItem } from './types/property'
+import type { DashboardResponseDto } from './types/api'
+import type { PortalStatusDto } from './types/portal'
 
 const MarketAnalyticsPanel = lazy(() =>
   import('./components/analytics/MarketAnalyticsPanel').then((module) => ({
@@ -58,6 +60,21 @@ function resolveActiveListingsSlice(params: ActiveSliceParams) {
   }
 }
 
+function extractPortalFailures(statuses?: PortalStatusDto[] | null): PortalStatusDto[] {
+  if (!statuses) return []
+  return statuses.filter((p) => p.status === 'FAILED' || p.status === 'BOT_PROTECTED')
+}
+
+function checkIsTotalPortalFailure(
+  data: DashboardResponseDto | null | undefined,
+  failureCount: number,
+): boolean {
+  if (!data) return false
+  if (data.executionStatus === 'TOTAL_FAILURE') return true
+  const count = data.portalStatuses?.length ?? 0
+  return count > 0 && failureCount === count
+}
+
 export const App: FC = () => {
   const {
     data,
@@ -95,12 +112,11 @@ export const App: FC = () => {
   } = useUiStore()
   const initialLoadDone = useRef(false)
 
-  const partialPortalFailures = useMemo(() => {
-    if (!data?.portalStatuses) return []
-    return data.portalStatuses.filter(
-      (p) => p.status === 'FAILED' || p.status === 'BOT_PROTECTED',
-    )
-  }, [data?.portalStatuses])
+  const partialPortalFailures = useMemo(
+    () => extractPortalFailures(data?.portalStatuses),
+    [data?.portalStatuses],
+  )
+  const isTotalPortalFailure = checkIsTotalPortalFailure(data, partialPortalFailures.length)
 
   // Load last saved criteria from backend on first mount
   useEffect(() => {
@@ -158,10 +174,11 @@ export const App: FC = () => {
         {/* API Error Alert Banner */}
         {isError && <SearchErrorBanner error={error} onRetry={handleSearch} />}
 
-        {/* Partial Portal Warning Banner */}
+        {/* Partial or Total Portal Warning Banner */}
         {partialPortalFailures.length > 0 && dashboardTab === 'listings' && listingSubView === 'listings' && (
           <PartialPortalWarningBanner
             failures={partialPortalFailures}
+            isTotalFailure={isTotalPortalFailure}
             onOpenDiagnostics={() => setDiagnosticsModalOpen(true)}
           />
         )}

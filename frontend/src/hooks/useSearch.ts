@@ -163,7 +163,21 @@ export function useSearch() {
       prev
         ? {
             ...prev,
-            items: prev.items.map((item) => (urlSet.has(item.url) ? { ...item, viewed: true } : item)),
+            items: prev.items.map((item) => {
+              const directMatch = Boolean(item.url && urlSet.has(item.url))
+              const sourceMatch = Boolean(
+                item.sourceListings?.some((sl) => sl.url && urlSet.has(sl.url)),
+              )
+              if (!directMatch && !sourceMatch) return item
+              return {
+                ...item,
+                viewed: true,
+                isNew: false,
+                sourceListings: item.sourceListings?.map((sl) =>
+                  sl.url && urlSet.has(sl.url) ? { ...sl, viewed: true } : sl,
+                ),
+              }
+            }),
           }
         : prev,
     )

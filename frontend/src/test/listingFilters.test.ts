@@ -150,14 +150,18 @@ describe('listingFilters utility', () => {
       expect(all).toHaveLength(2)
     })
 
-    it('filters by selectedPortalFilter', () => {
+    it('filters by selectedPortalFilter including secondary portals in sourceListings', () => {
       const dhItems = applyItemFilters(items, { selectedPortalFilter: 'dh' })
-      expect(dhItems).toHaveLength(1)
-      expect(dhItems[0].id).toBe('1')
+      expect(dhItems).toHaveLength(2)
+      expect(dhItems.map((i) => i.id)).toEqual(['1', '2'])
 
       const ocItems = applyItemFilters(items, { selectedPortalFilter: 'oc' })
       expect(ocItems).toHaveLength(1)
       expect(ocItems[0].id).toBe('2')
+
+      const jfItems = applyItemFilters(items, { selectedPortalFilter: 'jofogas' })
+      expect(jfItems).toHaveLength(1)
+      expect(jfItems[0].id).toBe('2')
 
       const allItems = applyItemFilters(items, { selectedPortalFilter: 'all' })
       expect(allItems).toHaveLength(2)
@@ -246,6 +250,26 @@ describe('listingFilters utility', () => {
       const sorted = filterAndSortItems([exp, cheap])
       expect(sorted[0].id).toBe('c')
       expect(sorted[1].id).toBe('e')
+    })
+
+    it('sorts by effective lowest active price from sourceListings when priceInfo differs', () => {
+      const multiWithLowerActiveSource = createMockIngatlanItem({
+        id: 'multi-low',
+        priceInfo: { amountHuf: 80_000_000, amountMillion: 80 },
+        sourceListings: [
+          { portal: 'DH', url: 'https://dh.hu/1', priceHuf: 80_000_000, status: 'ACTIVE' },
+          { portal: 'OC', url: 'https://oc.hu/1', priceHuf: 65_000_000, status: 'ACTIVE' },
+        ],
+      })
+      const singleMidPrice = createMockIngatlanItem({
+        id: 'single-mid',
+        priceInfo: { amountHuf: 70_000_000, amountMillion: 70 },
+      })
+
+      const sortedAsc = filterAndSortItems([singleMidPrice, multiWithLowerActiveSource], {
+        sortOption: 'price_asc',
+      })
+      expect(sortedAsc.map((i) => i.id)).toEqual(['multi-low', 'single-mid'])
     })
   })
 })

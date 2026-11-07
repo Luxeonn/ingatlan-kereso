@@ -221,6 +221,17 @@ describe('formatters utility', () => {
       } as unknown as IngatlanItem
       expect(getEffectiveSqmPrice(millionItem)).toBe(800_000)
 
+      // 4. Multi-source item where lowest active source price is lower than priceInfo.amountHuf
+      const multiSourceItem = {
+        priceInfo: { amountHuf: 80_000_000, amountMillion: 80 },
+        detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 800_000 },
+        sourceListings: [
+          { portal: 'DH', url: 'https://dh.hu/1', priceHuf: 80_000_000, status: 'ACTIVE' },
+          { portal: 'OC', url: 'https://oc.hu/1', priceHuf: 68_000_000, status: 'ACTIVE' },
+        ],
+      } as unknown as IngatlanItem
+      expect(getEffectiveSqmPrice(multiSourceItem)).toBe(680_000)
+
       // Missing area or price returns null
       const invalidItem = {
         priceInfo: {},
