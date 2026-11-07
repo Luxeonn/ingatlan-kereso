@@ -90,8 +90,9 @@ public final class LocationConflictDetector {
 
     String title = item.getTitle() != null ? item.getTitle() : "";
     String location = item.getLocation() != null ? item.getLocation() : "";
+    String details = extractRawDetails(item);
     String url = item.getUrl() != null ? item.getUrl() : "";
-    String combined = (title + " " + location + " " + url).trim();
+    String combined = (title + " " + location + " " + details + " " + url).trim();
 
     Integer district = null;
     boolean isBudapest = "budapest".equals(normalizedCity);
@@ -99,10 +100,21 @@ public final class LocationConflictDetector {
       district = extractBudapestDistrict(combined);
     }
 
-    String quarter = extractQuarter(location, title, normalizedCity, isBudapest);
-    String street = extractStreet(title, location);
+    String quarter = extractQuarter(location, title, details, normalizedCity, isBudapest);
+    String street = extractStreet(title, location, details);
 
     return new ExtractedLocation(district, quarter, street);
+  }
+
+  private static String extractRawDetails(IngatlanItem item) {
+    String details = item.getDetails() != null ? item.getDetails() : "";
+    if (item.getDetailsInfo() != null && item.getDetailsInfo().getRawText() != null) {
+      String raw = item.getDetailsInfo().getRawText();
+      if (!details.contains(raw)) {
+        details = (details + " " + raw).trim();
+      }
+    }
+    return details;
   }
 
   /**
@@ -205,7 +217,8 @@ public final class LocationConflictDetector {
     return null;
   }
 
-  private static String extractQuarter(String location, String title, String normalizedCity, boolean isBudapest) {
+  private static String extractQuarter(
+      String location, String title, String details, String normalizedCity, boolean isBudapest) {
     if (isBudapest) {
       return null; // For Budapest, districts are primary
     }
@@ -214,34 +227,48 @@ public final class LocationConflictDetector {
     if (location != null && location.contains(",")) {
       String[] parts = location.split(",", 2);
       if (parts.length > 1) {
-        String q = SlugUtils.toSlug(parts[1].trim());
+        String q = normalizeQuarterSynonym(SlugUtils.toSlug(parts[1].trim()));
         if (!q.isBlank() && !q.equals(normalizedCity)) {
           return q;
         }
       }
     }
 
-    // 2. Common quarters in provincial cities
-    String textSlug = SlugUtils.toSlug((title + " " + location).trim());
+    // 2. Common quarters in provincial cities (inspect details/location first, then title)
+    String textSlug = SlugUtils.toSlug((details + " " + location + " " + title).trim());
     String[] quarters = {
         "banomkert", "kertvaros", "nagyerd", "nagyerdot", "tocoskert", "csapokert", "jozsa", "venkert",
         "ujszeged", "felsovaros", "tarjan", "rokus", "moravaros", "szentmihaly", "marosto",
         "avas", "diosgyor", "szirma", "goromboly", "tapolca", "komlosteto",
         "uranvaros", "mecsekoldal", "meszes", "patacs", "gyarvaros", "nadorvaros", "szabadhegy",
-        "marcalvaros", "revfalu", "furdovezet", "belvaros"
+        "marcalvaros", "revfalu", "furdovezet", "belvaros", "varoskozpont"
     };
 
     for (String q : quarters) {
-      if (textSlug.contains(q)) {
-        return q;
+      if (matchesSlugWordPrefix(textSlug, q)) {
+        return normalizeQuarterSynonym(q);
       }
     }
 
     return null;
   }
 
-  private static String extractStreet(String title, String location) {
-    String combined = (title + " " + location).trim();
+  private static boolean matchesSlugWordPrefix(String slug, String prefix) {
+    if (slug == null || slug.isBlank() || prefix == null || prefix.isBlank()) {
+      return false;
+    }
+    return Pattern.compile("(?:^|-)" + Pattern.quote(prefix)).matcher(slug).find();
+  }
+
+  private static String normalizeQuarterSynonym(String quarter) {
+    if ("varoskozpont".equals(quarter) || (quarter != null && quarter.startsWith("varoskozpont"))) {
+      return "belvaros";
+    }
+    return quarter;
+  }
+
+  private static String extractStreet(String title, String location, String details) {
+    String combined = (title + " " + location + " " + details).trim();
     Matcher m = STREET_NAME_PATTERN.matcher(combined);
     if (m.find()) {
       String street = SlugUtils.toSlug(m.group(1).trim());

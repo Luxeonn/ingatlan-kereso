@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <title>Otthon Centrum Edge Cases</title>
+</head>
+<body>
+  <!-- Card 1: Standard valid listing (Control) -->
+  <div class="js-list-item" data-controller="seo"
+       data-seo-select-item-value='{"ecommerce":{"items":[{"location_city":"Debrecen","price":60000000}]}}'>
+    <a href="/ingatlanok/H1001">
+      <div class="collapse description"><h6>Debrecen Családi ház</h6></div>
+      <span>60 M Ft</span>
+      <span>70 m2</span>
+      <span>3 szoba</span>
+    </a>
+    <img class="lazyload" data-src="/uploads/oc1.jpg" alt="Ház 1" />
+  </div>
+
+  <!-- Card 2: Missing price in SEO JSON and text -->
+  <div class="js-list-item" data-controller="seo"
+       data-seo-select-item-value='{"ecommerce":{"items":[{"location_city":"Debrecen","price":null}]}}'>
+    <a href="/ingatlanok/H1002">
+      <div class="collapse description"><h6>Debrecen Belvárosi lakás</h6></div>
+      <span>60 m2</span>
+      <span>2 szoba</span>
+    </a>
+    <img class="lazyload" data-src="/uploads/oc2.jpg" alt="Lakás 2" />
+  </div>
+
+  <!-- Card 3: Faulty non-numeric price in SEO JSON, but valid fallback in card text -->
+  <div class="js-list-item" data-controller="seo"
+       data-seo-select-item-value='{"ecommerce":{"items":[{"location_city":"Debrecen","price":"invalid_number"}]}}'>
+    <a href="/ingatlanok/H1003">
+      <div class="collapse description"><h6>Debrecen Nagyerdő lakás</h6></div>
+      <span>45 M Ft</span>
+      <span>55 m2</span>
+      <span>2 szoba</span>
+    </a>
+    <img class="lazyload" data-src="/uploads/oc3.jpg" alt="Lakás 3" />
+  </div>
+
+  <!-- Card 4: Missing area and room count in text -->
+  <div class="js-list-item" data-controller="seo"
+       data-seo-select-item-value='{"ecommerce":{"items":[{"location_city":"Debrecen","price":85000000}]}}'>
+    <a href="/ingatlanok/H1004">
+      <div class="collapse description"><h6>Debrecen Prémium ingatlan</h6></div>
+      <span>85 M Ft</span>
+    </a>
+    <img class="lazyload" data-src="/uploads/oc4.jpg" alt="Ingatlan 4" />
+  </div>
+
+  <!-- Card 5: Alternative DOM structure (real-estate-card without js-list-item) -->
+  <div class="real-estate-card">
+    <a href="/ingatlanok/H1005">
+      <div class="description"><h6>Debrecen Kertvárosi ikerház</h6></div>
+      <span>92 M Ft</span>
+      <span>110 m2</span>
+      <span>4 szoba</span>
+    </a>
+    <div class="card-image">
+      <img class="lazy" data-src="/uploads/oc5.jpg" alt="Ikerház 5" />
+    </div>
+  </div>
+
+  <!-- Card 6: Zero price in SEO JSON, unpriced card text -->
+  <div class="js-list-item" data-controller="seo"
+       data-seo-select-item-value='{"ecommerce":{"items":[{"location_city":"Debrecen","price":0}]}}'>
+    <a href="/ingatlanok/H1006">
+      <div class="collapse description"><h6>Debrecen Belváros 50 m2 2 szoba Ár megegyezés szerint</h6></div>
+      <span>50 m2</span>
+    </a>
+    <img class="lazyload" data-src="/uploads/oc6.jpg" alt="Lakás 6" />
+  </div>
+
+  <!-- Card 7: Non-listing navigation link -->
+  <a href="/ingatlanok/lista">Összes lista navigáció</a>
+
+  <!-- Card 8: Corrupted empty card element -->
+  <div class="real-estate-card"></div>
+</body>
+</html>

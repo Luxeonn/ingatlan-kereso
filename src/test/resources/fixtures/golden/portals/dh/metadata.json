@@ -1,0 +1,17 @@
+{
+  "portal": "dh",
+  "portalName": "Duna House",
+  "version": "1.0.0",
+  "sampleType": "HTML_CARD_LIST",
+  "recordedAt": "2026-11-07",
+  "sourceFile": "source.html",
+  "description": "Duna House representative HTML listing cards covering standard flat, family house, and plot without rooms or image",
+  "searchCriteria": {
+    "city": "Debrecen",
+    "propertyType": "lakas",
+    "minPriceMillion": 10,
+    "maxPriceMillion": 200,
+    "minArea": 20,
+    "maxArea": 1000
+  }
+}

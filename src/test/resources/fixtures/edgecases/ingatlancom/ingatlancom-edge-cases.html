@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <title>Ingatlan.com Edge Cases</title>
+</head>
+<body>
+  <!-- Card 1: Standard structured listing (Control) -->
+  <a href="/35001" data-listing-id="35001" class="listing-card">
+    <span class="d-block fs-7 text-gray-900">Debrecen, Rózsavölgy utca 1.</span>
+    <span class="fw-bold fs-5 text-gray-900 listing-card__price">68 M Ft</span>
+    <div><span>Alapterület</span><span>75 m<sup>2</sup></span></div>
+    <div><span>Szobák</span><span>2 + 1</span></div>
+    <img data-src="https://ip.ingatlancdn.com/resize/magan/800x800/photo1.jpg" class="listing-card-image" alt="Lakás 1" />
+  </a>
+
+  <!-- Card 2: Missing price element and text price -->
+  <a href="/35002" data-listing-id="35002" class="listing-card">
+    <span class="d-block fs-7 text-gray-900">Debrecen, Egyetem sugárút 10.</span>
+    <div><span>Alapterület</span><span>60 m<sup>2</sup></span></div>
+    <div><span>Szobák</span><span>2</span></div>
+    <img data-src="https://ip.ingatlancdn.com/resize/magan/800x800/photo2.jpg" class="listing-card-image" alt="Lakás 2" />
+  </a>
+
+  <!-- Card 3: Missing labeled area and rooms -->
+  <a href="/35003" data-listing-id="35003" class="listing-card">
+    <span class="d-block fs-7 text-gray-900">Debrecen, Csapó utca 25.</span>
+    <span class="fw-bold fs-5 text-gray-900 listing-card__price">55 M Ft</span>
+    <div>Debrecen Belvárosi felújított lakás azonnal költözhető</div>
+    <img data-src="https://ip.ingatlancdn.com/resize/magan/800x800/photo3.jpg" class="listing-card-image" alt="Lakás 3" />
+  </a>
+
+  <!-- Card 4: Multiple prices in text, but clear dedicated price container -->
+  <a href="/35004" data-listing-id="35004" class="listing-card">
+    <span class="d-block fs-7 text-gray-900">Debrecen, Hatvan utca 12.</span>
+    <div class="listing-card__price">69 M Ft</div>
+    <div>Eredeti ár: 75 M Ft helyett most akciós áron</div>
+    <div><span>Alapterület</span><span>82 m<sup>2</sup></span></div>
+    <div><span>Szobák</span><span>3</span></div>
+  </a>
+
+  <!-- Card 5: Non-listing navigation link without ID -->
+  <a href="/lista/elado+lakas+debrecen" class="listing-card">
+    <span>Debrecen összes eladó lakás lista oldal</span>
+  </a>
+
+  <!-- Card 6: Empty corrupted card element -->
+  <div class="listing-card"></div>
+</body>
+</html>

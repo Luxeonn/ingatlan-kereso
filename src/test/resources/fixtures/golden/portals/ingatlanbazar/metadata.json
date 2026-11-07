@@ -1,0 +1,17 @@
+{
+  "portal": "ingatlanbazar",
+  "portalName": "Ingatlanbazár",
+  "version": "1.0.0",
+  "sampleType": "JSON_REST_API",
+  "recordedAt": "2026-11-07",
+  "sourceFile": "source.json",
+  "description": "Ingatlanbazár representative JSON REST API search response hits covering family house, new construction flat, and building plot without rooms or image",
+  "searchCriteria": {
+    "city": "Debrecen",
+    "propertyType": "haz",
+    "minPriceMillion": 10,
+    "maxPriceMillion": 200,
+    "minArea": 20,
+    "maxArea": 1000
+  }
+}

@@ -30,6 +30,17 @@ public final class PortalSupport {
       "/y/img/sale_icon"
   );
 
+  private static final Set<String> CHALLENGE_TITLE_MARKERS = Set.of(
+      "ellenőrzés",
+      "cloudflare",
+      "just a moment",
+      "attention required",
+      "security check",
+      "bot védelem",
+      "bot-védelem",
+      "robot check"
+  );
+
   private PortalSupport() {}
 
   public static SearchCriteria normalizeCriteria(SearchCriteria criteria) {
@@ -103,13 +114,57 @@ public final class PortalSupport {
   }
 
   public static boolean markProcessed(Set<String> processedUrls, String url) {
-    if (url == null || url.isBlank()) {
+    String canonical = canonicalListingUrl(url);
+    if (canonical.isBlank()) {
       return false;
     }
     if (processedUrls == null) {
       return true;
     }
-    return processedUrls.add(url);
+    return processedUrls.add(canonical);
+  }
+
+  public static boolean markProcessedListing(
+      Set<String> processedUrls,
+      Set<String> processedNativeIds,
+      String url,
+      String nativeId) {
+    String canonicalUrl = canonicalListingUrl(url);
+    if (canonicalUrl.isBlank()) {
+      return false;
+    }
+    if (processedNativeIds != null && nativeId != null && !nativeId.isBlank()) {
+      String cleanId = nativeId.trim();
+      if (!processedNativeIds.add(cleanId)) {
+        return false;
+      }
+    }
+    if (processedUrls == null) {
+      return true;
+    }
+    return processedUrls.add(canonicalUrl);
+  }
+
+  public static String canonicalListingUrl(String url) {
+    if (url == null || url.isBlank()) {
+      return "";
+    }
+    String clean = url.trim();
+    int hashIdx = clean.indexOf('#');
+    if (hashIdx >= 0) {
+      clean = clean.substring(0, hashIdx);
+    }
+    int queryIdx = clean.indexOf('?');
+    if (queryIdx >= 0) {
+      String query = clean.substring(queryIdx + 1);
+      if (!query.contains("id=")) {
+        clean = clean.substring(0, queryIdx);
+      }
+    }
+    while (clean.endsWith("/") && clean.length() > "https://a.b/".length()) {
+      clean = clean.substring(0, clean.length() - 1);
+    }
+    return clean;
   }
 
   public static String nowTimestamp() {
@@ -148,17 +203,17 @@ public final class PortalSupport {
       return false;
     }
     String title = document.title();
-    boolean titleIndicatesChallenge =
-        title != null
-            && (title.contains("ellenőrzés")
-                || title.contains("Cloudflare")
-                || title.contains("Just a moment")
-                || title.contains("Attention Required"));
-    return titleIndicatesChallenge
-        || !document
-            .select(
-                "#challenge-error-text, #robot-protection-illustration,"
-                    + " script[src*='challenge-platform']")
-            .isEmpty();
+    if (title != null) {
+      String lower = title.toLowerCase(java.util.Locale.ROOT);
+      if (CHALLENGE_TITLE_MARKERS.stream().anyMatch(lower::contains)) {
+        return true;
+      }
+    }
+    return !document
+        .select(
+            "#challenge-error-text, #robot-protection-illustration,"
+                + " script[src*='challenge-platform'], .cf-browser-verification,"
+                + " #cf-wrapper, .g-recaptcha, .cf-turnstile")
+        .isEmpty();
   }
 }

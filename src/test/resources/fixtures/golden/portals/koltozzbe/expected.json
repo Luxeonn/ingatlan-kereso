@@ -1,0 +1,41 @@
+[
+  {
+    "id": "KB-201",
+    "url": "https://koltozzbe.hu/elado-haz-debrecen/h201",
+    "title": "Családi ház Debrecenben",
+    "propertyType": "HAZ",
+    "city": "Debrecen",
+    "priceHuf": 92000000,
+    "priceMillion": 92.0,
+    "areaSquareMeters": 135.0,
+    "roomCount": 4.0,
+    "imageUrl": "https://koltozzbe.hu/img/kb201.jpg",
+    "newConstruction": false
+  },
+  {
+    "id": "KB-203",
+    "url": "https://koltozzbe.hu/elado-telek-debrecen/h203",
+    "title": "Építési telek eladó",
+    "propertyType": "TELEK",
+    "city": "Debrecen",
+    "priceHuf": 27000000,
+    "priceMillion": 27.0,
+    "areaSquareMeters": 820.0,
+    "roomCount": null,
+    "imageUrl": null,
+    "newConstruction": false
+  },
+  {
+    "id": "202",
+    "url": "https://koltozzbe.hu/elado-lakas-debrecen/h202",
+    "title": "Új építésű lakás Debrecen 70 m² 3 szoba",
+    "propertyType": "LAKAS",
+    "city": "Debrecen",
+    "priceHuf": 61000000,
+    "priceMillion": 61.0,
+    "areaSquareMeters": 70.0,
+    "roomCount": 3.0,
+    "imageUrl": "https://koltozzbe.hu/img/kb202.jpg",
+    "newConstruction": true
+  }
+]

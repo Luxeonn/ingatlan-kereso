@@ -1,0 +1,38 @@
+{
+  "hits": [
+    {
+      "propertyId": "IB-101",
+      "seoUrl": "/ingatlan/debrecen/haz/IB-101",
+      "title": "Felújított családi ház",
+      "priceHUF": 88000000,
+      "area": 120.0,
+      "rooms": 4.0,
+      "settlement": "Debrecen",
+      "renderPictures": [
+        "https://images2.ingatlanbazar.hu/static/property/images/b3/4c/44/2d/test-house-1"
+      ]
+    },
+    {
+      "propertyId": "IB-102",
+      "seoUrl": "/ingatlan/debrecen/lakas/IB-102",
+      "title": "Új építésű belvárosi lakás",
+      "priceHUF": 56000000,
+      "area": 68.0,
+      "rooms": 2.0,
+      "settlement": "Debrecen",
+      "newConstruction": true,
+      "renderPictures": [
+        "https://images2.ingatlanbazar.hu/static/property/images/b3/4c/44/2d/test-flat-2"
+      ]
+    },
+    {
+      "propertyId": "IB-103",
+      "seoUrl": "/ingatlan/debrecen/telek/IB-103",
+      "title": "Közművesített építési telek",
+      "priceHUF": 32000000,
+      "area": 850.0,
+      "settlement": "Debrecen",
+      "renderPictures": []
+    }
+  ]
+}

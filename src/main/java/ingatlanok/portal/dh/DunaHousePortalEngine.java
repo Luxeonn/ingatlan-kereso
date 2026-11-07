@@ -41,8 +41,15 @@ public class DunaHousePortalEngine implements PortalEngine {
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
+    return scrape(criteria, documentFetcher, 2);
+  }
+
+  public PortalScrapeResult scrape(
+      SearchCriteria criteria,
+      java.util.function.Function<String, Document> documentFetcher,
+      int maxPages) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new DunaHousePortalAdapter(urlBuilder,
-        List.of(new DunaHouseHtmlStrategy(urlBuilder, new DunaHouseRawParser(), documentFetcher))));
+        List.of(new DunaHouseHtmlStrategy(urlBuilder, new DunaHouseRawParser(), documentFetcher, maxPages))));
     return dynamicEngine.scrape(criteria);
   }
 

@@ -11,7 +11,9 @@ public final class PropertyParser {
 
   private static final Pattern PRICE_PATTERN =
       Pattern.compile(
-          "(\\d+[,.]?\\d*\\s*M\\s*Ft|\\d{1,3}(?:[.\\s\u00A0]\\d{3})+\\s*Ft|\\d[\\d\\s\u00A0]*\\s*Ft)",
+          "(\\d+[,.]?\\d*\\s*M\\s*Ft"
+              + "|\\d{1,3}(?:[.\\s\u00A0]\\d{3})+\\s*Ft"
+              + "|\\d[\\d\\s\u00A0]*\\s*Ft)",
           Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern DETAILS_PATTERN =
       Pattern.compile(
@@ -69,8 +71,10 @@ public final class PropertyParser {
     if (mMillion.find()) {
       try {
         double million = Double.parseDouble(mMillion.group(1).replace(",", "."));
-        long huf = Math.round(million * 1_000_000.0);
-        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
+        if (million > 0) {
+          long huf = Math.round(million * 1_000_000.0);
+          return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
+        }
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and continue with the next supported price format.
       }
@@ -81,8 +85,10 @@ public final class PropertyParser {
       try {
         String cleanDigits = mHuf.group(1).replaceAll("[\\s.\u00A0]+", "");
         long huf = Long.parseLong(cleanDigits);
-        double million = Math.round((huf / 1_000_000.0) * 100.0) / 100.0;
-        return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
+        if (huf > 0) {
+          double million = Math.round((huf / 1_000_000.0) * 100.0) / 100.0;
+          return PriceInfo.builder().rawText(raw).amountHuf(huf).amountMillion(million).build();
+        }
       } catch (NumberFormatException ignored) {
         // Ignore malformed numeric values and return an unknown price below.
       }
@@ -101,34 +107,9 @@ public final class PropertyParser {
 
   public static PropertyDetails parseDetails(String text, PriceInfo priceInfo) {
     String raw = extractDetails(text);
-    Double area = null;
-    Double rooms = null;
-
-    if (text != null) {
-      Matcher mArea = AREA_PATTERN.matcher(text);
-      if (mArea.find()) {
-        try {
-          area = Double.parseDouble(mArea.group(1).replace(",", "."));
-        } catch (NumberFormatException ignored) {
-          // Keep area unknown when the source value is malformed.
-        }
-      }
-
-      Matcher mRooms = ROOM_PATTERN.matcher(text);
-      if (mRooms.find()) {
-        try {
-          rooms = Double.parseDouble(mRooms.group(1).replace(",", "."));
-        } catch (NumberFormatException ignored) {
-          // Keep room count unknown when the source value is malformed.
-        }
-      }
-    }
-
-    Long pricePerM2 = null;
-    if (area != null && area > 0 && priceInfo != null
-        && priceInfo.getAmountHuf() != null && priceInfo.getAmountHuf() > 0) {
-      pricePerM2 = Math.round((double) priceInfo.getAmountHuf() / area);
-    }
+    Double area = extractArea(text);
+    Double rooms = extractRooms(text);
+    Long pricePerM2 = calculateSquareMeterPrice(area, priceInfo);
 
     return PropertyDetails.builder()
         .rawText(raw)
@@ -136,6 +117,50 @@ public final class PropertyParser {
         .roomCount(rooms)
         .pricePerSquareMeter(pricePerM2)
         .build();
+  }
+
+  private static Double extractArea(String text) {
+    if (text == null) {
+      return null;
+    }
+    Matcher mArea = AREA_PATTERN.matcher(text);
+    if (mArea.find()) {
+      try {
+        double parsedArea = Double.parseDouble(mArea.group(1).replace(",", "."));
+        if (parsedArea > 0) {
+          return parsedArea;
+        }
+      } catch (NumberFormatException ignored) {
+        // Keep area unknown when the source value is malformed.
+      }
+    }
+    return null;
+  }
+
+  private static Double extractRooms(String text) {
+    if (text == null) {
+      return null;
+    }
+    Matcher mRooms = ROOM_PATTERN.matcher(text);
+    if (mRooms.find()) {
+      try {
+        double parsedRooms = Double.parseDouble(mRooms.group(1).replace(",", "."));
+        if (parsedRooms > 0) {
+          return parsedRooms;
+        }
+      } catch (NumberFormatException ignored) {
+        // Keep room count unknown when the source value is malformed.
+      }
+    }
+    return null;
+  }
+
+  private static Long calculateSquareMeterPrice(Double area, PriceInfo priceInfo) {
+    if (area != null && area > 0 && priceInfo != null
+        && priceInfo.getAmountHuf() != null && priceInfo.getAmountHuf() > 0) {
+      return Math.round((double) priceInfo.getAmountHuf() / area);
+    }
+    return null;
   }
 
   public static String extractFirstGroup(String text, Pattern pattern, String fallback) {

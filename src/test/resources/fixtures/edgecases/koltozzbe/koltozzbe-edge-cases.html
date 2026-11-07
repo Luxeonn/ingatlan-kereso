@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <title>Költözzbe HTML Edge Cases</title>
+</head>
+<body>
+  <!-- Card 1: Standard valid HTML listing (Control) -->
+  <div class="listing-card" data-lid="3001">
+    <a class="listing-item-link" href="/elado-haz-debrecen/h3001" title="Debrecen Kertvárosi Családi Ház"></a>
+    <div class="item-type h2">Eladó családi ház</div>
+    <div class="item-price">70 M Ft</div>
+    <div class="listing-parameters">90 m2 • 3 szoba</div>
+    <img data-src="/img/kb1.jpg" alt="Ház 1" />
+  </div>
+
+  <!-- Card 2: Missing price element -->
+  <div class="listing-card" data-lid="3002">
+    <a class="listing-item-link" href="/elado-haz-debrecen/h3002" title="Debrecen Belvárosi Lakás"></a>
+    <div class="item-type h2">Eladó lakás</div>
+    <div class="listing-parameters">100 m2 • 4 szoba</div>
+    <img data-src="/img/kb2.jpg" alt="Lakás 2" />
+  </div>
+
+  <!-- Card 3: Missing parameters element -->
+  <div class="listing-card" data-lid="3003">
+    <a class="listing-item-link" href="/elado-haz-debrecen/h3003" title="Debrecen Nagyerdő Építési Telek"></a>
+    <div class="item-type h2">Eladó telek</div>
+    <div class="item-price">85 M Ft</div>
+    <img data-src="/img/kb3.jpg" alt="Telek 3" />
+  </div>
+
+  <!-- Card 4: Alternative DOM classes (.property-box, data-id, .price, .property-parameters) -->
+  <div class="property-box" data-id="3004">
+    <a href="/elado-haz-debrecen/h3004" title="Debrecen Prémium Villa"></a>
+    <div class="price">110 M Ft</div>
+    <div class="property-parameters">130 m2 • 5 szoba</div>
+    <img data-src="/img/kb4.jpg" alt="Villa 4" />
+  </div>
+
+  <!-- Card 5: Placeholder image marker (no-pic) -->
+  <div class="listing-card" data-lid="3005">
+    <a class="listing-item-link" href="/elado-haz-debrecen/h3005" title="Debrecen Ikerház"></a>
+    <div class="item-price">62 M Ft</div>
+    <div class="listing-parameters">80 m2 • 3 szoba</div>
+    <img src="/img/no-pic-sample.png" alt="Ikerház 5" />
+  </div>
+
+  <!-- Card 6: Corrupted card element without child anchor -->
+  <div class="listing-card" data-lid="9999">
+    <div class="item-price">99 M Ft</div>
+  </div>
+</body>
+</html>

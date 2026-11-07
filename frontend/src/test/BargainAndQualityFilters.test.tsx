@@ -179,6 +179,17 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
       expect(results).toHaveLength(1)
       expect(results[0].id).toBe('prop-1')
     })
+
+    it('sorts listings by bargain percentage descending (bargain_desc)', () => {
+      const results = filterAndSortItems(mockListings, {
+        sortOption: 'bargain_desc',
+      })
+      expect(results).toHaveLength(4)
+      expect(results[0].id).toBe('prop-3')
+      expect(results[1].id).toBe('prop-1')
+      expect(['prop-2', 'prop-4']).toContain(results[2].id)
+      expect(['prop-2', 'prop-4']).toContain(results[3].id)
+    })
   })
 
   describe('useFilterStore actions and state', () => {
@@ -231,28 +242,61 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
       expect(useFilterStore.getState().onlyBargain).toBe(true)
     })
 
-    it('renders Data Quality select dropdown and updates minQualityScore', () => {
+    it('verifies QualitySelect is no longer rendered in the filter bar (#369)', () => {
       render(
         <BulkActionBar
           items={mockListings}
           rawItems={mockListings}
           totalRawCount={4}
-          onOpenAll={vi.fn()}
-          onMarkAllViewed={vi.fn()}
         />,
       )
 
-      const qualitySelect = screen.getByTestId('quality-filter-select') as HTMLSelectElement
-      expect(qualitySelect).toBeTruthy()
-      expect(qualitySelect.value).toBe('0')
+      expect(screen.queryByTestId('quality-filter-select')).toBeNull()
+      expect(screen.queryByLabelText(/Adatminőség szűrő/i)).toBeNull()
+    })
 
-      // Change to Reliable (70)
-      fireEvent.change(qualitySelect, { target: { value: '70' } })
-      expect(useFilterStore.getState().minQualityScore).toBe(70)
+    it('filters out multi-source / grouped listings when excludeMultiSource is active (#369)', () => {
+      const itemsWithSources: IngatlanItem[] = [
+        {
+          ...mockListings[0],
+          id: 'single-1',
+          sourcesCount: 1,
+          sourceListings: [{ portal: 'dh', url: 'https://dh.hu/1', priceHuf: 85_000_000 }],
+        },
+        {
+          ...mockListings[1],
+          id: 'multi-1',
+          sourcesCount: 3,
+          sourceListings: [
+            { portal: 'dh', url: 'https://dh.hu/2', priceHuf: 45_000_000 },
+            { portal: 'oc', url: 'https://oc.hu/2', priceHuf: 46_000_000 },
+            { portal: 'jofogas', url: 'https://jofogas.hu/2', priceHuf: 45_000_000 },
+          ],
+        },
+        {
+          ...mockListings[2],
+          id: 'single-2',
+          sourcesCount: 1,
+        },
+      ]
 
-      // Change to Excellent (85)
-      fireEvent.change(qualitySelect, { target: { value: '85' } })
-      expect(useFilterStore.getState().minQualityScore).toBe(85)
+      const filtered = filterAndSortItems(itemsWithSources, {
+        sortOption: 'price_asc',
+        excludeMultiSource: true,
+      })
+
+      expect(filtered).toHaveLength(2)
+      expect(filtered.map((it) => it.id)).toEqual(['single-2', 'single-1'])
+    })
+
+    it('verifies Ft/m² sort options are removed from SORT_OPTIONS (#369)', async () => {
+      const sortValues = useFilterStore.getState().sortOption
+      expect(sortValues).toBe('price_asc')
+      // Ensure sqm_price_asc and sqm_price_desc are not valid SORT_OPTIONS
+      const { SORT_OPTIONS } = await import('../store/useFilterStore')
+      const values = SORT_OPTIONS.map((o) => o.value)
+      expect(values).not.toContain('sqm_price_asc')
+      expect(values).not.toContain('sqm_price_desc')
     })
   })
 })

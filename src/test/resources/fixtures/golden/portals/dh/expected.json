@@ -1,0 +1,41 @@
+[
+  {
+    "id": "DH-1001",
+    "url": "https://dh.hu/ingatlan/elado/lakas/debrecen/DH-1001",
+    "title": "Új építésű lakás",
+    "propertyType": "LAKAS",
+    "city": "Debrecen",
+    "priceHuf": 52000000,
+    "priceMillion": 52.0,
+    "areaSquareMeters": 65.0,
+    "roomCount": 2.0,
+    "imageUrl": "https://dh.hu/images/dh1001.jpg",
+    "newConstruction": true
+  },
+  {
+    "id": "DH-1002",
+    "url": "https://dh.hu/ingatlan/elado/haz/debrecen/DH-1002",
+    "title": "Családi ház kerttel",
+    "propertyType": "HAZ",
+    "city": "Debrecen",
+    "priceHuf": 89500000,
+    "priceMillion": 89.5,
+    "areaSquareMeters": 130.0,
+    "roomCount": 4.0,
+    "imageUrl": "https://dh.hu/images/dh1002.jpg",
+    "newConstruction": false
+  },
+  {
+    "id": "DH-1003",
+    "url": "https://dh.hu/ingatlan/elado/telek/debrecen/DH-1003",
+    "title": "Építési telek összközműves",
+    "propertyType": "TELEK",
+    "city": "Debrecen",
+    "priceHuf": 35000000,
+    "priceMillion": 35.0,
+    "areaSquareMeters": 950.0,
+    "roomCount": null,
+    "imageUrl": null,
+    "newConstruction": false
+  }
+]

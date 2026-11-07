@@ -2,8 +2,6 @@ import { useMemo, useState, type FC } from 'react'
 import {
   LayoutGrid,
   List,
-  ExternalLink,
-  CheckCheck,
   Search,
   X,
   Trash2,
@@ -13,7 +11,7 @@ import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
 import { useFilterStore, SORT_OPTIONS, type SortOption } from '../../store/useFilterStore'
 import { isItemBargain } from '../../hooks/useSearch'
-import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
+import { PORTAL_CHIPS, getTotalSourceListingsCount, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
 
@@ -21,20 +19,29 @@ interface BulkActionBarProps {
   items: IngatlanItem[]
   rawItems?: IngatlanItem[]
   totalRawCount: number
-  onOpenAll: (items: IngatlanItem[]) => void
-  onMarkAllViewed: (items: IngatlanItem[]) => void
+  onOpenAll?: (items: IngatlanItem[]) => void
+  onMarkAllViewed?: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
   visibleCount?: number
   hiddenCount?: number
 }
 
-function formatResultCount(visibleCount: number | undefined, itemsLength: number, totalRawCount: number): string {
+function formatResultCount(
+  visibleCount: number | undefined,
+  itemsLength: number,
+  totalRawCount: number,
+  totalSourceListingsCount: number,
+): string {
+  const sourceSuffix = totalSourceListingsCount > itemsLength ? ` (${totalSourceListingsCount} hirdetés)` : ''
   if (visibleCount !== null && visibleCount !== undefined && visibleCount < itemsLength) {
-    return `Megjelenítve: ${visibleCount} / ${itemsLength} db`
+    return `Megjelenítve: ${visibleCount} / ${itemsLength} db${sourceSuffix}`
   }
   if (itemsLength !== totalRawCount) {
-    return `${itemsLength} / ${totalRawCount} db`
+    return `${itemsLength} / ${totalRawCount} db${sourceSuffix}`
+  }
+  if (totalSourceListingsCount > itemsLength) {
+    return `${itemsLength} ingatlan (${totalSourceListingsCount} hirdetés)`
   }
   return `${itemsLength} db`
 }
@@ -43,8 +50,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   items,
   rawItems,
   totalRawCount,
-  onOpenAll,
-  onMarkAllViewed,
   onClearHistory,
   isClearingHistory = false,
   visibleCount,
@@ -61,8 +66,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setSortOption,
     onlyBargain,
     setOnlyBargain,
-    minQualityScore,
-    setMinQualityScore,
+    excludeMultiSource,
+    setExcludeMultiSource,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -72,7 +77,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   } = useFilterStore()
   const [confirmClear, setConfirmClear] = useState(false)
 
-  const unviewedCount = items.filter((item) => !item.viewed).length
+  const totalSourceListingsCount = useMemo(() => getTotalSourceListingsCount(items), [items])
   const sourceItems = rawItems ?? items
 
   const bargainCount = useMemo(
@@ -141,36 +146,13 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
-            <span>{formatResultCount(visibleCount, items.length, totalRawCount)}</span>
+            <span>{formatResultCount(visibleCount, items.length, totalRawCount, totalSourceListingsCount)}</span>
             {items.length !== totalRawCount && (visibleCount === null || visibleCount === undefined) && (
               <span className="text-[11px] font-normal text-[var(--text-secondary)]">
                 (szűrve)
               </span>
             )}
           </div>
-
-          {items.length > 0 && (
-            <button
-              type="button"
-              onClick={() => onOpenAll(items.slice(0, 15))}
-              title="A listában látható első 15 ingatlan megnyitása új böngészőlapokon"
-              className="flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 transition-colors hover:bg-blue-500/20 shrink-0"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span>Összes megnyitása</span>
-            </button>
-          )}
-
-          {unviewedCount > 0 && (
-            <button
-              type="button"
-              onClick={() => onMarkAllViewed(items)}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] shrink-0"
-            >
-              <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Mind megtekintett</span>
-            </button>
-          )}
 
           {onClearHistory && (
             confirmClear ? (
@@ -247,8 +229,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         bargainCount={bargainCount}
         excludeViewed={criteria.excludeViewed}
         setExcludeViewed={setExcludeViewed}
-        minQualityScore={minQualityScore}
-        setMinQualityScore={setMinQualityScore}
+        excludeMultiSource={excludeMultiSource}
+        setExcludeMultiSource={setExcludeMultiSource}
         showHidden={showHidden}
         setShowHidden={setShowHidden}
         hiddenCount={hiddenCount}
@@ -258,6 +240,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         selectedPortalFilter={selectedPortalFilter}
         setSelectedPortalFilter={setSelectedPortalFilter}
         portalCounts={portalCounts}
+        searchedPortals={criteria.portals}
       />
     </div>
   )

@@ -356,12 +356,116 @@ describe('PropertyCard component (#270)', () => {
     expect(card.className).not.toContain('opacity-70')
     expect(card.className).not.toContain('grayscale-[15%]')
 
-    // 4. Starred and unviewed card -> also maintains amber border & ring highlight
+    // 4.Starred and unviewed card -> also maintains amber border & ring highlight
     rerender(<PropertyCard item={mockItem} onMarkViewed={() => {}} />)
     expect(card.getAttribute('data-starred')).toBe('true')
     expect(card.className).toContain('border-amber-500/50')
     expect(card.className).toContain('ring-amber-500/30')
     expect(card.className).not.toContain('opacity-70')
     expect(card.className).not.toContain('grayscale-[15%]')
+  })
+
+  it('opens property details in a portal modal in grid view without expanding the card DOM, and closes via close button, outside click, or Escape (#357)', () => {
+    vi.stubGlobal('open', vi.fn())
+    const handleMarkViewed = vi.fn()
+    const multiSourceGridItem: IngatlanItem = {
+      ...mockItem,
+      id: 'grid-modal-item',
+      sourcesCount: 2,
+      qualityScore: 92,
+      qualityDeductions: [],
+      sourceListings: [
+        {
+          portal: 'Duna House',
+          url: 'https://dh.hu/grid-1',
+          priceHuf: 75000000,
+          status: 'ACTIVE',
+        },
+        {
+          portal: 'Otthon Centrum',
+          url: 'https://oc.hu/grid-2',
+          priceHuf: 73000000,
+          status: 'ACTIVE',
+        },
+      ],
+    }
+
+    render(
+      <PropertyCard
+        item={multiSourceGridItem}
+        onMarkViewed={handleMarkViewed}
+        viewMode="grid"
+      />,
+    )
+
+    const card = screen.getByTestId('property-card')
+    const triggerBtn = screen.getByTestId('sources-count-badge')
+
+    // 1. Open modal in grid view
+    fireEvent.click(triggerBtn)
+
+    const modal = screen.getByTestId('property-details-modal')
+    expect(modal).toBeTruthy()
+    expect(modal.getAttribute('role')).toBe('dialog')
+    expect(modal.getAttribute('aria-modal')).toBe('true')
+
+    // AC1: Drawer is rendered inside the portal modal, NOT inside the card container (preventing grid row height stretch)
+    const drawer = screen.getByTestId('multi-source-drawer')
+    expect(modal.contains(drawer)).toBe(true)
+    expect(card.contains(drawer)).toBe(false)
+
+    // AC2: Modal displays Besorolás és Kategória, Adatminőségi Értékelés, Elérhető források, and supports opening external source links
+    expect(screen.getByText('Besorolás és Kategória')).toBeTruthy()
+    expect(screen.getByTestId('drawer-quality-section')).toBeTruthy()
+    expect(screen.getByText('Elérhető források (2)')).toBeTruthy()
+
+    const ocLink = screen.getByLabelText('Megnyitás: Otthon Centrum')
+    fireEvent.click(ocLink)
+    expect(window.open).toHaveBeenCalledWith('https://oc.hu/grid-2', '_blank', 'noopener,noreferrer')
+    expect(handleMarkViewed).toHaveBeenCalledWith('https://oc.hu/grid-2')
+
+    // AC3a: Close via header close button (✕)
+    const closeBtn = screen.getByTestId('property-details-modal-close')
+    fireEvent.click(closeBtn)
+    expect(screen.queryByTestId('property-details-modal')).toBeNull()
+
+    // AC3b: Re-open and close via Escape key
+    fireEvent.click(triggerBtn)
+    expect(screen.getByTestId('property-details-modal')).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByTestId('property-details-modal')).toBeNull()
+
+    // AC3c: Re-open and close via outside mousedown / backdrop click
+    fireEvent.click(triggerBtn)
+    expect(screen.getByTestId('property-details-modal')).toBeTruthy()
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByTestId('property-details-modal')).toBeNull()
+  })
+
+  it('keeps inline PropertyDetailsDrawer inside the card in list view (#357)', () => {
+    const listItem: IngatlanItem = {
+      ...mockItem,
+      id: 'list-inline-item',
+      qualityScore: 88,
+    }
+
+    render(
+      <PropertyCard
+        item={listItem}
+        onMarkViewed={() => {}}
+        viewMode="list"
+      />,
+    )
+
+    const card = screen.getByTestId('property-card')
+    const detailsBtn = screen.getByTestId('details-button')
+
+    fireEvent.click(detailsBtn)
+
+    // AC4: In list view, PropertyDetailsDrawer opens inline inside the card and no modal is rendered
+    const drawer = screen.getByTestId('multi-source-drawer')
+    expect(drawer).toBeTruthy()
+    expect(card.contains(drawer)).toBe(true)
+    expect(screen.queryByTestId('property-details-modal')).toBeNull()
   })
 })

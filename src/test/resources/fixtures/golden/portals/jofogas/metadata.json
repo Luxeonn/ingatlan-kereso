@@ -1,0 +1,17 @@
+{
+  "portal": "jofogas",
+  "portalName": "Jófogás Ingatlan",
+  "version": "1.0.0",
+  "sampleType": "HTML_CARD_LIST",
+  "recordedAt": "2026-11-07",
+  "sourceFile": "source.html",
+  "description": "Jófogás representative HTML listing cards covering standard flat, new construction house with decimal rooms, and plot without rooms or image",
+  "searchCriteria": {
+    "city": "Debrecen",
+    "propertyType": "lakas",
+    "minPriceMillion": 10,
+    "maxPriceMillion": 200,
+    "minArea": 20,
+    "maxArea": 1000
+  }
+}
