@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import type { SearchCriteria } from '../types/api'
-import { DEFAULT_PORTALS, type SortOption } from './useFilterStore'
+
+export type SortOption = 'price_asc' | 'price_desc' | 'area_desc' | 'date_desc' | 'bargain_desc'
+
+export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe']
 
 export const urlSchema = z.object({
   cities: z.string().max(1000).optional(),

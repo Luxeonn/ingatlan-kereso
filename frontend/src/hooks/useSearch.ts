@@ -184,7 +184,7 @@ export function useSearch() {
   })
 
   const openClientTabs = (urls: string[]) => {
-    urls.forEach(openExternalUrl)
+    urls.forEach((u) => openExternalUrl(u))
     openUrlsMutation.mutate(urls)
   }
 
