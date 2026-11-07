@@ -227,12 +227,12 @@ export function openExternalUrl(url?: string | null): void {
 }
 
 export function formatPriceMillion(million?: number | null): string {
-  if (million === null || million === undefined || isNaN(million)) return 'N/A'
+  if (million === null || million === undefined || isNaN(million) || million < 0) return 'N/A'
   return `${Number(million.toFixed(1))} M Ft`
 }
 
 export function formatPriceFt(amountHuf?: number | null): string {
-  if (amountHuf === null || amountHuf === undefined || isNaN(amountHuf)) return 'Ár a hirdetésben'
+  if (amountHuf === null || amountHuf === undefined || isNaN(amountHuf) || amountHuf <= 0) return 'Ár a hirdetésben'
   return new Intl.NumberFormat('hu-HU').format(amountHuf) + ' Ft'
 }
 
@@ -252,7 +252,7 @@ export function formatRooms(rooms?: number | null): string {
 }
 
 export function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return ''
+  if (!dateStr || !dateStr.trim()) return ''
   try {
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return dateStr

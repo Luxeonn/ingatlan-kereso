@@ -1,9 +1,15 @@
 import { create } from 'zustand'
 import type { SearchCriteria } from '../types/api'
 import { normalizePortalKey } from '../utils/formatters'
-import { parseUrlParams, appendCriteriaParams, appendUiFilterParams } from './filterUrlSync'
+import {
+  parseUrlParams,
+  appendCriteriaParams,
+  appendUiFilterParams,
+  DEFAULT_PORTALS,
+  type SortOption,
+} from './filterUrlSync'
 
-export type SortOption = 'price_asc' | 'price_desc' | 'area_desc' | 'date_desc' | 'bargain_desc'
+export { DEFAULT_PORTALS, type SortOption }
 
 export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
   { value: 'price_asc', label: 'Ár: Növekvő (alapértelmezett)' },
@@ -12,8 +18,6 @@ export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> =
   { value: 'date_desc', label: 'Felfedezés: Legfrissebb' },
   { value: 'bargain_desc', label: 'Alkalmi vétel: Legnagyobb kedvezmény elöl' },
 ]
-
-export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe']
 
 const VALID_SORTS: SortOption[] = SORT_OPTIONS.map((o) => o.value)
 

@@ -10,6 +10,7 @@ export function normalizeSearchText(str?: string | null): string {
 }
 
 export function isItemBargain(item: IngatlanItem): boolean {
+  if (!item) return false
   return Boolean(
     item.isBargain ||
       item.bargainInfo?.isBargain ||
@@ -40,18 +41,43 @@ export function getBargainPercentage(item: IngatlanItem): number {
 }
 
 function getArea(item: IngatlanItem): number {
-  if (item.detailsInfo && item.detailsInfo.areaSquareMeters !== undefined) {
+  if (
+    item.detailsInfo &&
+    item.detailsInfo.areaSquareMeters !== undefined &&
+    !isNaN(item.detailsInfo.areaSquareMeters)
+  ) {
     return item.detailsInfo.areaSquareMeters
   }
   return 0
 }
 
+function comparePriceAsc(a: IngatlanItem, b: IngatlanItem): number {
+  const pA = getPriceHuf(a, Infinity)
+  const pB = getPriceHuf(b, Infinity)
+  if (pA === pB) return 0
+  return pA - pB
+}
+
+function comparePriceDesc(a: IngatlanItem, b: IngatlanItem): number {
+  const pA = getPriceHuf(a, -Infinity)
+  const pB = getPriceHuf(b, -Infinity)
+  if (pA === pB) return 0
+  return pB - pA
+}
+
+function compareBargainDesc(a: IngatlanItem, b: IngatlanItem): number {
+  const bA = getBargainPercentage(a)
+  const bB = getBargainPercentage(b)
+  if (bA === bB) return 0
+  return bB - bA
+}
+
 const COMPARATORS: Record<SortOption, (a: IngatlanItem, b: IngatlanItem) => number> = {
-  price_asc: (a, b) => getPriceHuf(a, Infinity) - getPriceHuf(b, Infinity),
-  price_desc: (a, b) => getPriceHuf(b, -Infinity) - getPriceHuf(a, -Infinity),
+  price_asc: comparePriceAsc,
+  price_desc: comparePriceDesc,
   area_desc: (a, b) => getArea(b) - getArea(a),
   date_desc: (a, b) => (b.discoveredAt || '').localeCompare(a.discoveredAt || ''),
-  bargain_desc: (a, b) => getBargainPercentage(b) - getBargainPercentage(a),
+  bargain_desc: compareBargainDesc,
 }
 
 function compareItems(a: IngatlanItem, b: IngatlanItem, sortOption: SortOption): number {
@@ -96,7 +122,7 @@ export interface ItemFilterOptions {
   quickSearchQuery?: string
 }
 
-export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions): IngatlanItem[] {
+export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions = {}): IngatlanItem[] {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return []
   }
@@ -143,9 +169,10 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
 
 export function filterAndSortItems(
   rawItems: IngatlanItem[],
-  options: ItemFilterOptions & { sortOption: SortOption },
+  options: ItemFilterOptions & { sortOption?: SortOption } = { sortOption: 'price_asc' },
 ): IngatlanItem[] {
   const items = applyItemFilters(rawItems, options)
-  items.sort((a, b) => compareItems(a, b, options.sortOption))
+  const sortOption = options.sortOption || 'price_asc'
+  items.sort((a, b) => compareItems(a, b, sortOption))
   return items
 }
