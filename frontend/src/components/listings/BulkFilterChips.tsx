@@ -2,10 +2,10 @@ import type { FC } from 'react'
 import {
   EyeOff,
   TrendingDown,
-  ShieldCheck,
   Sparkles,
   Building2,
   Trash2,
+  Layers,
 } from 'lucide-react'
 import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
@@ -54,46 +54,139 @@ const HiddenFilterChip: FC<HiddenFilterChipProps> = ({
   </button>
 )
 
-interface QualitySelectProps {
-  minQualityScore: number
-  setMinQualityScore: (val: number) => void
+interface BargainChipProps {
+  onlyBargain: boolean
+  setOnlyBargain: (val: boolean) => void
+  bargainCount: number
 }
 
-const QualitySelect: FC<QualitySelectProps> = ({ minQualityScore, setMinQualityScore }) => (
-  <div className="flex items-center gap-1.5 text-xs shrink-0">
-    <ShieldCheck
-      className={cn(
-        'h-3.5 w-3.5 shrink-0',
-        minQualityScore >= 85
-          ? 'text-emerald-400'
-          : minQualityScore >= 70
-            ? 'text-amber-400'
-            : 'text-[var(--text-secondary)]',
-      )}
-    />
-    <label htmlFor="listings-quality-select" className="text-[var(--text-secondary)] font-medium">
-      Minőség:
-    </label>
-    <select
-      id="listings-quality-select"
-      data-testid="quality-filter-select"
-      aria-label="Adatminőség szűrő"
-      value={minQualityScore}
-      onChange={(e) => setMinQualityScore(Number(e.target.value))}
-      className={cn(
-        'rounded-lg border px-2.5 py-1.5 text-xs font-semibold focus:border-blue-500 focus:outline-none transition-all',
-        minQualityScore >= 85
-          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
-          : minQualityScore >= 70
-            ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
-            : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-primary)]',
-      )}
-    >
-      <option value={0}>Összes minőség</option>
-      <option value={70}>Megbízható (≥70)</option>
-      <option value={85}>Kiváló (≥85)</option>
-    </select>
-  </div>
+const BargainFilterChip: FC<BargainChipProps> = ({ onlyBargain, setOnlyBargain, bargainCount }) => (
+  <button
+    type="button"
+    data-testid="bargain-filter-toggle"
+    aria-pressed={onlyBargain}
+    onClick={() => setOnlyBargain(!onlyBargain)}
+    title="Kizárólag alkalmi vételek megjelenítése (mediánnál legalább 20%-kal olcsóbb ingatlanok)"
+    className={cn(
+      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      onlyBargain
+        ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
+        : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30',
+    )}
+  >
+    <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
+    <span>Alkalmi vétel</span>
+    {bargainCount > 0 && (
+      <span
+        data-testid="bargain-filter-count"
+        className={cn(
+          'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+          onlyBargain
+            ? 'bg-emerald-500/30 text-emerald-200'
+            : 'bg-[var(--bg-card)] text-emerald-400',
+        )}
+      >
+        {bargainCount}
+      </span>
+    )}
+  </button>
+)
+
+interface OnlyNewChipProps {
+  onlyNew: boolean
+  setOnlyNew: (val: boolean) => void
+}
+
+const OnlyNewFilterChip: FC<OnlyNewChipProps> = ({ onlyNew, setOnlyNew }) => (
+  <button
+    type="button"
+    aria-pressed={onlyNew}
+    onClick={() => setOnlyNew(!onlyNew)}
+    className={cn(
+      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      onlyNew
+        ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm'
+        : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+    )}
+  >
+    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+    <span>Csak új találatok</span>
+  </button>
+)
+
+interface ExcludeViewedChipProps {
+  excludeViewed?: boolean
+  setExcludeViewed: (val: boolean) => void
+}
+
+const ExcludeViewedFilterChip: FC<ExcludeViewedChipProps> = ({ excludeViewed, setExcludeViewed }) => (
+  <button
+    type="button"
+    aria-pressed={excludeViewed}
+    onClick={() => setExcludeViewed(!excludeViewed)}
+    className={cn(
+      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      excludeViewed
+        ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
+        : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+    )}
+  >
+    <EyeOff className="h-3.5 w-3.5 text-blue-400" />
+    <span>Megtekintettek rejtése</span>
+  </button>
+)
+
+interface OnlyNewConstructionChipProps {
+  onlyNewConstruction?: boolean
+  setOnlyNewConstruction: (val: boolean) => void
+}
+
+const OnlyNewConstructionFilterChip: FC<OnlyNewConstructionChipProps> = ({
+  onlyNewConstruction,
+  setOnlyNewConstruction,
+}) => (
+  <button
+    type="button"
+    aria-pressed={onlyNewConstruction}
+    aria-label="Csak új építésű ingatlanok"
+    onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
+    className={cn(
+      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      onlyNewConstruction
+        ? 'border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm'
+        : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+    )}
+  >
+    <Building2 className="h-3.5 w-3.5 text-cyan-400" />
+    <span>Csak új építésű</span>
+  </button>
+)
+
+interface ExcludeMultiSourceChipProps {
+  excludeMultiSource?: boolean
+  setExcludeMultiSource: (val: boolean) => void
+}
+
+const ExcludeMultiSourceFilterChip: FC<ExcludeMultiSourceChipProps> = ({
+  excludeMultiSource,
+  setExcludeMultiSource,
+}) => (
+  <button
+    type="button"
+    data-testid="exclude-multi-source-toggle"
+    aria-pressed={excludeMultiSource}
+    onClick={() => setExcludeMultiSource(!excludeMultiSource)}
+    title="Több közvetítő által hirdetett, összekapcsolt ingatlanok elrejtése"
+    className={cn(
+      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      excludeMultiSource
+        ? 'border border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm'
+        : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+    )}
+  >
+    <Layers className="h-3.5 w-3.5 text-amber-400" />
+    <span>Több forrásosak rejtése</span>
+  </button>
 )
 
 export interface QuickFilterChipsRowProps {
@@ -106,8 +199,8 @@ export interface QuickFilterChipsRowProps {
   bargainCount: number
   excludeViewed?: boolean
   setExcludeViewed: (val: boolean) => void
-  minQualityScore: number
-  setMinQualityScore: (val: number) => void
+  excludeMultiSource?: boolean
+  setExcludeMultiSource?: (val: boolean) => void
   showHidden?: boolean
   setShowHidden?: (val: boolean) => void
   hiddenCount?: number
@@ -123,8 +216,8 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
   bargainCount,
   excludeViewed,
   setExcludeViewed,
-  minQualityScore,
-  setMinQualityScore,
+  excludeMultiSource,
+  setExcludeMultiSource,
   showHidden,
   setShowHidden,
   hiddenCount = 0,
@@ -138,52 +231,15 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
       className="flex flex-wrap items-center gap-2 border-t border-[var(--border-color)] pt-2.5 text-xs"
     >
       {isPinned('bargain') && (
-        <button
-          type="button"
-          data-testid="bargain-filter-toggle"
-          aria-pressed={onlyBargain}
-          onClick={() => setOnlyBargain(!onlyBargain)}
-          title="Kizárólag alkalmi vételek megjelenítése (mediánnál legalább 20%-kal olcsóbb ingatlanok)"
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-            onlyBargain
-              ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
-              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30',
-          )}
-        >
-          <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
-          <span>Alkalmi vétel</span>
-          {bargainCount > 0 && (
-            <span
-              data-testid="bargain-filter-count"
-              className={cn(
-                'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
-                onlyBargain
-                  ? 'bg-emerald-500/30 text-emerald-200'
-                  : 'bg-[var(--bg-card)] text-emerald-400',
-              )}
-            >
-              {bargainCount}
-            </span>
-          )}
-        </button>
+        <BargainFilterChip
+          onlyBargain={onlyBargain}
+          setOnlyBargain={setOnlyBargain}
+          bargainCount={bargainCount}
+        />
       )}
 
       {isPinned('onlyNew') && (
-        <button
-          type="button"
-          aria-pressed={onlyNew}
-          onClick={() => setOnlyNew(!onlyNew)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-            onlyNew
-              ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm'
-              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-          )}
-        >
-          <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-          <span>Csak új találatok</span>
-        </button>
+        <OnlyNewFilterChip onlyNew={onlyNew} setOnlyNew={setOnlyNew} />
       )}
 
       {isPinned('hidden') && setShowHidden && (
@@ -195,48 +251,29 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
       )}
 
       {isPinned('excludeViewed') && (
-        <button
-          type="button"
-          aria-pressed={excludeViewed}
-          onClick={() => setExcludeViewed(!excludeViewed)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-            excludeViewed
-              ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
-              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-          )}
-        >
-          <EyeOff className="h-3.5 w-3.5 text-blue-400" />
-          <span>Megtekintettek rejtése</span>
-        </button>
+        <ExcludeViewedFilterChip
+          excludeViewed={excludeViewed}
+          setExcludeViewed={setExcludeViewed}
+        />
       )}
 
       {isPinned('onlyNewConstruction') && (
-        <button
-          type="button"
-          aria-pressed={onlyNewConstruction}
-          aria-label="Csak új építésű ingatlanok"
-          onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
-            onlyNewConstruction
-              ? 'border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm'
-              : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-          )}
-        >
-          <Building2 className="h-3.5 w-3.5 text-cyan-400" />
-          <span>Csak új építésű</span>
-        </button>
+        <OnlyNewConstructionFilterChip
+          onlyNewConstruction={onlyNewConstruction}
+          setOnlyNewConstruction={setOnlyNewConstruction}
+        />
+      )}
+
+      {isPinned('excludeMultiSource') && setExcludeMultiSource && (
+        <ExcludeMultiSourceFilterChip
+          excludeMultiSource={excludeMultiSource}
+          setExcludeMultiSource={setExcludeMultiSource}
+        />
       )}
 
       <QuickFilterPopover
         pinnedQuickFilters={pinnedQuickFilters}
         onToggleFilter={togglePinnedQuickFilter}
-      />
-
-      <QualitySelect
-        minQualityScore={minQualityScore}
-        setMinQualityScore={setMinQualityScore}
       />
     </div>
   )

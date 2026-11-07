@@ -1,6 +1,6 @@
 import type { SortOption } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
-import { normalizePortalKey } from '../utils/formatters'
+import { getItemSourceListingsCount, normalizePortalKey } from './formatters'
 
 export function normalizeSearchText(str?: string | null): string {
   return (str || '')
@@ -29,13 +29,6 @@ function getPriceHuf(item: IngatlanItem, fallback: number): number {
   return fallback
 }
 
-function getSqmPrice(item: IngatlanItem, fallback: number): number {
-  if (item.detailsInfo && item.detailsInfo.pricePerSquareMeter !== undefined) {
-    return item.detailsInfo.pricePerSquareMeter
-  }
-  return fallback
-}
-
 export function getBargainPercentage(item: IngatlanItem): number {
   if (item.percentageBelowMedian !== null && item.percentageBelowMedian !== undefined) {
     return item.percentageBelowMedian
@@ -56,8 +49,6 @@ function getArea(item: IngatlanItem): number {
 const COMPARATORS: Record<SortOption, (a: IngatlanItem, b: IngatlanItem) => number> = {
   price_asc: (a, b) => getPriceHuf(a, Infinity) - getPriceHuf(b, Infinity),
   price_desc: (a, b) => getPriceHuf(b, -Infinity) - getPriceHuf(a, -Infinity),
-  sqm_price_asc: (a, b) => getSqmPrice(a, Infinity) - getSqmPrice(b, Infinity),
-  sqm_price_desc: (a, b) => getSqmPrice(b, -Infinity) - getSqmPrice(a, -Infinity),
   area_desc: (a, b) => getArea(b) - getArea(a),
   date_desc: (a, b) => (b.discoveredAt || '').localeCompare(a.discoveredAt || ''),
   bargain_desc: (a, b) => getBargainPercentage(b) - getBargainPercentage(a),
@@ -99,6 +90,7 @@ export interface ItemFilterOptions {
   excludeViewed?: boolean
   onlyNewConstruction?: boolean
   onlyBargain?: boolean
+  excludeMultiSource?: boolean
   minQualityScore?: number
   selectedPortalFilter?: string
   quickSearchQuery?: string
@@ -121,6 +113,9 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
   }
   if (options.onlyBargain) {
     items = items.filter(isItemBargain)
+  }
+  if (options.excludeMultiSource) {
+    items = items.filter((item) => getItemSourceListingsCount(item) === 1)
   }
   if (options.minQualityScore !== null && options.minQualityScore !== undefined && options.minQualityScore > 0) {
     items = items.filter(

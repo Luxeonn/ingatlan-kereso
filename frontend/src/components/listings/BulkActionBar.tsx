@@ -66,8 +66,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setSortOption,
     onlyBargain,
     setOnlyBargain,
-    minQualityScore,
-    setMinQualityScore,
+    excludeMultiSource,
+    setExcludeMultiSource,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -229,8 +229,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         bargainCount={bargainCount}
         excludeViewed={criteria.excludeViewed}
         setExcludeViewed={setExcludeViewed}
-        minQualityScore={minQualityScore}
-        setMinQualityScore={setMinQualityScore}
+        excludeMultiSource={excludeMultiSource}
+        setExcludeMultiSource={setExcludeMultiSource}
         showHidden={showHidden}
         setShowHidden={setShowHidden}
         hiddenCount={hiddenCount}
