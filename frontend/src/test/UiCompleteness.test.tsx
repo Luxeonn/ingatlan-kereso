@@ -186,7 +186,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(screen.queryByRole('button', { name: /Összes megnyitása/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /Mind megtekintett/i })).toBeNull()
 
-    // Row 2: Filter chips row container with 3 default pinned filters + selector button + quality select (#359)
+    // Row 2: Filter chips row container with 3 default pinned filters + selector button (#359, #369)
     const filterChipsRow = screen.getByTestId('filter-chips-row')
     expect(filterChipsRow).toBeTruthy()
     expect(screen.getByTestId('bargain-filter-toggle')).toBeTruthy()
@@ -194,8 +194,9 @@ describe('UI Completeness (#157, #202, #227)', () => {
     expect(screen.getByTestId('hidden-filter-toggle')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /Csak új építésű/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /Megtekintettek rejtése/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Több forrásosak rejtése/i })).toBeNull()
     expect(screen.getByTestId('quick-filter-selector-btn')).toBeTruthy()
-    expect(screen.getByTestId('quality-filter-select')).toBeTruthy()
+    expect(screen.queryByTestId('quality-filter-select')).toBeNull()
 
     // Row 3: Portal chips container
     expect(screen.getByTestId('portal-quick-filter-chips')).toBeTruthy()
