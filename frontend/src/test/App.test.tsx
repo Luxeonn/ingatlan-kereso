@@ -96,4 +96,38 @@ describe('App Header & View Switcher (#359)', () => {
     fireEvent.click(analyticsTab)
     expect(useUiStore.getState().dashboardTab).toBe('analytics')
   })
+
+  it('distinguishes between partial portal failure and total portal failure in PartialPortalWarningBanner (#390)', async () => {
+    const { PartialPortalWarningBanner } = await import('../components/layout/StatusBanners')
+    const { unmount } = render(
+      <PartialPortalWarningBanner
+        failures={[
+          { portalId: 'ingatlancom', portalName: 'Ingatlan.com', status: 'BOT_PROTECTED', foundCount: 0, latencyMs: 120 },
+        ]}
+        isTotalFailure={false}
+        onOpenDiagnostics={vi.fn()}
+      />,
+    )
+
+    const partialBanner = screen.getByTestId('partial-portal-warning-banner')
+    expect(partialBanner.getAttribute('data-total-failure')).toBe('false')
+    expect(partialBanner.textContent).toContain('Részleges portálhiba:')
+    expect(partialBanner.textContent).toContain('A sikeres források találatai alább láthatók.')
+    unmount()
+
+    render(
+      <PartialPortalWarningBanner
+        failures={[
+          { portalId: 'ingatlancom', portalName: 'Ingatlan.com', status: 'BOT_PROTECTED', foundCount: 0, latencyMs: 120 },
+        ]}
+        isTotalFailure={true}
+        onOpenDiagnostics={vi.fn()}
+      />,
+    )
+
+    const totalBanner = screen.getByTestId('partial-portal-warning-banner')
+    expect(totalBanner.getAttribute('data-total-failure')).toBe('true')
+    expect(totalBanner.textContent).toContain('Minden kiválasztott portál hibát jelzett:')
+    expect(totalBanner.textContent).not.toContain('A sikeres források találatai alább láthatók.')
+  })
 })

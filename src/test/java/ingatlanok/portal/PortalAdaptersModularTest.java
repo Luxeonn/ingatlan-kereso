@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -552,8 +555,7 @@ class PortalAdaptersModularTest {
     PortalDescriptor icDesc = new IngatlanComPortalEngine().getDescriptor();
 
     // Duna House fixture
-    String dhHtml = new String(
-        getClass().getResourceAsStream("/fixtures/dh/sample-dh.html").readAllBytes());
+    String dhHtml = readFixture("/fixtures/dh/sample-dh.html");
     Document dhDoc = Jsoup.parse(dhHtml, DunaHouseUrlBuilder.BASE_URL);
     List<IngatlanItem> dhItems =
         normalizeAll(new DunaHouseRawParser().parseRawListings(dhDoc), dhDesc, criteria, "2026-10-14 12:00:00");
@@ -568,8 +570,7 @@ class PortalAdaptersModularTest {
     ocCriteria.setMaxPriceMillion(null);
     ocCriteria.setMinArea(null);
     ocCriteria.setMaxArea(null);
-    String ocHtml = new String(
-        getClass().getResourceAsStream("/fixtures/oc/sample-oc.html").readAllBytes());
+    String ocHtml = readFixture("/fixtures/oc/sample-oc.html");
     Document ocDoc = Jsoup.parse(ocHtml, OtthonCentrumUrlBuilder.BASE_URL);
     List<IngatlanItem> ocItems =
         normalizeAll(new OtthonCentrumRawParser().parseRawListings(ocDoc), ocDesc, ocCriteria, "2026-10-14 12:00:00");
@@ -577,8 +578,7 @@ class PortalAdaptersModularTest {
     assertEquals("H45678", ocItems.get(0).getId());
 
     // Jófogás fixture
-    String jfHtml = new String(
-        getClass().getResourceAsStream("/fixtures/jofogas/sample-jofogas.html").readAllBytes());
+    String jfHtml = readFixture("/fixtures/jofogas/sample-jofogas.html");
     Document jfDoc = Jsoup.parse(jfHtml, JofogasUrlBuilder.BASE_URL);
     List<IngatlanItem> jfItems =
         normalizeAll(new JofogasRawParser().parseRawListings(jfDoc), jfDesc, criteria, "2026-10-14 12:00:00");
@@ -593,17 +593,14 @@ class PortalAdaptersModularTest {
     ibCriteria.setMaxPriceMillion(null);
     ibCriteria.setMinArea(null);
     ibCriteria.setMaxArea(null);
-    String ibJson = new String(
-        getClass().getResourceAsStream(
-            "/fixtures/ingatlanbazar/sample-ingatlanbazar.json").readAllBytes());
+    String ibJson = readFixture("/fixtures/ingatlanbazar/sample-ingatlanbazar.json");
     List<IngatlanItem> ibItems =
         normalizeAll(new IngatlanBazarRawParser().parseRawListings(ibJson), ibDesc, ibCriteria, "2026-10-14 12:00:00");
     assertEquals(2, ibItems.size());
     assertEquals("IB999", ibItems.get(0).getId());
 
     // Költözzbe fixture
-    String kbHtml = new String(
-        getClass().getResourceAsStream("/fixtures/koltozzbe/sample-koltozzbe.html").readAllBytes());
+    String kbHtml = readFixture("/fixtures/koltozzbe/sample-koltozzbe.html");
     Document kbDoc = Jsoup.parse(kbHtml, KoltozzbeUrlBuilder.BASE_URL);
     List<RawPropertyListing> kbRaw = new ArrayList<>();
     kbRaw.addAll(new KoltozzbeRawParser().parseHtmlListings(kbDoc));
@@ -613,12 +610,19 @@ class PortalAdaptersModularTest {
     assertEquals(2, kbItems.size());
 
     // Ingatlan.com fixture
-    String icHtml = new String(
-        getClass().getResourceAsStream("/fixtures/ingatlancom/sample-ingatlancom.html").readAllBytes());
+    String icHtml = readFixture("/fixtures/ingatlancom/sample-ingatlancom.html");
     Document icDoc = Jsoup.parse(icHtml, IngatlanComUrlBuilder.BASE_URL);
     List<IngatlanItem> icItems =
         normalizeAll(new IngatlanComRawParser().parseRawListings(icDoc), icDesc, criteria, "2026-10-14 12:00:00");
     assertEquals(1, icItems.size());
     assertEquals("12345678", icItems.get(0).getId());
+  }
+
+  private String readFixture(String resourcePath) throws IOException {
+    try (InputStream is = Objects.requireNonNull(
+        getClass().getResourceAsStream(resourcePath),
+        "Missing test fixture: " + resourcePath)) {
+      return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+    }
   }
 }

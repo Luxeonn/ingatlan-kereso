@@ -7,10 +7,13 @@ import java.util.Set;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import ingatlanok.common.HttpFetcher;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.model.raw.ExtractionMethod;
+import ingatlanok.model.raw.RawExtractionResult;
 
 /** Shared modular helper methods for portal URL builders, HTML parsers, and scraper engines. */
 public final class PortalSupport {
@@ -215,5 +218,16 @@ public final class PortalSupport {
                 + " script[src*='challenge-platform'], .cf-browser-verification,"
                 + " #cf-wrapper, .g-recaptcha, .cf-turnstile")
         .isEmpty();
+  }
+
+  public static RawExtractionResult resolveFirstPageFetchFailure(
+      ExtractionMethod method, String fallbackUrl, String defaultErrorMessage) {
+    Integer lastStatus = HttpFetcher.getLastStatusCode();
+    if (lastStatus != null && (lastStatus == 403 || lastStatus == 429)) {
+      return RawExtractionResult.botProtected(
+          method, fallbackUrl, "HTTP " + lastStatus + " bot-védelem / rate limit detektálva");
+    }
+    int statusCode = (lastStatus != null && lastStatus >= 400) ? lastStatus : 500;
+    return RawExtractionResult.failure(method, fallbackUrl, defaultErrorMessage, statusCode);
   }
 }

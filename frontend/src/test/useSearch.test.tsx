@@ -133,6 +133,46 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     expect(propertyApi.markAsViewed).toHaveBeenCalledWith(mockItem1.url)
   })
 
+  it('marks multi-source listing as viewed when a secondary source URL is opened (#390)', async () => {
+    const multiSourceItem = createMockIngatlanItem({
+      id: 'item-multi',
+      url: 'https://oc.hu/ingatlan/primary',
+      title: 'Többforrású ház',
+      city: 'Debrecen',
+      viewed: false,
+      isNew: true,
+      sourcesCount: 2,
+      sourceListings: [
+        { portal: 'oc', url: 'https://oc.hu/ingatlan/primary', viewed: false },
+        { portal: 'dh', url: 'https://dh.hu/ingatlan/secondary', viewed: false },
+      ],
+    })
+    vi.mocked(searchApi.executeSearch).mockResolvedValueOnce({
+      items: [multiSourceItem],
+      newCount: 1,
+      totalFound: 1,
+    })
+
+    const { result } = renderHook(() => useSearch(), { wrapper })
+
+    act(() => {
+      result.current.search({ city: 'Debrecen' })
+    })
+
+    await waitFor(() => expect(result.current.items).toHaveLength(1))
+
+    act(() => {
+      result.current.markAsViewed('https://dh.hu/ingatlan/secondary')
+    })
+
+    await waitFor(() => {
+      const updated = result.current.items.find((i) => i.id === 'item-multi')
+      expect(updated?.viewed).toBe(true)
+      expect(updated?.isNew).toBe(false)
+      expect(updated?.sourceListings?.[1]?.viewed).toBe(true)
+    })
+  })
+
   it('hides and restores property with undo toast feedback', async () => {
     const { result } = renderHook(() => useSearch(), { wrapper })
 

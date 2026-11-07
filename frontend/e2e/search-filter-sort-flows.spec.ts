@@ -77,7 +77,7 @@ test.describe('Ingatlan Kereső - Search, Filter & Sort E2E Flow Suite (#377)', 
   })
 
   test('2. Loading state: shows disabled loading button and skeleton cards while request is in flight', async ({ page }) => {
-    let fulfillResponse: (() => void) | null = null
+    let fulfillResponse!: () => void
     const responsePromise = new Promise<void>((resolve) => {
       fulfillResponse = resolve
     })
@@ -107,7 +107,7 @@ test.describe('Ingatlan Kereső - Search, Filter & Sort E2E Flow Suite (#377)', 
     expect(await skeletons.count()).toBeGreaterThanOrEqual(1)
 
     // Complete the search response
-    fulfillResponse?.()
+    fulfillResponse()
 
     // Skeletons disappear, real cards appear, button returns to normal
     await expect(page.getByTestId('property-card').first()).toBeVisible()
@@ -261,9 +261,9 @@ test.describe('Ingatlan Kereső - Search, Filter & Sort E2E Flow Suite (#377)', 
           body: JSON.stringify(
             createMockSearchResponse(singlePortalItem, {
               portalStatuses: [
-                { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', durationMs: 220, itemCount: 1, botProtected: false },
-                { portalId: 'oc', portalName: 'Otthon Centrum', status: 'BOT_PROTECTED', durationMs: 400, itemCount: 0, botProtected: true, fallbackUrl: 'https://oc.hu' },
-                { portalId: 'jofogas', portalName: 'Jófogás', status: 'FAILED', durationMs: 500, itemCount: 0, botProtected: false, message: 'Kapcsolódási hiba' },
+                { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', latencyMs: 220, foundCount: 1 },
+                { portalId: 'oc', portalName: 'Otthon Centrum', status: 'BOT_PROTECTED', latencyMs: 400, foundCount: 0, fallbackUrl: 'https://oc.hu' },
+                { portalId: 'jofogas', portalName: 'Jófogás', status: 'FAILED', latencyMs: 500, foundCount: 0, message: 'Kapcsolódási hiba' },
               ],
             }),
           ),

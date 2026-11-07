@@ -264,11 +264,16 @@ public class SearchPersistenceSynchronizer {
   private ScrapeStatusDetails resolveStatusDetails(
       List<IngatlanItem> items, GroupScrapeMetrics metrics, PortalScrapeResult first) {
     if (!items.isEmpty()) {
-      return new ScrapeStatusDetails(
-          PortalScrapeStatus.SUCCESS,
-          "Sikeres letöltés (" + items.size() + " találat)",
-          200,
-          "Sikeres HTTP 200 válasz");
+      String baseMsg = "Sikeres letöltés (" + items.size() + " találat)";
+      String msg =
+          metrics.hasFailed() || metrics.hasBotProtected()
+              ? baseMsg
+                  + " • részleges hiba: "
+                  + (metrics.errorMessage() != null ? metrics.errorMessage() : "egyes városok nem érhetők el")
+              : baseMsg;
+      String tech =
+          metrics.technicalDetails() != null ? metrics.technicalDetails() : "Sikeres HTTP 200 válasz";
+      return new ScrapeStatusDetails(PortalScrapeStatus.SUCCESS, msg, 200, tech);
     }
     if (metrics.hasFailed()) {
       return resolveFailedDetails(metrics);

@@ -661,6 +661,11 @@ export interface components {
             newCount: number;
             totalFound: number;
             executedAt?: string;
+            /**
+             * @description A keresés összesített végrehajtási státusza
+             * @enum {string}
+             */
+            executionStatus?: "SUCCESS" | "PARTIAL_SUCCESS" | "TOTAL_FAILURE";
             portalCounts?: {
                 [key: string]: number;
             };

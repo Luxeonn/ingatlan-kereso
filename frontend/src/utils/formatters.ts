@@ -197,20 +197,23 @@ export function getEffectivePrice(item: IngatlanItem): { priceFt?: number; price
   return { priceFt, priceMillion }
 }
 
+function resolveTotalHufForSqm(item: IngatlanItem): number {
+  const { priceFt, priceMillion } = getEffectivePrice(item)
+  if (priceFt && priceFt > 0) return priceFt
+  return (priceMillion ?? 0) * 1_000_000
+}
+
 export function getEffectiveSqmPrice(item: IngatlanItem): number | null {
-  if (item.detailsInfo?.pricePerSquareMeter !== null && item.detailsInfo?.pricePerSquareMeter !== undefined && item.detailsInfo.pricePerSquareMeter > 0) {
-    return item.detailsInfo.pricePerSquareMeter
+  const details = item.detailsInfo
+  if (!details) return null
+  const area = details.areaSquareMeters ?? 0
+  const totalHuf = resolveTotalHufForSqm(item)
+  if (area > 0 && totalHuf > 0 && totalHuf !== item.priceInfo?.amountHuf) {
+    return Math.round(totalHuf / area)
   }
-  const area = item.detailsInfo?.areaSquareMeters
-  if (area && area > 0) {
-    if (item.priceInfo?.amountHuf && item.priceInfo.amountHuf > 0) {
-      return Math.round(item.priceInfo.amountHuf / area)
-    }
-    if (item.priceInfo?.amountMillion && item.priceInfo.amountMillion > 0) {
-      return Math.round((item.priceInfo.amountMillion * 1_000_000) / area)
-    }
-  }
-  return null
+  const directSqm = details.pricePerSquareMeter ?? 0
+  if (directSqm > 0) return directSqm
+  return area > 0 && totalHuf > 0 ? Math.round(totalHuf / area) : null
 }
 
 export function getItemSourceListingsCount(item: IngatlanItem): number {
@@ -304,11 +307,24 @@ export function normalizePortalKey(portalOrId?: string | null): string {
     .replace(/[^a-z0-9]/g, '')
   if (cleaned.includes('dh') || cleaned.includes('duna')) return 'dh'
   if (cleaned.includes('oc') || cleaned.includes('otthon')) return 'oc'
-  if (cleaned.includes('jofogas')) return 'jofogas'
-  if (cleaned.includes('ingatlanbazar') || cleaned.includes('bazar')) return 'ingatlanbazar'
-  if (cleaned.includes('koltozzbe')) return 'koltozzbe'
-  if (cleaned.includes('ingatlancom')) return 'ingatlancom'
+  if (cleaned === 'jf' || cleaned.includes('jofogas')) return 'jofogas'
+  if (cleaned === 'ib' || cleaned.includes('ingatlanbazar') || cleaned.includes('bazar')) return 'ingatlanbazar'
+  if (cleaned === 'kb' || cleaned.includes('koltozzbe')) return 'koltozzbe'
+  if (cleaned === 'ic' || cleaned.includes('ingatlancom')) return 'ingatlancom'
   return cleaned
+}
+
+export function getItemPortalKeys(item: IngatlanItem): Set<string> {
+  const keys = new Set<string>()
+  const primary = normalizePortalKey(item.source?.portalId || item.portal)
+  if (primary) keys.add(primary)
+  if (Array.isArray(item.sourceListings)) {
+    for (const sl of item.sourceListings) {
+      const sk = normalizePortalKey(sl.portal) || (sl.url ? normalizePortalKey(detectPortalFromUrl(sl.url).portalId) : '')
+      if (sk && sk !== 'egyeb') keys.add(sk)
+    }
+  }
+  return keys
 }
 
 export function getPortalStyle(portalId: string) {

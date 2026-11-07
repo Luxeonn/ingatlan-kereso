@@ -34,14 +34,19 @@ describe('filterUrlSync utility', () => {
     it('returns empty object when query string has no filter params', () => {
       setLocation('https://example.com/')
       const result = parseUrlParams()
-      expect(result).toEqual({
-        criteria: {},
-        sort: undefined,
-        onlyNew: false,
-        onlyBargain: false,
-        excludeMultiSource: undefined,
-        minQualityScore: 0,
-      })
+      expect(result).toEqual({})
+    })
+
+    it('preserves valid filter parameters when a single parameter is invalid or legacy (#390)', () => {
+      setLocation(
+        'https://example.com/?cities=Debrecen&type=haz&minPrice=55&sort=sqm_price_asc&minQuality=999',
+      )
+      const result = parseUrlParams()
+      expect(result.criteria?.cities).toEqual(['Debrecen'])
+      expect(result.criteria?.propertyType).toBe('haz')
+      expect(result.criteria?.minPriceMillion).toBe(55)
+      expect(result.sort).toBeUndefined()
+      expect(result.minQualityScore).toBeUndefined()
     })
 
     it('parses valid multiple cities, property type, and numeric bounds', () => {

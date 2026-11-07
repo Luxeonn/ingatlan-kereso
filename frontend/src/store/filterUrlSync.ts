@@ -6,23 +6,23 @@ export type SortOption = 'price_asc' | 'price_desc' | 'area_desc' | 'date_desc' 
 export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe']
 
 export const urlSchema = z.object({
-  cities: z.string().max(1000).optional(),
-  city: z.string().max(100).optional(),
-  type: z.enum(['lakas', 'haz', 'telek']).optional(),
-  minPrice: z.coerce.number().finite().min(0).max(100_000).optional(),
-  maxPrice: z.coerce.number().finite().min(0).max(100_000).optional(),
-  minArea: z.coerce.number().finite().min(0).max(100_000).optional(),
-  maxArea: z.coerce.number().finite().min(0).max(100_000).optional(),
-  portals: z.string().max(500).optional(),
-  autoOpen: z.enum(['true', 'false']).optional(),
-  excludeViewed: z.enum(['true', 'false']).optional(),
-  onlyNewConstruction: z.enum(['true', 'false']).optional(),
-  sort: z.enum(['price_asc', 'price_desc', 'area_desc', 'date_desc', 'bargain_desc']).optional(),
-  onlyNew: z.enum(['true', 'false']).optional(),
-  onlyBargain: z.enum(['true', 'false']).optional(),
-  hideMulti: z.enum(['true', 'false', '1', '0']).optional(),
-  excludeMulti: z.enum(['true', 'false', '1', '0']).optional(),
-  minQuality: z.coerce.number().finite().min(0).max(100).optional(),
+  cities: z.string().max(1000).optional().catch(undefined),
+  city: z.string().max(100).optional().catch(undefined),
+  type: z.enum(['lakas', 'haz', 'telek']).optional().catch(undefined),
+  minPrice: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
+  maxPrice: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
+  minArea: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
+  maxArea: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
+  portals: z.string().max(500).optional().catch(undefined),
+  autoOpen: z.enum(['true', 'false']).optional().catch(undefined),
+  excludeViewed: z.enum(['true', 'false']).optional().catch(undefined),
+  onlyNewConstruction: z.enum(['true', 'false']).optional().catch(undefined),
+  sort: z.enum(['price_asc', 'price_desc', 'area_desc', 'date_desc', 'bargain_desc']).optional().catch(undefined),
+  onlyNew: z.enum(['true', 'false']).optional().catch(undefined),
+  onlyBargain: z.enum(['true', 'false']).optional().catch(undefined),
+  hideMulti: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
+  excludeMulti: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
+  minQuality: z.coerce.number().finite().min(0).max(100).optional().catch(undefined),
 })
 
 type ParsedUrlParams = z.infer<typeof urlSchema>
@@ -71,9 +71,28 @@ function parseBooleanFlags(params: ParsedUrlParams, result: Partial<SearchCriter
   }
 }
 
+function parseOptionalBoolean(val?: string): boolean | undefined {
+  if (val === undefined) return undefined
+  return val === 'true' || val === '1'
+}
+
+function hasAnyParsedFilter(result: Partial<SearchCriteria>, params: ParsedUrlParams): boolean {
+  return (
+    Object.keys(result).length > 0 ||
+    params.sort !== undefined ||
+    params.onlyNew !== undefined ||
+    params.onlyBargain !== undefined ||
+    params.hideMulti !== undefined ||
+    params.excludeMulti !== undefined ||
+    params.minQuality !== undefined
+  )
+}
+
 export function parseUrlParams(): ParsedUrlFilterResult {
   if (typeof window === 'undefined') return {}
-  const parsedUrl = urlSchema.safeParse(Object.fromEntries(new URLSearchParams(window.location.search)))
+  const searchParams = new URLSearchParams(window.location.search)
+  if (Array.from(searchParams.keys()).length === 0) return {}
+  const parsedUrl = urlSchema.safeParse(Object.fromEntries(searchParams))
   if (!parsedUrl.success) return {}
   const params = parsedUrl.data
   const result: Partial<SearchCriteria> = {}
@@ -93,20 +112,15 @@ export function parseUrlParams(): ParsedUrlFilterResult {
   }
 
   parseBooleanFlags(params, result)
-
-  const hideMultiParam = params.hideMulti ?? params.excludeMulti
-  const excludeMultiSource =
-    hideMultiParam !== undefined
-      ? hideMultiParam === 'true' || hideMultiParam === '1'
-      : undefined
+  if (!hasAnyParsedFilter(result, params)) return {}
 
   return {
     criteria: result,
     sort: params.sort,
-    onlyNew: params.onlyNew === 'true',
-    onlyBargain: params.onlyBargain === 'true',
-    excludeMultiSource,
-    minQualityScore: params.minQuality ?? 0,
+    onlyNew: parseOptionalBoolean(params.onlyNew),
+    onlyBargain: parseOptionalBoolean(params.onlyBargain),
+    excludeMultiSource: parseOptionalBoolean(params.hideMulti ?? params.excludeMulti),
+    minQualityScore: params.minQuality,
   }
 }
 

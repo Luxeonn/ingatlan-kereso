@@ -1,6 +1,6 @@
 import type { SortOption } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
-import { getItemSourceListingsCount, normalizePortalKey } from './formatters'
+import { getEffectivePrice, getItemPortalKeys, getItemSourceListingsCount } from './formatters'
 
 export function normalizeSearchText(str?: string | null): string {
   return (str || '')
@@ -24,8 +24,12 @@ export function isItemBargain(item: IngatlanItem): boolean {
 }
 
 function getPriceHuf(item: IngatlanItem, fallback: number): number {
-  if (item.priceInfo && item.priceInfo.amountHuf !== undefined) {
-    return item.priceInfo.amountHuf
+  const { priceFt, priceMillion } = getEffectivePrice(item)
+  if (typeof priceFt === 'number' && !Number.isNaN(priceFt) && priceFt > 0) {
+    return priceFt
+  }
+  if (typeof priceMillion === 'number' && !Number.isNaN(priceMillion) && priceMillion > 0) {
+    return Math.round(priceMillion * 1_000_000)
   }
   return fallback
 }
@@ -152,10 +156,7 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
     )
   }
   if (options.selectedPortalFilter && options.selectedPortalFilter !== 'all') {
-    items = items.filter(
-      (item) =>
-        normalizePortalKey(item.source?.portalId || item.portal) === options.selectedPortalFilter,
-    )
+    items = items.filter((item) => getItemPortalKeys(item).has(options.selectedPortalFilter!))
   }
 
   const q = normalizeSearchText(options.quickSearchQuery).trim()

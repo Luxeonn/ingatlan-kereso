@@ -242,6 +242,24 @@ class LocationAndTextualMatcherTest {
     kertvarosias.setLocation("Debrecen");
     ExtractedLocation locKertvarosias = LocationConflictDetector.extractLocation(kertvarosias, "debrecen");
     assertNull(locKertvarosias.quarter(), "A 'kertvárosias' jelző nem minősülhet Kertváros városrésznek");
+
+    IngatlanItem kertvarosMellett = new IngatlanItem();
+    kertvarosMellett.setTitle("Kertváros közelében, csendes utcában eladó családi ház");
+    kertvarosMellett.setLocation("Debrecen");
+    ExtractedLocation locKertvarosMellett =
+        LocationConflictDetector.extractLocation(kertvarosMellett, "debrecen");
+    assertNull(
+        locKertvarosMellett.quarter(),
+        "A 'Kertváros közelében' nem minősülhet Kertváros városrésznek");
+
+    IngatlanItem kertvarosHataraban = new IngatlanItem();
+    kertvarosHataraban.setTitle("Kertváros határában eladó építési telek");
+    kertvarosHataraban.setLocation("Debrecen");
+    ExtractedLocation locKertvarosHataraban =
+        LocationConflictDetector.extractLocation(kertvarosHataraban, "debrecen");
+    assertNull(
+        locKertvarosHataraban.quarter(),
+        "A 'Kertváros határában' nem minősülhet Kertváros városrésznek");
   }
 
   @Test

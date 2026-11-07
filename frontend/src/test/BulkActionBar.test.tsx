@@ -279,4 +279,33 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
 
     expect(screen.getByText('Megjelenítve: 1 / 2 db (5 hirdetés)')).toBeTruthy()
   })
+
+  it('counts all portals from sourceListings in portal quick-filter chips (#390)', () => {
+    const multiPortalItems: IngatlanItem[] = [
+      createMockIngatlanItem({
+        id: '1',
+        portal: 'Otthon Centrum',
+        source: { portalId: 'oc', portalName: 'Otthon Centrum' },
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'oc', url: 'https://oc.hu/1' },
+          { portal: 'dh', url: 'https://dh.hu/1' },
+        ],
+      }),
+    ]
+
+    render(
+      <BulkActionBar
+        items={multiPortalItems}
+        rawItems={multiPortalItems}
+        totalRawCount={1}
+      />,
+    )
+
+    const portalRow = screen.getByTestId('portal-quick-filter-chips')
+    const dhBtn = within(portalRow).getByRole('button', { name: /Duna House/i })
+    const ocBtn = within(portalRow).getByRole('button', { name: /Otthon Centrum/i })
+    expect(dhBtn.textContent).toContain('1')
+    expect(ocBtn.textContent).toContain('1')
+  })
 })

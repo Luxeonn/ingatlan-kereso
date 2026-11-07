@@ -11,7 +11,7 @@ import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
 import { useFilterStore, SORT_OPTIONS, type SortOption } from '../../store/useFilterStore'
 import { isItemBargain } from '../../hooks/useSearch'
-import { PORTAL_CHIPS, getTotalSourceListingsCount, normalizePortalKey } from '../../utils/formatters'
+import { PORTAL_CHIPS, getItemPortalKeys, getTotalSourceListingsCount } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
 
@@ -91,10 +91,9 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
       if (chip.id !== 'all') counts[chip.id] = 0
     })
     sourceItems.forEach((item) => {
-      const key = normalizePortalKey(item.source?.portalId || item.portal)
-      if (key) {
+      getItemPortalKeys(item).forEach((key) => {
         counts[key] = (counts[key] || 0) + 1
-      }
+      })
     })
     return counts
   }, [sourceItems])

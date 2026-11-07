@@ -2,7 +2,7 @@ package ingatlanok.common.resilience;
 
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 /** Per-portal circuit breaker with a single half-open probe after the cooldown. */
 public final class PortalCircuitBreaker {
@@ -16,39 +16,70 @@ public final class PortalCircuitBreaker {
 
   public boolean allowRequest(String portal) {
     State state = states.computeIfAbsent(portal, ignored -> new State());
-    synchronized (state) {
+    state.lock.lock();
+    try {
       if (state.openedAt == 0) {
         return true;
       }
       if (System.currentTimeMillis() - state.openedAt < COOLDOWN_MILLIS) {
         return false;
       }
-      return state.probeInProgress.compareAndSet(false, true);
+      if (state.probeInProgress) {
+        return false;
+      }
+      state.probeInProgress = true;
+      return true;
+    } finally {
+      state.lock.unlock();
     }
   }
 
   public void recordSuccess(String portal) {
     State state = states.computeIfAbsent(portal, ignored -> new State());
-    synchronized (state) {
+    state.lock.lock();
+    try {
       state.failures = 0;
       state.openedAt = 0;
-      state.probeInProgress.set(false);
+      state.probeInProgress = false;
+    } finally {
+      state.lock.unlock();
     }
   }
 
   public void recordFailure(String portal) {
     State state = states.computeIfAbsent(portal, ignored -> new State());
-    synchronized (state) {
-      state.probeInProgress.set(false);
+    state.lock.lock();
+    try {
+      state.probeInProgress = false;
       if (++state.failures >= FAILURE_THRESHOLD) {
         state.openedAt = System.currentTimeMillis();
       }
+    } finally {
+      state.lock.unlock();
     }
   }
 
+  public void releaseProbeIfActive(String portal) {
+    State state = states.get(portal);
+    if (state == null) {
+      return;
+    }
+    state.lock.lock();
+    try {
+      state.probeInProgress = false;
+    } finally {
+      state.lock.unlock();
+    }
+  }
+
+  public void reset() {
+    states.clear();
+  }
+
   private static final class State {
+    private final ReentrantLock lock = new ReentrantLock();
     private int failures;
     private long openedAt;
-    private final AtomicBoolean probeInProgress = new AtomicBoolean();
+    private boolean probeInProgress;
   }
 }

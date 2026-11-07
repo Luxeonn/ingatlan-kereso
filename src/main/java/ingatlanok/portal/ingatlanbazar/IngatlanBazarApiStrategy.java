@@ -74,8 +74,8 @@ public class IngatlanBazarApiStrategy implements ExtractionStrategy {
       PageFetchOutcome fetchOutcome = fetchPageJson(apiUrl, page);
       if (fetchOutcome.json() == null) {
         if (page == 1 && allListings.isEmpty()) {
-          return RawExtractionResult.failure(
-              method(), webSearchUrl, fetchOutcome.errorMessage(), 500);
+          return PortalSupport.resolveFirstPageFetchFailure(
+              method(), webSearchUrl, fetchOutcome.errorMessage());
         }
         stopReason = fetchOutcome.stopReason();
         break;

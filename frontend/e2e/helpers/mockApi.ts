@@ -1,7 +1,7 @@
 import type { Page, Route } from '@playwright/test'
 import type { DashboardResponseDto, SearchCriteria } from '../../src/types/api'
 import type { IngatlanItem } from '../../src/types/property'
-import type { PortalDto } from '../../src/types/portal'
+import type { PortalDescriptor } from '../../src/types/portal'
 
 export const DEFAULT_MOCK_CONFIG: SearchCriteria = {
   cities: ['Debrecen'],
@@ -9,13 +9,13 @@ export const DEFAULT_MOCK_CONFIG: SearchCriteria = {
   maxPriceMillion: 120,
   minArea: 30,
   maxArea: 150,
-  propertyType: 'FLAT',
+  propertyType: 'lakas',
   portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar', 'ingatlancom'],
   autoOpenBrowser: false,
   excludeViewed: false,
 }
 
-export const DEFAULT_MOCK_PORTALS: PortalDto[] = [
+export const DEFAULT_MOCK_PORTALS: PortalDescriptor[] = [
   { id: 'dh', name: 'Duna House', color: '#0066cc', searchUrl: 'https://dh.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 5 },
   { id: 'oc', name: 'Otthon Centrum', color: '#ff9800', searchUrl: 'https://oc.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 8 },
   { id: 'jofogas', name: 'Jófogás', color: '#4caf50', searchUrl: 'https://jofogas.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 12 },
@@ -109,9 +109,9 @@ export function createMockSearchResponse(
     totalFound: items.length,
     executedAt: new Date().toISOString(),
     portalStatuses: [
-      { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', durationMs: 250, itemCount: items.filter((i) => i.portal === 'Duna House').length, botProtected: false },
-      { portalId: 'oc', portalName: 'Otthon Centrum', status: 'SUCCESS', durationMs: 280, itemCount: items.filter((i) => i.portal === 'Otthon Centrum').length, botProtected: false },
-      { portalId: 'jofogas', portalName: 'Jófogás', status: 'SUCCESS', durationMs: 310, itemCount: items.filter((i) => i.portal === 'Jófogás').length, botProtected: false },
+      { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', latencyMs: 250, foundCount: items.filter((i) => i.portal === 'Duna House').length },
+      { portalId: 'oc', portalName: 'Otthon Centrum', status: 'SUCCESS', latencyMs: 280, foundCount: items.filter((i) => i.portal === 'Otthon Centrum').length },
+      { portalId: 'jofogas', portalName: 'Jófogás', status: 'SUCCESS', latencyMs: 310, foundCount: items.filter((i) => i.portal === 'Jófogás').length },
     ],
     marketStats: {
       averagePriceMillion: avgPrice,
@@ -127,7 +127,7 @@ export function createMockSearchResponse(
 
 export interface SetupMockOptions {
   config?: SearchCriteria
-  portals?: PortalDto[]
+  portals?: PortalDescriptor[]
   cities?: typeof DEFAULT_MOCK_CITIES
   onSearchRequest?: (route: Route, criteria: SearchCriteria) => Promise<void> | void
 }

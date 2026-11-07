@@ -257,8 +257,10 @@ public final class LocationConflictDetector {
     if (slug == null || slug.isBlank() || prefix == null || prefix.isBlank()) {
       return false;
     }
-    for (String token : slug.split("-")) {
-      if (isQuarterTokenMatch(token, prefix)) {
+    String[] tokens = slug.split("-");
+    for (int i = 0; i < tokens.length; i++) {
+      if (isQuarterTokenMatch(tokens[i], prefix)
+          && !isProximityPostposition(i + 1 < tokens.length ? tokens[i + 1] : null)) {
         return true;
       }
     }
@@ -271,6 +273,16 @@ public final class LocationConflictDetector {
     }
     String suffix = token.substring(prefix.length());
     return !suffix.startsWith("ias") && !suffix.startsWith("ies") && !suffix.startsWith("kozel");
+  }
+
+  private static boolean isProximityPostposition(String nextToken) {
+    if (nextToken == null || nextToken.isBlank()) {
+      return false;
+    }
+    return nextToken.startsWith("kozel")
+        || nextToken.startsWith("mellett")
+        || nextToken.startsWith("hatar")
+        || nextToken.startsWith("irany");
   }
 
   private static String normalizeQuarterSynonym(String quarter) {

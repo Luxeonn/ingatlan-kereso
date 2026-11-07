@@ -1255,6 +1255,13 @@ components:
           type: integer
         executedAt:
           type: string
+        executionStatus:
+          type: string
+          enum:
+            - SUCCESS
+            - PARTIAL_SUCCESS
+            - TOTAL_FAILURE
+          description: A keresés összesített végrehajtási státusza
         portalCounts:
           type: object
           additionalProperties:

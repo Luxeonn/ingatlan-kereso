@@ -34,22 +34,35 @@ export const SearchErrorBanner: FC<SearchErrorBannerProps> = ({ error, onRetry }
 
 interface PartialPortalWarningBannerProps {
   failures: PortalStatusDto[]
+  isTotalFailure?: boolean
   onOpenDiagnostics: () => void
 }
 
 export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = ({
   failures,
+  isTotalFailure = false,
   onOpenDiagnostics,
 }) => (
   <div
     role="status"
     data-testid="partial-portal-warning-banner"
+    data-total-failure={isTotalFailure ? 'true' : 'false'}
     className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200 shadow-sm"
   >
     <div className="flex items-center gap-2">
       <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
       <span>
-        <strong>Részleges portálhiba:</strong> {failures.map((p) => p.portalName).join(', ')} nem válaszolt vagy bot-védelmet jelzett. A sikeres források találatai alább láthatók.
+        {isTotalFailure ? (
+          <>
+            <strong>Minden kiválasztott portál hibát jelzett:</strong>{' '}
+            {failures.map((p) => p.portalName).join(', ')} nem válaszolt vagy bot-védelmet jelzett. Kérjük, nyisd meg a közvetlen keresőlinkeket a Diagnosztika ablakban!
+          </>
+        ) : (
+          <>
+            <strong>Részleges portálhiba:</strong>{' '}
+            {failures.map((p) => p.portalName).join(', ')} nem válaszolt vagy bot-védelmet jelzett. A sikeres források találatai alább láthatók.
+          </>
+        )}
       </span>
     </div>
     <button
