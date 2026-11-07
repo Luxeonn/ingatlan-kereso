@@ -93,6 +93,7 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
               return (
                 <div
                   key={p.portalId}
+                  data-testid={`portal-status-card-${p.portalId}`}
                   className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between">
