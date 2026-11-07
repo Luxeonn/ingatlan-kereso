@@ -62,6 +62,15 @@ When creating GitHub issues (manually or via `gh issue create`), always use the 
 - If an agent discovers a necessary or beneficial change outside the issue scope, the agent must document the motivation, risk, and recommend a dedicated tracking issue instead of applying it automatically.
 - Small supportive modifications are permitted only when indispensable to satisfy an acceptance criterion, and must be explicitly justified in the PR body under `🛠️ Mit módosít / Mit javít?` and `📋 Acceptance Criteria Traceability`.
 
+## Mandatory Adversarial Self-Review Protocol (Anti-Tunnel-Vision & Confirmation-Bias Gate)
+
+Before submitting any PR or finalizing code changes, every AI agent must execute an adversarial self-review to counteract local-optimum tunnel vision and confirmation bias across four invariant pillars:
+
+1. **Multi-Source Domain Invariant (Frontend):** Listings are deduplicated clusters (`IngatlanItem`) with secondary source data in `sourceListings`. Never access `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` directly for filtering, sorting, badges, or analytics; always use the canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` from `src/utils/formatters.ts` (enforced mechanically via ESLint AST `no-restricted-syntax`).
+2. **Multi-City & Partial Failure Invariant:** Verify that search orchestration, portal statuses, and presentation DTOs behave correctly when queries return mixed portal/city results (`SUCCESS`, `PARTIAL_SUCCESS`, `TOTAL_FAILURE`, `BOT_PROTECTED`) without throwing unhandled exceptions or presenting false-empty views.
+3. **End-to-End Contract & Traceability Invariant:** Every backend model/DTO addition or modification must propagate synchronously across `openapi/api-spec.yaml` -> `PresentationMapper` -> `frontend/src/types/generated-api.ts` -> UI components (enforced by `OpenApiSpecIntegrityTest.java` and `scripts/verify-pr-compliance.mjs`). All test files referenced in the PR `Acceptance Criteria Traceability` table must physically exist in the repository.
+4. **Hermetic Test Isolation & No Production Test Branching:** Tests must be completely deterministic, network-free, and order-independent. Injecting test-mode branching (`app.test-mode` / `Boolean.getBoolean`) into production code is strictly forbidden outside `HttpFetcher.java` (enforced by `scripts/validate-skills.sh`). Zero `synchronized` methods or blocks are permitted in production code to prevent Java 25 virtual thread carrier pinning (enforced by Checkstyle and ArchUnit).
+
 ## Configuration & Security
 
 Use `.env.example` as the configuration reference; never commit secrets or real credentials. Development uses embedded H2, while Docker Compose configures PostgreSQL. Review `SECURITY.md` before reporting vulnerabilities.

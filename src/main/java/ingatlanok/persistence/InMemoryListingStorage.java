@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
@@ -28,39 +29,50 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   private final AtomicLong presetIdSequence = new AtomicLong(1);
   private volatile SearchCriteria lastCriteria = new SearchCriteria();
   private volatile String lastRunTime;
+  private final ReentrantLock lock = new ReentrantLock();
 
   @Override
-  public synchronized void saveCityItems(String city, Collection<IngatlanItem> items) {
+  public void saveCityItems(String city, Collection<IngatlanItem> items) {
     if (city == null || items == null) {
       return;
     }
-    String key = city.toLowerCase(Locale.ROOT);
-    cityItems.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
-    for (IngatlanItem item : items) {
-      if (item != null && item.getUrl() != null) {
-        updateItemStateOnSave(item);
-        urlIndex.put(item.getUrl(), item);
+    lock.lock();
+    try {
+      String key = city.toLowerCase(Locale.ROOT);
+      cityItems.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
+      for (IngatlanItem item : items) {
+        if (item != null && item.getUrl() != null) {
+          updateItemStateOnSave(item);
+          urlIndex.put(item.getUrl(), item);
+        }
       }
+      List<IngatlanItem> current = cityItems.get(key);
+      current.addAll(items);
+      this.lastRunTime = java.time.LocalDateTime.now().toString();
+    } finally {
+      lock.unlock();
     }
-    List<IngatlanItem> current = cityItems.get(key);
-    current.addAll(items);
-    this.lastRunTime = java.time.LocalDateTime.now().toString();
   }
 
   @Override
-  public synchronized void saveAll(Collection<IngatlanItem> items) {
+  public void saveAll(Collection<IngatlanItem> items) {
     if (items == null) {
       return;
     }
-    for (IngatlanItem item : items) {
-      if (item != null && item.getUrl() != null) {
-        updateItemStateOnSave(item);
-        urlIndex.put(item.getUrl(), item);
-        String city = item.getCity() != null ? item.getCity().toLowerCase(Locale.ROOT) : "default";
-        cityItems.computeIfAbsent(city, k -> new CopyOnWriteArrayList<>()).add(item);
+    lock.lock();
+    try {
+      for (IngatlanItem item : items) {
+        if (item != null && item.getUrl() != null) {
+          updateItemStateOnSave(item);
+          urlIndex.put(item.getUrl(), item);
+          String city = item.getCity() != null ? item.getCity().toLowerCase(Locale.ROOT) : "default";
+          cityItems.computeIfAbsent(city, k -> new CopyOnWriteArrayList<>()).add(item);
+        }
       }
+      this.lastRunTime = java.time.LocalDateTime.now().toString();
+    } finally {
+      lock.unlock();
     }
-    this.lastRunTime = java.time.LocalDateTime.now().toString();
   }
 
   private void updateItemStateOnSave(IngatlanItem item) {
@@ -179,10 +191,7 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
 
   @Override
   public boolean isNewUrl(String city, String url) {
-    if (url == null) {
-      return false;
-    }
-    if (!hasCityDatabase(city)) {
+    if (url == null || !hasCityDatabase(city)) {
       return false;
     }
     return !urlIndex.containsKey(url);
@@ -208,10 +217,7 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
 
   @Override
   public boolean isViewed(String url) {
-    if (url == null || url.isBlank()) {
-      return false;
-    }
-    return viewedUrls.contains(url);
+    return url != null && !url.isBlank() && viewedUrls.contains(url);
   }
 
   @Override
@@ -301,27 +307,37 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   }
 
   @Override
-  public synchronized void clearCityHistory(String city) {
+  public void clearCityHistory(String city) {
     if (city == null) {
       return;
     }
-    List<IngatlanItem> removed = cityItems.remove(city.toLowerCase(Locale.ROOT));
-    if (removed != null) {
-      for (IngatlanItem item : removed) {
-        if (item.getUrl() != null) {
-          urlIndex.remove(item.getUrl());
-          viewedUrls.remove(item.getUrl());
+    lock.lock();
+    try {
+      List<IngatlanItem> removed = cityItems.remove(city.toLowerCase(Locale.ROOT));
+      if (removed != null) {
+        for (IngatlanItem item : removed) {
+          if (item.getUrl() != null) {
+            urlIndex.remove(item.getUrl());
+            viewedUrls.remove(item.getUrl());
+          }
         }
       }
+    } finally {
+      lock.unlock();
     }
   }
 
   @Override
-  public synchronized void clearHistory() {
-    cityItems.clear();
-    urlIndex.clear();
-    viewedUrls.clear();
-    hiddenUrls.clear();
+  public void clearHistory() {
+    lock.lock();
+    try {
+      cityItems.clear();
+      urlIndex.clear();
+      viewedUrls.clear();
+      hiddenUrls.clear();
+    } finally {
+      lock.unlock();
+    }
   }
 
   @Override
@@ -347,11 +363,8 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   @Override
   public List<SearchPreset> getPresets() {
     List<SearchPreset> list = new ArrayList<>(presets.values());
-    list.sort((a, b) -> {
-      String t1 = a.updatedAt() != null ? a.updatedAt() : "";
-      String t2 = b.updatedAt() != null ? b.updatedAt() : "";
-      return t2.compareTo(t1);
-    });
+    list.sort((a, b) -> (b.updatedAt() != null ? b.updatedAt() : "")
+        .compareTo(a.updatedAt() != null ? a.updatedAt() : ""));
     return list;
   }
 

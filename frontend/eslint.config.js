@@ -56,6 +56,39 @@ export default tseslint.config(
     },
   },
   {
+    files: [
+      'src/components/**/*.{ts,tsx}',
+      'src/hooks/**/*.{ts,tsx}',
+      'src/utils/listingFilters.ts',
+      'src/utils/marketAnalytics*.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'MemberExpression[property.name="amountHuf"] > MemberExpression[property.name="priceInfo"]',
+          message:
+            'Direct access to item.priceInfo.amountHuf violates multi-source domain invariants. Use getEffectivePrice(item).priceFt or priceMillion from src/utils/formatters.ts instead.',
+        },
+        {
+          selector: 'MemberExpression[property.name="pricePerSquareMeter"] > MemberExpression[property.name="detailsInfo"]',
+          message:
+            'Direct access to item.detailsInfo.pricePerSquareMeter violates multi-source domain invariants. Use getEffectiveSqmPrice(item) from src/utils/formatters.ts instead.',
+        },
+        {
+          selector: 'VariableDeclarator[init.property.name="priceInfo"] > ObjectPattern > Property[key.name="amountHuf"]',
+          message:
+            'Destructuring amountHuf from priceInfo violates multi-source domain invariants. Use getEffectivePrice(item) from src/utils/formatters.ts instead.',
+        },
+        {
+          selector: 'VariableDeclarator[init.property.name="detailsInfo"] > ObjectPattern > Property[key.name="pricePerSquareMeter"]',
+          message:
+            'Destructuring pricePerSquareMeter from detailsInfo violates multi-source domain invariants. Use getEffectiveSqmPrice(item) from src/utils/formatters.ts instead.',
+        },
+      ],
+    },
+  },
+  {
     files: ['src/utils/formatters.ts', 'src/test/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-properties': 'off',

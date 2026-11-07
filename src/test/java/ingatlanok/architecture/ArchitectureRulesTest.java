@@ -217,6 +217,9 @@ public final class ArchitectureRulesTest {
               "..ingatlanok.common..",
               "..ingatlanok.portal..",
               "..ingatlanok.core..",
+              "..ingatlanok.persistence..",
+              "..ingatlanok.presentation..",
+              "..ingatlanok.config..",
               "..ingatlanok.service..",
               "..ingatlanok.web..")
           .should()

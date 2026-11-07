@@ -119,14 +119,15 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] ArchUnit JUnit 5 suite (`ArchitectureRulesTest.java`) passes with zero violations.
 - [ ] Frontend Vitest and Playwright E2E coverage is maintained.
 - [ ] Regression Test First protocol is verified for business logic modifications (`docs/business-logic-regression.md`): failing test cases prove defects prior to fixes, and regression suites run deterministically offline.
+- [ ] Hermetic Test Isolation & No Production Test Branching: tests run deterministically and order-independently without network access; `app.test-mode` is strictly restricted to `HttpFetcher.java` and never leaks into production code.
 
 ### B. Code Quality Gates
 
 - [ ] JaCoCo line coverage is at least 80.00% enforced via native Gradle `jacocoTestCoverageVerification` bound directly to `./gradlew check` for core and persistence packages (including MapStruct mapper null/fallback branches).
 - [ ] Coverage calculation fails closed when the CSV is missing or the threshold is not met.
-- [ ] Checkstyle 10.21.4 reports zero warnings with `maxWarnings = 0` and `isIgnoreFailures = false`, enforcing Clean Code metrics (`MethodLength` <= 80, `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, `DeclarationOrder`) and blocking forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
-- [ ] Frontend `npm run generate-api`, `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` pass without warnings (`--max-warnings 0`), without hand-duplicated OpenAPI DTOs, and with zero direct `window.open` calls.
-- [ ] Offline validator `scripts/validate-skills.sh -v` passes all 6 checks cleanly.
+- [ ] Checkstyle 10.21.4 reports zero warnings with `maxWarnings = 0` and `isIgnoreFailures = false`, enforcing Clean Code metrics (`MethodLength` <= 80, `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, `DeclarationOrder`), blocking forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`), and blocking the `synchronized` keyword (`noSynchronized`) to prevent Java 25 virtual thread carrier-pinning.
+- [ ] Frontend `npm run generate-api`, `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` pass without warnings (`--max-warnings 0`), without hand-duplicated OpenAPI DTOs, with zero direct `window.open` calls, and with ESLint AST `no-restricted-syntax` guarding multi-source invariants.
+- [ ] Offline validator `scripts/validate-skills.sh -v` passes all 7 checks cleanly.
 
 ### C. Containerization and Release Security
 
@@ -142,6 +143,7 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] The PR build workflow blocks titles that do not follow Conventional Commits.
 - [ ] Docker publishing is gated on successful CI results.
 - [ ] PR changes map directly to issue acceptance criteria: no unsolicited refactoring or out-of-scope diffs.
+- [ ] Adversarial Self-Review Protocol executed across all 4 invariant pillars; PR Acceptance Criteria Traceability references only real, existing test files on the filesystem verified by `verify-pr-compliance.mjs`.
 - [ ] Automated architecture regression gates (ArchUnit and negative tests) pass locally and in CI.
 
 ---

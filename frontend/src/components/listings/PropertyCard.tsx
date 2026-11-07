@@ -12,6 +12,7 @@ import {
   formatRooms,
   getPortalStyle,
   getEffectivePrice,
+  getEffectiveSqmPrice,
   openExternalUrl,
 } from '../../utils/formatters'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
@@ -249,7 +250,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
   const portalStyle = getPortalStyle(getPortalIdentifier(item))
   const { priceMillion } = getEffectivePrice(item)
 
-  const sqmPrice = item.detailsInfo?.pricePerSquareMeter
+  const sqmPrice = getEffectiveSqmPrice(item) ?? undefined
   const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
 

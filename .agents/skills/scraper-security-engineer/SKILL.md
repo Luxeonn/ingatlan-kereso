@@ -112,7 +112,7 @@ For every review, the specialist must follow this four-phase workflow:
 ### A. Zero-Crash Resilience and Exception Handling
 
 - [ ] No scraper method allows an expected external network or parsing exception to escape without appropriate handling.
-- [ ] On network or parsing failure, the engine returns a `BOT_PROTECTED` or `FAILED` result and includes a direct search link where possible.
+- [ ] On network or parsing failure, the engine returns a `BOT_PROTECTED` or `FAILED` result and includes a direct search link where possible; multi-city and partial failures are handled gracefully without crashing search aggregation.
 - [ ] A slow or stalled engine cannot freeze the parallel aggregator (`SearchExecutionEngine`).
 - [ ] Changes adhere strictly to issue scope: no out-of-scope scraping engine refactors or unrequested dependency updates.
 - [ ] Portal scrapers do not depend on persistence or core layers (asserted by ArchUnit).
@@ -139,7 +139,7 @@ For every review, the specialist must follow this four-phase workflow:
 ### E. Spring Boot Server Hardening, Virtual Thread Non-Pinning, CORS, and External Links
 
 - [ ] Local development binds to `127.0.0.1` by default where appropriate.
-- [ ] Java 25 virtual thread non-pinning: never use `synchronized` in `portal/`, `core/`, or `web/` packages; use `ReentrantLock` for mutual exclusion (asserted by ArchUnit and `scripts/validate-skills.sh`).
+- [ ] Java 25 virtual thread non-pinning: zero `synchronized` methods or blocks anywhere in `src/main/java/ingatlanok/`; use `ReentrantLock` for mutual exclusion (asserted by ArchUnit, Checkstyle `noSynchronized`, and `scripts/validate-skills.sh`).
 - [ ] `GlobalCorsFilter` accepts only approved origins; wildcard `*` is never combined with credentials (`allowCredentials=true`).
 - [ ] Security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`) remain enabled.
 - [ ] External listing/portal links opened from the frontend use the centralized `openExternalUrl` helper (`noopener,noreferrer`); direct `window.open` in components is forbidden by ESLint AST rule and `scripts/validate-skills.sh`.
