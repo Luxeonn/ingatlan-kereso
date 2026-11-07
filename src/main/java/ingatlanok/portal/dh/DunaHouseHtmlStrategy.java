@@ -15,6 +15,7 @@ import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.ExtractionStrategy;
+import ingatlanok.portal.PortalSupport;
 
 public class DunaHouseHtmlStrategy implements ExtractionStrategy {
 
@@ -58,6 +59,11 @@ public class DunaHouseHtmlStrategy implements ExtractionStrategy {
         if (document == null) {
           LOGGER.warn("Nem sikerült letölteni a Duna House oldalt: {}", pageUrl);
           continue;
+        }
+
+        if (PortalSupport.isCommonBotChallenge(document)) {
+          LOGGER.warn("Duna House: Bot-védelem detektálva");
+          return RawExtractionResult.botProtected(method(), searchUrl, "Bot-védelem detektálva");
         }
 
         List<RawPropertyListing> pageListings = rawParser.parseRawListings(document);

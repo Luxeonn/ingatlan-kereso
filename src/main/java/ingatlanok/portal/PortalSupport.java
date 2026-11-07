@@ -30,6 +30,17 @@ public final class PortalSupport {
       "/y/img/sale_icon"
   );
 
+  private static final Set<String> CHALLENGE_TITLE_MARKERS = Set.of(
+      "ellenőrzés",
+      "cloudflare",
+      "just a moment",
+      "attention required",
+      "security check",
+      "bot védelem",
+      "bot-védelem",
+      "robot check"
+  );
+
   private PortalSupport() {}
 
   public static SearchCriteria normalizeCriteria(SearchCriteria criteria) {
@@ -148,17 +159,17 @@ public final class PortalSupport {
       return false;
     }
     String title = document.title();
-    boolean titleIndicatesChallenge =
-        title != null
-            && (title.contains("ellenőrzés")
-                || title.contains("Cloudflare")
-                || title.contains("Just a moment")
-                || title.contains("Attention Required"));
-    return titleIndicatesChallenge
-        || !document
-            .select(
-                "#challenge-error-text, #robot-protection-illustration,"
-                    + " script[src*='challenge-platform']")
-            .isEmpty();
+    if (title != null) {
+      String lower = title.toLowerCase(java.util.Locale.ROOT);
+      if (CHALLENGE_TITLE_MARKERS.stream().anyMatch(lower::contains)) {
+        return true;
+      }
+    }
+    return !document
+        .select(
+            "#challenge-error-text, #robot-protection-illustration,"
+                + " script[src*='challenge-platform'], .cf-browser-verification,"
+                + " #cf-wrapper, .g-recaptcha, .cf-turnstile")
+        .isEmpty();
   }
 }

@@ -38,9 +38,13 @@ public class IngatlanComRawParser {
             "a.listing-card, a[data-listing-id], div.listing-card, article.listing-card,"
                 + " div.card[data-id], a[href*=/ingatlan/]");
     for (Element card : cards) {
-      RawPropertyListing raw = parseListingCard(card);
-      if (raw != null && seenUrls.add(raw.url())) {
-        items.add(raw);
+      try {
+        RawPropertyListing raw = parseListingCard(card);
+        if (raw != null && seenUrls.add(raw.url())) {
+          items.add(raw);
+        }
+      } catch (Exception ignored) {
+        // Keep fault-isolated so one bad card does not abort the batch.
       }
     }
 

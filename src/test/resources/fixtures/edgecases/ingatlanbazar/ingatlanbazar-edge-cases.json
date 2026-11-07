@@ -1,0 +1,79 @@
+{
+  "hits": [
+    {
+      "propertyId": "IB501",
+      "seoUrl": "/ingatlan/debrecen/IB501",
+      "title": "Debrecen Belvárosi Lakás",
+      "priceHUF": 55000000,
+      "area": 65.0,
+      "rooms": 2.0,
+      "settlement": "Debrecen",
+      "photo": { "url": "https://cdn.ib.hu/photos/1.jpg" }
+    },
+    {
+      "propertyId": "IB502",
+      "seoUrl": "/ingatlan/debrecen/IB502",
+      "title": "Debrecen Kertes Ház Ár Nélkül",
+      "priceHUF": null,
+      "area": 70.0,
+      "rooms": 3.0,
+      "settlement": "Debrecen"
+    },
+    {
+      "propertyId": "IB503",
+      "seoUrl": "/ingatlan/debrecen/IB503",
+      "title": "Debrecen Ingatlan Nulla Árral",
+      "priceHUF": 0,
+      "area": 80.0,
+      "rooms": 3.0,
+      "settlement": "Debrecen"
+    },
+    {
+      "propertyId": "IB504",
+      "seoUrl": "/ingatlan/debrecen/IB504",
+      "title": "Debrecen Lakás Terület Nélkül",
+      "priceHUF": 62000000,
+      "area": null,
+      "rooms": null,
+      "settlement": "Debrecen"
+    },
+    {
+      "propertyId": "IB505",
+      "seoUrl": "/ingatlan/debrecen/IB505",
+      "title": "Debrecen Ingatlan Nulla Területtel",
+      "priceHUF": 64000000,
+      "area": 0.0,
+      "rooms": 0.0,
+      "settlement": "Debrecen"
+    },
+    {
+      "propertyId": "IB506",
+      "seoUrl": "/ingatlan/debrecen/IB506",
+      "title": "Debrecen Lakás Szöveges Számokkal",
+      "priceHUF": "78000000",
+      "area": "90.5",
+      "rooms": "4.0",
+      "settlement": "Debrecen",
+      "picture": "https://cdn.ib.hu/pic2.jpg"
+    },
+    {
+      "propertyId": "IB507",
+      "seoUrl": "",
+      "title": "Hiányzó URL hirdetés",
+      "priceHUF": 50000000
+    },
+    {
+      "propertyId": "IB508",
+      "seoUrl": "/ingatlan/debrecen/IB508",
+      "title": "Debrecen Ikerház Relatív Képpel",
+      "priceHUF": 82000000,
+      "area": 115.0,
+      "rooms": 4.0,
+      "settlement": "Debrecen",
+      "renderPictures": ["images2.ingatlanbazar.hu/static/property/images/render123"]
+    },
+    null,
+    "corrupted_element",
+    {}
+  ]
+}

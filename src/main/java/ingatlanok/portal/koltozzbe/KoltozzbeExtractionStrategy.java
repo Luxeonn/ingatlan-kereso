@@ -15,6 +15,7 @@ import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.ExtractionStrategy;
+import ingatlanok.portal.PortalSupport;
 
 public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
 
@@ -64,6 +65,11 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
             return RawExtractionResult.failure(method(), searchUrl, "Nem sikerült letölteni az oldalt", 500);
           }
           break;
+        }
+
+        if (PortalSupport.isCommonBotChallenge(doc)) {
+          LOGGER.warn("Költözzbe: Bot-védelem detektálva");
+          return RawExtractionResult.botProtected(method(), searchUrl, "Bot-védelem detektálva");
         }
 
         if (!collectPageListings(doc, page, processedUrls, allListings)) {

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <title>Duna House Edge Cases</title>
+</head>
+<body>
+  <!-- Card 1: Standard valid listing (Control) -->
+  <a href="/ingatlan/elado/lakas/debrecen/DH1001">
+    <img src="/images/dh1.jpg" alt="Lakás 1" />
+    <div>4024 Debrecen Belváros | Új építésű lakás 55 M Ft 65 m2 2 szoba</div>
+  </a>
+
+  <!-- Card 2: Missing price (No price pattern in text) -->
+  <a href="/ingatlan/elado/lakas/debrecen/DH1002">
+    <img src="/images/dh2.jpg" alt="Lakás 2" />
+    <div>4024 Debrecen Nagyerdő | Kertes lakás 70 m2 3 szoba</div>
+  </a>
+
+  <!-- Card 3: Missing area and room count -->
+  <a href="/ingatlan/elado/haz/debrecen/DH1003">
+    <img src="/images/dh3.jpg" alt="Ház 3" />
+    <div>4025 Debrecen Belváros | Családi ház 75 M Ft</div>
+  </a>
+
+  <!-- Card 4: Placeholder image marker (no-image.png) -->
+  <a href="/ingatlan/elado/lakas/debrecen/DH1004">
+    <img src="/images/no-image.png" alt="Lakás 4" />
+    <div>4026 Debrecen Egyetemváros | Csendes lakás 48 M Ft 50 m2 2 szoba</div>
+  </a>
+
+  <!-- Card 5: Protocol-relative image URL -->
+  <a href="/ingatlan/elado/lakas/debrecen/DH1005">
+    <img src="//cdn.dh.hu/images/photo5.jpg" alt="Lakás 5" />
+    <div>4027 Debrecen Vénkert | Felújított lakás 60 M Ft 62 m2 2 szoba</div>
+  </a>
+
+  <!-- Card 6: Multi-hundred million price format (M Ft) -->
+  <a href="/ingatlan/elado/haz/debrecen/DH1006">
+    <img src="/images/dh6.jpg" alt="Villa 6" />
+    <div>4028 Debrecen Nagyerdő | Luxus villa 350.5 M Ft 350 m2 6 szoba</div>
+  </a>
+
+  <!-- Card 7: Non-listing navigation link with 'elado' keyword -->
+  <a href="/ingatlan/elado">
+    <div>Összes eladó ingatlan kategória link</div>
+  </a>
+
+  <!-- Card 8: Corrupted / empty anchor elements -->
+  <a href=""></a>
+  <a href="/other/random/link">Nem ingatlan hirdetés</a>
+</body>
+</html>
