@@ -83,8 +83,8 @@ public class KoltozzbeJsonLdStrategy implements ExtractionStrategy {
       }
       if (fetchOutcome.document() == null) {
         if (page == 1 && allListings.isEmpty()) {
-          return RawExtractionResult.failure(
-              method(), searchUrl, fetchOutcome.errorMessage(), 500);
+          return PortalSupport.resolveFirstPageFetchFailure(
+              method(), searchUrl, fetchOutcome.errorMessage());
         }
         stopReason = fetchOutcome.stopReason();
         break;

@@ -39,6 +39,7 @@ public final class HttpFetcher {
   private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
   private static final PortalCircuitBreaker CIRCUIT_BREAKER = new PortalCircuitBreaker();
   private static final PortalRateLimiter RATE_LIMITER = new PortalRateLimiter();
+  private static final ThreadLocal<Integer> LAST_STATUS_CODE = new ThreadLocal<>();
   private static final Set<String> ALLOWED_HOST_PREFIXES = Set.of(
       "https://dh.hu/",
       "https://www.dh.hu/",
@@ -59,6 +60,16 @@ public final class HttpFetcher {
 
   public static void setSleeperForTesting(Sleeper testSleeper) {
     sleeper = testSleeper != null ? testSleeper : DEFAULT_SLEEPER;
+  }
+
+  public static void resetResilienceStateForTests() {
+    CIRCUIT_BREAKER.reset();
+    RATE_LIMITER.reset();
+    LAST_STATUS_CODE.remove();
+  }
+
+  public static Integer getLastStatusCode() {
+    return LAST_STATUS_CODE.get();
   }
 
   public static int resolveMaxRetries() {
@@ -132,6 +143,7 @@ public final class HttpFetcher {
 
   private static Connection.Response executeWithRetry(
       String targetUrl, int timeoutMs, boolean isJson) {
+    LAST_STATUS_CODE.remove();
     String circuitKey = resolveCircuitKey(targetUrl);
     if (!CIRCUIT_BREAKER.allowRequest(circuitKey)) {
       LOGGER.warn("A(z) {} circuit breakere nyitva van", circuitKey);
@@ -140,27 +152,39 @@ public final class HttpFetcher {
     String host = extractHost(targetUrl);
     int maxRetries = resolveMaxRetries();
     long retryDelayMs = resolveRetryDelayMs();
+    boolean outcomeRecorded = false;
 
-    for (int attempt = 0; attempt <= maxRetries; attempt++) {
-      if (!acquirePermit(host, circuitKey)) {
-        return null;
+    try {
+      for (int attempt = 0; attempt <= maxRetries; attempt++) {
+        if (!acquirePermit(host, circuitKey)) {
+          outcomeRecorded = true;
+          return null;
+        }
+        try {
+          Connection.Response response = buildConnection(targetUrl, timeoutMs, isJson).execute();
+          Action action =
+              processResponse(response, attempt, maxRetries, retryDelayMs, targetUrl, circuitKey);
+          if (action == Action.RETURN_RESPONSE) {
+            outcomeRecorded = true;
+            return response;
+          }
+          if (action == Action.RETURN_NULL) {
+            outcomeRecorded = true;
+            return null;
+          }
+        } catch (IOException | RuntimeException e) {
+          if (!handleException(e, attempt, maxRetries, retryDelayMs, targetUrl, circuitKey)) {
+            outcomeRecorded = true;
+            return null;
+          }
+        }
       }
-      try {
-        Connection.Response response = buildConnection(targetUrl, timeoutMs, isJson).execute();
-        Action action = processResponse(response, attempt, maxRetries, retryDelayMs, targetUrl, circuitKey);
-        if (action == Action.RETURN_RESPONSE) {
-          return response;
-        }
-        if (action == Action.RETURN_NULL) {
-          return null;
-        }
-      } catch (IOException | RuntimeException e) {
-        if (!handleException(e, attempt, maxRetries, retryDelayMs, targetUrl, circuitKey)) {
-          return null;
-        }
+      return null;
+    } finally {
+      if (!outcomeRecorded) {
+        CIRCUIT_BREAKER.releaseProbeIfActive(circuitKey);
       }
     }
-    return null;
   }
 
   private static boolean acquirePermit(String host, String circuitKey) {
@@ -182,12 +206,18 @@ public final class HttpFetcher {
       String targetUrl,
       String circuitKey) {
     int statusCode = response.statusCode();
+    LAST_STATUS_CODE.set(statusCode);
     if (statusCode >= 200 && statusCode < 300) {
       CIRCUIT_BREAKER.recordSuccess(circuitKey);
       return Action.RETURN_RESPONSE;
     }
-    if (statusCode == 403 || statusCode == 404 || statusCode < 400) {
+    if (statusCode == 403) {
       CIRCUIT_BREAKER.recordFailure(circuitKey);
+      LOGGER.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
+      return Action.RETURN_NULL;
+    }
+    if (statusCode == 404 || statusCode < 400) {
+      CIRCUIT_BREAKER.releaseProbeIfActive(circuitKey);
       LOGGER.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
       return Action.RETURN_NULL;
     }
@@ -198,7 +228,10 @@ public final class HttpFetcher {
       LOGGER.warn(
           "Átmeneti HTTP [{}] hiba, újrapróbálkozás ({}/{})... URL: {}",
           statusCode, attempt + 1, maxRetries, targetUrl);
-      sleepDelay(waitMs);
+      if (!sleepDelay(waitMs)) {
+        CIRCUIT_BREAKER.recordFailure(circuitKey);
+        return Action.RETURN_NULL;
+      }
       return Action.RETRY;
     }
     CIRCUIT_BREAKER.recordFailure(circuitKey);
@@ -224,7 +257,10 @@ public final class HttpFetcher {
       LOGGER.warn(
           "Átmeneti hálózati I/O hiba, újrapróbálkozás ({}/{})... URL: {} ({})",
           attempt + 1, maxRetries, targetUrl, e.getMessage());
-      sleepDelay(retryDelayMs);
+      if (!sleepDelay(retryDelayMs)) {
+        CIRCUIT_BREAKER.recordFailure(circuitKey);
+        return false;
+      }
       return true;
     }
     CIRCUIT_BREAKER.recordFailure(circuitKey);
@@ -301,17 +337,19 @@ public final class HttpFetcher {
     return defaultDelayMs;
   }
 
-  private static void sleepDelay(long delayMs) {
+  private static boolean sleepDelay(long delayMs) {
     if (Boolean.getBoolean("app.test-mode") && sleeper == DEFAULT_SLEEPER) {
-      return;
+      return !Thread.currentThread().isInterrupted();
     }
     if (delayMs <= 0) {
-      return;
+      return !Thread.currentThread().isInterrupted();
     }
     try {
       sleeper.sleep(delayMs);
+      return true;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+      return false;
     }
   }
 
@@ -345,11 +383,7 @@ public final class HttpFetcher {
     try {
       URI uri = URI.create(targetUrl.trim());
       String host = uri.getHost() != null ? uri.getHost().toLowerCase(Locale.ROOT) : "default";
-      String key = host + ":" + (uri.getPort() > 0 ? uri.getPort() : 443);
-      if (Boolean.getBoolean("app.test-mode") && uri.getPath() != null) {
-        key += uri.getPath();
-      }
-      return key;
+      return host + ":" + (uri.getPort() > 0 ? uri.getPort() : 443);
     } catch (Exception e) {
       return targetUrl;
     }

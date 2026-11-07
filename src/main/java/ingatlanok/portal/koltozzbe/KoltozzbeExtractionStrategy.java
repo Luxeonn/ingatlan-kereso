@@ -27,8 +27,11 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
   private final int maxPages;
 
   public KoltozzbeExtractionStrategy() {
-    this(new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(),
-        HttpFetcher::fetchDocument, KoltozzbePortalEngine.DEFAULT_MAX_PAGES);
+    this(
+        new KoltozzbeUrlBuilder(),
+        new KoltozzbeRawParser(),
+        HttpFetcher::fetchDocument,
+        KoltozzbePortalEngine.DEFAULT_MAX_PAGES);
   }
 
   public KoltozzbeExtractionStrategy(
@@ -76,24 +79,28 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
       }
       if (fetchOutcome.document() == null) {
         if (page == 1 && allListings.isEmpty()) {
-          return RawExtractionResult.failure(
-              method(), searchUrl, fetchOutcome.errorMessage(), 500);
+          return PortalSupport.resolveFirstPageFetchFailure(
+              method(), searchUrl, fetchOutcome.errorMessage());
         }
         stopReason = fetchOutcome.stopReason();
         break;
       }
 
       pagesProcessed++;
-      String pageStopReason = collectPageListings(
-          fetchOutcome.document(), page, processedUrls, processedNativeIds, allListings);
+      String pageStopReason =
+          collectPageListings(
+              fetchOutcome.document(), page, processedUrls, processedNativeIds, allListings);
       if (pageStopReason != null) {
         stopReason = pageStopReason;
         break;
       }
     }
 
-    LOGGER.info("Költözzbe lapozás befejezve: feldolgozott oldalak={}, találatok={}, leállás oka={}",
-        pagesProcessed, allListings.size(), stopReason);
+    LOGGER.info(
+        "Költözzbe lapozás befejezve: feldolgozott oldalak={}, találatok={}, leállás oka={}",
+        pagesProcessed,
+        allListings.size(),
+        stopReason);
 
     if (allListings.isEmpty()) {
       return RawExtractionResult.empty(method(), searchUrl);
@@ -131,10 +138,11 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
       Set<String> processedNativeIds,
       List<RawPropertyListing> allListings) {
     List<RawPropertyListing> pageHtml = rawParser.parseHtmlListings(doc);
-    int addedHtml = addUniqueListings(pageHtml, processedUrls, processedNativeIds, allListings);
+    int addedHtml = addOrMergeListings(pageHtml, processedUrls, processedNativeIds, allListings);
 
     List<RawPropertyListing> pageJsonLd = rawParser.parseJsonLdListings(doc);
-    int addedJsonLd = addUniqueListings(pageJsonLd, processedUrls, processedNativeIds, allListings);
+    int addedJsonLd =
+        addOrMergeListings(pageJsonLd, processedUrls, processedNativeIds, allListings);
 
     boolean hasContent = !pageHtml.isEmpty() || !pageJsonLd.isEmpty();
     if (!hasContent) {
@@ -149,7 +157,7 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
     return null;
   }
 
-  private int addUniqueListings(
+  private int addOrMergeListings(
       List<RawPropertyListing> candidates,
       Set<String> processedUrls,
       Set<String> processedNativeIds,
@@ -159,12 +167,70 @@ public class KoltozzbeExtractionStrategy implements ExtractionStrategy {
     }
     int added = 0;
     for (RawPropertyListing raw : candidates) {
-      if (raw != null && PortalSupport.markProcessedListing(
+      if (raw == null) {
+        continue;
+      }
+      if (PortalSupport.markProcessedListing(
           processedUrls, processedNativeIds, raw.url(), raw.nativeId())) {
         target.add(raw);
         added++;
+      } else {
+        mergeIntoExistingListing(target, raw);
       }
     }
     return added;
+  }
+
+  private void mergeIntoExistingListing(
+      List<RawPropertyListing> target, RawPropertyListing incoming) {
+    String incomingUrl = PortalSupport.canonicalListingUrl(incoming.url());
+    String incomingId = incoming.nativeId() != null ? incoming.nativeId().trim() : "";
+    for (int i = 0; i < target.size(); i++) {
+      RawPropertyListing existing = target.get(i);
+      if (isSameListing(existing, incomingUrl, incomingId)) {
+        target.set(i, mergeComplementaryFields(existing, incoming));
+        return;
+      }
+    }
+  }
+
+  private boolean isSameListing(
+      RawPropertyListing existing, String incomingUrl, String incomingId) {
+    if (existing == null) {
+      return false;
+    }
+    String existingUrl = PortalSupport.canonicalListingUrl(existing.url());
+    if (!incomingUrl.isEmpty() && incomingUrl.equals(existingUrl)) {
+      return true;
+    }
+    String existingId = existing.nativeId() != null ? existing.nativeId().trim() : "";
+    return !incomingId.isEmpty() && incomingId.equals(existingId);
+  }
+
+  private RawPropertyListing mergeComplementaryFields(
+      RawPropertyListing existing, RawPropertyListing incoming) {
+    return RawPropertyListing.builder()
+        .portalId(firstNonBlank(existing.portalId(), incoming.portalId()))
+        .nativeId(firstNonBlank(existing.nativeId(), incoming.nativeId()))
+        .url(firstNonBlank(existing.url(), incoming.url()))
+        .title(firstNonBlank(existing.title(), incoming.title()))
+        .priceText(firstNonBlank(existing.priceText(), incoming.priceText()))
+        .priceHuf(existing.priceHuf() != null ? existing.priceHuf() : incoming.priceHuf())
+        .detailsText(firstNonBlank(existing.detailsText(), incoming.detailsText()))
+        .areaSquareMeters(
+            existing.areaSquareMeters() != null
+                ? existing.areaSquareMeters()
+                : incoming.areaSquareMeters())
+        .roomCount(existing.roomCount() != null ? existing.roomCount() : incoming.roomCount())
+        .locationText(firstNonBlank(existing.locationText(), incoming.locationText()))
+        .imageUrl(firstNonBlank(existing.imageUrl(), incoming.imageUrl()))
+        .descriptionText(firstNonBlank(existing.descriptionText(), incoming.descriptionText()))
+        .method(existing.method() != null ? existing.method() : incoming.method())
+        .extra(existing.extra() != null ? existing.extra() : incoming.extra())
+        .build();
+  }
+
+  private String firstNonBlank(String primary, String fallback) {
+    return (primary != null && !primary.isBlank()) ? primary : fallback;
   }
 }

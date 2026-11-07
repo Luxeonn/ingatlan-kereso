@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -76,6 +77,7 @@ class ScraperResilienceAndRetryIntegrationTest {
   static void startServer() throws IOException {
     System.setProperty("app.test-mode", "true");
     testServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    testServer.setExecutor(Executors.newCachedThreadPool());
     testPort = testServer.getAddress().getPort();
 
     testServer.createContext("/status-403", exchange -> {
@@ -207,6 +209,7 @@ class ScraperResilienceAndRetryIntegrationTest {
     ATTEMPTS_REDIRECT_A.set(0);
     ATTEMPTS_REDIRECT_B.set(0);
     HttpFetcher.setSleeperForTesting(null);
+    HttpFetcher.resetResilienceStateForTests();
   }
 
   private String getBaseUrl() {

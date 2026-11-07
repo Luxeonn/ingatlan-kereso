@@ -2,7 +2,6 @@ package ingatlanok.portal.ingatlanbazar;
 
 import java.util.List;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
@@ -11,8 +10,6 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 
 public class IngatlanBazarPortalEngine implements PortalEngine {
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarPortalEngine.class);
 
   private final IngatlanBazarQueryBuilder queryBuilder;
   private final AdapterPortalEngine adapterEngine;
@@ -35,7 +32,7 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
 
   @Override
   public PortalScrapeResult scrape(SearchCriteria criteria) {
-    return scrape(criteria, HttpFetcher::fetchJson);
+    return adapterEngine.scrape(criteria);
   }
 
   public PortalScrapeResult scrape(
