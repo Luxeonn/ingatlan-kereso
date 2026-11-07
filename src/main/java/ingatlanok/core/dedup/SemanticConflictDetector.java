@@ -193,7 +193,10 @@ public final class SemanticConflictDetector {
   }
 
   private static boolean isTwinHouse(String slug) {
-    return slug.contains("ikerhaz") || slug.contains("iker-haz");
+    return slug.contains("ikerhaz")
+        || slug.contains("iker-haz")
+        || slug.contains("iker-csaladi")
+        || slug.contains("ikercsaladi");
   }
 
   private static boolean isRowHouse(String slug) {
@@ -201,6 +204,9 @@ public final class SemanticConflictDetector {
   }
 
   private static boolean isDetachedHouse(String slug) {
+    if (isTwinOrRowHouse(slug)) {
+      return false;
+    }
     return slug.contains("onallo-haz")
         || slug.contains("onallo-csaladi")
         || slug.contains("csaladi-haz")

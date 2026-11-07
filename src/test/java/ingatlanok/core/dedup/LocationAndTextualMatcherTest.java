@@ -229,6 +229,19 @@ class LocationAndTextualMatcherTest {
     assertTrue(
         SemanticConflictDetector.hasConflict(newHouse, sorhaz),
         "Új építésű ház és használt sorház ütközik");
+
+    IngatlanItem ikerCsaladi = new IngatlanItem();
+    ikerCsaladi.setPropertyType(PropertyType.HAZ);
+    ikerCsaladi.setTitle("Eladó iker családi ház Debrecenben");
+    assertFalse(
+        SemanticConflictDetector.hasConflict(ikerhaz, ikerCsaladi),
+        "Ikerház és iker családi ház nem ütközhet önálló családi házként");
+
+    IngatlanItem kertvarosias = new IngatlanItem();
+    kertvarosias.setTitle("Kertvárosias környezetben eladó családi ház");
+    kertvarosias.setLocation("Debrecen");
+    ExtractedLocation locKertvarosias = LocationConflictDetector.extractLocation(kertvarosias, "debrecen");
+    assertNull(locKertvarosias.quarter(), "A 'kertvárosias' jelző nem minősülhet Kertváros városrésznek");
   }
 
   @Test

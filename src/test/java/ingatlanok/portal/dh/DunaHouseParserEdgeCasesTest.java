@@ -56,7 +56,7 @@ class DunaHouseParserEdgeCasesTest {
     assertNull(item.getPriceInfo().getAmountMillion(), "Hiányzó árból nem keletkezhet millió érték");
     assertEquals(70.0, item.getDetailsInfo().getAreaSquareMeters());
     assertEquals(3.0, item.getDetailsInfo().getRoomCount());
-    assertEquals(0L, item.getDetailsInfo().getPricePerSquareMeter(), "Ár nélkül m2 ár nem számítható");
+    assertNull(item.getDetailsInfo().getPricePerSquareMeter(), "Ár nélkül m2 ár nem számítható");
   }
 
   @Test
@@ -75,7 +75,7 @@ class DunaHouseParserEdgeCasesTest {
     assertEquals(75_000_000L, item.getPriceInfo().getAmountHuf());
     assertNull(item.getDetailsInfo().getAreaSquareMeters(), "Hiányzó terület nem lehet becsült érték");
     assertNull(item.getDetailsInfo().getRoomCount(), "Hiányzó szobaszám nem lehet kitalált érték");
-    assertEquals(0L, item.getDetailsInfo().getPricePerSquareMeter(), "Terület nélkül m2 ár nem számítható");
+    assertNull(item.getDetailsInfo().getPricePerSquareMeter(), "Terület nélkül m2 ár nem számítható");
   }
 
   @Test
