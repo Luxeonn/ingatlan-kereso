@@ -91,15 +91,23 @@ public final class ClusterConsolidationHelper {
 
   private static String formatDetailsText(Double area, Double rooms) {
     if (area != null && rooms != null) {
-      return Math.round(area) + " m² • " + Math.round(rooms) + " szoba";
+      return Math.round(area) + " m² • " + formatRoomCount(rooms) + " szoba";
     }
     if (area != null) {
       return Math.round(area) + " m²";
     }
     if (rooms != null) {
-      return Math.round(rooms) + " szoba";
+      return formatRoomCount(rooms) + " szoba";
     }
     return "";
+  }
+
+  private static String formatRoomCount(double rooms) {
+    long rounded = Math.round(rooms);
+    if (Math.abs(rooms - rounded) < 0.01) {
+      return Long.toString(rounded);
+    }
+    return Double.toString(rooms);
   }
 
   public static Long resolveSourcePricePerM2(IngatlanItem item, Long priceHuf, Double fallbackArea) {
@@ -206,6 +214,9 @@ public final class ClusterConsolidationHelper {
     }
     if (lower.contains("ingatlanbazar.hu")) {
       return "ingatlanbazar";
+    }
+    if (lower.contains("ingatlan.com")) {
+      return "ingatlancom";
     }
     return "";
   }

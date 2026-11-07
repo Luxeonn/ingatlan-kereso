@@ -179,9 +179,30 @@ public class SearchExecutionEngine {
             cityCounts,
             newCitiesInitialized);
     result.getPortalResults().addAll(aggregatedPortalResults);
+    applyMultiCityExecutionStatus(result, allScrapeResults);
 
     logSearchEnd(result);
     return result;
+  }
+
+  private void applyMultiCityExecutionStatus(
+      SearchResult result, List<PortalScrapeResult> allScrapeResults) {
+    boolean hasFailure = false;
+    boolean hasSuccess = false;
+    for (PortalScrapeResult pr : allScrapeResults) {
+      if (pr == null) {
+        continue;
+      }
+      if (pr.getStatus() == ingatlanok.model.PortalScrapeStatus.FAILED
+          || pr.getStatus() == ingatlanok.model.PortalScrapeStatus.BOT_PROTECTED) {
+        hasFailure = true;
+      } else {
+        hasSuccess = true;
+      }
+    }
+    if (hasFailure && hasSuccess) {
+      result.setExecutionStatus(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS);
+    }
   }
 
   private void logSearchStart(List<String> citiesToSearch, SearchCriteria criteria) {
