@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, type FC } from 'react'
+import { lazy, Suspense, useEffect, useRef, useMemo, type FC } from 'react'
 import { LayoutGrid, BarChart2 } from 'lucide-react'
 import { Header } from './components/layout/Header'
 import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
+import { SearchErrorBanner, PartialPortalWarningBanner } from './components/layout/StatusBanners'
 import { useSearch } from './hooks/useSearch'
 import { useFilterStore } from './store/useFilterStore'
 import { useUiStore } from './store/useUiStore'
@@ -70,11 +71,13 @@ export const App: FC = () => {
     rawFavoriteItems,
     favoritesCount,
     isLoading,
+    isError,
+    error,
     search,
     markAsViewed,
     clearArchiveHistory,
     isClearingHistory,
-hiddenCount,
+    hiddenCount,
     toastMessage,
     toastUndoItem,
     clearToast,
@@ -83,8 +86,21 @@ hiddenCount,
     openAllTabs,
   } = useSearch()
   const { setCriteria } = useFilterStore()
-  const { dashboardTab, setDashboardTab, listingSubView, setListingSubView } = useUiStore()
+  const {
+    dashboardTab,
+    setDashboardTab,
+    listingSubView,
+    setListingSubView,
+    setDiagnosticsModalOpen,
+  } = useUiStore()
   const initialLoadDone = useRef(false)
+
+  const partialPortalFailures = useMemo(() => {
+    if (!data?.portalStatuses) return []
+    return data.portalStatuses.filter(
+      (p) => p.status === 'FAILED' || p.status === 'BOT_PROTECTED',
+    )
+  }, [data?.portalStatuses])
 
   // Load last saved criteria from backend on first mount
   useEffect(() => {
@@ -138,6 +154,17 @@ hiddenCount,
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
         {/* Filters and search controls */}
         <SearchPanel onSearch={handleSearch} isLoading={isLoading} />
+
+        {/* API Error Alert Banner */}
+        {isError && <SearchErrorBanner error={error} onRetry={handleSearch} />}
+
+        {/* Partial Portal Warning Banner */}
+        {partialPortalFailures.length > 0 && dashboardTab === 'listings' && listingSubView === 'listings' && (
+          <PartialPortalWarningBanner
+            failures={partialPortalFailures}
+            onOpenDiagnostics={() => setDiagnosticsModalOpen(true)}
+          />
+        )}
 
         {/* Market stats bar */}
         <MarketStatsBar data={data} />

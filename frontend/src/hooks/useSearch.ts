@@ -88,6 +88,12 @@ export function useSearch() {
 
   const searchMutation = useMutation({
     mutationFn: (searchParams: SearchCriteria) => executeSearch(searchParams),
+    onMutate: () => {
+      setData(null)
+    },
+    onError: () => {
+      setData(null)
+    },
     onSuccess: (result) => {
       setData(result)
       invalidateDashboardQueries()
