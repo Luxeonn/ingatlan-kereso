@@ -29,7 +29,11 @@ public class SearchResultAggregator {
         if (a.isNew() != b.isNew()) {
           return Boolean.compare(!a.isNew(), !b.isNew());
         }
-        return compareDiscoveredDates(a.getDiscoveredAt(), b.getDiscoveredAt());
+        int dateCmp = compareDiscoveredDates(a.getDiscoveredAt(), b.getDiscoveredAt());
+        if (dateCmp != 0) {
+          return dateCmp;
+        }
+        return compareUrls(a.getUrl(), b.getUrl());
       };
 
   public SearchResult aggregate(
@@ -101,6 +105,19 @@ public class SearchResultAggregator {
       return -1;
     }
     return dateB.compareTo(dateA);
+  }
+
+  private static int compareUrls(String urlA, String urlB) {
+    if (urlA == null && urlB == null) {
+      return 0;
+    }
+    if (urlA == null) {
+      return 1;
+    }
+    if (urlB == null) {
+      return -1;
+    }
+    return urlA.compareTo(urlB);
   }
 
   private void handleAutoOpenBrowser(SearchCriteria criteria, List<IngatlanItem> newItems) {
