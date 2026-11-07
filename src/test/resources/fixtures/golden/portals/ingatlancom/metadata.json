@@ -1,0 +1,17 @@
+{
+  "portal": "ingatlancom",
+  "portalName": "Ingatlan.com",
+  "version": "1.0.0",
+  "sampleType": "HTML_CARD_LIST",
+  "recordedAt": "2026-11-07",
+  "sourceFile": "source.html",
+  "description": "Ingatlan.com representative HTML listing cards covering new construction flat with half rooms, family house, and building plot without rooms or image",
+  "searchCriteria": {
+    "city": "Debrecen",
+    "propertyType": "lakas",
+    "minPriceMillion": 10,
+    "maxPriceMillion": 200,
+    "minArea": 20,
+    "maxArea": 1000
+  }
+}

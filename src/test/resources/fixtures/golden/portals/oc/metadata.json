@@ -1,0 +1,17 @@
+{
+  "portal": "oc",
+  "portalName": "Otthon Centrum",
+  "version": "1.0.0",
+  "sampleType": "HTML_CARD_LIST",
+  "recordedAt": "2026-11-07",
+  "sourceFile": "source.html",
+  "description": "Otthon Centrum representative HTML listing cards with SEO JSON metadata covering family house, new construction flat with decimal rooms, and plot without rooms or image",
+  "searchCriteria": {
+    "city": "Debrecen",
+    "propertyType": "haz",
+    "minPriceMillion": 10,
+    "maxPriceMillion": 200,
+    "minArea": 20,
+    "maxArea": 1000
+  }
+}

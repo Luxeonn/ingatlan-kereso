@@ -1,0 +1,17 @@
+{
+  "portal": "koltozzbe",
+  "portalName": "Költözzbe",
+  "version": "1.0.0",
+  "sampleType": "HTML_CARD_LIST_AND_JSON_LD",
+  "recordedAt": "2026-11-07",
+  "sourceFile": "source.html",
+  "description": "Költözzbe dual-strategy representative HTML listing cards and Schema.org ItemList JSON-LD covering family house, new construction flat, and building plot",
+  "searchCriteria": {
+    "city": "Debrecen",
+    "propertyType": "haz",
+    "minPriceMillion": 10,
+    "maxPriceMillion": 200,
+    "minArea": 20,
+    "maxArea": 1000
+  }
+}
