@@ -16,6 +16,13 @@ public record RawExtractionResult(
 
   public static RawExtractionResult success(
       List<RawPropertyListing> listings, ExtractionMethod usedMethod) {
+    return success(listings, usedMethod, null);
+  }
+
+  public static RawExtractionResult success(
+      List<RawPropertyListing> listings,
+      ExtractionMethod usedMethod,
+      String technicalDetails) {
     return new RawExtractionResult(
         PortalScrapeStatus.SUCCESS,
         listings != null ? List.copyOf(listings) : List.of(),
@@ -23,7 +30,7 @@ public record RawExtractionResult(
         null,
         null,
         200,
-        null
+        technicalDetails
     );
   }
 

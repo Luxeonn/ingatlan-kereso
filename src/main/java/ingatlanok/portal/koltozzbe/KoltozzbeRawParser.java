@@ -20,8 +20,9 @@ import ingatlanok.portal.PortalSupport;
 public class KoltozzbeRawParser {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbeRawParser.class);
-  private static final Pattern ID_PATTERN = Pattern.compile("(?i)/(?:elado-[^/]+/)?h?([0-9]+)");
-  private static final Pattern PAGE_PARAM_PATTERN = Pattern.compile("[?&]page=(\\d+)");
+  private static final Pattern ID_PATTERN =
+      Pattern.compile("(?i)/h?([0-9]+)(?:[/?#]|$)");
+  private static final Pattern PAGE_PARAM_PATTERN = Pattern.compile("(?:^|[?&])page=(\\d+)");
 
   public List<RawPropertyListing> parseHtmlListings(Document doc) {
     List<RawPropertyListing> items = new ArrayList<>();
@@ -50,7 +51,8 @@ public class KoltozzbeRawParser {
           continue;
         }
 
-        String fullUrl = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, href);
+        String fullUrl = PortalSupport.canonicalListingUrl(
+            PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, href));
 
         String lid = card.attr("data-lid");
         if (lid.isBlank()) {
@@ -132,7 +134,8 @@ public class KoltozzbeRawParser {
     }
     JsonNode product = el.has("item") ? el.get("item") : el;
     String rawUrl = product.has("url") ? product.get("url").asString() : null;
-    String url = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, rawUrl);
+    String url = PortalSupport.canonicalListingUrl(
+        PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, rawUrl));
     if (url.isEmpty()) {
       return null;
     }
@@ -233,29 +236,41 @@ public class KoltozzbeRawParser {
       return false;
     }
     int nextPage = currentPage + 1;
-    if (!doc.select("a[rel=next], .pagination .next:not(.disabled) a").isEmpty()) {
+    if (hasValidNextRelLink(doc, nextPage)) {
       return true;
     }
 
     Elements pageLinks = doc.select(".pagination a[href], a[href*=page=]");
-    if (pageLinks.isEmpty()) {
-      return doc.select(".pagination").isEmpty();
-    }
-
     for (Element link : pageLinks) {
-      String href = link.attr("href");
-      Matcher matcher = PAGE_PARAM_PATTERN.matcher(href);
-      if (matcher.find()) {
-        try {
-          int targetPage = Integer.parseInt(matcher.group(1));
-          if (targetPage >= nextPage) {
-            return true;
-          }
-        } catch (NumberFormatException ignored) {
-          // Ignore malformed page numbers in pagination links.
-        }
+      if (pointsToAtLeastPage(link.attr("href"), nextPage, false)) {
+        return true;
       }
     }
     return false;
+  }
+
+  private boolean hasValidNextRelLink(Document doc, int nextPage) {
+    Elements nextRelLinks = doc.select("a[rel=next], .pagination .next:not(.disabled) a");
+    for (Element link : nextRelLinks) {
+      if (pointsToAtLeastPage(link.attr("href"), nextPage, true)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean pointsToAtLeastPage(String href, int nextPage, boolean allowUnnumberedHref) {
+    if (href == null || href.isBlank() || "#".equals(href.trim())) {
+      return false;
+    }
+    Matcher matcher = PAGE_PARAM_PATTERN.matcher(href);
+    if (!matcher.find()) {
+      return allowUnnumberedHref;
+    }
+    try {
+      return Integer.parseInt(matcher.group(1)) >= nextPage;
+    } catch (NumberFormatException ignored) {
+      return allowUnnumberedHref;
+    }
   }
 }

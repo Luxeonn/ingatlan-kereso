@@ -91,6 +91,7 @@ public class AdapterPortalEngine implements PortalEngine {
       SearchCriteria safeCriteria) {
     List<IngatlanItem> normalizedItems = new ArrayList<>();
     Set<String> processedUrls = new HashSet<>();
+    Set<String> processedNativeIds = new HashSet<>();
     String now = PortalSupport.nowTimestamp();
     int rejected = 0;
     int duplicates = 0;
@@ -103,7 +104,8 @@ public class AdapterPortalEngine implements PortalEngine {
       if (item == null) {
         rejected++;
         LOGGER.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
-      } else if (PortalSupport.markProcessed(processedUrls, item.getUrl())) {
+      } else if (PortalSupport.markProcessedListing(
+          processedUrls, processedNativeIds, item.getUrl(), raw.nativeId())) {
         normalizedItems.add(item);
       } else {
         duplicates++;
@@ -133,7 +135,12 @@ public class AdapterPortalEngine implements PortalEngine {
     );
     scrapeResult.setFallbackUrl(
         result.fallbackUrl() != null ? result.fallbackUrl() : defaultSearchUrl);
-    if (result.usedMethod() != null) {
+    if (result.technicalDetails() != null && !result.technicalDetails().isBlank()) {
+      String methodPrefix = result.usedMethod() != null
+          ? "Strategy: " + result.usedMethod().name() + " | "
+          : "";
+      scrapeResult.setTechnicalDetails(methodPrefix + result.technicalDetails());
+    } else if (result.usedMethod() != null) {
       scrapeResult.setTechnicalDetails("Strategy: " + result.usedMethod().name());
     }
     return scrapeResult;

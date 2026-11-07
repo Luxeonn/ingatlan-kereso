@@ -44,7 +44,8 @@ public class DunaHouseRawParser {
       return null;
     }
 
-    String fullLink = PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href);
+    String fullLink = PortalSupport.canonicalListingUrl(
+        PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href));
     if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+/.*")
         && !fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+$")) {
       return null;

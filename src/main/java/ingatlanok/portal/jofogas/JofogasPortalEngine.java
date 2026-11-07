@@ -41,11 +41,19 @@ public class JofogasPortalEngine implements PortalEngine {
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
+    return scrape(criteria, documentFetcher, 2);
+  }
+
+  public PortalScrapeResult scrape(
+      SearchCriteria criteria,
+      java.util.function.Function<String, Document> documentFetcher,
+      int maxPages) {
     if (criteria == null) {
-      return PortalScrapeResult.failure("jofogas", "Jófogás Ingatlan", "Criteria is null", 0, 400, "https://ingatlan.jofogas.hu");
+      return PortalScrapeResult.failure(
+          "jofogas", "Jófogás Ingatlan", "Criteria is null", 0, 400, "https://ingatlan.jofogas.hu");
     }
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new JofogasPortalAdapter(urlBuilder,
-        List.of(new JofogasHtmlStrategy(urlBuilder, new JofogasRawParser(), documentFetcher))));
+        List.of(new JofogasHtmlStrategy(urlBuilder, new JofogasRawParser(), documentFetcher, maxPages))));
     return dynamicEngine.scrape(criteria);
   }
 

@@ -9,6 +9,7 @@ import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.portal.PortalSupport;
 
 public class IngatlanBazarRawParser {
 
@@ -59,9 +60,10 @@ public class IngatlanBazarRawParser {
         ? hit.get("propertyId").asString().trim()
         : null;
 
-    String fullUrl = seoUrl.startsWith("http")
+    String rawUrl = seoUrl.startsWith("http")
         ? seoUrl
         : IngatlanBazarQueryBuilder.BASE_URL + (seoUrl.startsWith("/") ? "" : "/") + seoUrl;
+    String fullUrl = PortalSupport.canonicalListingUrl(rawUrl);
 
     String title = hit.has("title") && !hit.get("title").isNull()
         ? hit.get("title").asString().trim()
