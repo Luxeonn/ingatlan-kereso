@@ -37,46 +37,50 @@ public class KoltozzbeRawParser {
     }
 
     for (Element card : cards) {
-      Element linkElem = card.is("a")
-          ? card
-          : card.selectFirst("a.listing-item-link, a[href*=/elado-], a[href*=/h], a[href*=/ingatlan]");
-      if (linkElem == null) {
-        continue;
+      try {
+        Element linkElem = card.is("a")
+            ? card
+            : card.selectFirst("a.listing-item-link, a[href*=/elado-], a[href*=/h], a[href*=/ingatlan]");
+        if (linkElem == null) {
+          continue;
+        }
+
+        String href = linkElem.attr("href");
+        if (href == null || href.isBlank()) {
+          continue;
+        }
+
+        String fullUrl = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, href);
+
+        String lid = card.attr("data-lid");
+        if (lid.isBlank()) {
+          lid = card.attr("data-id");
+        }
+        if (lid.isBlank()) {
+          lid = PropertyParser.extractFirstGroup(fullUrl, ID_PATTERN, null);
+        }
+
+        String title = extractTitle(card, linkElem);
+        String priceText = extractPriceText(card);
+        String detailsText = extractDetailsText(card);
+        String imageUrl = PortalSupport.extractImageWithFallback(card, KoltozzbeUrlBuilder.BASE_URL);
+
+        RawPropertyListing raw = RawPropertyListing.builder()
+            .portalId("koltozzbe")
+            .nativeId(lid)
+            .url(fullUrl)
+            .title(title)
+            .priceText(priceText)
+            .detailsText(detailsText)
+            .imageUrl(imageUrl)
+            .descriptionText(card.text())
+            .method(ExtractionMethod.HTML)
+            .build();
+
+        items.add(raw);
+      } catch (Exception ignored) {
+        // Keep fault-isolated so one bad card does not abort the batch.
       }
-
-      String href = linkElem.attr("href");
-      if (href == null || href.isBlank()) {
-        continue;
-      }
-
-      String fullUrl = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, href);
-
-      String lid = card.attr("data-lid");
-      if (lid.isBlank()) {
-        lid = card.attr("data-id");
-      }
-      if (lid.isBlank()) {
-        lid = PropertyParser.extractFirstGroup(fullUrl, ID_PATTERN, null);
-      }
-
-      String title = extractTitle(card, linkElem);
-      String priceText = extractPriceText(card);
-      String detailsText = extractDetailsText(card);
-      String imageUrl = PortalSupport.extractImageWithFallback(card, KoltozzbeUrlBuilder.BASE_URL);
-
-      RawPropertyListing raw = RawPropertyListing.builder()
-          .portalId("koltozzbe")
-          .nativeId(lid)
-          .url(fullUrl)
-          .title(title)
-          .priceText(priceText)
-          .detailsText(detailsText)
-          .imageUrl(imageUrl)
-          .descriptionText(card.text())
-          .method(ExtractionMethod.HTML)
-          .build();
-
-      items.add(raw);
     }
 
     return items;
@@ -108,9 +112,13 @@ public class KoltozzbeRawParser {
         return;
       }
       for (JsonNode el : root.get("itemListElement")) {
-        RawPropertyListing raw = parseJsonLdElement(el);
-        if (raw != null) {
-          items.add(raw);
+        try {
+          RawPropertyListing raw = parseJsonLdElement(el);
+          if (raw != null) {
+            items.add(raw);
+          }
+        } catch (Exception ignored) {
+          // Keep fault-isolated so one bad element does not abort the batch.
         }
       }
     } catch (Exception ex) {
@@ -163,10 +171,17 @@ public class KoltozzbeRawParser {
   }
 
   private String extractPriceText(Element card) {
-    Elements priceCandidates = card.select(".item-type.h2, .item-price, .price, .listing-price");
-    for (Element candidate : priceCandidates) {
+    Elements dedicatedPrice = card.select(".item-price, .price, .listing-price");
+    for (Element candidate : dedicatedPrice) {
       if (!candidate.text().isBlank()) {
         return candidate.text();
+      }
+    }
+    Element typeCandidate = card.selectFirst(".item-type.h2");
+    if (typeCandidate != null && !typeCandidate.text().isBlank()) {
+      String txt = typeCandidate.text();
+      if (txt.contains("Ft") || txt.matches(".*\\d.*")) {
+        return txt;
       }
     }
     return card.text();
@@ -185,6 +200,9 @@ public class KoltozzbeRawParser {
       return 0;
     }
     JsonNode offers = product.get("offers");
+    if (offers.isArray() && !offers.isEmpty()) {
+      offers = offers.get(0);
+    }
     if (offers.has("priceSpecification") && offers.get("priceSpecification").has("price")) {
       return offers.get("priceSpecification").get("price").asLong(0);
     }
@@ -202,6 +220,8 @@ public class KoltozzbeRawParser {
     JsonNode imageNode = product.get("image");
     if (imageNode.isArray() && !imageNode.isEmpty()) {
       resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get(0).asString());
+    } else if (imageNode.isObject() && imageNode.has("url")) {
+      resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.get("url").asString());
     } else if (imageNode.isValueNode()) {
       resolved = PortalSupport.resolveUrl(KoltozzbeUrlBuilder.BASE_URL, imageNode.asString());
     }

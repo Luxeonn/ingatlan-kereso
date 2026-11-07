@@ -15,6 +15,7 @@ import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.ExtractionStrategy;
+import ingatlanok.portal.PortalSupport;
 
 public class JofogasHtmlStrategy implements ExtractionStrategy {
 
@@ -61,6 +62,10 @@ public class JofogasHtmlStrategy implements ExtractionStrategy {
         if (document == null) {
           LOGGER.warn("Nem sikerült letölteni a Jófogás oldalt: {}", pageUrl);
           continue;
+        }
+        if (PortalSupport.isCommonBotChallenge(document)) {
+          LOGGER.warn("Jófogás: Bot-védelem detektálva");
+          return RawExtractionResult.botProtected(method(), searchUrl, "Bot-védelem detektálva");
         }
         collectPageListings(document, processedUrls, allListings);
       }

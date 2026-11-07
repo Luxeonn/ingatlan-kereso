@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <title>Költözzbe JSON-LD Edge Cases</title>
+  
+  <!-- Malformed JSON-LD block (syntax error) -->
+  <script type="application/ld+json">
+    { "context": "broken", "itemListElement": [ { malformed...
+  </script>
+
+  <!-- Valid JSON-LD block with various edge cases -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "item": {
+          "@type": "Product",
+          "url": "https://koltozzbe.hu/elado-haz-debrecen/h4001",
+          "name": "Debrecen Családi Ház 100 m² 4 szoba",
+          "description": "Debrecen kiváló állapotú családi ház",
+          "image": ["https://koltozzbe.hu/img/kb4001.jpg"],
+          "offers": {
+            "priceSpecification": { "price": 95000000 }
+          }
+        }
+      },
+      {
+        "@type": "ListItem",
+        "item": {
+          "@type": "Product",
+          "url": "https://koltozzbe.hu/elado-lakas-debrecen/h4002",
+          "name": "Debrecen Belvárosi Lakás 60 m² 2 szoba",
+          "description": "Debrecen modern lakás",
+          "image": "https://koltozzbe.hu/img/kb4002.jpg",
+          "offers": [
+            { "@type": "Offer", "price": 54000000 }
+          ]
+        }
+      },
+      {
+        "@type": "ListItem",
+        "item": {
+          "@type": "Product",
+          "url": "https://koltozzbe.hu/elado-telek-debrecen/h4003",
+          "name": "Debrecen Nagyerdő Építési Telek 800 m²",
+          "description": "Összközműves építési telek",
+          "image": {
+            "@type": "ImageObject",
+            "url": "https://koltozzbe.hu/img/kb4003.jpg"
+          }
+        }
+      },
+      {
+        "@type": "ListItem",
+        "item": {
+          "@type": "Product",
+          "url": "https://koltozzbe.hu/elado-haz-debrecen/h4004",
+          "name": "Debrecen Ikerház 110 m² 3 szoba",
+          "description": "Debrecen csendes kertvárosi",
+          "image": ["/y/img/nopic_sample.png"],
+          "offers": { "price": 0 }
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <!-- HTML card for URL overlapping with JSON-LD (h4001) to test deduplication / priority -->
+  <div class="listing-card" data-lid="4001">
+    <a class="listing-item-link" href="/elado-haz-debrecen/h4001" title="Debrecen Családi Ház HTML változat"></a>
+    <div class="item-price">95 M Ft</div>
+    <div class="listing-parameters">100 m2 • 4 szoba</div>
+  </div>
+
+  <!-- HTML-only listing to verify multi-source combination -->
+  <div class="listing-card" data-lid="4005">
+    <a class="listing-item-link" href="/elado-haz-debrecen/h4005" title="Debrecen Kizárólag HTML Hirdetés"></a>
+    <div class="item-price">68 M Ft</div>
+    <div class="listing-parameters">75 m2 • 3 szoba</div>
+    <img data-src="/img/kb4005.jpg" alt="HTML hirdetés" />
+  </div>
+</body>
+</html>

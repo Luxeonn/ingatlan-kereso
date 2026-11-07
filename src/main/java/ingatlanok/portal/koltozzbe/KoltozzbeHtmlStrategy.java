@@ -15,6 +15,7 @@ import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.ExtractionStrategy;
+import ingatlanok.portal.PortalSupport;
 
 public class KoltozzbeHtmlStrategy implements ExtractionStrategy {
 
@@ -58,6 +59,11 @@ public class KoltozzbeHtmlStrategy implements ExtractionStrategy {
         if (doc == null) {
           LOGGER.warn("Nem sikerült letölteni a Költözzbe oldalt (HTML): {}", pageUrl);
           break;
+        }
+
+        if (PortalSupport.isCommonBotChallenge(doc)) {
+          LOGGER.warn("Költözzbe (HTML): Bot-védelem detektálva");
+          return RawExtractionResult.botProtected(method(), searchUrl, "Bot-védelem detektálva");
         }
 
         List<RawPropertyListing> pageListings = rawParser.parseHtmlListings(doc);
