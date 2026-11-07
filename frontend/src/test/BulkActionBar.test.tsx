@@ -74,10 +74,11 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     // Non-default filters are not pinned initially
     expect(within(filterRow).queryByRole('button', { name: /Megtekintettek rejtése/i })).toBeNull()
     expect(within(filterRow).queryByRole('button', { name: /Csak új építésű/i })).toBeNull()
+    expect(within(filterRow).queryByRole('button', { name: /Több forrásosak rejtése/i })).toBeNull()
 
-    // Selector button shows (3/5)
+    // Selector button shows (3/6)
     const selectorBtn = within(filterRow).getByTestId('quick-filter-selector-btn')
-    expect(selectorBtn.textContent).toContain('Szűrők (3/5)')
+    expect(selectorBtn.textContent).toContain('Szűrők (3/6)')
   })
 
   it('AC4: allows customizing pinned quick filters via popover (max 3), disables unchecked options at limit, and persists to localStorage', () => {
@@ -100,8 +101,9 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     const hiddenCheckbox = screen.getByTestId('quick-filter-checkbox-hidden') as HTMLInputElement
     const excludeViewedCheckbox = screen.getByTestId('quick-filter-checkbox-excludeViewed') as HTMLInputElement
     const newConstructionCheckbox = screen.getByTestId('quick-filter-checkbox-onlyNewConstruction') as HTMLInputElement
+    const excludeMultiCheckbox = screen.getByTestId('quick-filter-checkbox-excludeMultiSource') as HTMLInputElement
 
-    // Initially 3 are checked, and the remaining 2 unchecked are disabled
+    // Initially 3 are checked, and the remaining 3 unchecked are disabled
     expect(bargainCheckbox.checked).toBe(true)
     expect(onlyNewCheckbox.checked).toBe(true)
     expect(hiddenCheckbox.checked).toBe(true)
@@ -109,19 +111,22 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     expect(excludeViewedCheckbox.disabled).toBe(true)
     expect(newConstructionCheckbox.checked).toBe(false)
     expect(newConstructionCheckbox.disabled).toBe(true)
+    expect(excludeMultiCheckbox.checked).toBe(false)
+    expect(excludeMultiCheckbox.disabled).toBe(true)
 
-    // Uncheck 'hidden' -> now 2/5 selected, unchecked options become enabled
+    // Uncheck 'hidden' -> now 2/6 selected, unchecked options become enabled
     fireEvent.click(hiddenCheckbox)
     expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew'])
-    expect(selectorBtn.textContent).toContain('Szűrők (2/5)')
+    expect(selectorBtn.textContent).toContain('Szűrők (2/6)')
     expect(screen.queryByTestId('hidden-filter-toggle')).toBeNull()
     expect(excludeViewedCheckbox.disabled).toBe(false)
     expect(newConstructionCheckbox.disabled).toBe(false)
+    expect(excludeMultiCheckbox.disabled).toBe(false)
 
-    // Check 'excludeViewed' -> back to 3/5 selected
+    // Check 'excludeViewed' -> back to 3/6 selected
     fireEvent.click(excludeViewedCheckbox)
     expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew', 'excludeViewed'])
-    expect(selectorBtn.textContent).toContain('Szűrők (3/5)')
+    expect(selectorBtn.textContent).toContain('Szűrők (3/6)')
 
     // Verify localStorage persistence
     const stored = JSON.parse(localStorage.getItem('pinned_quick_filters') || '[]')
@@ -136,6 +141,54 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     // Close popover via Escape key
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByTestId('quick-filter-selector-popover')).toBeNull()
+  })
+
+  it('allows pinning and toggling the excludeMultiSource quick filter (#369)', () => {
+    render(
+      <BulkActionBar
+        items={sampleItems}
+        rawItems={sampleItems}
+        totalRawCount={2}
+      />,
+    )
+
+    // Open popover, uncheck onlyNew and check excludeMultiSource
+    fireEvent.click(screen.getByTestId('quick-filter-selector-btn'))
+    fireEvent.click(screen.getByTestId('quick-filter-checkbox-onlyNew'))
+    fireEvent.click(screen.getByTestId('quick-filter-checkbox-excludeMultiSource'))
+
+    expect(useUiStore.getState().pinnedQuickFilters).toContain('excludeMultiSource')
+
+    // Pinned chip renders with title and test-id
+    const multiChip = screen.getByTestId('exclude-multi-source-toggle')
+    expect(multiChip).toBeTruthy()
+    expect(multiChip.getAttribute('aria-pressed')).toBe('false')
+
+    // Clicking toggles excludeMultiSource in useFilterStore and updates storage
+    fireEvent.click(multiChip)
+    expect(useFilterStore.getState().excludeMultiSource).toBe(true)
+    expect(multiChip.getAttribute('aria-pressed')).toBe('true')
+    expect(localStorage.getItem('preferred_exclude_multi_source')).toBe('true')
+
+    fireEvent.click(multiChip)
+    expect(useFilterStore.getState().excludeMultiSource).toBe(false)
+    expect(multiChip.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('verifies sort select does not contain Ft/m² options (#369)', () => {
+    render(
+      <BulkActionBar
+        items={sampleItems}
+        rawItems={sampleItems}
+        totalRawCount={2}
+      />,
+    )
+
+    const sortSelect = screen.getByLabelText('Rendezés') as HTMLSelectElement
+    const optionValues = Array.from(sortSelect.options).map((o) => o.value)
+    expect(optionValues).not.toContain('sqm_price_asc')
+    expect(optionValues).not.toContain('sqm_price_desc')
+    expect(optionValues).toEqual(['price_asc', 'price_desc', 'area_desc', 'date_desc', 'bargain_desc'])
   })
 })
 

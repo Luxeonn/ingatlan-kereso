@@ -9,6 +9,7 @@ export type QuickFilterId =
   | 'hidden'
   | 'excludeViewed'
   | 'onlyNewConstruction'
+  | 'excludeMultiSource'
 
 export const ALL_QUICK_FILTER_IDS: readonly QuickFilterId[] = [
   'bargain',
@@ -16,6 +17,7 @@ export const ALL_QUICK_FILTER_IDS: readonly QuickFilterId[] = [
   'hidden',
   'excludeViewed',
   'onlyNewConstruction',
+  'excludeMultiSource',
 ]
 
 export const DEFAULT_PINNED_QUICK_FILTERS: QuickFilterId[] = [
