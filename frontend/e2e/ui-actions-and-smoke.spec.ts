@@ -22,7 +22,7 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
 
     // If running in isolated frontend mode (e.g. Vite Preview without live Spring Boot backend),
     // provide realistic mock responses for all REST API endpoints.
-    const isLiveBackend = Boolean(process.env.PLAYWRIGHT_BASE_URL)
+    const isLiveBackend = Boolean(process.env['PLAYWRIGHT_BASE_URL'])
     if (!isLiveBackend) {
       await page.route('**/api/**', async (route) => {
         const url = route.request().url()

@@ -13,6 +13,7 @@ describe('PropertyCard Dismiss & Restore (#318)', () => {
     location: 'Budapest',
     city: 'Budapest',
     propertyType: 'LAKAS',
+    sourcesCount: 1,
     isNew: false,
     viewed: false,
     hidden: false,

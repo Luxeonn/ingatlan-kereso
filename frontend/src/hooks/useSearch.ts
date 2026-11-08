@@ -47,6 +47,7 @@ function buildOrphanItem(url: string): IngatlanItem {
     location: 'Elmentett hivatkozás',
     city: 'Ismeretlen',
     propertyType: 'EGYEB_ISMERETLEN',
+    sourcesCount: 1,
     source: {
       portalId: portalInfo.portalId,
       portalName: portalInfo.portalName,

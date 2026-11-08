@@ -5,6 +5,7 @@ import {
   SAMPLE_PROPERTIES,
 } from './helpers/mockApi'
 import type { SearchCriteria } from '../src/types/api'
+import type { IngatlanItem } from '../src/types/property'
 
 let pageErrors: Error[] = []
 let consoleErrors: string[] = []
@@ -307,13 +308,17 @@ test.describe('Ingatlan Kereső - Search, Filter & Sort E2E Flow Suite (#377)', 
           })
         } else {
           // Szeged results
-          const szegedProperty = {
-            ...SAMPLE_PROPERTIES[2],
+          const baseProp = SAMPLE_PROPERTIES[2] ?? SAMPLE_PROPERTIES[0]!
+          const szegedProperty: IngatlanItem = {
+            ...baseProp,
             id: 'szeged-404',
+            portal: 'Jófogás',
+            url: 'https://jofogas.hu/szeged-404',
             title: 'Szegedi Tisza-parti új ház',
             city: 'Szeged',
             location: 'Szeged, Belváros',
             price: '99 M Ft',
+            sourcesCount: 1,
           }
           await route.fulfill({
             status: 200,

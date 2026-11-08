@@ -77,7 +77,7 @@ export interface MarketAnalyticsData {
     insufficientData: boolean
     bargainCount: number
     bargainPercent: number
-    activeCategory: 'lakas' | 'haz' | 'telek' | null
+    activeCategory: AnalyticsCategory | null
   }
   distribution: {
     priceBins: HistogramBin[]
@@ -112,7 +112,14 @@ export function calculateMedian(arr: number[]): number {
   if (arr.length === 0) return 0
   const sorted = [...arr].sort((a, b) => a - b)
   const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+  const midVal = sorted[mid]
+  if (midVal === undefined) return 0
+  if (sorted.length % 2 !== 0) {
+    return midVal
+  }
+  const prevVal = sorted[mid - 1]
+  if (prevVal === undefined) return midVal
+  return (prevVal + midVal) / 2
 }
 
 export function calculatePercentile(arr: number[], p: number): number {
@@ -121,8 +128,12 @@ export function calculatePercentile(arr: number[], p: number): number {
   const index = (sorted.length - 1) * p
   const lower = Math.floor(index)
   const upper = Math.ceil(index)
+  const lowerVal = sorted[lower]
+  const upperVal = sorted[upper]
+  if (lowerVal === undefined) return 0
+  if (lower === upper || upperVal === undefined) return lowerVal
   const weight = index - lower
-  return lower === upper ? sorted[lower] : sorted[lower] * (1 - weight) + sorted[upper] * weight
+  return lowerVal * (1 - weight) + upperVal * weight
 }
 
 export function calculateStdDev(arr: number[], mean: number): number {
@@ -169,17 +180,33 @@ export function buildHistogramBins(options: HistogramOptions): HistogramBin[] {
   return bins
 }
 
-export function normalizeCategoryType(type?: string | null): 'lakas' | 'haz' | 'telek' | null {
+export type AnalyticsCategory = 'lakas' | 'haz' | 'telek' | 'garazs' | 'ipari' | 'egyeb'
+
+export function normalizeCategoryType(type?: string | null): AnalyticsCategory | null {
   if (!type) return null
   const canonical = normalizePropertyType(type)
-  if (canonical === 'LAKAS') return 'lakas'
-  if (canonical === 'HAZ') return 'haz'
-  if (canonical === 'TELEK') return 'telek'
-  return null
+  switch (canonical) {
+    case 'LAKAS':
+      return 'lakas'
+    case 'HAZ':
+      return 'haz'
+    case 'TELEK':
+      return 'telek'
+    case 'GARAZS':
+      return 'garazs'
+    case 'IPARI_KERESKEDELMI':
+      return 'ipari'
+    case 'EGYEB_ISMERETLEN':
+      return 'egyeb'
+    default: {
+      const _exhaustive: never = canonical
+      return _exhaustive
+    }
+  }
 }
 
 export function createEmptyMarketAnalyticsData(
-  targetCategory: 'lakas' | 'haz' | 'telek' | null,
+  targetCategory: AnalyticsCategory | null,
 ): MarketAnalyticsData {
   return {
     totalCount: 0,

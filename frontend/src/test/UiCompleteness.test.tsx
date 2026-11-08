@@ -21,6 +21,7 @@ const sampleItems: IngatlanItem[] = [
     isNew: true,
     viewed: false,
     newConstruction: true,
+    sourcesCount: 1,
     priceInfo: { amountMillion: 110, amountHuf: 110_000_000 },
     detailsInfo: { areaSquareMeters: 140, roomCount: 4, pricePerSquareMeter: 785_714 },
   },
@@ -35,6 +36,7 @@ const sampleItems: IngatlanItem[] = [
     isNew: false,
     viewed: true,
     newConstruction: false,
+    sourcesCount: 1,
     priceInfo: { amountMillion: 75, amountHuf: 75_000_000 },
     detailsInfo: { areaSquareMeters: 68, roomCount: 2, pricePerSquareMeter: 1_102_941 },
   },
@@ -61,7 +63,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
       sortOption: 'price_asc',
     })
     expect(byQuickSearch).toHaveLength(1)
-    expect(byQuickSearch[0].id).toBe('1')
+    expect(byQuickSearch[0]?.id).toBe('1')
 
     // Portal chip filter
     const byPortal = filterAndSortItems(sampleItems, {
@@ -69,7 +71,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
       sortOption: 'price_asc',
     })
     expect(byPortal).toHaveLength(1)
-    expect(byPortal[0].id).toBe('2')
+    expect(byPortal[0]?.id).toBe('2')
 
     // Only new construction filter (#202)
     const byNewBuild = filterAndSortItems(sampleItems, {
@@ -77,7 +79,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
       sortOption: 'price_asc',
     })
     expect(byNewBuild).toHaveLength(1)
-    expect(byNewBuild[0].id).toBe('1')
+    expect(byNewBuild[0]?.id).toBe('1')
 
     // Exclude viewed filter (#227)
     const byUnviewed = filterAndSortItems(sampleItems, {
@@ -85,7 +87,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
       sortOption: 'price_asc',
     })
     expect(byUnviewed).toHaveLength(1)
-    expect(byUnviewed[0].id).toBe('1')
+    expect(byUnviewed[0]?.id).toBe('1')
   })
 
   it('renders BulkActionBar with quick search input, default pinned quick filters, sort select, portal chips, and archive clear confirmation (#359)', () => {
@@ -232,8 +234,8 @@ describe('UI Completeness (#157, #202, #227)', () => {
 
     render(
       <BulkActionBar
-        items={[sampleItems[1]]}
-        rawItems={[sampleItems[1]]}
+        items={[sampleItems[1]!]}
+        rawItems={[sampleItems[1]!]}
         totalRawCount={1}
         onOpenAll={() => {}}
         onMarkAllViewed={() => {}}
@@ -326,12 +328,13 @@ describe('UI Completeness (#157, #202, #227)', () => {
         price: 'N/A',
         location: 'Elmentett hivatkozás',
         city: 'Ismeretlen',
+        sourcesCount: 1,
       }
     })
 
     expect(rawFavoriteItems).toHaveLength(1)
-    expect(rawFavoriteItems[0].url).toBe('https://dh.hu/elado-ingatlan/12345')
-    expect(rawFavoriteItems[0].portal).toBe('Duna House')
+    expect(rawFavoriteItems[0]?.url).toBe('https://dh.hu/elado-ingatlan/12345')
+    expect(rawFavoriteItems[0]?.portal).toBe('Duna House')
   })
 
   it('renders DiagnosticsModal with latencyMs, foundCount, and clickable fallbackUrl button on BOT_PROTECTED (#300)', () => {

@@ -80,7 +80,7 @@ describe('ListingsPanel component (#264)', () => {
       { id: 'dh-1', portal: 'Duna House', url: 'https://dh.hu/1', title: 'Ház 1', price: '50 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
       { id: 'dh-2', portal: 'Duna House', url: 'https://dh.hu/2', title: 'Ház 2', price: '55 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
       { id: 'dh-3', portal: 'Duna House', url: 'https://dh.hu/3', title: 'Ház 3', price: '60 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
-      { id: 'dh-4', portal: 'Duna House', url: 'https://dh.hu/4', title: 'Ház 4', price: '65 M Ft', location: 'Szekszárd', city: 'Szekszárd' }, // fallback 1
+      { id: 'dh-4', portal: 'Duna House', url: 'https://dh.hu/4', title: 'Ház 4', price: '65 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
       {
         id: 'dh-5',
         portal: 'Duna House',
@@ -278,6 +278,7 @@ describe('ListingsPanel component (#264)', () => {
       location: 'Debrecen',
       city: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
     }))
 
     render(

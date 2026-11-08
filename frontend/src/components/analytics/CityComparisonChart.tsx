@@ -20,6 +20,10 @@ interface CityComparisonChartProps {
   onSelectCity?: (city: string) => void
 }
 
+function isCityStat(entry: unknown): entry is CityStat {
+  return typeof entry === 'object' && entry !== null && 'city' in entry && typeof (entry as { city: unknown }).city === 'string'
+}
+
 export const CityComparisonChart: FC<CityComparisonChartProps> = ({
   cityData,
   onSelectCity,
@@ -143,7 +147,9 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
-                    const data = payload[0].payload as CityStat
+                    const firstItem = payload[0]
+                    const data = firstItem?.payload
+                    if (!isCityStat(data)) return null
                     return (
                       <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-xl backdrop-blur-md text-xs">
                         <p className="font-bold text-[var(--text-primary)] flex items-center gap-1.5 mb-1.5">
@@ -190,7 +196,11 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
                 dataKey={metric}
                 cursor="pointer"
                 radius={[6, 6, 0, 0]}
-                onClick={(entry) => handleBarClick((entry as unknown as CityStat).city)}
+                onClick={(entry) => {
+                  if (isCityStat(entry)) {
+                    handleBarClick(entry.city)
+                  }
+                }}
               >
                 {sortedData.map((entry, index) => (
                   <Cell

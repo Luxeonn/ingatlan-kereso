@@ -43,7 +43,7 @@ describe('filterUrlSync utility', () => {
       )
       const result = parseUrlParams()
       expect(result.criteria?.cities).toEqual(['Debrecen'])
-      expect(result.criteria?.propertyType).toBe('haz')
+      expect(result.criteria?.propertyType).toBe('HAZ')
       expect(result.criteria?.minPriceMillion).toBe(55)
       expect(result.sort).toBeUndefined()
       expect(result.minQualityScore).toBeUndefined()
@@ -57,7 +57,7 @@ describe('filterUrlSync utility', () => {
       const result = parseUrlParams()
       expect(result.criteria?.cities).toEqual(['Debrecen', 'Szeged'])
       expect(result.criteria?.city).toBe('Debrecen')
-      expect(result.criteria?.propertyType).toBe('haz')
+      expect(result.criteria?.propertyType).toBe('HAZ')
       expect(result.criteria?.minPriceMillion).toBe(60)
       expect(result.criteria?.maxPriceMillion).toBe(140)
       expect(result.criteria?.minArea).toBe(80)
@@ -102,7 +102,7 @@ describe('filterUrlSync utility', () => {
     const baseCriteria: SearchCriteria = {
       cities: ['Hajdúszoboszló'],
       city: 'Hajdúszoboszló',
-      propertyType: 'lakas',
+      propertyType: 'HAZ',
       minPriceMillion: 70, // default
       maxPriceMillion: 120, // default
       minArea: 90, // default
@@ -128,7 +128,7 @@ describe('filterUrlSync utility', () => {
       const customCriteria: SearchCriteria = {
         ...baseCriteria,
         cities: ['Debrecen', 'Miskolc'],
-        propertyType: 'haz',
+        propertyType: 'LAKAS',
         minPriceMillion: 55,
         maxPriceMillion: 110,
         minArea: 75,
@@ -142,7 +142,7 @@ describe('filterUrlSync utility', () => {
       const params = new URLSearchParams()
       appendCriteriaParams(params, customCriteria)
       expect(params.get('cities')).toBe('Debrecen,Miskolc')
-      expect(params.get('type')).toBe('haz')
+      expect(params.get('type')).toBe('LAKAS')
       expect(params.get('minPrice')).toBe('55')
       expect(params.get('maxPrice')).toBe('110')
       expect(params.get('minArea')).toBe('75')
@@ -175,7 +175,7 @@ describe('filterUrlSync utility', () => {
       const customCriteria: SearchCriteria = {
         ...baseCriteria,
         cities: ['Debrecen'],
-        propertyType: 'telek',
+        propertyType: 'TELEK',
         minPriceMillion: 40,
         maxPriceMillion: 90,
         minArea: 500,
@@ -200,7 +200,7 @@ describe('filterUrlSync utility', () => {
       const parsed = parseUrlParams()
 
       expect(parsed.criteria?.cities).toEqual(['Debrecen'])
-      expect(parsed.criteria?.propertyType).toBe('telek')
+      expect(parsed.criteria?.propertyType).toBe('TELEK')
       expect(parsed.criteria?.minPriceMillion).toBe(40)
       expect(parsed.criteria?.maxPriceMillion).toBe(90)
       expect(parsed.criteria?.minArea).toBe(500)

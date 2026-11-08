@@ -14,6 +14,7 @@ describe('PropertyCard component (#270)', () => {
     location: 'Debrecen',
     city: 'Debrecen',
     propertyType: 'LAKAS',
+    sourcesCount: 1,
     isNew: true,
     viewed: false,
     newConstruction: true,

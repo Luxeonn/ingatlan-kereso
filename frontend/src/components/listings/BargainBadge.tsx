@@ -22,14 +22,6 @@ function resolvePercentageBelow(item: IngatlanItem): number | null {
   if (item.percentageBelowMedian !== undefined && item.percentageBelowMedian !== null) {
     return item.percentageBelowMedian
   }
-  const info = item.bargainInfo
-  if (!info) return null
-  if (info.percentageBelowMedian !== undefined && info.percentageBelowMedian !== null) {
-    return info.percentageBelowMedian
-  }
-  if (info.deltaPercent !== undefined && info.deltaPercent !== null) {
-    return Math.abs(info.deltaPercent)
-  }
   return null
 }
 
@@ -37,11 +29,11 @@ function resolveSampleSize(item: IngatlanItem): number {
   if (item.referenceSampleSize !== undefined && item.referenceSampleSize !== null) {
     return item.referenceSampleSize
   }
-  return item.bargainInfo?.sampleSize ?? 0
+  return 0
 }
 
 function extractBargainStats(item: IngatlanItem): BargainStats | null {
-  const isBargain = Boolean(item.isBargain || item.bargainInfo?.isBargain)
+  const isBargain = Boolean(item.isBargain)
   const sampleSize = resolveSampleSize(item)
   const percentageBelow = resolvePercentageBelow(item)
 
@@ -53,8 +45,8 @@ function extractBargainStats(item: IngatlanItem): BargainStats | null {
     isBargain,
     sampleSize,
     percentageBelow,
-    refMedian: item.referenceMedianPricePerSquareMeter ?? item.bargainInfo?.referenceMedianPricePerSqm,
-    currentPricePerSqm: getEffectiveSqmPrice(item) ?? item.bargainInfo?.currentPricePerSqm,
+    refMedian: item.referenceMedianPricePerSquareMeter,
+    currentPricePerSqm: getEffectiveSqmPrice(item),
     roundedPct: Math.round(percentageBelow),
   }
 }

@@ -30,6 +30,7 @@ describe('useMarketAnalytics hook', () => {
         location: 'Debrecen',
         city: 'Debrecen',
         isNew: true,
+        sourcesCount: 1,
         priceInfo: { amountMillion: 60, amountHuf: 60000000 },
         detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 600000 },
       },
@@ -42,6 +43,7 @@ describe('useMarketAnalytics hook', () => {
         location: 'Debrecen',
         city: 'Debrecen',
         isNew: false,
+        sourcesCount: 1,
         priceInfo: { amountMillion: 80, amountHuf: 80000000 },
         detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 800000 },
       },
@@ -54,6 +56,7 @@ describe('useMarketAnalytics hook', () => {
         location: 'Debrecen',
         city: 'Debrecen',
         isNew: false,
+        sourcesCount: 1,
         priceDelta: -5000000,
         priceChangePercent: -4.8,
         priceInfo: { amountMillion: 100, amountHuf: 100000000 },
@@ -68,6 +71,7 @@ describe('useMarketAnalytics hook', () => {
         location: 'Hajdúsámson',
         city: 'Hajdúsámson',
         isNew: true,
+        sourcesCount: 1,
         priceInfo: { amountMillion: 50, amountHuf: 50000000 },
         detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 500000 },
       },
@@ -113,12 +117,12 @@ describe('useMarketAnalytics hook', () => {
 
     // Price drops check
     expect(result.current.bargains.topPriceDrops.length).toBe(1)
-    expect(result.current.bargains.topPriceDrops[0].id).toBe('3')
+    expect(result.current.bargains.topPriceDrops[0]?.id).toBe('3')
 
     // Below market deals check: Debrecen average sqm is 800k; 800k * 0.85 = 680k.
     // Item 1 has 600k, which is < 680k -> detected as below market bargain!
     expect(result.current.bargains.belowMarketDeals.length).toBeGreaterThan(0)
-    expect(result.current.bargains.belowMarketDeals[0].item.id).toBe('1')
+    expect(result.current.bargains.belowMarketDeals[0]?.item.id).toBe('1')
 
     // Bins check
     expect(result.current.distribution.priceBins.length).toBeGreaterThan(0)
@@ -140,6 +144,7 @@ describe('useMarketAnalytics hook', () => {
       location: 'Debrecen',
       city: 'Debrecen',
       propertyType: 'HAZ',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 80 + i * 5, amountHuf: (80 + i * 5) * 1_000_000 },
       detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 800_000 + i * 20_000 },
     }))

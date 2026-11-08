@@ -5,6 +5,7 @@ import { getPortals } from '../api/portalApi'
 import { getLastConfig, executeSearch } from '../api/searchApi'
 import { markAsViewed, openUrls, getHistory, clearHistory, hideProperty, restoreProperty, getHiddenProperties } from '../api/propertyApi'
 import { getPresets, createPreset, updatePreset, deletePreset, recordPresetUsage } from '../api/presetApi'
+import type { SearchCriteria } from '../types/api'
 
 describe('Typed OpenAPI Client (Issue #402)', () => {
   const originalFetch = globalThis.fetch
@@ -105,7 +106,9 @@ describe('Typed OpenAPI Client (Issue #402)', () => {
       const res = await getCities()
       expect(res).toEqual(mockData)
 
-      const [callArg] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
+      const callArg = fetchMock.mock.calls[0]?.[0]
+      expect(callArg).toBeDefined()
       const { url, method } = getRequestInfo(callArg)
       expect(url).toContain('/api/cities')
       expect(method).toBe('GET')
@@ -134,7 +137,9 @@ describe('Typed OpenAPI Client (Issue #402)', () => {
       const res = await getPortals()
       expect(res).toEqual(mockPortals)
 
-      const [callArg] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
+      const callArg = fetchMock.mock.calls[0]?.[0]
+      expect(callArg).toBeDefined()
       const { url, method } = getRequestInfo(callArg)
       expect(url).toContain('/api/portals')
       expect(method).toBe('GET')
@@ -160,9 +165,10 @@ describe('Typed OpenAPI Client (Issue #402)', () => {
         }),
       )
 
-      const testCriteria = {
+      const testCriteria: SearchCriteria = {
         city: 'Debrecen',
         cities: ['Debrecen'],
+        propertyType: 'LAKAS',
         minPriceMillion: 0,
         maxPriceMillion: 100,
         minArea: 0,
@@ -170,11 +176,15 @@ describe('Typed OpenAPI Client (Issue #402)', () => {
         portals: ['dh'],
         autoOpenBrowser: false,
         excludeViewed: false,
+        onlyDiscounted: false,
+        onlyNewConstruction: false,
       }
       const searchRes = await executeSearch(testCriteria)
       expect(searchRes).toEqual(mockDashboard)
 
-      const [searchReq] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
+      const searchReq = fetchMock.mock.calls[0]?.[0]
+      expect(searchReq).toBeDefined()
       const { url, method } = getRequestInfo(searchReq)
       expect(url).toContain('/api/search')
       expect(method).toBe('POST')

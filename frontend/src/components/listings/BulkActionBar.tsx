@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
-import { useFilterStore, SORT_OPTIONS, type SortOption } from '../../store/useFilterStore'
+import { useFilterStore, SORT_OPTIONS, isSortOption } from '../../store/useFilterStore'
 import { isItemBargain } from '../../hooks/useSearch'
 import { PORTAL_CHIPS, getItemPortalKeys, getTotalSourceListingsCount } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
@@ -142,7 +142,12 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
               id="bulk-sort-select"
               aria-label="Rendezés"
               value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as SortOption)}
+              onChange={(e) => {
+                const val = e.target.value
+                if (isSortOption(val)) {
+                  setSortOption(val)
+                }
+              }}
               className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
             >
               {SORT_OPTIONS.map((opt) => (

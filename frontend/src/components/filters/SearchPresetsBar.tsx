@@ -26,9 +26,18 @@ interface SearchPresetsBarProps {
 
 function generateDefaultName(criteria: ReturnType<typeof useFilterStore.getState>['criteria']): string {
   const city = criteria.cities && criteria.cities.length > 0 ? criteria.cities.join(', ') : criteria.city || 'Keresés'
-  const typeMap: Record<string, string> = { haz: 'Ház', lakas: 'Lakás', telek: 'Telek' }
+  const typeMap: Record<string, string> = {
+    HAZ: 'Ház',
+    LAKAS: 'Lakás',
+    TELEK: 'Telek',
+    haz: 'Ház',
+    lakas: 'Lakás',
+    telek: 'Telek',
+  }
   const propType = criteria.propertyType || ''
-  const typeStr = typeMap[propType] || propType
+  const typeStr = Object.prototype.hasOwnProperty.call(typeMap, propType)
+    ? (typeMap[propType] ?? propType)
+    : propType
   return `${city} ${typeStr} ${criteria.minPriceMillion}-${criteria.maxPriceMillion}M`
 }
 

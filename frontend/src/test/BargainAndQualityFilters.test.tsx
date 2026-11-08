@@ -17,6 +17,7 @@ const mockListings: IngatlanItem[] = [
     propertyType: 'LAKAS',
     isNew: true,
     viewed: false,
+    sourcesCount: 1,
     isBargain: true,
     percentageBelowMedian: 22.5,
     referenceSampleSize: 15,
@@ -37,6 +38,7 @@ const mockListings: IngatlanItem[] = [
     propertyType: 'LAKAS',
     isNew: false,
     viewed: false,
+    sourcesCount: 1,
     isBargain: false,
     qualityScore: 72,
     qualityDeductions: ['Hiányzó energetikai besorolás'],
@@ -55,15 +57,11 @@ const mockListings: IngatlanItem[] = [
     propertyType: 'HAZ',
     isNew: false,
     viewed: false,
-    // Bargain info via bargainInfo object
-    bargainInfo: {
-      isBargain: true,
-      currentPricePerSqm: 300_000,
-      referenceMedianPricePerSqm: 600_000,
-      deltaPercent: -50,
-      percentageBelowMedian: 50,
-      sampleSize: 8,
-    },
+    sourcesCount: 1,
+    isBargain: true,
+    percentageBelowMedian: 50,
+    referenceSampleSize: 8,
+    referenceMedianPricePerSquareMeter: 600_000,
     qualityScore: 55, // Low quality score (< 70 outlier / suspicious)
     qualityDeductions: ['Hiányzó alaprajz és paraméterek', 'Rendkívül alacsony ár'],
     priceInfo: { amountHuf: 15_000_000, amountMillion: 15 },
@@ -82,6 +80,7 @@ const mockListings: IngatlanItem[] = [
     isNew: true,
     viewed: true,
     isBargain: false,
+    sourcesCount: 1,
     // Missing qualityScore (undefined)
     priceInfo: { amountHuf: 110_000_000, amountMillion: 110 },
     detailsInfo: { areaSquareMeters: 140, pricePerSquareMeter: 785_714, roomCount: 4 },
@@ -96,15 +95,13 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
 
   describe('isItemBargain helper', () => {
     it('correctly identifies direct isBargain property', () => {
-      expect(isItemBargain(mockListings[0])).toBe(true)
-      expect(isItemBargain(mockListings[1])).toBe(false)
-    })
-
-    it('identifies bargainInfo nested object flag', () => {
-      expect(isItemBargain(mockListings[2])).toBe(true)
+      expect(isItemBargain(mockListings[0]!)).toBe(true)
+      expect(isItemBargain(mockListings[1]!)).toBe(false)
     })
 
     it('identifies percentageBelowMedian fallback >= 20', () => {
+      expect(isItemBargain(mockListings[2]!)).toBe(true)
+
       const itemWithPctOnly: IngatlanItem = {
         id: 'test-pct',
         portal: 'dh',
@@ -114,6 +111,7 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
         location: 'City',
         city: 'City',
         percentageBelowMedian: 24,
+        sourcesCount: 1,
       }
       expect(isItemBargain(itemWithPctOnly)).toBe(true)
     })
@@ -153,7 +151,7 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
       })
       // Only prop-1 has score 92 >= 85
       expect(results).toHaveLength(1)
-      expect(results[0].id).toBe('prop-1')
+      expect(results[0]?.id).toBe('prop-1')
     })
 
     it('combines onlyBargain and minQualityScore filters seamlessly', () => {
@@ -166,7 +164,7 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
         sortOption: 'price_asc',
       })
       expect(results).toHaveLength(1)
-      expect(results[0].id).toBe('prop-1')
+      expect(results[0]?.id).toBe('prop-1')
     })
 
     it('combines onlyBargain with portal and keyword search', () => {
@@ -177,7 +175,7 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
         sortOption: 'price_asc',
       })
       expect(results).toHaveLength(1)
-      expect(results[0].id).toBe('prop-1')
+      expect(results[0]?.id).toBe('prop-1')
     })
 
     it('sorts listings by bargain percentage descending (bargain_desc)', () => {
@@ -185,10 +183,10 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
         sortOption: 'bargain_desc',
       })
       expect(results).toHaveLength(4)
-      expect(results[0].id).toBe('prop-3')
-      expect(results[1].id).toBe('prop-1')
-      expect(['prop-2', 'prop-4']).toContain(results[2].id)
-      expect(['prop-2', 'prop-4']).toContain(results[3].id)
+      expect(results[0]?.id).toBe('prop-3')
+      expect(results[1]?.id).toBe('prop-1')
+      expect(['prop-2', 'prop-4']).toContain(results[2]?.id)
+      expect(['prop-2', 'prop-4']).toContain(results[3]?.id)
     })
   })
 
@@ -258,13 +256,13 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
     it('filters out multi-source / grouped listings when excludeMultiSource is active (#369)', () => {
       const itemsWithSources: IngatlanItem[] = [
         {
-          ...mockListings[0],
+          ...(mockListings[0]!),
           id: 'single-1',
           sourcesCount: 1,
           sourceListings: [{ portal: 'dh', url: 'https://dh.hu/1', priceHuf: 85_000_000 }],
         },
         {
-          ...mockListings[1],
+          ...(mockListings[1]!),
           id: 'multi-1',
           sourcesCount: 3,
           sourceListings: [
@@ -274,7 +272,7 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
           ],
         },
         {
-          ...mockListings[2],
+          ...(mockListings[2]!),
           id: 'single-2',
           sourcesCount: 1,
         },

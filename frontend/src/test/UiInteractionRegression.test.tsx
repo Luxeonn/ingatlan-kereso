@@ -196,14 +196,14 @@ describe('UI State Management & Interaction Regression (#378)', () => {
 
       // Modify criteria and filters
       act(() => {
-        useFilterStore.getState().setPropertyType('lakas')
+        useFilterStore.getState().setPropertyType('LAKAS')
         useFilterStore.getState().setMinPriceMillion(50)
         useFilterStore.getState().setMaxPriceMillion(100)
         useFilterStore.getState().setSortOption('area_desc')
         useFilterStore.getState().setOnlyBargain(true)
       })
 
-      expect(useFilterStore.getState().criteria.propertyType).toBe('lakas')
+      expect(useFilterStore.getState().criteria.propertyType).toBe('LAKAS')
       expect(useFilterStore.getState().sortOption).toBe('area_desc')
       expect(useFilterStore.getState().onlyBargain).toBe(true)
 
@@ -212,7 +212,7 @@ describe('UI State Management & Interaction Regression (#378)', () => {
       fireEvent.click(resetButton)
 
       // Criteria and UI filters must be reset to defaults
-      expect(useFilterStore.getState().criteria.propertyType).toBe('haz')
+      expect(useFilterStore.getState().criteria.propertyType).toBe('HAZ')
       expect(useFilterStore.getState().criteria.minPriceMillion).toBe(70)
       expect(useFilterStore.getState().criteria.maxPriceMillion).toBe(120)
       expect(useFilterStore.getState().sortOption).toBe('price_asc')
