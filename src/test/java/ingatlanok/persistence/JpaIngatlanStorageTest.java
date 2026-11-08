@@ -268,7 +268,7 @@ class JpaIngatlanStorageTest {
 
     List<IngatlanItem> discounted = storage.getDiscountedProperties("Szeged");
     assertEquals(1, discounted.size());
-    assertEquals("PRICE_DROP", discounted.get(0).getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.PRICE_DROP, discounted.get(0).getStatus());
     assertEquals(-6_000_000L, discounted.get(0).getPriceDelta());
   }
 
@@ -310,7 +310,7 @@ class JpaIngatlanStorageTest {
 
     List<IngatlanItem> items = storage.getItemsByCity("Pécs");
     assertEquals(1, items.size());
-    assertEquals("PRICE_INCREASE", items.get(0).getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.PRICE_INCREASE, items.get(0).getStatus());
     assertEquals(4_000_000L, items.get(0).getPriceDelta());
     assertEquals(10.0, items.get(0).getPriceChangePercent());
   }
@@ -337,7 +337,7 @@ class JpaIngatlanStorageTest {
 
     List<StatusLogEntry> log1 = storage.getStatusLog(url);
     assertEquals(1, log1.size());
-    assertEquals("ACTIVE", log1.get(0).status());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, log1.get(0).status());
     assertEquals("Kezdeti állapot felfedezve", log1.get(0).note());
 
     IngatlanItem dropped =
@@ -358,7 +358,7 @@ class JpaIngatlanStorageTest {
 
     List<StatusLogEntry> log2 = storage.getStatusLog(url);
     assertEquals(2, log2.size());
-    assertEquals("PRICE_DROP", log2.get(1).status());
+    assertEquals(ingatlanok.model.ListingStatus.PRICE_DROP, log2.get(1).status());
     assertTrue(log2.get(1).note().contains("ACTIVE -> PRICE_DROP"));
   }
 
@@ -409,7 +409,7 @@ class JpaIngatlanStorageTest {
             "2026-03-01");
     storage.saveAll(List.of(i1, i2, i3));
 
-    List<Map<String, Object>> cities = storage.getTrackedCitiesInfo();
+    List<ingatlanok.model.TrackedCityInfo> cities = storage.getTrackedCitiesInfo();
     assertEquals(2, cities.size());
 
     Map<String, Long> portals = storage.countByPortal();
@@ -618,7 +618,7 @@ class JpaIngatlanStorageTest {
     IngatlanItem enriched = r2.getItems().get(0);
     assertEquals(-5_000_000L, enriched.getPriceDelta());
     assertEquals(-10.0, enriched.getPriceChangePercent());
-    assertEquals("PRICE_DROP", enriched.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.PRICE_DROP, enriched.getStatus());
     assertTrue(enriched.isViewed());
     assertNotNull(enriched.getViewedAt());
 

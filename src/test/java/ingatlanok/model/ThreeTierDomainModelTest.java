@@ -46,7 +46,7 @@ class ThreeTierDomainModelTest {
     assertEquals("https://img.dh.hu/12345.jpg", source1.getImageUrl());
     assertEquals("2026-10-24 10:00:00", source1.getFirstSeenAt());
     assertEquals("2026-10-24 12:00:00", source1.getLastSeenAt());
-    assertEquals("ACTIVE", source1.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, source1.getStatus());
     assertTrue(source1.isActive());
     assertEquals(45_000_000L, source1.getPriceHuf());
     assertEquals(750_000L, source1.getPricePerM2());
@@ -207,7 +207,7 @@ class ThreeTierDomainModelTest {
     entity.setPriceMillions(95.0);
     entity.setPricePerSqm(791_666L);
     entity.setPropertyType(PropertyType.HAZ);
-    entity.setStatus("ACTIVE");
+    entity.setStatus(ingatlanok.model.ListingStatus.ACTIVE);
     entity.setFirstSeenAt("2026-10-20 10:00:00");
     entity.setLastSeenAt("2026-10-24 15:00:00");
 

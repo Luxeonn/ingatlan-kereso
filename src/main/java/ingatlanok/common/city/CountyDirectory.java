@@ -13,9 +13,9 @@ public final class CountyDirectory {
   private static final Map<String, String> CITY_COUNTY_NAME_MAP = new LinkedHashMap<>();
 
   static {
-    for (Map<String, String> cityInfo : CityPresets.getPredefinedCities()) {
-      String citySlug = cityInfo.get("key");
-      String countyName = cityInfo.get("county");
+    for (ingatlanok.model.PredefinedCity cityInfo : CityPresets.getPredefinedCities()) {
+      String citySlug = cityInfo.key();
+      String countyName = cityInfo.county();
       String countySlug = SlugUtils.toSlug(countyName);
       CITY_COUNTY_SLUG_MAP.put(citySlug, countySlug);
       CITY_COUNTY_NAME_MAP.put(citySlug, countyName);

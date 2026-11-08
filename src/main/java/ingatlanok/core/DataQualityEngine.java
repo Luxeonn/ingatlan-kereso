@@ -7,6 +7,9 @@ import java.util.List;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PropertyType;
+import ingatlanok.model.QualityDeduction;
+import ingatlanok.model.QualityDeductionRule;
+import ingatlanok.model.QualityScore;
 
 /**
  * Deterministic rule-based data quality and reliability scoring engine (#267).
@@ -36,11 +39,25 @@ public class DataQualityEngine {
   public static final double MAX_PRICE_CHANGE_PERCENT = 50.0;
 
   /**
-   * Encapsulates the numerical quality score and list of deduction reasons.
+   * Encapsulates the numerical quality score and list of deduction reasons (#401 / JAVA-010, JAVA-014).
    */
-  public record QualityEvaluation(int score, List<String> deductions) {
+  public record QualityEvaluation(
+      int score,
+      List<String> deductions,
+      List<QualityDeduction> structuredDeductions) {
+
+    public QualityEvaluation(int score, List<String> deductions) {
+      this(score, deductions, List.of());
+    }
+
     public QualityEvaluation {
       deductions = deductions != null ? List.copyOf(deductions) : List.of();
+      structuredDeductions =
+          structuredDeductions != null ? List.copyOf(structuredDeductions) : List.of();
+    }
+
+    public QualityScore toQualityScore() {
+      return QualityScore.of(score);
     }
   }
 
@@ -69,33 +86,44 @@ public class DataQualityEngine {
     evaluateCompleteness(item, collector);
 
     int clampedScore = Math.max(0, Math.min(100, collector.score));
-    return new QualityEvaluation(clampedScore, collector.deductions);
+    return new QualityEvaluation(
+        clampedScore, collector.deductions, collector.structuredDeductions);
   }
 
   private void evaluatePriceSanity(Long priceAmount, DeductionCollector collector) {
     if (priceAmount == null
         || priceAmount < MIN_SANITY_PRICE_HUF
         || priceAmount > MAX_SANITY_PRICE_HUF) {
-      collector.deduct(30, "Érvénytelen vagy irreális ár (1M - 5B Ft tartományon kívül): -30 pont");
+      collector.deduct(
+          QualityDeductionRule.INVALID_PRICE,
+          30,
+          "Érvénytelen vagy irreális ár (1M - 5B Ft tartományon kívül): -30 pont");
     }
   }
 
   private void evaluateAreaSanity(
       PropertyType type, Double area, DeductionCollector collector) {
     if (area == null || area <= 0) {
-      collector.deduct(25, "Hiányzó vagy érvénytelen alapterület: -25 pont");
+      collector.deduct(
+          QualityDeductionRule.MISSING_AREA, 25, "Hiányzó vagy érvénytelen alapterület: -25 pont");
       return;
     }
     if (type.isPlot()) {
       if (area < MIN_PLOT_AREA_M2 || area > MAX_PLOT_AREA_M2) {
-        collector.deduct(25, "Irreális telekméret (50 m² - 500 000 m²-en kívül): -25 pont");
+        collector.deduct(
+            QualityDeductionRule.UNREALISTIC_AREA,
+            25,
+            "Irreális telekméret (50 m² - 500 000 m²-en kívül): -25 pont");
       }
     } else if (type.isResidential()) {
       if (area < MIN_RESIDENTIAL_AREA_M2 || area > MAX_RESIDENTIAL_AREA_M2) {
-        collector.deduct(25, "Irreális lakóterület (10 m² - 2000 m²-en kívül): -25 pont");
+        collector.deduct(
+            QualityDeductionRule.UNREALISTIC_AREA,
+            25,
+            "Irreális lakóterület (10 m² - 2000 m²-en kívül): -25 pont");
       }
     } else if (area < MIN_OTHER_AREA_M2 || area > MAX_PLOT_AREA_M2) {
-      collector.deduct(25, "Irreális alapterület: -25 pont");
+      collector.deduct(QualityDeductionRule.UNREALISTIC_AREA, 25, "Irreális alapterület: -25 pont");
     }
   }
 
@@ -105,10 +133,12 @@ public class DataQualityEngine {
     String location = item.getLocation();
     boolean hasCity = isValidCityValue(rawCity) || isValidCityValue(location);
     if (!hasCity) {
-      collector.deduct(20, "Hiányzó vagy érvénytelen település: -20 pont");
+      collector.deduct(
+          QualityDeductionRule.MISSING_CITY, 20, "Hiányzó vagy érvénytelen település: -20 pont");
     }
     if (type == PropertyType.EGYEB_ISMERETLEN) {
-      collector.deduct(15, "Ismeretlen vagy hiányzó ingatlantípus: -15 pont");
+      collector.deduct(
+          QualityDeductionRule.UNKNOWN_TYPE, 15, "Ismeretlen vagy hiányzó ingatlantípus: -15 pont");
     }
   }
 
@@ -125,6 +155,7 @@ public class DataQualityEngine {
     if (type.isResidential() && pricePerM2 != null) {
       if (pricePerM2 < MIN_RESIDENTIAL_PRICE_PER_M2 || pricePerM2 > MAX_RESIDENTIAL_PRICE_PER_M2) {
         collector.deduct(
+            QualityDeductionRule.SUSPICIOUS_SQM_PRICE,
             20,
             "Irreális négyzetméterár lakóingatlannál (< 100 000 vagy > 4 000 000 Ft/m²): -20 pont");
       }
@@ -133,6 +164,7 @@ public class DataQualityEngine {
       double areaPerRoom = area / rooms;
       if (areaPerRoom < MIN_AREA_PER_ROOM_M2 || areaPerRoom > MAX_AREA_PER_ROOM_M2) {
         collector.deduct(
+            QualityDeductionRule.UNREALISTIC_ROOMS,
             15,
             "Inkonzisztens szobaszám-alapterület arány (< 12 vagy > 150 m²/szoba): -15 pont");
       }
@@ -141,24 +173,35 @@ public class DataQualityEngine {
 
   private void evaluateCompleteness(IngatlanItem item, DeductionCollector collector) {
     if (item.getTitle() == null || item.getTitle().isBlank()) {
-      collector.deduct(10, "Hiányzó hirdetéscím: -10 pont");
+      collector.deduct(QualityDeductionRule.MISSING_DESCRIPTION, 10, "Hiányzó hirdetéscím: -10 pont");
     }
     String url = item.getUrl();
     if (url == null || url.isBlank() || (!url.startsWith("http://") && !url.startsWith("https://"))) {
-      collector.deduct(20, "Hiányzó vagy érvénytelen hirdetés URL: -20 pont");
+      collector.deduct(
+          QualityDeductionRule.MISSING_DETAILS, 20, "Hiányzó vagy érvénytelen hirdetés URL: -20 pont");
     }
     if (item.getImageUrl() == null || item.getImageUrl().isBlank()) {
-      collector.deduct(10, "Hiányzó fényképes dokumentáció: -10 pont");
+      collector.deduct(QualityDeductionRule.MISSING_IMAGES, 10, "Hiányzó fényképes dokumentáció: -10 pont");
     }
     if (item.getPriceChangePercent() != null
         && Math.abs(item.getPriceChangePercent()) > MAX_PRICE_CHANGE_PERCENT) {
-      collector.deduct(25, "Extrém árváltozás az előzményekben (> 50% elmozdulás): -25 pont");
+      collector.deduct(
+          QualityDeductionRule.INVALID_PRICE,
+          25,
+          "Extrém árváltozás az előzményekben (> 50% elmozdulás): -25 pont");
     }
   }
 
   private static final class DeductionCollector {
     private int score = BASE_SCORE;
     private final List<String> deductions = new ArrayList<>();
+    private final List<QualityDeduction> structuredDeductions = new ArrayList<>();
+
+    void deduct(QualityDeductionRule rule, int points, String reason) {
+      this.score -= points;
+      this.deductions.add(reason);
+      this.structuredDeductions.add(new QualityDeduction(rule, points, reason));
+    }
 
     void deduct(int points, String reason) {
       this.score -= points;

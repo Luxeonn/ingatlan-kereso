@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import ingatlanok.common.city.CityPresets;
 import ingatlanok.common.city.CountyDirectory;
+import ingatlanok.model.PredefinedCity;
 
 public final class CityUtils {
 
@@ -19,7 +20,7 @@ public final class CityUtils {
     return normalized.isEmpty() ? "debrecen" : normalized;
   }
 
-  public static List<Map<String, String>> getPredefinedCities() {
+  public static List<PredefinedCity> getPredefinedCities() {
     return CityPresets.getPredefinedCities();
   }
 

@@ -2,6 +2,7 @@ package ingatlanok.portal.koltozzbe;
 
 import java.util.List;
 
+import ingatlanok.model.PropertyType;
 import ingatlanok.portal.ExtractionStrategy;
 import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalDescriptor;
@@ -16,7 +17,7 @@ public class KoltozzbePortalAdapter implements PortalAdapter {
           "#0284c7",
           "https://koltozzbe.hu",
           true,
-          List.of("lakas", "haz", "telek"),
+          List.of(PropertyType.LAKAS, PropertyType.HAZ, PropertyType.TELEK),
           true);
 
   private final KoltozzbeUrlBuilder urlBuilder;

@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Map;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -24,15 +22,15 @@ class GlobalExceptionHandlerTest {
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
     IllegalArgumentException ex = new IllegalArgumentException("Teszt érvénytelen paraméter");
 
-    ResponseEntity<Map<String, Object>> response = handler.handleIllegalArgument(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleIllegalArgument(ex, request);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(400, response.getBody().get("status"));
-    assertEquals("Bad Request", response.getBody().get("error"));
-    assertEquals("Teszt érvénytelen paraméter", response.getBody().get("message"));
-    assertEquals("/api/test", response.getBody().get("path"));
-    assertNotNull(response.getBody().get("timestamp"));
+    assertEquals(400, response.getBody().status());
+    assertEquals("Bad Request", response.getBody().error());
+    assertEquals("Teszt érvénytelen paraméter", response.getBody().message());
+    assertEquals("/api/test", response.getBody().path());
+    assertNotNull(response.getBody().timestamp());
   }
 
   @Test
@@ -42,13 +40,13 @@ class GlobalExceptionHandlerTest {
     MethodArgumentTypeMismatchException ex =
         new MethodArgumentTypeMismatchException("abc", Integer.class, "limit", null, null);
 
-    ResponseEntity<Map<String, Object>> response = handler.handleTypeMismatch(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleTypeMismatch(ex, request);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(400, response.getBody().get("status"));
-    assertEquals("Érvénytelen paraméter típus: limit", response.getBody().get("message"));
-    assertEquals("/api/test-param", response.getBody().get("path"));
+    assertEquals(400, response.getBody().status());
+    assertEquals("Érvénytelen paraméter típus: limit", response.getBody().message());
+    assertEquals("/api/test-param", response.getBody().path());
   }
 
   @Test
@@ -57,14 +55,14 @@ class GlobalExceptionHandlerTest {
     MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/search");
     RuntimeException ex = new RuntimeException("Adatbázis kapcsolat megszakadt");
 
-    ResponseEntity<Map<String, Object>> response = handler.handleGenericException(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleGenericException(ex, request);
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(500, response.getBody().get("status"));
-    assertEquals("Internal Server Error", response.getBody().get("error"));
-    assertEquals("Váratlan szerverhiba történt", response.getBody().get("message"));
-    assertEquals("/api/search", response.getBody().get("path"));
+    assertEquals(500, response.getBody().status());
+    assertEquals("Internal Server Error", response.getBody().error());
+    assertEquals("Váratlan szerverhiba történt", response.getBody().message());
+    assertEquals("/api/search", response.getBody().path());
   }
 
   @Test
@@ -77,15 +75,15 @@ class GlobalExceptionHandlerTest {
             "/dashboard",
             "Erőforrás nem található: /dashboard");
 
-    ResponseEntity<Map<String, Object>> response = handler.handleNoResourceFound(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleNoResourceFound(ex, request);
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(404, response.getBody().get("status"));
-    assertEquals("Not Found", response.getBody().get("error"));
-    assertEquals("Erőforrás nem található: /dashboard", response.getBody().get("message"));
-    assertEquals("/dashboard", response.getBody().get("path"));
-    assertNotNull(response.getBody().get("timestamp"));
+    assertEquals(404, response.getBody().status());
+    assertEquals("Not Found", response.getBody().error());
+    assertEquals("Erőforrás nem található: /dashboard", response.getBody().message());
+    assertEquals("/dashboard", response.getBody().path());
+    assertNotNull(response.getBody().timestamp());
   }
 
   @Test
@@ -96,15 +94,15 @@ class GlobalExceptionHandlerTest {
         new org.springframework.web.servlet.NoHandlerFoundException(
             "GET", "/dashboard", new org.springframework.http.HttpHeaders());
 
-    ResponseEntity<Map<String, Object>> response = handler.handleNoResourceFound(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleNoResourceFound(ex, request);
 
     assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(404, response.getBody().get("status"));
-    assertEquals("Not Found", response.getBody().get("error"));
-    assertEquals("Erőforrás nem található: /dashboard", response.getBody().get("message"));
-    assertEquals("/dashboard", response.getBody().get("path"));
-    assertNotNull(response.getBody().get("timestamp"));
+    assertEquals(404, response.getBody().status());
+    assertEquals("Not Found", response.getBody().error());
+    assertEquals("Erőforrás nem található: /dashboard", response.getBody().message());
+    assertEquals("/dashboard", response.getBody().path());
+    assertNotNull(response.getBody().timestamp());
   }
 
   @Test
@@ -116,15 +114,15 @@ class GlobalExceptionHandlerTest {
     org.springframework.web.HttpRequestMethodNotSupportedException ex =
         new org.springframework.web.HttpRequestMethodNotSupportedException("POST");
 
-    ResponseEntity<Map<String, Object>> response = handler.handleMethodNotSupported(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleMethodNotSupported(ex, request);
 
     assertEquals(HttpStatus.METHOD_NOT_ALLOWED, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(405, response.getBody().get("status"));
-    assertEquals("Method Not Allowed", response.getBody().get("error"));
-    assertEquals("A kért HTTP metódus nem támogatott: POST", response.getBody().get("message"));
-    assertEquals("/api/status", response.getBody().get("path"));
-    assertNotNull(response.getBody().get("timestamp"));
+    assertEquals(405, response.getBody().status());
+    assertEquals("Method Not Allowed", response.getBody().error());
+    assertEquals("A kért HTTP metódus nem támogatott: POST", response.getBody().message());
+    assertEquals("/api/status", response.getBody().path());
+    assertNotNull(response.getBody().timestamp());
   }
 
   @Test
@@ -135,15 +133,15 @@ class GlobalExceptionHandlerTest {
         new org.springframework.http.converter.HttpMessageNotReadableException(
             "JSON parse error", (org.springframework.http.HttpInputMessage) null);
 
-    ResponseEntity<Map<String, Object>> response = handler.handleMessageNotReadable(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleMessageNotReadable(ex, request);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(400, response.getBody().get("status"));
-    assertEquals("Bad Request", response.getBody().get("error"));
-    assertEquals("Érvénytelen kéréstörzs (hibás JSON formátum)", response.getBody().get("message"));
-    assertEquals("/api/search", response.getBody().get("path"));
-    assertNotNull(response.getBody().get("timestamp"));
+    assertEquals(400, response.getBody().status());
+    assertEquals("Bad Request", response.getBody().error());
+    assertEquals("Érvénytelen kéréstörzs (hibás JSON formátum)", response.getBody().message());
+    assertEquals("/api/search", response.getBody().path());
+    assertNotNull(response.getBody().timestamp());
   }
 
   @Test
@@ -157,15 +155,15 @@ class GlobalExceptionHandlerTest {
             org.springframework.http.MediaType.TEXT_PLAIN,
             java.util.List.of(org.springframework.http.MediaType.APPLICATION_JSON));
 
-    ResponseEntity<Map<String, Object>> response = handler.handleMediaTypeNotSupported(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleMediaTypeNotSupported(ex, request);
 
     assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(415, response.getBody().get("status"));
-    assertEquals("Unsupported Media Type", response.getBody().get("error"));
-    assertTrue(((String) response.getBody().get("message")).contains("text/plain"));
-    assertEquals("/api/search", response.getBody().get("path"));
-    assertNotNull(response.getBody().get("timestamp"));
+    assertEquals(415, response.getBody().status());
+    assertEquals("Unsupported Media Type", response.getBody().error());
+    assertTrue(response.getBody().message().contains("text/plain"));
+    assertEquals("/api/search", response.getBody().path());
+    assertNotNull(response.getBody().timestamp());
   }
 
   @Test
@@ -195,15 +193,15 @@ class GlobalExceptionHandlerTest {
         new org.springframework.web.bind.MissingServletRequestParameterException(
             "requiredParam", "String");
 
-    ResponseEntity<Map<String, Object>> response = handler.handleMissingParameter(ex, request);
+    ResponseEntity<ApiErrorResponse> response = handler.handleMissingParameter(ex, request);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(400, response.getBody().get("status"));
-    assertEquals("Bad Request", response.getBody().get("error"));
+    assertEquals(400, response.getBody().status());
+    assertEquals("Bad Request", response.getBody().error());
     assertEquals(
-        "Hiányzó kötelező kérés paraméter: requiredParam", response.getBody().get("message"));
-    assertEquals("/api/test", response.getBody().get("path"));
-    assertNotNull(response.getBody().get("timestamp"));
+        "Hiányzó kötelező kérés paraméter: requiredParam", response.getBody().message());
+    assertEquals("/api/test", response.getBody().path());
+    assertNotNull(response.getBody().timestamp());
   }
 }

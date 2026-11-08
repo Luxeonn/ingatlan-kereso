@@ -254,11 +254,11 @@ class DeduplicationEngineAdversarialTest {
     // Source listings must be sorted by price ascending: 42M, 50M, 52M
     List<SourceListing> sources = primary.getSourceListings();
     assertEquals(42_000_000L, sources.get(0).getPriceHuf());
-    assertEquals("INACTIVE", sources.get(0).getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.INACTIVE, sources.get(0).getStatus());
     assertEquals(50_000_000L, sources.get(1).getPriceHuf());
-    assertEquals("ACTIVE", sources.get(1).getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, sources.get(1).getStatus());
     assertEquals(52_000_000L, sources.get(2).getPriceHuf());
-    assertEquals("ACTIVE", sources.get(2).getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, sources.get(2).getStatus());
   }
 
   @Test

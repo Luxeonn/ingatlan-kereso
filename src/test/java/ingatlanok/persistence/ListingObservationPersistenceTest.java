@@ -231,7 +231,7 @@ class ListingObservationPersistenceTest {
     assertEquals(ListingObservation.StatusEvent.UNCHANGED, obs3.get(2).getStatusEvent());
 
     PropertyEntity propEntity = propertyRepo.findByUrl(url).orElseThrow();
-    assertEquals("INACTIVE", propEntity.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.INACTIVE, propEntity.getStatus());
 
     // 4. Inactive updated while still inactive -> UNCHANGED
     storage.saveCityItems(
@@ -247,7 +247,7 @@ class ListingObservationPersistenceTest {
     assertEquals(ListingObservation.StatusEvent.RELISTED, obs5.get(4).getStatusEvent());
 
     PropertyEntity relistedProp = propertyRepo.findByUrl(url).orElseThrow();
-    assertEquals("ACTIVE", relistedProp.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, relistedProp.getStatus());
 
     // 6. Archived -> UNCHANGED, then back to ACTIVE -> RELISTED
     storage.saveCityItems(

@@ -90,7 +90,7 @@ class SearchExecutionEngineTest {
           }
 
           @Override
-          public List<Map<String, Object>> getTrackedCitiesInfo() {
+          public List<ingatlanok.model.TrackedCityInfo> getTrackedCitiesInfo() {
             return List.of();
           }
 
@@ -287,7 +287,7 @@ class SearchExecutionEngineTest {
     IngatlanItem discountedItem = result2.getItems().get(0);
     assertEquals(-5_000_000L, discountedItem.getPriceDelta());
     assertEquals(-10.0, discountedItem.getPriceChangePercent());
-    assertEquals("PRICE_DROP", discountedItem.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.PRICE_DROP, discountedItem.getStatus());
     assertTrue(discountedItem.isDiscounted());
     assertEquals(2, findByUrlsCallCount.get());
   }

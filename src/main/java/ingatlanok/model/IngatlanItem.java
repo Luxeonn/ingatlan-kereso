@@ -31,7 +31,7 @@ public class IngatlanItem implements Serializable {
   private String hiddenAt;
   private String imageUrl;
   private boolean newConstruction;
-  private String status = "ACTIVE";
+  private ListingStatus status = ListingStatus.ACTIVE;
   private Long priceDelta;
   private Double priceChangePercent;
   private String lastPriceChangeAt;
@@ -46,7 +46,7 @@ public class IngatlanItem implements Serializable {
   private Integer referenceSampleSize;
 
   // Milestone R5 Data Quality fields (#267)
-  private Integer qualityScore;
+  private QualityScore qualityScore;
   private List<String> qualityDeductions = new ArrayList<>();
 
   private PriceInfo priceInfo;
@@ -204,8 +204,36 @@ public class IngatlanItem implements Serializable {
     }
   }
 
-  public String getStatus() {
-    return status != null ? status : "ACTIVE";
+  public ListingStatus getStatus() {
+    return status != null ? status : ListingStatus.ACTIVE;
+  }
+
+  public void setStatus(ListingStatus status) {
+    this.status = status != null ? status : ListingStatus.ACTIVE;
+  }
+
+  public void setStatus(String raw) {
+    this.status = ListingStatus.fromString(raw);
+  }
+
+  public boolean isActive() {
+    return status == ListingStatus.ACTIVE;
+  }
+
+  public Integer getQualityScore() {
+    return qualityScore != null ? qualityScore.value() : null;
+  }
+
+  public QualityScore getQualityScoreObject() {
+    return qualityScore;
+  }
+
+  public void setQualityScore(Integer score) {
+    this.qualityScore = score != null ? QualityScore.of(score) : null;
+  }
+
+  public void setQualityScore(QualityScore score) {
+    this.qualityScore = score;
   }
 
   public PropertyType getPropertyType() {

@@ -13,8 +13,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.SearchExecutionStatus;
 import ingatlanok.model.SearchResult;
 
+/**
+ * Top-level presentation aggregation response for search execution (#401 / JAVA-007).
+ */
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -27,7 +31,7 @@ public class DashboardResponseDto implements Serializable {
   private int totalFound;
   private int filteredCount;
   private String executedAt;
-  private String executionStatus;
+  private SearchExecutionStatus executionStatus;
   @Builder.Default
   private Map<String, Integer> portalCounts = new LinkedHashMap<>();
   @Builder.Default
@@ -47,10 +51,7 @@ public class DashboardResponseDto implements Serializable {
       this.totalFound = searchResult.getTotalFound();
       this.filteredCount = searchResult.getFilteredCount();
       this.executedAt = searchResult.getExecutedAt();
-      this.executionStatus =
-          searchResult.getExecutionStatus() != null
-              ? searchResult.getExecutionStatus().name()
-              : null;
+      this.executionStatus = searchResult.getExecutionStatus();
       this.portalCounts = searchResult.getPortalCounts();
       this.cityCounts = searchResult.getCityCounts();
       this.newCitiesInitialized = searchResult.getNewCitiesInitialized();

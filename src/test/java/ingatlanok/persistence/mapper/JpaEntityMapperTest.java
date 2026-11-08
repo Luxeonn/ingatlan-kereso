@@ -61,7 +61,7 @@ class JpaEntityMapperTest {
     entity.setViewed(true);
     entity.setViewedAt("2026-03-01 11:00:00");
     entity.setImageUrl("https://dh.hu/img.jpg");
-    entity.setStatus("ACTIVE");
+    entity.setStatus(ingatlanok.model.ListingStatus.ACTIVE);
     entity.setPropertyType(PropertyType.LAKAS);
     entity.setPriceDelta(-1_000_000L);
     entity.setPriceChangePercent(-1.79);
@@ -79,7 +79,7 @@ class JpaEntityMapperTest {
     assertTrue(item.isNew());
     assertTrue(item.isViewed());
     assertEquals("2026-03-01 11:00:00", item.getViewedAt());
-    assertEquals("ACTIVE", item.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, item.getStatus());
     assertEquals(-1_000_000L, item.getPriceDelta());
 
     assertNotNull(item.getPriceInfo());
@@ -167,7 +167,7 @@ class JpaEntityMapperTest {
     assertEquals("2026-02-01 09:00:00", updated.getDiscoveredAt());
     assertTrue(updated.isViewed());
     assertEquals("2026-02-01 10:00:00", updated.getViewedAt());
-    assertEquals("PRICE_DROP", updated.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.PRICE_DROP, updated.getStatus());
     assertEquals(-500_000L, updated.getPriceDelta());
   }
 
@@ -227,7 +227,7 @@ class JpaEntityMapperTest {
     StatusLogEntry slEntry = mapper.toStatusLogEntry(sl);
     assertNotNull(slEntry);
     assertEquals(9, slEntry.id());
-    assertEquals("ACTIVE", slEntry.status());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, slEntry.status());
     assertEquals("Kezdeti állapot", slEntry.note());
   }
 

@@ -101,7 +101,7 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
     Set<String> processedUrls = new HashSet<>();
     String defaultCity = PortalSupport.resolveDefaultCity(criteria);
     String propertyType =
-        criteria.getPropertyType() != null ? criteria.getPropertyType() : "lakas";
+        criteria.getPropertyType() != null ? criteria.getPropertyType().getSlug() : "lakas";
 
     for (SidecarResponse.SidecarItem sidecarItem : items) {
       if (sidecarItem == null || sidecarItem.getUrl() == null) {

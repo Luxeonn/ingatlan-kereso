@@ -2,7 +2,10 @@ package ingatlanok.model;
 
 import java.util.Locale;
 
-/** Canonical property type representation (#258). */
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
+/** Canonical property type representation (#258, #401 / JAVA-003). */
 public enum PropertyType {
   LAKAS("Lakás", "lakas"),
   HAZ("Ház", "haz"),
@@ -35,6 +38,12 @@ public enum PropertyType {
     return this == TELEK;
   }
 
+  @JsonValue
+  public String toCanonicalString() {
+    return name();
+  }
+
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public static PropertyType fromString(String raw) {
     if (raw == null || raw.isBlank()) {
       return EGYEB_ISMERETLEN;
