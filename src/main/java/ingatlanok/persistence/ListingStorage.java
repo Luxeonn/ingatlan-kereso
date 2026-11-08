@@ -9,6 +9,7 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.model.TrackedCityInfo;
 
 public interface ListingStorage {
 
@@ -48,7 +49,9 @@ public interface ListingStorage {
 
   Set<String> getAllUrls();
 
-  List<Map<String, Object>> getTrackedCitiesInfo();
+  default List<TrackedCityInfo> getTrackedCitiesInfo() {
+    return List.of();
+  }
 
   void clearCityHistory(String city);
 
@@ -78,11 +81,15 @@ public interface ListingStorage {
     return List.of();
   }
 
-  default List<IngatlanItem> findByCriteria(PropertySearchCriteria filter) {
-    return List.of();
+  default List<IngatlanItem> findByCriteria(PropertySearchCriteria criteria) {
+    return getAll();
   }
 
   default Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
+    return Map.of();
+  }
+
+  default Map<String, Long> countByCity() {
     return Map.of();
   }
 }

@@ -3,6 +3,7 @@ package ingatlanok.persistence.service;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.common.AppLogger;
+import ingatlanok.model.ListingStatus;
 
 @Component
 public class PriceHistoryTracker {
@@ -15,13 +16,30 @@ public class PriceHistoryTracker {
       Long existingDelta,
       Double existingPct,
       String existingLastChangeAt,
-      String currentStatus) {}
+      ListingStatus currentStatus) {
+
+    public ExistingPriceState(
+        boolean isNew,
+        Long prevAmount,
+        Long existingDelta,
+        Double existingPct,
+        String existingLastChangeAt,
+        String currentStatus) {
+      this(
+          isNew,
+          prevAmount,
+          existingDelta,
+          existingPct,
+          existingLastChangeAt,
+          currentStatus != null ? ListingStatus.fromString(currentStatus) : null);
+    }
+  }
 
   public record PriceDeltaCalculation(
       Long delta,
       Double changePercent,
       String lastPriceChangeAt,
-      String resolvedStatus,
+      ListingStatus resolvedStatus,
       boolean isNewPriceRecord,
       boolean priceChanged,
       Long previousPriceAmount) {}
@@ -46,7 +64,7 @@ public class PriceHistoryTracker {
   }
 
   private PriceDeltaCalculation fallbackCalculation(ExistingPriceState existing) {
-    String status = resolveStatus(existing.currentStatus());
+    ListingStatus status = resolveStatus(existing.currentStatus());
     return new PriceDeltaCalculation(
         existing.existingDelta(),
         existing.existingPct(),
@@ -58,7 +76,7 @@ public class PriceHistoryTracker {
   }
 
   private PriceDeltaCalculation newPriceCalculation(ExistingPriceState existing) {
-    String status = resolveStatus(existing.currentStatus());
+    ListingStatus status = resolveStatus(existing.currentStatus());
     return new PriceDeltaCalculation(0L, 0.0, null, status, true, false, null);
   }
 
@@ -67,7 +85,10 @@ public class PriceHistoryTracker {
     long prev = existing.prevAmount();
     long delta = newAmount - prev;
     double changePct = Math.round(((double) delta / prev * 100.0) * 100.0) / 100.0;
-    String newStatus = delta < 0 ? "PRICE_DROP" : (delta > 0 ? "PRICE_INCREASE" : existing.currentStatus());
+    ListingStatus newStatus =
+        delta < 0
+            ? ListingStatus.PRICE_DROP
+            : (delta > 0 ? ListingStatus.PRICE_INCREASE : resolveStatus(existing.currentStatus()));
 
     LOGGER.info(
         "[Árváltozás] {} - Régi: {} Ft -> Új: {} Ft (Delta: {} Ft, {}%)",
@@ -76,7 +97,7 @@ public class PriceHistoryTracker {
     return new PriceDeltaCalculation(delta, changePct, now, newStatus, false, true, prev);
   }
 
-  private String resolveStatus(String currentStatus) {
-    return (currentStatus != null && !currentStatus.isBlank()) ? currentStatus : "ACTIVE";
+  private ListingStatus resolveStatus(ListingStatus currentStatus) {
+    return currentStatus != null ? currentStatus : ListingStatus.ACTIVE;
   }
 }

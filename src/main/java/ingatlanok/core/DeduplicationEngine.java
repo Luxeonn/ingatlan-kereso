@@ -17,6 +17,7 @@ import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
 import ingatlanok.core.dedup.SemanticConflictDetector;
 import ingatlanok.core.dedup.TextualSimilarityMatcher;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.ListingStorage;
@@ -339,7 +340,7 @@ public class DeduplicationEngine {
     // 1. Minimum active source price
     List<IngatlanItem> activeWithPrice = cluster.stream()
         .filter(Objects::nonNull)
-        .filter(i -> i.getStatus() == null || "ACTIVE".equalsIgnoreCase(i.getStatus()))
+        .filter(i -> i.getStatus() == null || i.getStatus() == ListingStatus.ACTIVE)
         .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
             && i.getPriceInfo().getAmountHuf() > 0)
         .toList();
@@ -386,7 +387,7 @@ public class DeduplicationEngine {
         .imageUrl(item.getImageUrl())
         .firstSeenAt(item.getDiscoveredAt())
         .lastSeenAt(item.getDiscoveredAt())
-        .status(item.getStatus() != null ? item.getStatus() : "ACTIVE")
+        .status(item.getStatus() != null ? item.getStatus() : ListingStatus.ACTIVE)
         .priceHuf(priceHuf)
         .pricePerM2(pricePerM2)
         .build();

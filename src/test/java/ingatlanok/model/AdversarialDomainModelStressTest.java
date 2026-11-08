@@ -265,13 +265,13 @@ class AdversarialDomainModelStressTest {
     SourceListing source = new SourceListing();
 
     // Default status
-    assertEquals("ACTIVE", source.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, source.getStatus());
     assertTrue(source.isActive());
 
     // Case insensitivity
     source.setStatus("active");
     assertTrue(source.isActive());
-    assertEquals("active", source.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, source.getStatus());
 
     source.setStatus("Active");
     assertTrue(source.isActive());
@@ -283,8 +283,8 @@ class AdversarialDomainModelStressTest {
     assertFalse(source.isActive());
 
     // Status null edge case: getStatus() returns "ACTIVE", but isActive() returns false!
-    source.setStatus(null);
-    assertEquals("ACTIVE", source.getStatus(), "getStatus() defaults null to ACTIVE");
+    source.setStatus((ingatlanok.model.ListingStatus) null);
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, source.getStatus(), "getStatus() defaults null to ACTIVE");
     assertFalse(source.isActive(), "isActive() checks status field directly and returns false when null");
   }
 

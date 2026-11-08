@@ -53,9 +53,9 @@ class InMemoryListingStorageTest {
     assertEquals(1, storage.getAllUrls().size());
     assertNotNull(storage.getLastRunTime());
 
-    List<Map<String, Object>> tracked = storage.getTrackedCitiesInfo();
+    List<ingatlanok.model.TrackedCityInfo> tracked = storage.getTrackedCitiesInfo();
     assertEquals(1, tracked.size());
-    assertEquals("debrecen", tracked.get(0).get("key"));
+    assertEquals("debrecen", tracked.get(0).key());
 
     assertTrue(storage.markAsViewed("https://dh.hu/1"));
     assertTrue(storage.isViewed("https://dh.hu/1"));

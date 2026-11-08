@@ -8,6 +8,7 @@ import java.util.Map;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.MarketSegmentKey;
 import ingatlanok.model.MarketSegmentStats;
 import ingatlanok.model.MarketStats;
 import ingatlanok.model.PropertyType;
@@ -56,7 +57,7 @@ public class MarketAnalyticsEngine {
     MarketStatsAccumulator acc = accumulateItemMetrics(uniqueItems);
     computeGeneralPriceMetrics(stats, acc, totalItems);
     computeResidentialAndPlotMetrics(stats, acc);
-    Map<String, MarketSegmentStats> segmentMap = computeSegmentMetrics(acc.segmentBuckets);
+    Map<MarketSegmentKey, MarketSegmentStats> segmentMap = computeSegmentMetrics(acc.segmentBuckets);
     detectBargains(stats, uniqueItems, segmentMap, totalItems);
     computePriceDrops(stats, uniqueItems, totalItems);
 
@@ -117,8 +118,8 @@ public class MarketAnalyticsEngine {
   }
 
   private void accumulateSegmentBucket(
-      Map<String, List<IngatlanItem>> segmentBuckets, IngatlanItem item) {
-    String bucketKey = resolveBucketKey(item);
+      Map<MarketSegmentKey, List<IngatlanItem>> segmentBuckets, IngatlanItem item) {
+    MarketSegmentKey bucketKey = resolveBucketKey(item);
     segmentBuckets.computeIfAbsent(bucketKey, k -> new ArrayList<>()).add(item);
   }
 
@@ -211,10 +212,10 @@ public class MarketAnalyticsEngine {
     }
   }
 
-  private Map<String, MarketSegmentStats> computeSegmentMetrics(
-      Map<String, List<IngatlanItem>> segmentBuckets) {
-    Map<String, MarketSegmentStats> segmentMap = new LinkedHashMap<>();
-    for (Map.Entry<String, List<IngatlanItem>> entry : segmentBuckets.entrySet()) {
+  private Map<MarketSegmentKey, MarketSegmentStats> computeSegmentMetrics(
+      Map<MarketSegmentKey, List<IngatlanItem>> segmentBuckets) {
+    Map<MarketSegmentKey, MarketSegmentStats> segmentMap = new LinkedHashMap<>();
+    for (Map.Entry<MarketSegmentKey, List<IngatlanItem>> entry : segmentBuckets.entrySet()) {
       segmentMap.put(
           entry.getKey(),
           statisticsCalculator.buildSegmentStats(entry.getValue(), this::isEligibleForMedian));
@@ -225,16 +226,16 @@ public class MarketAnalyticsEngine {
   private void detectBargains(
       MarketStats.MarketStatsBuilder stats,
       List<IngatlanItem> uniqueItems,
-      Map<String, MarketSegmentStats> segmentMap,
+      Map<MarketSegmentKey, MarketSegmentStats> segmentMap,
       int totalItems) {
     int totalBargains = 0;
-    Map<String, Integer> segmentBargains = new HashMap<>();
+    Map<MarketSegmentKey, Integer> segmentBargains = new HashMap<>();
 
     for (IngatlanItem item : uniqueItems) {
       if (item == null) {
         continue;
       }
-      String bucketKey = resolveBucketKey(item);
+      MarketSegmentKey bucketKey = resolveBucketKey(item);
       MarketSegmentStats segment = segmentMap.get(bucketKey);
       Long itemPriceM2 = resolvePricePerM2(item);
 
@@ -257,10 +258,10 @@ public class MarketAnalyticsEngine {
     stats.bargainCount(totalBargains).bargainRatePercent(bargainRate);
   }
 
-  private String resolveBucketKey(IngatlanItem item) {
+  private MarketSegmentKey resolveBucketKey(IngatlanItem item) {
     String cityKey = CityUtils.normalizeCityKey(item.getCity());
     PropertyType type = item.getPropertyType();
-    return cityKey + "#" + type.name();
+    return new MarketSegmentKey(cityKey, type);
   }
 
   private boolean isEligibleForBargain(
@@ -299,11 +300,11 @@ public class MarketAnalyticsEngine {
 
   private void finalizeSegmentBargains(
       MarketStats.MarketStatsBuilder stats,
-      Map<String, MarketSegmentStats> segmentMap,
-      Map<String, Integer> segmentBargains) {
+      Map<MarketSegmentKey, MarketSegmentStats> segmentMap,
+      Map<MarketSegmentKey, Integer> segmentBargains) {
     List<MarketSegmentStats> finalizedSegments = new ArrayList<>();
-    for (Map.Entry<String, MarketSegmentStats> entry : segmentMap.entrySet()) {
-      String bucketKey = entry.getKey();
+    for (Map.Entry<MarketSegmentKey, MarketSegmentStats> entry : segmentMap.entrySet()) {
+      MarketSegmentKey bucketKey = entry.getKey();
       MarketSegmentStats seg = entry.getValue();
       int bCount = segmentBargains.getOrDefault(bucketKey, 0);
       finalizedSegments.add(seg.toBuilder().bargainCount(bCount).build());
@@ -373,7 +374,7 @@ public class MarketAnalyticsEngine {
     private final List<Long> plotPricesM2 = new ArrayList<>();
     private final List<Long> otherPricesM2 = new ArrayList<>();
     private final Map<String, Integer> cityCounts = new LinkedHashMap<>();
-    private final Map<String, List<IngatlanItem>> segmentBuckets = new LinkedHashMap<>();
+    private final Map<MarketSegmentKey, List<IngatlanItem>> segmentBuckets = new LinkedHashMap<>();
     private int newItemsCount = 0;
   }
 }

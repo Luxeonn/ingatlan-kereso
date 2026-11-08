@@ -17,7 +17,7 @@ public class SearchCriteria implements Serializable {
 
   private String city = "Hajdúszoboszló";
   private List<String> cities = new ArrayList<>();
-  private String propertyType = "haz";
+  private PropertyType propertyType = PropertyType.HAZ;
   private Integer minPriceMillion = 70;
   private Integer maxPriceMillion = 120;
   private Integer minArea = 90;
@@ -106,8 +106,20 @@ public class SearchCriteria implements Serializable {
     return clone;
   }
 
-  public String getPropertyType() {
-    return propertyType != null ? propertyType : "lakas";
+  public PropertyType getPropertyType() {
+    return propertyType != null ? propertyType : PropertyType.HAZ;
+  }
+
+  public String getPropertyTypeSlug() {
+    return getPropertyType().getSlug();
+  }
+
+  public void setPropertyType(PropertyType propertyType) {
+    this.propertyType = propertyType != null ? propertyType : PropertyType.HAZ;
+  }
+
+  public void setPropertyType(String raw) {
+    this.propertyType = PropertyType.fromString(raw);
   }
 
   public boolean isPortalEnabled(String portalKey) {

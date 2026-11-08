@@ -10,10 +10,12 @@ import ingatlanok.core.DeduplicationEngine;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
+import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.persistence.ConfigStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
+import ingatlanok.portal.RawListingNormalizer;
 import ingatlanok.portal.dh.DunaHousePortalEngine;
 import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
 import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
@@ -58,6 +60,13 @@ public class CoreEngineConfig {
   @Bean
   public IngatlanComPortalEngine ingatlanComPortalEngine() {
     return new IngatlanComPortalEngine();
+  }
+
+  @Bean
+  public ListingNormalizer listingNormalizer() {
+    ListingNormalizer normalizer = new ListingNormalizer();
+    RawListingNormalizer.setDefault(normalizer);
+    return normalizer;
   }
 
   @Bean

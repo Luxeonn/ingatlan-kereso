@@ -17,6 +17,7 @@ import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
+import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.Property;
@@ -270,7 +271,13 @@ public abstract class JpaEntityMapper {
 
   @Mapping(target = "id", ignore = true)
   public abstract StatusLogEntity createStatusLogEntity(
-      String propertyId, String url, String status, String changedAt, String note);
+      String propertyId, String url, ListingStatus status, String changedAt, String note);
+
+  public StatusLogEntity createStatusLogEntity(
+      String propertyId, String url, String status, String changedAt, String note) {
+    return createStatusLogEntity(
+        propertyId, url, ListingStatus.fromString(status), changedAt, note);
+  }
 
   public abstract StatusLogEntry toStatusLogEntry(StatusLogEntity sl);
 
@@ -287,9 +294,6 @@ public abstract class JpaEntityMapper {
   @Mapping(target = "pricePerM2", source = "pricePerSqm")
   public abstract SourceListing toSourceListing(PropertyEntity entity);
 
-  @Mapping(
-      target = "statusEvent",
-      expression = "java(ListingObservation.StatusEvent.fromString(entity.getStatusEvent()))")
   public abstract ListingObservation toListingObservation(ListingObservationEntity entity);
 
   @Mapping(target = "id", ignore = true)

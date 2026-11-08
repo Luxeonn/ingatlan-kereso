@@ -1,18 +1,20 @@
 package ingatlanok.common.city;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import ingatlanok.common.SlugUtils;
+import ingatlanok.model.PredefinedCity;
 
+/**
+ * Static registry of predefined Hungarian municipalities (#401 / JAVA-023).
+ */
 public final class CityPresets {
 
   private CityPresets() {}
 
-  public static List<Map<String, String>> getPredefinedCities() {
-    List<Map<String, String>> list = new ArrayList<>();
+  public static List<PredefinedCity> getPredefinedCities() {
+    List<PredefinedCity> list = new ArrayList<>();
 
     addCity(list, "Debrecen", "Hajdú-Bihar", "Agglomeráció / Székhely");
     addCity(list, "Hajdúszoboszló", "Hajdú-Bihar", "Debrecen környéke");
@@ -55,12 +57,7 @@ public final class CityPresets {
   }
 
   private static void addCity(
-      List<Map<String, String>> list, String name, String county, String description) {
-    Map<String, String> city = new LinkedHashMap<>();
-    city.put("key", SlugUtils.toSlug(name));
-    city.put("name", name);
-    city.put("county", county);
-    city.put("description", description);
-    list.add(city);
+      List<PredefinedCity> list, String name, String county, String description) {
+    list.add(new PredefinedCity(SlugUtils.toSlug(name), name, county, description));
   }
 }

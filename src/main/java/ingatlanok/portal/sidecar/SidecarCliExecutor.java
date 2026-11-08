@@ -136,7 +136,7 @@ public class SidecarCliExecutor {
 
     String rawType =
         criteria.getPropertyType() != null
-            ? criteria.getPropertyType().toLowerCase().trim()
+            ? criteria.getPropertyType().getSlug()
             : "lakas";
     args.add("--type");
     args.add(rawType);

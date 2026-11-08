@@ -82,9 +82,9 @@ class DashboardPresentationServiceTest {
 
     IngatlanItem item = new IngatlanItem();
     item.setId("x");
-    item.setStatus(null);
+    item.setStatus((ingatlanok.model.ListingStatus) null);
     SourceListing sl = mapper.toSourceListingFromItem(item, "dh", 10L, 1L);
-    assertEquals("ACTIVE", sl.getStatus());
+    assertEquals(ingatlanok.model.ListingStatus.ACTIVE, sl.getStatus());
     assertEquals("x", sl.getExternalListingId());
 
     PriceDropItemDto drop = mapper.toPriceDropItemDto(item, 500L);

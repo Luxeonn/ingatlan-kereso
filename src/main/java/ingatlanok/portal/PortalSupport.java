@@ -72,10 +72,10 @@ public final class PortalSupport {
   }
 
   public static PropertyType resolvePropertyType(SearchCriteria criteria) {
-    if (criteria == null || criteria.getPropertyType() == null || criteria.getPropertyType().isBlank()) {
+    if (criteria == null || criteria.getPropertyType() == null) {
       return PropertyType.LAKAS;
     }
-    PropertyType parsed = PropertyType.fromString(criteria.getPropertyType());
+    PropertyType parsed = criteria.getPropertyType();
     return parsed != PropertyType.EGYEB_ISMERETLEN ? parsed : PropertyType.LAKAS;
   }
 

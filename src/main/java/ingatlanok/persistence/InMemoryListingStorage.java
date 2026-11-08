@@ -16,8 +16,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingStatus;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchPreset;
+import ingatlanok.model.TrackedCityInfo;
 
 public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
 
@@ -148,7 +150,7 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
     item.setPriceDelta(delta);
     item.setPriceChangePercent(pct);
     item.setLastPriceChangeAt(now);
-    item.setStatus(delta < 0 ? "PRICE_DROP" : "PRICE_INCREASE");
+    item.setStatus(delta < 0 ? ListingStatus.PRICE_DROP : ListingStatus.PRICE_INCREASE);
   }
 
   private void retainExistingPriceState(IngatlanItem item, IngatlanItem existing) {
@@ -161,7 +163,7 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
     if (item.getLastPriceChangeAt() == null) {
       item.setLastPriceChangeAt(existing.getLastPriceChangeAt());
     }
-    if ("ACTIVE".equals(item.getStatus()) && existing.getStatus() != null) {
+    if (item.getStatus() == ListingStatus.ACTIVE && existing.getStatus() != null) {
       item.setStatus(existing.getStatus());
     }
   }
@@ -294,14 +296,10 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   }
 
   @Override
-  public List<Map<String, Object>> getTrackedCitiesInfo() {
-    List<Map<String, Object>> result = new ArrayList<>();
+  public List<TrackedCityInfo> getTrackedCitiesInfo() {
+    List<TrackedCityInfo> result = new ArrayList<>();
     for (Map.Entry<String, List<IngatlanItem>> entry : cityItems.entrySet()) {
-      Map<String, Object> info = new HashMap<>();
-      info.put("key", entry.getKey());
-      info.put("name", entry.getKey());
-      info.put("count", entry.getValue().size());
-      result.add(info);
+      result.add(new TrackedCityInfo(entry.getKey(), entry.getKey(), entry.getValue().size()));
     }
     return result;
   }
