@@ -27,7 +27,8 @@ interface SearchPresetsBarProps {
 function generateDefaultName(criteria: ReturnType<typeof useFilterStore.getState>['criteria']): string {
   const city = criteria.cities && criteria.cities.length > 0 ? criteria.cities.join(', ') : criteria.city || 'Keresés'
   const typeMap: Record<string, string> = { haz: 'Ház', lakas: 'Lakás', telek: 'Telek' }
-  const typeStr = typeMap[criteria.propertyType] || criteria.propertyType
+  const propType = criteria.propertyType || ''
+  const typeStr = typeMap[propType] || propType
   return `${city} ${typeStr} ${criteria.minPriceMillion}-${criteria.maxPriceMillion}M`
 }
 

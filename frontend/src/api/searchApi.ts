@@ -1,14 +1,15 @@
-import { apiClient } from './client'
+import { fetchClient, unwrapApiResponse } from './client'
 import type { SearchCriteria, DashboardResponseDto } from '../types/api'
+import type { components } from '../types/generated-api'
 
 export async function getLastConfig(): Promise<SearchCriteria> {
-  return apiClient<SearchCriteria>('/api/config')
+  return unwrapApiResponse(fetchClient.GET('/api/config'))
 }
 
 export async function executeSearch(criteria: SearchCriteria): Promise<DashboardResponseDto> {
-  return apiClient<DashboardResponseDto>('/api/search', {
-    method: 'POST',
-    body: JSON.stringify(criteria),
-  })
+  return unwrapApiResponse(
+    fetchClient.POST('/api/search', {
+      body: criteria as components['schemas']['SearchCriteria'],
+    }),
+  )
 }
-
