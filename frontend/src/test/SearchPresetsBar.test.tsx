@@ -176,4 +176,139 @@ describe('SearchPresetsBar component', () => {
 
     expect(mockDeleteMutate).toHaveBeenCalledWith(1, expect.anything())
   })
+
+  it('displays error alert and preserves input when preset creation fails (#394)', () => {
+    mockCreateMutate.mockImplementation((_payload, options) => {
+      options?.onError?.(new Error('Hálózati hiba a sablon mentésekor.'))
+    })
+
+    vi.mocked(usePresetsModule.usePresets).mockReturnValue({
+      data: mockPresets,
+      isLoading: false,
+    } as unknown as ReturnType<typeof usePresetsModule.usePresets>)
+
+    render(<SearchPresetsBar onSearch={vi.fn()} />)
+
+    fireEvent.click(screen.getByTestId('save-preset-button'))
+    const input = screen.getByPlaceholderText('Sablon neve') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'Egyedi Sablon' } })
+    fireEvent.click(screen.getByTitle('Mentés sablonként'))
+
+    expect(mockCreateMutate).toHaveBeenCalledTimes(1)
+    const alert = screen.getByRole('alert')
+    expect(alert).toBeTruthy()
+    expect(alert.textContent).toContain('Hálózati hiba a sablon mentésekor.')
+    // Input should remain open with value preserved so user can retry
+    expect(screen.getByPlaceholderText('Sablon neve')).toBeTruthy()
+    expect((screen.getByPlaceholderText('Sablon neve') as HTMLInputElement).value).toBe('Egyedi Sablon')
+  })
+
+  it('displays validation error when attempting to save empty name (#394)', () => {
+    vi.mocked(usePresetsModule.usePresets).mockReturnValue({
+      data: mockPresets,
+      isLoading: false,
+    } as unknown as ReturnType<typeof usePresetsModule.usePresets>)
+
+    render(<SearchPresetsBar onSearch={vi.fn()} />)
+
+    fireEvent.click(screen.getByTestId('save-preset-button'))
+    const input = screen.getByPlaceholderText('Sablon neve')
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.click(screen.getByTitle('Mentés sablonként'))
+
+    expect(mockCreateMutate).not.toHaveBeenCalled()
+    const alert = screen.getByRole('alert')
+    expect(alert).toBeTruthy()
+    expect(alert.textContent).toContain('A sablon neve nem lehet üres.')
+  })
+
+  it('displays success feedback and closes form when preset creation succeeds (#394)', () => {
+    mockCreateMutate.mockImplementation((payload, options) => {
+      options?.onSuccess?.({
+        id: 99,
+        name: payload.name,
+        criteria: payload.criteria,
+        createdAt: '2026-11-08T12:00:00Z',
+        updatedAt: '2026-11-08T12:00:00Z',
+        lastUsedAt: null,
+      })
+    })
+
+    vi.mocked(usePresetsModule.usePresets).mockReturnValue({
+      data: mockPresets,
+      isLoading: false,
+    } as unknown as ReturnType<typeof usePresetsModule.usePresets>)
+
+    render(<SearchPresetsBar onSearch={vi.fn()} />)
+
+    fireEvent.click(screen.getByTestId('save-preset-button'))
+    const input = screen.getByPlaceholderText('Sablon neve')
+    fireEvent.change(input, { target: { value: 'Új Mentett Sablon' } })
+    fireEvent.click(screen.getByTitle('Mentés sablonként'))
+
+    expect(mockCreateMutate).toHaveBeenCalledTimes(1)
+    const status = screen.getByRole('status')
+    expect(status).toBeTruthy()
+    expect(status.textContent).toContain('Új Mentett Sablon')
+    expect(screen.queryByPlaceholderText('Sablon neve')).toBeNull()
+  })
+
+  it('displays error alert when preset update fails (#394)', () => {
+    mockUpdateMutate.mockImplementation((_payload, options) => {
+      options?.onError?.(new Error('Nem sikerült módosítani a sablont.'))
+    })
+
+    vi.mocked(usePresetsModule.usePresets).mockReturnValue({
+      data: mockPresets,
+      isLoading: false,
+    } as unknown as ReturnType<typeof usePresetsModule.usePresets>)
+
+    render(<SearchPresetsBar onSearch={vi.fn()} />)
+
+    const editButtons = screen.getAllByTitle('Sablon átnevezése')
+    fireEvent.click(editButtons[0])
+
+    const editInput = screen.getByDisplayValue('Hajdúszoboszló Ház 70-120M')
+    fireEvent.change(editInput, { target: { value: 'Módosított Név' } })
+    fireEvent.click(screen.getByTitle('Mentés'))
+
+    expect(mockUpdateMutate).toHaveBeenCalledTimes(1)
+    const alert = screen.getByRole('alert')
+    expect(alert).toBeTruthy()
+    expect(alert.textContent).toContain('Nem sikerült módosítani a sablont.')
+  })
+
+  it('displays error alert when preset deletion fails (#394)', () => {
+    mockDeleteMutate.mockImplementation((_id, options) => {
+      options?.onError?.(new Error('Nem sikerült törölni a sablont.'))
+    })
+
+    vi.mocked(usePresetsModule.usePresets).mockReturnValue({
+      data: mockPresets,
+      isLoading: false,
+    } as unknown as ReturnType<typeof usePresetsModule.usePresets>)
+
+    render(<SearchPresetsBar onSearch={vi.fn()} />)
+
+    const deleteButtons = screen.getAllByTitle('Sablon törlése')
+    fireEvent.click(deleteButtons[0])
+
+    expect(mockDeleteMutate).toHaveBeenCalledTimes(1)
+    const alert = screen.getByRole('alert')
+    expect(alert).toBeTruthy()
+    expect(alert.textContent).toContain('Nem sikerült törölni a sablont.')
+  })
+
+  it('displays query error message when fetching presets fails (#394)', () => {
+    vi.mocked(usePresetsModule.usePresets).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('Backend hiba a sablonok lekérésekor'),
+    } as unknown as ReturnType<typeof usePresetsModule.usePresets>)
+
+    render(<SearchPresetsBar onSearch={vi.fn()} />)
+
+    expect(screen.getByText('Nem sikerült betölteni a keresési sablonokat.')).toBeTruthy()
+  })
 })
