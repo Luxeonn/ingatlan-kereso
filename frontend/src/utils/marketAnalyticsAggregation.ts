@@ -1,5 +1,6 @@
 import type { IngatlanItem } from '../types/property'
 import { getEffectiveSqmPrice } from './formatters'
+import { isListingNew } from './listingFilters'
 import {
   type BargainItem,
   type CityStat,
@@ -75,7 +76,7 @@ export function aggregateItems(items: IngatlanItem[]): ItemAggregation {
   }
 
   items.forEach((item) => {
-    if (item.isNew) agg.newCount++
+    if (isListingNew(item)) agg.newCount++
     if (hasPriceDrop(item)) agg.discountedCount++
 
     const pMillion = item.priceInfo?.amountMillion
@@ -233,7 +234,7 @@ function evaluateScatterPoint(
     area,
     price,
     sqmPrice,
-    isNew: Boolean(item.isNew),
+    isNew: isListingNew(item),
     isDiscounted: isPriceDrop,
     priceDelta: item.priceDelta,
     priceChangePercent: item.priceChangePercent,

@@ -4,6 +4,7 @@ import { TrendingDown, Sparkles, ExternalLink, Percent, Tag, Eye } from 'lucide-
 import type { IngatlanItem } from '../../types/property'
 import type { BargainItem } from '../../hooks/useMarketAnalytics'
 import { formatPriceMillion, formatPricePerSqm, getEffectivePrice, getEffectiveSqmPrice, openExternalUrl } from '../../utils/formatters'
+import { isListingNew } from '../../utils/listingFilters'
 
 interface BargainHunterTableProps {
   topPriceDrops: IngatlanItem[]
@@ -101,7 +102,7 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
                         <TrendingDown className="h-3 w-3" />
                         <span>-{discountPercent}% a városi átlaghoz képest</span>
                       </span>
-                      {item.isNew && (
+                      {isListingNew(item) && (
                         <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-400">
                           <Sparkles className="h-3 w-3" /> Új
                         </span>
@@ -183,7 +184,7 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
                       <Tag className="h-3 w-3" />
                       <span>Árcsökkenés: {priceDelta.toLocaleString('hu-HU')} Ft</span>
                     </span>
-                    {item.isNew && (
+                    {isListingNew(item) && (
                       <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
                         <Sparkles className="h-3 w-3" /> Új
                       </span>

@@ -72,10 +72,7 @@ describe('ListingsPanel component (#264)', () => {
     // Multi-source summary notice: 2 unique items (1x2 sources + 1x1 source = 3 total source listings, 1 multi-source item)
     const notice = screen.getByTestId('multi-source-summary-notice')
     expect(notice).toBeTruthy()
-    expect(notice.textContent).toMatch(/2 db egyedi ingatlan jelenik meg/i)
-    expect(notice.textContent).toMatch(/összesen 3 db hirdetés-találatból/i)
-    expect(notice.textContent).toMatch(/ebből 1 db ingatlan több forrásból összevonva/i)
-    expect(notice.textContent).not.toMatch(/több portálon is szereplő/i)
+    expect(notice.textContent).toBe('2 / 3 (1 összevonva)')
   })
 
   it('accurately calculates 6 unique properties and 9 total source listings for 4x1 + 1x2 + 1x3 source items (#358)', () => {
@@ -119,6 +116,7 @@ describe('ListingsPanel component (#264)', () => {
       <ListingsPanel
         items={sixItemsNineSources}
         totalRawCount={6}
+        serverFilteredCount={1}
         isLoading={false}
         hasSearched={true}
         mode="listings"
@@ -129,9 +127,7 @@ describe('ListingsPanel component (#264)', () => {
     )
 
     const notice = screen.getByTestId('multi-source-summary-notice')
-    expect(notice.textContent).toBe(
-      '6 db egyedi ingatlan jelenik meg összesen 9 db hirdetés-találatból (ebből 2 db ingatlan több forrásból összevonva).',
-    )
+    expect(notice.textContent).toBe('6 / 9 · 1 szűrt (2 összevonva)')
   })
 
   it('renders live status announcement for screen readers', () => {
@@ -171,7 +167,7 @@ describe('ListingsPanel component (#264)', () => {
     expect(screen.queryByTestId('multi-source-summary-notice')).toBeNull()
   })
 
-  it('renders embedded sub-view toolbar with Hirdetések, Kedvencek, and Archívum buttons and triggers callback', () => {
+  it('renders embedded sub-view toolbar with Hirdetések and Kedvencek buttons and triggers callback', () => {
     const handleSubViewChange = vi.fn()
     render(
       <ListingsPanel
@@ -193,15 +189,11 @@ describe('ListingsPanel component (#264)', () => {
     expect(screen.getByTestId('listings-subview-nav')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Hirdetések \(2\)/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /⭐ Kedvencek \(5\)/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Archívum \(12\)/i })).toBeTruthy()
+    expect(screen.queryByTestId('subview-archive')).toBeNull()
 
     const favBtn = screen.getByRole('button', { name: /⭐ Kedvencek/i })
     fireEvent.click(favBtn)
     expect(handleSubViewChange).toHaveBeenCalledWith('favorites')
-
-    const archBtn = screen.getByRole('button', { name: /Archívum/i })
-    fireEvent.click(archBtn)
-    expect(handleSubViewChange).toHaveBeenCalledWith('archive')
   })
 
   it('updates store directly in uncontrolled mode and sets aria-pressed correctly', async () => {
@@ -222,11 +214,10 @@ describe('ListingsPanel component (#264)', () => {
 
     const listBtn = screen.getByTestId('subview-listings')
     const favBtn = screen.getByTestId('subview-favorites')
-    const archBtn = screen.getByTestId('subview-archive')
 
     expect(listBtn.getAttribute('aria-pressed')).toBe('true')
     expect(favBtn.getAttribute('aria-pressed')).toBe('false')
-    expect(archBtn.getAttribute('aria-pressed')).toBe('false')
+    expect(screen.queryByTestId('subview-archive')).toBeNull()
 
     // Click favorites without onSubViewChange prop
     fireEvent.click(favBtn)
@@ -237,25 +228,6 @@ describe('ListingsPanel component (#264)', () => {
   })
 
   it('calculates deterministic fallback counts when counts are omitted', () => {
-    // In archive mode with omitted counts, archiveCount falls back to totalRawCount and others to 0
-    const { unmount } = render(
-      <ListingsPanel
-        items={sampleItems}
-        totalRawCount={7}
-        isLoading={false}
-        hasSearched={true}
-        mode="archive"
-        onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
-        onTriggerSearch={vi.fn()}
-      />
-    )
-
-    expect(screen.getByRole('button', { name: /Archívum \(7\)/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Hirdetések \(0\)/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /⭐ Kedvencek \(0\)/i })).toBeTruthy()
-    unmount()
-
     // In favorites mode with omitted counts, favoritesCount falls back to totalRawCount
     render(
       <ListingsPanel
@@ -272,7 +244,7 @@ describe('ListingsPanel component (#264)', () => {
 
     expect(screen.getByRole('button', { name: /⭐ Kedvencek \(4\)/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Hirdetések \(0\)/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Archívum \(0\)/i })).toBeTruthy()
+    expect(screen.queryByTestId('subview-archive')).toBeNull()
   })
 
   it('progressively batches rendered cards with infinite scroll sentinel (#278)', () => {

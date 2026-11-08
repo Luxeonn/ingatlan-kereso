@@ -30,9 +30,9 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         onClick={() => setIsOpen((prev) => !prev)}
-        title="Megjelenített gyorsszűrők testreszabása (max. 3 db)"
+        title="Megjelenített gyorsszűrők testreszabása"
         className={cn(
-          'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all',
+          'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0',
           isOpen
             ? 'border-blue-500/50 bg-blue-500/15 text-blue-400 shadow-sm'
             : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
@@ -49,11 +49,11 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
           role="dialog"
           aria-label="Gyorsszűrők testreszabása"
           data-testid="quick-filter-selector-popover"
-          className="absolute left-0 top-full z-50 mt-1.5 w-60 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-2.5 shadow-2xl backdrop-blur-md"
+          className="absolute right-0 top-full z-50 mt-1.5 w-60 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-2.5 shadow-2xl backdrop-blur-md"
         >
           <div className="mb-2 flex items-center justify-between border-b border-[var(--border-color)] pb-1.5 text-[11px] font-bold text-[var(--text-secondary)]">
             <span>Kitűzött szűrők</span>
-            <span>Max. {MAX_PINNED_QUICK_FILTERS} db</span>
+            <span>Összesen {QUICK_FILTER_OPTIONS.length} db</span>
           </div>
           <div className="space-y-1">
             {QUICK_FILTER_OPTIONS.map((opt) => {

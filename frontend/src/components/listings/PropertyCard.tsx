@@ -17,6 +17,7 @@ import {
 } from '../../utils/formatters'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
 import { PropertyCardBadges, PropertyDetailsModal, PropertyThumbnail } from './PropertyCardParts'
+import { isListingNew } from '../../utils/listingFilters'
 import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
@@ -28,12 +29,18 @@ interface PropertyCardProps {
   viewMode?: 'grid' | 'list'
 }
 
-function getCardBorderClass(isStarred: boolean, isViewed?: boolean): string {
+function getCardBorderClass(isStarred: boolean, isViewed?: boolean, isMultiSource?: boolean): string {
   if (isStarred) {
     return 'border-amber-500/50 bg-[var(--bg-card)] ring-1 ring-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] hover:border-amber-500/70 hover:ring-amber-500/50'
   }
   if (isViewed) {
+    if (isMultiSource) {
+      return 'border-yellow-400/60 bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
+    }
     return 'border-[var(--border-color)] bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
+  }
+  if (isMultiSource) {
+    return 'border-yellow-400 dark:border-yellow-500 bg-[var(--bg-card)] ring-1 ring-yellow-400/40 shadow-[0_0_12px_-3px_rgba(234,179,8,0.2)] hover:border-yellow-300 hover:ring-yellow-400/60'
   }
   return 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-blue-500/40'
 }
@@ -219,7 +226,7 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
         title={item.title}
         city={item.city}
         location={item.location}
-        isNew={item.isNew}
+        isNew={isListingNew(item)}
         viewed={item.viewed}
         onOpen={onOpen}
       />
@@ -276,9 +283,10 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
     <div
       data-testid="property-card"
       data-starred={isStarred ? 'true' : undefined}
+      data-multisource={sourcesCount > 1 ? 'true' : undefined}
       className={cn(
         'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
-        getCardBorderClass(isStarred, item.viewed),
+        getCardBorderClass(isStarred, item.viewed, sourcesCount > 1),
         isHiding ? 'opacity-0 scale-95 transition-all duration-150 pointer-events-none' : '',
       )}
     >

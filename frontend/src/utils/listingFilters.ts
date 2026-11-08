@@ -126,6 +126,11 @@ export interface ItemFilterOptions {
   quickSearchQuery?: string
 }
 
+export function isListingNew(item: IngatlanItem | null | undefined): boolean {
+  if (!item) return false
+  return Boolean(item.isNew || item.new)
+}
+
 export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions = {}): IngatlanItem[] {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return []
@@ -133,7 +138,7 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
   let items = [...rawItems]
 
   if (options.onlyNew) {
-    items = items.filter((item) => item.isNew)
+    items = items.filter(isListingNew)
   }
   if (options.excludeViewed) {
     items = items.filter((item) => !item.viewed)

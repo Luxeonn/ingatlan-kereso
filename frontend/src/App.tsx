@@ -161,6 +161,11 @@ export const App: FC = () => {
     isArchiveLoading,
   })
 
+  const hasSearched = listingSubView !== 'listings' || Boolean(data)
+  const handleClearHistory = listingSubView === 'archive'
+    ? () => { void clearArchiveHistory() }
+    : undefined
+
   return (
     <div className="min-h-screen bg-[var(--bg-body)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Sticky Header */}
@@ -233,8 +238,9 @@ export const App: FC = () => {
             items={activeItems}
             rawItems={activeRawItems}
             totalRawCount={activeRawCount}
+            serverFilteredCount={data?.filteredCount}
             isLoading={activeLoading}
-            hasSearched={listingSubView === 'listings' ? data !== null && data !== undefined : true}
+            hasSearched={hasSearched}
             mode={listingSubView}
             subView={listingSubView}
             onSubViewChange={setListingSubView}
@@ -244,14 +250,8 @@ export const App: FC = () => {
             onMarkViewed={markAsViewed}
             onOpenAll={openAllTabs}
             onTriggerSearch={handleSearch}
-            onClearHistory={
-              listingSubView === 'archive'
-                ? () => {
-                    void clearArchiveHistory()
-                  }
-                : undefined
-            }
-isClearingHistory={isClearingHistory}
+            onClearHistory={handleClearHistory}
+            isClearingHistory={isClearingHistory}
             onHide={hideProperty}
             onRestore={restoreProperty}
             hiddenCount={hiddenCount}

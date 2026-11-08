@@ -26,7 +26,7 @@ export const DEFAULT_PINNED_QUICK_FILTERS: QuickFilterId[] = [
   'hidden',
 ]
 
-export const MAX_PINNED_QUICK_FILTERS = 3
+export const MAX_PINNED_QUICK_FILTERS = ALL_QUICK_FILTER_IDS.length
 
 interface UiState {
   theme: 'dark' | 'light'

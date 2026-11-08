@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FC, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type FC, type ReactNode } from 'react'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { Inbox, Search, Star, Archive } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
@@ -101,6 +101,13 @@ function renderEmptyState(props: EmptyStateProps): ReactNode {
   return null
 }
 
+function shouldResetBatchToken(
+  prev: { items: IngatlanItem[]; mode?: string; initialBatchSize: number },
+  current: { items: IngatlanItem[]; mode?: string; initialBatchSize: number }
+): boolean {
+  return prev.items !== current.items || prev.mode !== current.mode || prev.initialBatchSize !== current.initialBatchSize
+}
+
 export const ListingsGrid: FC<ListingsGridProps> = ({
   items,
   rawItems,
@@ -120,44 +127,54 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   batchSize = DEFAULT_BATCH_STEP,
 }) => {
   const { viewMode } = useUiStore()
+  const initialLimit = items.length <= initialBatchSize + 3 ? items.length : initialBatchSize
   const [columns, setColumns] = useState(1)
   const [scrollMargin, setScrollMargin] = useState(0)
-  const [visibleLimit, setVisibleLimit] = useState(initialBatchSize)
+  const [visibleLimit, setVisibleLimit] = useState(initialLimit)
   const [prevResetToken, setPrevResetToken] = useState(() => ({ items, mode, initialBatchSize }))
   const listRef = useRef<HTMLDivElement>(null)
-  const sentinelRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLButtonElement>(null)
 
   // Reset pagination limit during render when items, mode, or batch size changes (#278)
-  if (
-    prevResetToken.items !== items ||
-    prevResetToken.mode !== mode ||
-    prevResetToken.initialBatchSize !== initialBatchSize
-  ) {
+  if (shouldResetBatchToken(prevResetToken, { items, mode, initialBatchSize })) {
     setPrevResetToken({ items, mode, initialBatchSize })
-    setVisibleLimit(initialBatchSize)
+    setVisibleLimit(items.length <= initialBatchSize + 3 ? items.length : initialBatchSize)
   }
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleLimit((prev) => Math.min(prev + batchSize, items.length))
+  }, [batchSize, items.length])
+
+  const hasMore = visibleLimit < items.length
 
   // Progressive batching via IntersectionObserver (#278)
   useEffect(() => {
     const sentinel = sentinelRef.current
-    if (!sentinel) return
+    if (!sentinel || !hasMore) return
 
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0]
         if (first && first.isIntersecting) {
-          setVisibleLimit((prev) => Math.min(prev + batchSize, items.length))
+          handleLoadMore()
         }
       },
       { rootMargin: '400px 0px' }
     )
 
     observer.observe(sentinel)
+
+    if (typeof window !== 'undefined' && sentinel.getBoundingClientRect) {
+      const rect = sentinel.getBoundingClientRect()
+      if (rect.bottom > 0 && rect.top <= window.innerHeight + 400) {
+        handleLoadMore()
+      }
+    }
+
     return () => observer.disconnect()
-  }, [items.length, batchSize])
+  }, [hasMore, visibleLimit, handleLoadMore])
 
   const visibleItems = items.slice(0, visibleLimit)
-  const hasMore = visibleLimit < items.length
 
   useEffect(() => {
     const updateColumns = () => {
@@ -277,16 +294,18 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
 
           {/* Infinite Scroll Sentinel / Progressive loader (#278) */}
           {hasMore && (
-            <div
+            <button
+              type="button"
               ref={sentinelRef}
               data-testid="infinite-scroll-sentinel"
-              className="flex items-center justify-center py-6 text-xs text-[var(--text-secondary)]"
+              onClick={handleLoadMore}
+              className="flex w-full items-center justify-center py-6 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
                 <span>További ingatlanok betöltése... ({visibleItems.length} / {items.length} db)</span>
               </div>
-            </div>
+            </button>
           )}
         </div>
       )}

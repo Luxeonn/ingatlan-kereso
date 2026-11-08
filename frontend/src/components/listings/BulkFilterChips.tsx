@@ -30,19 +30,19 @@ const HiddenFilterChip: FC<HiddenFilterChipProps> = ({
     onClick={() => setShowHidden(!showHidden)}
     title="Elrejtett / kukázott hirdetések megtekintése"
     className={cn(
-      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
       showHidden
         ? 'border border-purple-500/50 bg-purple-500/20 text-purple-300 shadow-sm ring-1 ring-purple-500/30'
         : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-purple-400 hover:border-purple-500/30',
     )}
   >
-    <Trash2 className="h-3.5 w-3.5 text-purple-400" />
-    <span>Elrejtettek</span>
+    <Trash2 className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+    <span className="truncate">Elrejtettek</span>
     {hiddenCount > 0 && (
       <span
         data-testid="hidden-filter-count"
         className={cn(
-          'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+          'rounded-full px-1.5 py-0.2 text-[10px] font-bold shrink-0',
           showHidden
             ? 'bg-purple-500/30 text-purple-200'
             : 'bg-[var(--bg-card)] text-purple-400',
@@ -68,19 +68,19 @@ const BargainFilterChip: FC<BargainChipProps> = ({ onlyBargain, setOnlyBargain, 
     onClick={() => setOnlyBargain(!onlyBargain)}
     title="Kizárólag alkalmi vételek megjelenítése (mediánnál legalább 20%-kal olcsóbb ingatlanok)"
     className={cn(
-      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
       onlyBargain
         ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
         : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30',
     )}
   >
-    <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
-    <span>Alkalmi vétel</span>
+    <TrendingDown className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+    <span className="truncate">Alkalmi vétel</span>
     {bargainCount > 0 && (
       <span
         data-testid="bargain-filter-count"
         className={cn(
-          'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+          'rounded-full px-1.5 py-0.2 text-[10px] font-bold shrink-0',
           onlyBargain
             ? 'bg-emerald-500/30 text-emerald-200'
             : 'bg-[var(--bg-card)] text-emerald-400',
@@ -103,14 +103,14 @@ const OnlyNewFilterChip: FC<OnlyNewChipProps> = ({ onlyNew, setOnlyNew }) => (
     aria-pressed={onlyNew}
     onClick={() => setOnlyNew(!onlyNew)}
     className={cn(
-      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
       onlyNew
         ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm'
         : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
     )}
   >
-    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-    <span>Csak új találatok</span>
+    <Sparkles className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+    <span className="truncate">Csak új találatok</span>
   </button>
 )
 
@@ -125,14 +125,14 @@ const ExcludeViewedFilterChip: FC<ExcludeViewedChipProps> = ({ excludeViewed, se
     aria-pressed={excludeViewed}
     onClick={() => setExcludeViewed(!excludeViewed)}
     className={cn(
-      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
       excludeViewed
         ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
         : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
     )}
   >
-    <EyeOff className="h-3.5 w-3.5 text-blue-400" />
-    <span>Megtekintettek rejtése</span>
+    <EyeOff className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+    <span className="truncate">Megtekintettek rejtése</span>
   </button>
 )
 
@@ -151,14 +151,14 @@ const OnlyNewConstructionFilterChip: FC<OnlyNewConstructionChipProps> = ({
     aria-label="Csak új építésű ingatlanok"
     onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
     className={cn(
-      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
       onlyNewConstruction
         ? 'border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm'
         : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
     )}
   >
-    <Building2 className="h-3.5 w-3.5 text-cyan-400" />
-    <span>Csak új építésű</span>
+    <Building2 className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+    <span className="truncate">Csak új építésű</span>
   </button>
 )
 
@@ -178,14 +178,14 @@ const ExcludeMultiSourceFilterChip: FC<ExcludeMultiSourceChipProps> = ({
     onClick={() => setExcludeMultiSource(!excludeMultiSource)}
     title="Több közvetítő által hirdetett, összekapcsolt ingatlanok elrejtése"
     className={cn(
-      'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all shrink-0',
+      'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
       excludeMultiSource
         ? 'border border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm'
         : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
     )}
   >
-    <Layers className="h-3.5 w-3.5 text-amber-400" />
-    <span>Több forrásosak rejtése</span>
+    <Layers className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+    <span className="truncate">Több forrásosak rejtése</span>
   </button>
 )
 
@@ -228,53 +228,57 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
   return (
     <div
       data-testid="filter-chips-row"
-      className="flex flex-wrap items-center gap-2 border-t border-[var(--border-color)] pt-2.5 text-xs"
+      className="flex items-center gap-2 border-t border-[var(--border-color)] pt-2.5 text-xs w-full"
     >
-      {isPinned('bargain') && (
-        <BargainFilterChip
-          onlyBargain={onlyBargain}
-          setOnlyBargain={setOnlyBargain}
-          bargainCount={bargainCount}
+      <div className="flex flex-1 items-center gap-2 min-w-0">
+        {isPinned('bargain') && (
+          <BargainFilterChip
+            onlyBargain={onlyBargain}
+            setOnlyBargain={setOnlyBargain}
+            bargainCount={bargainCount}
+          />
+        )}
+
+        {isPinned('onlyNew') && (
+          <OnlyNewFilterChip onlyNew={onlyNew} setOnlyNew={setOnlyNew} />
+        )}
+
+        {isPinned('hidden') && setShowHidden && (
+          <HiddenFilterChip
+            showHidden={showHidden}
+            setShowHidden={setShowHidden}
+            hiddenCount={hiddenCount}
+          />
+        )}
+
+        {isPinned('excludeViewed') && (
+          <ExcludeViewedFilterChip
+            excludeViewed={excludeViewed}
+            setExcludeViewed={setExcludeViewed}
+          />
+        )}
+
+        {isPinned('onlyNewConstruction') && (
+          <OnlyNewConstructionFilterChip
+            onlyNewConstruction={onlyNewConstruction}
+            setOnlyNewConstruction={setOnlyNewConstruction}
+          />
+        )}
+
+        {isPinned('excludeMultiSource') && setExcludeMultiSource && (
+          <ExcludeMultiSourceFilterChip
+            excludeMultiSource={excludeMultiSource}
+            setExcludeMultiSource={setExcludeMultiSource}
+          />
+        )}
+      </div>
+
+      <div className="shrink-0">
+        <QuickFilterPopover
+          pinnedQuickFilters={pinnedQuickFilters}
+          onToggleFilter={togglePinnedQuickFilter}
         />
-      )}
-
-      {isPinned('onlyNew') && (
-        <OnlyNewFilterChip onlyNew={onlyNew} setOnlyNew={setOnlyNew} />
-      )}
-
-      {isPinned('hidden') && setShowHidden && (
-        <HiddenFilterChip
-          showHidden={showHidden}
-          setShowHidden={setShowHidden}
-          hiddenCount={hiddenCount}
-        />
-      )}
-
-      {isPinned('excludeViewed') && (
-        <ExcludeViewedFilterChip
-          excludeViewed={excludeViewed}
-          setExcludeViewed={setExcludeViewed}
-        />
-      )}
-
-      {isPinned('onlyNewConstruction') && (
-        <OnlyNewConstructionFilterChip
-          onlyNewConstruction={onlyNewConstruction}
-          setOnlyNewConstruction={setOnlyNewConstruction}
-        />
-      )}
-
-      {isPinned('excludeMultiSource') && setExcludeMultiSource && (
-        <ExcludeMultiSourceFilterChip
-          excludeMultiSource={excludeMultiSource}
-          setExcludeMultiSource={setExcludeMultiSource}
-        />
-      )}
-
-      <QuickFilterPopover
-        pinnedQuickFilters={pinnedQuickFilters}
-        onToggleFilter={togglePinnedQuickFilter}
-      />
+      </div>
     </div>
   )
 }

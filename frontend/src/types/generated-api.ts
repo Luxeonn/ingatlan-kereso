@@ -660,6 +660,8 @@ export interface components {
             items: components["schemas"]["IngatlanItem"][];
             newCount: number;
             totalFound: number;
+            /** @description A keresési feltételek (ár, méret, város) alapján szabályszerűen kiszűrt hirdetések száma */
+            filteredCount?: number;
             executedAt?: string;
             /**
              * @description A keresés összesített végrehajtási státusza

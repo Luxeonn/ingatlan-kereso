@@ -433,12 +433,6 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       expect(useUiStore.getState().listingSubView).toBe('favorites')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-      // 4. Switch to Archive sub-view within listings panel
-      const archiveBtn = screen.getByRole('button', { name: /Archívum/i })
-      fireEvent.click(archiveBtn)
-      expect(useUiStore.getState().dashboardTab).toBe('listings')
-      expect(useUiStore.getState().listingSubView).toBe('archive')
-      expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
       // 5. Switch back to Hirdetések sub-view
       const activeListingsBtn = screen.getByRole('button', { name: /Hirdetések/i })

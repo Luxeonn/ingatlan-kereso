@@ -1253,6 +1253,9 @@ components:
           type: integer
         totalFound:
           type: integer
+        filteredCount:
+          type: integer
+          description: A keresési feltételek (ár, méret, város) alapján szabályszerűen kiszűrt hirdetések száma
         executedAt:
           type: string
         executionStatus:
