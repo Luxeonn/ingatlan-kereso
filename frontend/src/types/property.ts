@@ -4,7 +4,7 @@ export type PriceInfo = components['schemas']['PriceInfo']
 export type PropertyDetails = components['schemas']['PropertyDetails']
 export type PortalSource = components['schemas']['PortalSource']
 export type CanonicalPropertyType = components['schemas']['PropertyType']
-export type PropertyType = CanonicalPropertyType | string
+export type PropertyType = CanonicalPropertyType
 export type SourceListing = components['schemas']['SourceListing']
 
 export interface BargainInfo {
@@ -15,16 +15,8 @@ export interface BargainInfo {
   percentageBelowMedian?: number // e.g. 24.1
   sampleSize: number // e.g. 18
   referenceCity?: string
-  referencePropertyType?: string
+  referencePropertyType?: CanonicalPropertyType
 }
 
-export type IngatlanItem = Omit<
-  components['schemas']['IngatlanItem'],
-  'propertyType' | 'sourcesCount'
-> & {
-  propertyType?: PropertyType
-  sourcesCount?: number
-  bargainInfo?: BargainInfo
-  new?: boolean
-}
+export type IngatlanItem = components['schemas']['IngatlanItem']
 

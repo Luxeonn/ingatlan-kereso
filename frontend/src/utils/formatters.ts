@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { CanonicalPropertyType, IngatlanItem } from '../types/property'
+import { PORTAL_IDS, type PortalId } from '../types/portal'
 
 export interface PropertyTypeConfig {
   key: CanonicalPropertyType
@@ -94,7 +95,7 @@ export function normalizePropertyType(rawType?: string | null): CanonicalPropert
   if (!rawType || typeof rawType !== 'string') return 'EGYEB_ISMERETLEN'
 
   const normalized = rawType.trim().toUpperCase()
-  if (normalized in PROPERTY_TYPE_CONFIGS) {
+  if (Object.prototype.hasOwnProperty.call(PROPERTY_TYPE_CONFIGS, normalized)) {
     return normalized as CanonicalPropertyType
   }
 
@@ -290,7 +291,7 @@ const PORTAL_DOMAINS: Array<{ domain: string; portalId: string; portalName: stri
   { domain: 'ingatlan.com', portalId: 'ingatlancom', portalName: 'Ingatlan.com' },
 ]
 
-export const PORTAL_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+export const PORTAL_COLORS: Record<PortalId, { bg: string; text: string; border: string }> = {
   dh: { bg: 'bg-orange-500/10 text-orange-400 border-orange-500/30', text: 'text-orange-400', border: 'border-orange-500/40' },
   oc: { bg: 'bg-red-500/10 text-red-400 border-red-500/30', text: 'text-red-400', border: 'border-red-500/40' },
   jofogas: { bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', text: 'text-emerald-400', border: 'border-emerald-500/40' },
@@ -299,19 +300,34 @@ export const PORTAL_COLORS: Record<string, { bg: string; text: string; border: s
   ingatlancom: { bg: 'bg-sky-500/10 text-sky-400 border-sky-500/30', text: 'text-sky-400', border: 'border-sky-500/40' },
 }
 
-export function normalizePortalKey(portalOrId?: string | null): string {
-  const cleaned = (portalOrId || '')
+const PORTAL_MATCHERS: ReadonlyArray<readonly [PortalId, readonly string[]]> = [
+  ['dh', ['dh', 'duna']],
+  ['oc', ['oc', 'otthon']],
+  ['jofogas', ['jf', 'jofogas']],
+  ['ingatlanbazar', ['ib', 'ingatlanbazar', 'bazar']],
+  ['koltozzbe', ['kb', 'koltozzbe']],
+  ['ingatlancom', ['ic', 'ingatlancom']],
+]
+
+export type NormalizedPortalKey = PortalId | 'egyeb' | ''
+
+export function normalizePortalKey(portalOrId?: string | null): NormalizedPortalKey {
+  if (!portalOrId) return ''
+  const cleaned = portalOrId
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '')
-  if (cleaned.includes('dh') || cleaned.includes('duna')) return 'dh'
-  if (cleaned.includes('oc') || cleaned.includes('otthon')) return 'oc'
-  if (cleaned === 'jf' || cleaned.includes('jofogas')) return 'jofogas'
-  if (cleaned === 'ib' || cleaned.includes('ingatlanbazar') || cleaned.includes('bazar')) return 'ingatlanbazar'
-  if (cleaned === 'kb' || cleaned.includes('koltozzbe')) return 'koltozzbe'
-  if (cleaned === 'ic' || cleaned.includes('ingatlancom')) return 'ingatlancom'
-  return cleaned
+  for (const [id, tokens] of PORTAL_MATCHERS) {
+    if (tokens.some((token) => cleaned.includes(token))) {
+      return id
+    }
+  }
+  return isPortalId(cleaned) ? cleaned : (cleaned ? 'egyeb' : '')
+}
+
+export function isPortalId(key: string): key is PortalId {
+  return (PORTAL_IDS as readonly string[]).includes(key)
 }
 
 export function getItemPortalKeys(item: IngatlanItem): Set<string> {
@@ -327,10 +343,11 @@ export function getItemPortalKeys(item: IngatlanItem): Set<string> {
   return keys
 }
 
-export function getPortalStyle(portalId: string) {
+export function getPortalStyle(portalId: string): { bg: string; text: string; border: string } {
   const key = normalizePortalKey(portalId)
-  if (key in PORTAL_COLORS) {
-    return PORTAL_COLORS[key]
+  if (key && key !== 'egyeb' && Object.prototype.hasOwnProperty.call(PORTAL_COLORS, key)) {
+    const style = PORTAL_COLORS[key as PortalId]
+    if (style) return style
   }
   return { bg: 'bg-blue-500/10 text-blue-400 border-blue-500/30', text: 'text-blue-400', border: 'border-blue-500/40' }
 }

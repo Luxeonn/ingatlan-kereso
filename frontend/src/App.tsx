@@ -8,7 +8,7 @@ import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { SearchErrorBanner, PartialPortalWarningBanner } from './components/layout/StatusBanners'
 import { useSearch } from './hooks/useSearch'
 import { useFilterStore } from './store/useFilterStore'
-import { useUiStore } from './store/useUiStore'
+import { useUiStore, type ListingSubView } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
 import { cn } from './utils/cn'
@@ -23,7 +23,7 @@ const MarketAnalyticsPanel = lazy(() =>
 )
 
 interface ActiveSliceParams {
-  listingSubView: string
+  listingSubView: ListingSubView
   items: IngatlanItem[]
   rawItems: IngatlanItem[]
   rawCount: number
@@ -36,27 +36,32 @@ interface ActiveSliceParams {
 }
 
 function resolveActiveListingsSlice(params: ActiveSliceParams) {
-  if (params.listingSubView === 'favorites') {
-    return {
-      activeItems: params.favoriteItems,
-      activeRawItems: params.rawFavoriteItems,
-      activeRawCount: params.rawFavoriteItems.length,
-      activeLoading: false,
+  switch (params.listingSubView) {
+    case 'favorites':
+      return {
+        activeItems: params.favoriteItems,
+        activeRawItems: params.rawFavoriteItems,
+        activeRawCount: params.rawFavoriteItems.length,
+        activeLoading: false,
+      }
+    case 'archive':
+      return {
+        activeItems: params.archiveItems,
+        activeRawItems: params.rawArchiveItems,
+        activeRawCount: params.rawArchiveItems.length,
+        activeLoading: params.isArchiveLoading,
+      }
+    case 'listings':
+      return {
+        activeItems: params.items,
+        activeRawItems: params.rawItems,
+        activeRawCount: params.rawCount,
+        activeLoading: params.isLoading,
+      }
+    default: {
+      const _exhaustive: never = params.listingSubView
+      return _exhaustive
     }
-  }
-  if (params.listingSubView === 'archive') {
-    return {
-      activeItems: params.archiveItems,
-      activeRawItems: params.rawArchiveItems,
-      activeRawCount: params.rawArchiveItems.length,
-      activeLoading: params.isArchiveLoading,
-    }
-  }
-  return {
-    activeItems: params.items,
-    activeRawItems: params.rawItems,
-    activeRawCount: params.rawCount,
-    activeLoading: params.isLoading,
   }
 }
 

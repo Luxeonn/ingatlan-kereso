@@ -20,7 +20,7 @@ describe('SearchPresetsBar component', () => {
       criteria: {
         city: 'Hajdúszoboszló',
         cities: ['Hajdúszoboszló'],
-        propertyType: 'haz',
+        propertyType: 'HAZ',
         minPriceMillion: 70,
         maxPriceMillion: 120,
         minArea: 90,
@@ -41,7 +41,7 @@ describe('SearchPresetsBar component', () => {
       criteria: {
         city: 'Debrecen',
         cities: ['Debrecen'],
-        propertyType: 'lakas',
+        propertyType: 'LAKAS',
         minPriceMillion: 40,
         maxPriceMillion: 75,
         minArea: 40,
@@ -110,7 +110,7 @@ describe('SearchPresetsBar component', () => {
     // Store should have updated criteria
     const currentCriteria = useFilterStore.getState().criteria
     expect(currentCriteria.city).toBe('Debrecen')
-    expect(currentCriteria.propertyType).toBe('lakas')
+    expect(currentCriteria.propertyType).toBe('LAKAS')
     expect(currentCriteria.minPriceMillion).toBe(40)
     expect(currentCriteria.maxPriceMillion).toBe(75)
   })
@@ -149,7 +149,7 @@ describe('SearchPresetsBar component', () => {
 
     // Click edit button on the first preset
     const editButtons = screen.getAllByTitle('Sablon átnevezése')
-    fireEvent.click(editButtons[0])
+    fireEvent.click(editButtons[0]!)
 
     const editInput = screen.getByDisplayValue('Hajdúszoboszló Ház 70-120M')
     expect(editInput).toBeTruthy()
@@ -172,7 +172,7 @@ describe('SearchPresetsBar component', () => {
     render(<SearchPresetsBar onSearch={vi.fn()} />)
 
     const deleteButtons = screen.getAllByTitle('Sablon törlése')
-    fireEvent.click(deleteButtons[0])
+    fireEvent.click(deleteButtons[0]!)
 
     expect(mockDeleteMutate).toHaveBeenCalledWith(1, expect.anything())
   })
@@ -266,7 +266,7 @@ describe('SearchPresetsBar component', () => {
     render(<SearchPresetsBar onSearch={vi.fn()} />)
 
     const editButtons = screen.getAllByTitle('Sablon átnevezése')
-    fireEvent.click(editButtons[0])
+    fireEvent.click(editButtons[0]!)
 
     const editInput = screen.getByDisplayValue('Hajdúszoboszló Ház 70-120M')
     fireEvent.change(editInput, { target: { value: 'Módosított Név' } })
@@ -291,7 +291,7 @@ describe('SearchPresetsBar component', () => {
     render(<SearchPresetsBar onSearch={vi.fn()} />)
 
     const deleteButtons = screen.getAllByTitle('Sablon törlése')
-    fireEvent.click(deleteButtons[0])
+    fireEvent.click(deleteButtons[0]!)
 
     expect(mockDeleteMutate).toHaveBeenCalledTimes(1)
     const alert = screen.getByRole('alert')

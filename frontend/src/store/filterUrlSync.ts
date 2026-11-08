@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { SearchCriteria } from '../types/api'
+import { normalizePropertyType } from '../utils/formatters'
 
 export type SortOption = 'price_asc' | 'price_desc' | 'area_desc' | 'date_desc' | 'bargain_desc'
 
@@ -8,7 +9,7 @@ export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanb
 export const urlSchema = z.object({
   cities: z.string().max(1000).optional().catch(undefined),
   city: z.string().max(100).optional().catch(undefined),
-  type: z.enum(['lakas', 'haz', 'telek']).optional().catch(undefined),
+  type: z.string().max(50).optional().catch(undefined),
   minPrice: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
   maxPrice: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
   minArea: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
@@ -44,7 +45,9 @@ function parseCitiesParam(citiesParam?: string): { cities: string[]; city: strin
     .filter((c) => c.length > 0 && c.length <= 100)
     .slice(0, 20)
   if (list.length === 0) return null
-  return { cities: list, city: list[0] }
+  const firstCity = list[0]
+  if (!firstCity) return null
+  return { cities: list, city: firstCity }
 }
 
 function parsePortalsParam(portalsParam?: string): string[] | null {
@@ -103,7 +106,7 @@ export function parseUrlParams(): ParsedUrlFilterResult {
     result.city = parsedCities.city
   }
 
-  if (params.type) result.propertyType = params.type
+  if (params.type) result.propertyType = normalizePropertyType(params.type)
   parseNumericRanges(params, result)
 
   const parsedPortals = parsePortalsParam(params.portals)
@@ -142,7 +145,7 @@ function appendNumericRangeParams(params: URLSearchParams, criteria: SearchCrite
 
 function appendFilterCategoryParams(params: URLSearchParams, criteria: SearchCriteria): void {
   if (criteria.cities && criteria.cities.length > 0) params.set('cities', criteria.cities.join(','))
-  if (criteria.propertyType && criteria.propertyType !== 'lakas') params.set('type', criteria.propertyType)
+  if (criteria.propertyType && criteria.propertyType !== 'HAZ') params.set('type', criteria.propertyType)
   if (criteria.portals && criteria.portals.length < DEFAULT_PORTALS.length) {
     params.set('portals', criteria.portals.join(','))
   }

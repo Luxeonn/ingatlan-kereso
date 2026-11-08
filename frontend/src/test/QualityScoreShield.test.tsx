@@ -13,6 +13,7 @@ describe('QualityScoreShield component (#267)', () => {
     location: 'Debrecen',
     city: 'Debrecen',
     propertyType: 'LAKAS',
+    sourcesCount: 1,
   }
 
   it('strictly suppresses rendering when qualityScore is null or undefined', () => {

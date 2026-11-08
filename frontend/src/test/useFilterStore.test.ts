@@ -36,7 +36,7 @@ describe('useFilterStore', () => {
     it('initializes with default search criteria and sort options', () => {
       const state = useFilterStore.getState()
       expect(state.criteria.cities).toEqual(['Hajdúszoboszló'])
-      expect(state.criteria.propertyType).toBe('haz')
+      expect(state.criteria.propertyType).toBe('HAZ')
       expect(state.criteria.minPriceMillion).toBe(70)
       expect(state.criteria.maxPriceMillion).toBe(120)
       expect(state.criteria.portals).toEqual(DEFAULT_PORTALS)
@@ -77,7 +77,7 @@ describe('useFilterStore', () => {
   describe('criteria property setters', () => {
     it('updates property type and numeric ranges', () => {
       useFilterStore.getState().setPropertyType('lakas')
-      expect(useFilterStore.getState().criteria.propertyType).toBe('lakas')
+      expect(useFilterStore.getState().criteria.propertyType).toBe('LAKAS')
 
       useFilterStore.getState().setMinPriceMillion(45)
       useFilterStore.getState().setMaxPriceMillion(95)
@@ -185,7 +185,7 @@ describe('useFilterStore', () => {
 
       const state = useFilterStore.getState()
       expect(state.criteria.cities).toEqual(['Debrecen', 'Nyíregyháza'])
-      expect(state.criteria.propertyType).toBe('lakas')
+      expect(state.criteria.propertyType).toBe('LAKAS')
       expect(state.criteria.minPriceMillion).toBe(40)
       expect(state.criteria.maxPriceMillion).toBe(80)
       expect(state.sortOption).toBe('price_desc')

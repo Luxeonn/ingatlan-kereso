@@ -13,6 +13,7 @@ describe('BargainBadge component (#263 & #264)', () => {
     location: 'Debrecen',
     city: 'Debrecen',
     propertyType: 'LAKAS',
+    sourcesCount: 1,
     isBargain: true,
     percentageBelowMedian: 24.1,
     referenceMedianPricePerSquareMeter: 1_000_000,

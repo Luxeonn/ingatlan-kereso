@@ -1,5 +1,6 @@
 import type { FC, FormEvent } from 'react'
 import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal, AlertTriangle } from 'lucide-react'
+import type { CanonicalPropertyType } from '../../types/property'
 import { useFilterStore, DEFAULT_PORTALS } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
 import { CitySelector } from './CitySelector'
@@ -14,9 +15,17 @@ interface SearchPanelProps {
   isLoading: boolean
 }
 
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  lakas: 'Lakás',
+export type FilterPropertyType = CanonicalPropertyType | 'lakas' | 'haz' | 'telek'
+
+const PROPERTY_TYPE_LABELS: Record<FilterPropertyType, string> = {
+  HAZ: 'Családi ház',
+  LAKAS: 'Lakás',
+  TELEK: 'Telek',
+  GARAZS: 'Garázs',
+  IPARI_KERESKEDELMI: 'Ipari / Kereskedelmi',
+  EGYEB_ISMERETLEN: 'Egyéb',
   haz: 'Családi ház',
+  lakas: 'Lakás',
   telek: 'Telek',
 }
 
@@ -46,8 +55,11 @@ function resolveCitiesSummary(cities?: string[], defaultCity?: string): string {
 }
 
 function resolveTypeLabel(propertyType?: string): string {
-  const key = (propertyType || 'lakas').toLowerCase()
-  return PROPERTY_TYPE_LABELS[key] || propertyType || 'Lakás'
+  const key = (propertyType || 'haz').toLowerCase()
+  if (Object.prototype.hasOwnProperty.call(PROPERTY_TYPE_LABELS, key)) {
+    return PROPERTY_TYPE_LABELS[key as FilterPropertyType]
+  }
+  return propertyType || 'Családi ház'
 }
 
 interface CollapsedFilterSummaryProps {

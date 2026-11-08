@@ -9,10 +9,12 @@ export const DEFAULT_MOCK_CONFIG: SearchCriteria = {
   maxPriceMillion: 120,
   minArea: 30,
   maxArea: 150,
-  propertyType: 'lakas',
+  propertyType: 'LAKAS',
   portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar', 'ingatlancom'],
   autoOpenBrowser: false,
   excludeViewed: false,
+  onlyDiscounted: false,
+  onlyNewConstruction: false,
 }
 
 export const DEFAULT_MOCK_PORTALS: PortalDescriptor[] = [
@@ -54,6 +56,7 @@ export const SAMPLE_PROPERTIES: IngatlanItem[] = [
     percentageBelowMedian: 25,
     discoveredAt: '2026-11-05T10:00:00.000Z',
     imageUrl: '',
+    sourcesCount: 1,
     priceInfo: { amountMillion: 45, amountHuf: 45_000_000, rawText: '45 M Ft' },
     detailsInfo: { areaSquareMeters: 50, roomCount: 2, pricePerSquareMeter: 900_000 },
   },
@@ -72,6 +75,7 @@ export const SAMPLE_PROPERTIES: IngatlanItem[] = [
     percentageBelowMedian: 0,
     discoveredAt: '2026-11-06T12:00:00.000Z',
     imageUrl: '',
+    sourcesCount: 1,
     priceInfo: { amountMillion: 85, amountHuf: 85_000_000, rawText: '85 M Ft' },
     detailsInfo: { areaSquareMeters: 120, roomCount: 4, pricePerSquareMeter: 708_333 },
   },
@@ -90,6 +94,7 @@ export const SAMPLE_PROPERTIES: IngatlanItem[] = [
     percentageBelowMedian: -15,
     discoveredAt: '2026-11-07T08:00:00.000Z',
     imageUrl: '',
+    sourcesCount: 1,
     priceInfo: { amountMillion: 130, amountHuf: 130_000_000, rawText: '130 M Ft' },
     detailsInfo: { areaSquareMeters: 80, roomCount: 3, pricePerSquareMeter: 1_625_000 },
   },

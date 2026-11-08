@@ -45,10 +45,10 @@ export async function unwrapApiResponse<T>(fetchPromise: FetchResponse<T>): Prom
     let errorMsg = `HTTP Error ${response.status}: ${response.statusText}`
     if (error && typeof error === 'object') {
       const errObj = error as Record<string, unknown>
-      if ('error' in errObj && errObj.error) {
-        errorMsg = String(errObj.error)
-      } else if ('message' in errObj && errObj.message) {
-        errorMsg = String(errObj.message)
+      if ('error' in errObj && errObj['error']) {
+        errorMsg = String(errObj['error'])
+      } else if ('message' in errObj && errObj['message']) {
+        errorMsg = String(errObj['message'])
       }
     }
     throw new ApiError(response.status, errorMsg, error)

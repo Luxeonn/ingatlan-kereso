@@ -86,7 +86,7 @@ describe('DiagnosticsModal (#360)', () => {
     const exportBtn = screen.getByRole('button', { name: /Export/i })
     fireEvent.click(exportBtn)
     expect(writeTextMock).toHaveBeenCalledTimes(1)
-    expect(writeTextMock.mock.calls[0][0]).toContain(
+    expect(writeTextMock.mock.calls[0]![0]).toContain(
       '[DH] Duna House: SUCCESS (410ms, 15 találat) - Infó: Sikeres letöltés (15 találat) - Fallback: https://dh.hu/elado-ingatlan/haz/hajdu-bihar-megye/debrecen',
     )
   })
