@@ -25,5 +25,6 @@ export type IngatlanItem = Omit<
   propertyType?: PropertyType
   sourcesCount?: number
   bargainInfo?: BargainInfo
+  new?: boolean
 }
 

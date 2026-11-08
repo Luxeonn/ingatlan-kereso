@@ -134,14 +134,13 @@ describe('useUiStore', () => {
       useUiStore.getState().togglePinnedQuickFilter('excludeViewed')
       expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew', 'excludeViewed'])
 
-      // Attempt to add 4th: should be blocked by MAX_PINNED_QUICK_FILTERS (3)
+      // Add 4th pinned filter
       useUiStore.getState().togglePinnedQuickFilter('onlyNewConstruction')
-      expect(useUiStore.getState().pinnedQuickFilters).toHaveLength(MAX_PINNED_QUICK_FILTERS)
-      expect(useUiStore.getState().pinnedQuickFilters).not.toContain('onlyNewConstruction')
+      expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew', 'excludeViewed', 'onlyNewConstruction'])
 
       // Unpin one
       useUiStore.getState().togglePinnedQuickFilter('onlyNew')
-      expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'excludeViewed'])
+      expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'excludeViewed', 'onlyNewConstruction'])
     })
 
     it('validates and clamps custom pinned quick filter lists', () => {
@@ -149,10 +148,20 @@ describe('useUiStore', () => {
         'bargain',
         'onlyNew',
         'hidden',
-        'excludeViewed' as QuickFilterId, // 4th item
+        'excludeViewed',
+        'onlyNewConstruction',
+        'excludeMultiSource',
+        'invalid_key' as QuickFilterId,
       ])
       expect(useUiStore.getState().pinnedQuickFilters).toHaveLength(MAX_PINNED_QUICK_FILTERS)
-      expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew', 'hidden'])
+      expect(useUiStore.getState().pinnedQuickFilters).toEqual([
+        'bargain',
+        'onlyNew',
+        'hidden',
+        'excludeViewed',
+        'onlyNewConstruction',
+        'excludeMultiSource',
+      ])
     })
   })
 })

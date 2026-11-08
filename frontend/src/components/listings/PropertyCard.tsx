@@ -17,6 +17,7 @@ import {
 } from '../../utils/formatters'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
 import { PropertyCardBadges, PropertyDetailsModal, PropertyThumbnail } from './PropertyCardParts'
+import { isListingNew } from '../../utils/listingFilters'
 import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
@@ -225,7 +226,7 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
         title={item.title}
         city={item.city}
         location={item.location}
-        isNew={item.isNew}
+        isNew={isListingNew(item)}
         viewed={item.viewed}
         onOpen={onOpen}
       />

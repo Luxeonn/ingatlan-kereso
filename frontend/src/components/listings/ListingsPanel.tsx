@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { LayoutGrid, Star, Archive } from 'lucide-react'
+import { LayoutGrid, Star } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
 import type { ListingSubView } from '../../store/useUiStore'
@@ -74,7 +74,7 @@ interface ListingsSubViewNavProps {
   activeMode: ListingSubView
   activeSearchCount: number
   activeFavoritesCount: number
-  activeArchiveCount: number
+  activeArchiveCount?: number
   onSubViewChange: (newSubView: ListingSubView) => void
 }
 
@@ -82,7 +82,6 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
   activeMode,
   activeSearchCount,
   activeFavoritesCount,
-  activeArchiveCount,
   onSubViewChange,
 }) => (
   <nav
@@ -121,22 +120,6 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
       >
         <Star className="h-3.5 w-3.5" />
         <span>⭐ Kedvencek ({activeFavoritesCount})</span>
-      </button>
-
-      <button
-        type="button"
-        data-testid="subview-archive"
-        aria-pressed={activeMode === 'archive'}
-        onClick={() => onSubViewChange('archive')}
-        className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
-          activeMode === 'archive'
-            ? 'bg-purple-600 text-white shadow-sm'
-            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
-        )}
-      >
-        <Archive className="h-3.5 w-3.5" />
-        <span>Archívum ({activeArchiveCount})</span>
       </button>
     </div>
   </nav>

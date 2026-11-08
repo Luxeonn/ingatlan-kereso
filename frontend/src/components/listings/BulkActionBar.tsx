@@ -101,6 +101,15 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   return (
     <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
+          <span>{formatResultCount(visibleCount, items.length, totalRawCount, totalSourceListingsCount)}</span>
+          {items.length !== totalRawCount && (visibleCount === null || visibleCount === undefined) && (
+            <span className="text-[11px] font-normal text-[var(--text-secondary)]">
+              (szűrve)
+            </span>
+          )}
+        </div>
+
         <div className="relative flex-1 min-w-[200px] max-w-sm sm:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
           <input
@@ -123,7 +132,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <div className="flex items-center gap-1.5 text-xs shrink-0">
             <ArrowUpDown className="h-3.5 w-3.5 text-[var(--text-secondary)] shrink-0" />
             <label htmlFor="bulk-sort-select" className="text-[var(--text-secondary)] font-medium">
@@ -142,15 +151,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
-            <span>{formatResultCount(visibleCount, items.length, totalRawCount, totalSourceListingsCount)}</span>
-            {items.length !== totalRawCount && (visibleCount === null || visibleCount === undefined) && (
-              <span className="text-[11px] font-normal text-[var(--text-secondary)]">
-                (szűrve)
-              </span>
-            )}
           </div>
 
           {onClearHistory && (

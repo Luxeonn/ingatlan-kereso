@@ -25,6 +25,7 @@ import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 import { BargainBadge } from './BargainBadge'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
 import { cn } from '../../utils/cn'
+import { isListingNew } from '../../utils/listingFilters'
 
 export interface PropertyThumbnailProps {
   item: IngatlanItem
@@ -221,7 +222,7 @@ export const PropertyCardBadges: FC<PropertyCardBadgesProps> = ({
 }) => (
   <div className="flex items-center justify-between gap-2 min-h-[28px]">
     <div className="flex items-center gap-1.5 flex-nowrap overflow-hidden">
-      {item.isNew && (
+      {isListingNew(item) && (
         <span className="flex shrink-0 items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400 animate-pulse">
           <Sparkles className="h-3 w-3" /> ÚJ
         </span>

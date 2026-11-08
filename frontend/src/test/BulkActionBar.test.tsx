@@ -103,16 +103,16 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     const newConstructionCheckbox = screen.getByTestId('quick-filter-checkbox-onlyNewConstruction') as HTMLInputElement
     const excludeMultiCheckbox = screen.getByTestId('quick-filter-checkbox-excludeMultiSource') as HTMLInputElement
 
-    // Initially 3 are checked, and the remaining 3 unchecked are disabled
+    // Initially 3 are checked, and remaining unchecked options are enabled (can pin up to all 6)
     expect(bargainCheckbox.checked).toBe(true)
     expect(onlyNewCheckbox.checked).toBe(true)
     expect(hiddenCheckbox.checked).toBe(true)
     expect(excludeViewedCheckbox.checked).toBe(false)
-    expect(excludeViewedCheckbox.disabled).toBe(true)
+    expect(excludeViewedCheckbox.disabled).toBe(false)
     expect(newConstructionCheckbox.checked).toBe(false)
-    expect(newConstructionCheckbox.disabled).toBe(true)
+    expect(newConstructionCheckbox.disabled).toBe(false)
     expect(excludeMultiCheckbox.checked).toBe(false)
-    expect(excludeMultiCheckbox.disabled).toBe(true)
+    expect(excludeMultiCheckbox.disabled).toBe(false)
 
     // Uncheck 'hidden' -> now 2/6 selected, unchecked options become enabled
     fireEvent.click(hiddenCheckbox)

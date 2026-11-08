@@ -18,6 +18,7 @@ import { detectPortalFromUrl, normalizePortalKey, openExternalUrl } from '../uti
 import {
   normalizeSearchText,
   isItemBargain,
+  isListingNew,
   filterAndSortItems,
 } from '../utils/listingFilters'
 
@@ -147,7 +148,7 @@ export function useSearch() {
 
       if (criteria.autoOpenBrowser && result.items && result.items.length > 0) {
         const newUrls = result.items
-          .filter((item) => item.isNew)
+          .filter(isListingNew)
           .map((item) => item.url)
           .filter(Boolean)
 
