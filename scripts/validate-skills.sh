@@ -188,6 +188,10 @@ done
 [ -f "docs/architecture.md" ] && DOC_FILES+=("docs/architecture.md")
 [ -f "docs/pr-compliance.md" ] && DOC_FILES+=("docs/pr-compliance.md")
 [ -f "docs/PROJECT.md" ] && DOC_FILES+=("docs/PROJECT.md")
+[ -f "frontend/AGENTS.md" ] && DOC_FILES+=("frontend/AGENTS.md")
+[ -f "src/main/java/ingatlanok/AGENTS.md" ] && DOC_FILES+=("src/main/java/ingatlanok/AGENTS.md")
+[ -f "docs/architecture/type-safety/allowlist.md" ] && DOC_FILES+=("docs/architecture/type-safety/allowlist.md")
+[ -f "docs/architecture/type-safety/audit.md" ] && DOC_FILES+=("docs/architecture/type-safety/audit.md")
 
 for doc in "${DOC_FILES[@]}"; do
   [ -f "$doc" ] || continue
@@ -341,7 +345,7 @@ while IFS= read -r match; do
   f=$(echo "$match" | cut -d: -f1)
   l=$(echo "$match" | cut -d: -f2)
   log_fail "Virtual thread pinning violation: 'synchronized' keyword found in Java source" "$f" "$l"
-done < <(grep -rnI -E '\bsynchronized\b' src/main/java/ingatlanok/ 2>/dev/null || true)
+done < <(grep -rnI --include="*.java" -E '\bsynchronized\b' src/main/java/ingatlanok/ 2>/dev/null || true)
 
 # 6.4 Persistence encapsulation: no repository imports outside persistence
 while IFS= read -r match; do
@@ -398,6 +402,89 @@ if [ -f "$ESLINT_CFG" ]; then
     log_pass "frontend/eslint.config.js enforces multi-source AST rules"
   fi
 fi
+
+# 6.10 Validate allowlist entries in docs/architecture/type-safety/allowlist.md
+ALLOWLIST_FILE="docs/architecture/type-safety/allowlist.md"
+if [ ! -f "$ALLOWLIST_FILE" ]; then
+  log_fail "Type-safety allowlist file missing: $ALLOWLIST_FILE" "$ALLOWLIST_FILE"
+else
+  allowlist_count=0
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    id=$(echo "$line" | awk -F'|' '{print $2}' | tr -d '`' | xargs)
+    scope=$(echo "$line" | awk -F'|' '{print $3}' | tr -d '`' | xargs)
+    [ -n "$id" ] && [ -n "$scope" ] || continue
+    allowlist_count=$((allowlist_count + 1))
+    if [ ! -e "$scope" ]; then
+      log_fail "Allowlist entry '$id' specifies non-existent scope: '$scope'" "$ALLOWLIST_FILE"
+    else
+      log_pass "Allowlist entry '$id' maps to valid file scope '$scope'"
+    fi
+  done < <(grep -E '^\s*\|\s*`?ALLOW-[A-Z0-9_-]+`?\s*\|' "$ALLOWLIST_FILE" || true)
+
+  if [ "$allowlist_count" -eq 0 ]; then
+    log_fail "Type-safety allowlist contains no valid entries in $ALLOWLIST_FILE" "$ALLOWLIST_FILE"
+  fi
+fi
+
+# 6.11 Zero-tolerance check: @SuppressWarnings in src/main/java/
+suppress_warnings_found=0
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  suppress_warnings_found=$((suppress_warnings_found + 1))
+  log_fail "Type-safety bypass: '@SuppressWarnings' is forbidden in production Java code" "$f" "$l"
+done < <(grep -rnI --include="*.java" -E '@SuppressWarnings\b' src/main/java/ 2>/dev/null || true)
+if [ "$suppress_warnings_found" -eq 0 ]; then
+  log_pass "Zero @SuppressWarnings annotations found in src/main/java/"
+fi
+
+# 6.12 Zero-tolerance check: Class.forName in src/main/java/
+class_for_name_found=0
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  class_for_name_found=$((class_for_name_found + 1))
+  log_fail "Type-safety bypass: 'Class.forName' reflective loading is forbidden in production Java code" "$f" "$l"
+done < <(grep -rnI --include="*.java" -E 'Class\.forName\b' src/main/java/ 2>/dev/null || true)
+if [ "$class_for_name_found" -eq 0 ]; then
+  log_pass "Zero Class.forName reflection calls found in src/main/java/"
+fi
+
+# 6.13 Zero-tolerance check: @ts-ignore, @ts-nocheck, @ts-expect-error in frontend/src/ and frontend/e2e/
+ts_suppress_found=0
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  ts_suppress_found=$((ts_suppress_found + 1))
+  log_fail "Type-safety bypass: TypeScript compiler suppression is forbidden in frontend code" "$f" "$l"
+done < <(grep -rnI --include="*.ts" --include="*.tsx" -E '@ts-(ignore|nocheck|expect-error)\b' frontend/src/ frontend/e2e/ 2>/dev/null || true)
+if [ "$ts_suppress_found" -eq 0 ]; then
+  log_pass "Zero TypeScript compiler suppressions found in frontend/src/ and frontend/e2e/"
+fi
+
+# 6.14 Verify .github/CODEOWNERS and non-tampering directives
+CODEOWNERS_FILE=".github/CODEOWNERS"
+if [ ! -f "$CODEOWNERS_FILE" ]; then
+  log_fail "Missing required CODEOWNERS file: $CODEOWNERS_FILE" "$CODEOWNERS_FILE"
+elif ! grep -q "@Luxeonn" "$CODEOWNERS_FILE"; then
+  log_fail "CODEOWNERS file must assign repository owner @Luxeonn" "$CODEOWNERS_FILE"
+else
+  log_pass ".github/CODEOWNERS exists and assigns @Luxeonn"
+fi
+
+for agent_guide in "AGENTS.md" "frontend/AGENTS.md" "src/main/java/ingatlanok/AGENTS.md"; do
+  if [ ! -f "$agent_guide" ]; then
+    log_fail "Agent guide missing: $agent_guide" "$agent_guide"
+  elif ! grep -qi "Non-Tampering" "$agent_guide"; then
+    log_fail "Agent guide '$agent_guide' must contain Non-Tampering governance rules" "$agent_guide"
+  else
+    log_pass "Agent guide '$agent_guide' contains Non-Tampering governance rules"
+  fi
+done
 
 # ------------------------------------------------------------------------------
 # 7. PR template compliance, banned review tokens & version alignment

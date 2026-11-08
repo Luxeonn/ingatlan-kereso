@@ -1,0 +1,46 @@
+# Repository Ownership & Review Protection Rules (Issue #404 / #398)
+#
+# CRITICAL DIRECTIVE:
+# AI agents and automated scripts MUST NEVER disable, weaken, bypass, or silently
+# modify their own verification gates, compiler flags, linter configurations,
+# ArchUnit tests, allowlists, or CI workflows. Any change to the paths below
+# requires explicit human repository owner review.
+
+# Default owner for the entire repository
+* @Luxeonn
+
+# 1. CI/CD Workflows, PR Compliance & Governance Gates
+/.github/ @Luxeonn
+/CODEOWNERS @Luxeonn
+/.github/CODEOWNERS @Luxeonn
+/scripts/validate-skills.sh @Luxeonn
+/scripts/verify-pr-compliance.mjs @Luxeonn
+/scripts/verify-pr-compliance.sh @Luxeonn
+/scripts/test-verify-pr-compliance.mjs @Luxeonn
+/scripts/ai-verify.sh @Luxeonn
+
+# 2. Agent Directives, Specialist Skills & Type-Safety Allowlists
+/AGENTS.md @Luxeonn
+/GEMINI.md @Luxeonn
+/gemini.md @Luxeonn
+/CONTRIBUTING.md @Luxeonn
+/SECURITY.md @Luxeonn
+/.agents/ @Luxeonn
+/frontend/AGENTS.md @Luxeonn
+/src/main/java/ingatlanok/AGENTS.md @Luxeonn
+/docs/architecture/type-safety/ @Luxeonn
+/docs/pr-compliance.md @Luxeonn
+/docs/architecture.md @Luxeonn
+
+# 3. Compiler Flags, Static Analysis, Checkstyle, ESLint & ArchUnit Rules
+/build.gradle.kts @Luxeonn
+/settings.gradle.kts @Luxeonn
+/config/checkstyle/ @Luxeonn
+/frontend/eslint.config.js @Luxeonn
+/frontend/tsconfig.json @Luxeonn
+/frontend/package.json @Luxeonn
+/src/test/java/ingatlanok/architecture/ @Luxeonn
+/src/test/java/ingatlanok/web/OpenApiSpecIntegrityTest.java @Luxeonn
+
+# 4. OpenAPI Single Source of Truth Contract
+/openapi/api-spec.yaml @Luxeonn

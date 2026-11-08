@@ -24,6 +24,15 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-expect-error': true,
+          'ts-ignore': true,
+          'ts-nocheck': true,
+          'ts-check': false,
+        },
+      ],
       '@typescript-eslint/consistent-type-imports': [
         'error',
         { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
@@ -55,7 +64,7 @@ export default tseslint.config(
       'max-lines': 'off',
     },
   },
-  {
+   {
     files: [
       'src/components/**/*.{ts,tsx}',
       'src/hooks/**/*.{ts,tsx}',
@@ -84,6 +93,73 @@ export default tseslint.config(
           selector: 'VariableDeclarator[init.property.name="detailsInfo"] > ObjectPattern > Property[key.name="pricePerSquareMeter"]',
           message:
             'Destructuring pricePerSquareMeter from detailsInfo violates multi-source domain invariants. Use getEffectiveSqmPrice(item) from src/utils/formatters.ts instead.',
+        },
+        {
+          selector: 'TSAsExpression > TSAsExpression > TSUnknownKeyword',
+          message:
+            'Double type assertion (as unknown as T) is forbidden in production frontend code (Issue #404). Use runtime type guards or boundary validation instead.',
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/api/**/*.{ts,tsx}',
+      'src/store/**/*.{ts,tsx}',
+      'src/utils/**/*.{ts,tsx}',
+    ],
+    ignores: [
+      'src/api/client.ts',
+      'src/utils/listingFilters.ts',
+      'src/utils/marketAnalytics*.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSAsExpression > TSAsExpression > TSUnknownKeyword',
+          message:
+            'Double type assertion (as unknown as T) is forbidden in production frontend code (Issue #404). Use runtime type guards or boundary validation instead.',
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/types/**/*.{ts,tsx}',
+    ],
+    ignores: [
+      'src/types/generated-api.ts',
+      'src/types/property.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSTypeAliasDeclaration > TSUnionType:has(TSStringKeyword):has(TSTypeReference)',
+          message:
+            'Widening a closed domain type union with "| string" collapses compiler checking (Issue #404 / TS-001). Keep domain unions strictly closed.',
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/components/analytics/CityComparisonChart.tsx',
+      'src/components/analytics/PriceDistributionChart.tsx',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'MemberExpression[property.name="amountHuf"] > MemberExpression[property.name="priceInfo"]',
+          message:
+            'Direct access to item.priceInfo.amountHuf violates multi-source domain invariants. Use getEffectivePrice(item).priceFt or priceMillion from src/utils/formatters.ts instead.',
+        },
+        {
+          selector: 'MemberExpression[property.name="pricePerSquareMeter"] > MemberExpression[property.name="detailsInfo"]',
+          message:
+            'Direct access to item.detailsInfo.pricePerSquareMeter violates multi-source domain invariants. Use getEffectiveSqmPrice(item) from src/utils/formatters.ts instead.',
         },
       ],
     },
