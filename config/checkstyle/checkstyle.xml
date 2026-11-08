@@ -21,6 +21,11 @@
         <property name="checks" value="FileLength|MethodLength|ParameterNumber|CyclomaticComplexity"/>
         <property name="files" value="[/\\]src[/\\]test[/\\]"/>
     </module>
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="RegexpSinglelineJava"/>
+        <property name="id" value="noSynchronized"/>
+        <property name="files" value="[/\\]FixtureCoreViolatingSynchronized\.java"/>
+    </module>
 
     <module name="TreeWalker">
         <module name="Indentation">
@@ -148,6 +153,12 @@
             <property name="format" value="^\s*import\s+lombok\.SneakyThrows;|^\s*@(lombok\.)?SneakyThrows\b"/>
             <property name="ignoreComments" value="true"/>
             <property name="message" value="Lombok @SneakyThrows is forbidden. Handle checked exceptions explicitly to preserve 0-crash resilience."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="noSynchronized"/>
+            <property name="format" value="\bsynchronized\s*\(|\bsynchronized\s+([A-Za-z0-9_&lt;&gt;\[\]]+)\s+[A-Za-z0-9_]+\s*\("/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="The synchronized keyword is forbidden to prevent carrier thread pinning on Java 25 virtual threads. Use java.util.concurrent.locks.ReentrantLock or atomic/concurrent data structures instead."/>
         </module>
     </module>
 </module>

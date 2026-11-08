@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { TrendingDown, Sparkles, ExternalLink, Percent, Tag, Eye } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import type { BargainItem } from '../../hooks/useMarketAnalytics'
-import { formatPriceMillion, formatPricePerSqm, openExternalUrl } from '../../utils/formatters'
+import { formatPriceMillion, formatPricePerSqm, getEffectivePrice, getEffectiveSqmPrice, openExternalUrl } from '../../utils/formatters'
 
 interface BargainHunterTableProps {
   topPriceDrops: IngatlanItem[]
@@ -86,8 +86,8 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {belowMarketDeals.map(({ item, cityAvgSqmPrice, discountPercent, sqmDiffFt }) => {
               const area = item.detailsInfo?.areaSquareMeters
-              const itemSqmPrice = item.detailsInfo?.pricePerSquareMeter
-              const priceMillion = item.priceInfo?.amountMillion
+              const itemSqmPrice = getEffectiveSqmPrice(item)
+              const priceMillion = getEffectivePrice(item).priceMillion
 
               return (
                 <div

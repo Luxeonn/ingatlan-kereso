@@ -116,6 +116,51 @@ function extractSectionContent(fullText, headingRegex) {
   return stripHtmlComments(sectionRaw).trim();
 }
 
+let repoTestFilesCache = null;
+
+export function resetRepoTestFilesCache() {
+  repoTestFilesCache = null;
+}
+
+function getRepoTestFiles(repoRoot) {
+  if (repoTestFilesCache) return repoTestFilesCache;
+  const files = new Set();
+  const searchDirs = ['src/test', 'frontend/src/test', 'frontend/e2e', 'scripts'];
+  for (const dir of searchDirs) {
+    const fullDir = path.resolve(repoRoot, dir);
+    if (!fs.existsSync(fullDir)) continue;
+    function walk(d) {
+      try {
+        const entries = fs.readdirSync(d, { withFileTypes: true });
+        for (const ent of entries) {
+          const full = path.join(d, ent.name);
+          if (ent.isDirectory()) {
+            walk(full);
+          } else if (ent.isFile()) {
+            files.add(ent.name);
+            const rel = path.relative(repoRoot, full).replace(/\\/g, '/');
+            files.add(rel);
+          }
+        }
+      } catch {
+        // ignore unreadable dirs
+      }
+    }
+    walk(fullDir);
+  }
+  repoTestFilesCache = files;
+  return files;
+}
+
+function verifyTestFileExists(ref, repoRoot) {
+  const cleanRef = ref.replace(/^[./\\]+/, '').replace(/\\/g, '/');
+  const baseName = path.basename(cleanRef);
+  const directPath = path.resolve(repoRoot, cleanRef);
+  if (fs.existsSync(directPath)) return true;
+  const knownFiles = getRepoTestFiles(repoRoot);
+  return knownFiles.has(cleanRef) || knownFiles.has(baseName);
+}
+
 /**
  * Parses and verifies the PR body and modified files.
  */
@@ -123,6 +168,7 @@ export function verifyPrCompliance({
   bodyText,
   changedFiles = [],
   verbose = false,
+  repoRoot = process.cwd(),
 }) {
   const errors = [];
   const passes = [];
@@ -192,6 +238,25 @@ export function verifyPrCompliance({
       } else {
         passes.push(`Acceptance criteria traceability érvényes bejegyzések száma: ${validEntries}`);
       }
+
+      // Check that referenced test files actually exist on the filesystem
+      const testFileRegex = /`?([A-Za-z0-9_\-./\\]*(?:[A-Z]\w*Test\.java|\.test\.(?:tsx|ts|mjs|js)|\.spec\.(?:tsx|ts|mjs|js)))\b`?/g;
+      const referencedTestFiles = new Set();
+      let match;
+      while ((match = testFileRegex.exec(criteriaContent)) !== null) {
+        const ref = match[1];
+        if (ref && !ref.includes('path/to/file') && !ref.includes('[Kritérium')) {
+          referencedTestFiles.add(ref);
+        }
+      }
+
+      for (const testRef of referencedTestFiles) {
+        if (!verifyTestFileExists(testRef, repoRoot)) {
+          errors.push(`A lefedettségi táblázatban hivatkozott tesztfájl nem található a repositoryban: '${testRef}'`);
+        } else {
+          passes.push(`Hivatkozott tesztfájl létezik a repositoryban: '${testRef}'`);
+        }
+      }
     }
   }
 
@@ -253,6 +318,29 @@ export function verifyPrCompliance({
         }
       } else if (token === 'NO_FINDING') {
         passes.push(`'${spec.id}' státusza érvényes: [NO_FINDING]`);
+      }
+    }
+  }
+
+  // 5. Verify Cross-Layer Presentation DTO & OpenAPI Contract Drift
+  if (changedFiles.length > 0) {
+    const dtoFiles = changedFiles.filter((f) => /^src\/main\/java\/ingatlanok\/presentation\/.*Dto\.java$/.test(f));
+    if (dtoFiles.length > 0) {
+      const touchesOpenApi = changedFiles.includes('openapi/api-spec.yaml');
+      const touchesGeneratedApi = changedFiles.includes('frontend/src/types/generated-api.ts');
+      const hasContractSync = touchesOpenApi && touchesGeneratedApi;
+
+      const bodyHasContractExemption =
+        /(?:OpenAPI|contract|szerz[őo]d[ée]s|generated-api).*?(?:nem sz[üu]ks[ée]ges|nem v[áa]ltozott|v[áa]ltozatlan|no change|nincs v[áa]ltoz[áa]s|nem ig[ée]nyel)/i.test(bodyText);
+
+      if (!hasContractSync && !bodyHasContractExemption) {
+        errors.push(
+          `Cross-Layer Contract Drift: A PR módosította a prezentációs DTO-kat (${dtoFiles.join(', ')}), de az 'openapi/api-spec.yaml' vagy a 'frontend/src/types/generated-api.ts' nem szerepel a módosított fájlok között, és hiányzik az explicit indoklás a leírásból.`
+        );
+      } else if (hasContractSync) {
+        passes.push('Cross-layer szerződés szinkronizáció rendben (DTO -> OpenAPI -> generated-api.ts)');
+      } else {
+        passes.push('Cross-layer szerződés mentesség dokumentálva a PR leírásban');
       }
     }
   }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useId, useCallback } from 'react'
 import { TrendingDown, Sparkles } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
-import { formatPricePerSqm } from '../../utils/formatters'
+import { formatPricePerSqm, getEffectiveSqmPrice } from '../../utils/formatters'
 import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 
 export interface BargainBadgeProps {
@@ -54,7 +54,7 @@ function extractBargainStats(item: IngatlanItem): BargainStats | null {
     sampleSize,
     percentageBelow,
     refMedian: item.referenceMedianPricePerSquareMeter ?? item.bargainInfo?.referenceMedianPricePerSqm,
-    currentPricePerSqm: item.detailsInfo?.pricePerSquareMeter ?? item.bargainInfo?.currentPricePerSqm,
+    currentPricePerSqm: getEffectiveSqmPrice(item) ?? item.bargainInfo?.currentPricePerSqm,
     roundedPct: Math.round(percentageBelow),
   }
 }

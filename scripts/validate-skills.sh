@@ -335,13 +335,13 @@ while IFS= read -r match; do
   fi
 done < <(grep -rnI 'Jsoup\.connect' src/main/java/ 2>/dev/null || true)
 
-# 6.3 Virtual thread non-pinning: no synchronized in core/, portal/, or web/
+# 6.3 Virtual thread non-pinning: no synchronized anywhere in src/main/java/ingatlanok/
 while IFS= read -r match; do
   [ -n "$match" ] || continue
   f=$(echo "$match" | cut -d: -f1)
   l=$(echo "$match" | cut -d: -f2)
-  log_fail "Virtual thread pinning violation: 'synchronized' keyword found in service path" "$f" "$l"
-done < <(grep -rnI -E '\bsynchronized\b' src/main/java/ingatlanok/core/ src/main/java/ingatlanok/portal/ src/main/java/ingatlanok/web/ 2>/dev/null || true)
+  log_fail "Virtual thread pinning violation: 'synchronized' keyword found in Java source" "$f" "$l"
+done < <(grep -rnI -E '\bsynchronized\b' src/main/java/ingatlanok/ 2>/dev/null || true)
 
 # 6.4 Persistence encapsulation: no repository imports outside persistence
 while IFS= read -r match; do
@@ -366,6 +366,38 @@ while IFS= read -r match; do
   l=$(echo "$match" | cut -d: -f2)
   log_fail "Layer violation: lower layer imports presentation package" "$f" "$l"
 done < <(grep -rnI 'import ingatlanok\.presentation\.' src/main/java/ingatlanok/core/ src/main/java/ingatlanok/persistence/ src/main/java/ingatlanok/portal/ src/main/java/ingatlanok/model/ src/main/java/ingatlanok/common/ 2>/dev/null || true)
+
+# 6.7 No test-mode branching in production: app.test-mode restricted strictly to HttpFetcher.java
+while IFS= read -r match; do
+  [ -n "$match" ] || continue
+  f=$(echo "$match" | cut -d: -f1)
+  l=$(echo "$match" | cut -d: -f2)
+  if [[ "$f" != *"HttpFetcher.java" ]]; then
+    log_fail "Test-mode leak: 'app.test-mode' found outside HttpFetcher.java in production code" "$f" "$l"
+  else
+    log_pass "app.test-mode isolated in $f:$l"
+  fi
+done < <(grep -rnI 'app\.test-mode' src/main/java/ 2>/dev/null || true)
+
+# 6.8 E2E TypeScript coverage enforcement: frontend/tsconfig.json must include e2e directory
+TSCONFIG="frontend/tsconfig.json"
+if [ -f "$TSCONFIG" ]; then
+  if ! grep -q '"e2e"' "$TSCONFIG"; then
+    log_fail "tsconfig.json must include 'e2e' in the include array to ensure full TypeScript checking" "$TSCONFIG"
+  else
+    log_pass "frontend/tsconfig.json includes 'e2e' directory"
+  fi
+fi
+
+# 6.9 Frontend multi-source domain invariant AST rule in eslint.config.js
+ESLINT_CFG="frontend/eslint.config.js"
+if [ -f "$ESLINT_CFG" ]; then
+  if ! grep -q "amountHuf" "$ESLINT_CFG" || ! grep -q "pricePerSquareMeter" "$ESLINT_CFG"; then
+    log_fail "eslint.config.js must enforce no-restricted-syntax on amountHuf and pricePerSquareMeter to preserve multi-source domain invariants" "$ESLINT_CFG"
+  else
+    log_pass "frontend/eslint.config.js enforces multi-source AST rules"
+  fi
+fi
 
 # ------------------------------------------------------------------------------
 # 7. PR template compliance, banned review tokens & version alignment
@@ -417,7 +449,7 @@ done < <(grep -rnI 'Spring Boot 4\.1\.1' README.md AGENTS.md GEMINI.md gemini.md
 # 7.4 Execute PR compliance unit tests
 if command -v node >/dev/null 2>&1; then
   if node --test scripts/test-verify-pr-compliance.mjs >/dev/null 2>&1; then
-    log_pass "PR compliance test suite passed (14 unit tests)"
+    log_pass "PR compliance test suite passed (19 unit tests)"
   else
     log_fail "PR compliance test suite failed (scripts/test-verify-pr-compliance.mjs)" "scripts/test-verify-pr-compliance.mjs"
   fi

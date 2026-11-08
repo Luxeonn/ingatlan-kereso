@@ -1,15 +1,19 @@
 package ingatlanok.web;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +22,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.yaml.snakeyaml.Yaml;
+
+import ingatlanok.presentation.DashboardResponseDto;
+import ingatlanok.presentation.MarketSegmentStatsDto;
+import ingatlanok.presentation.MarketStatsDto;
+import ingatlanok.presentation.PortalStatusDto;
+import ingatlanok.presentation.PriceDropItemDto;
 
 class OpenApiSpecIntegrityTest {
 
@@ -122,6 +133,63 @@ class OpenApiSpecIntegrityTest {
         assertTrue(
             content.contains(fullPath + ":"),
             "A(z) " + fullPath + " kontroller végpontnak szerepelnie kell az openapi/api-spec.yaml specifikációban!");
+      }
+    }
+  }
+
+  @Test
+  @DisplayName("Prezentációs DTO-k minden publikus getterének szerepelnie kell az openapi/api-spec.yaml sémában")
+  void testAllPresentationDtoPropertiesAreDocumentedInOpenApiSpec() throws IOException {
+    Path specPath = getSpecPath();
+    assertTrue(Files.exists(specPath), "Az openapi/api-spec.yaml fájlnak léteznie kell!");
+
+    Yaml yaml = new Yaml();
+    Map<String, Object> root;
+    try (InputStream is = Files.newInputStream(specPath)) {
+      root = yaml.load(is);
+    }
+    @SuppressWarnings("unchecked")
+    Map<String, Object> components = (Map<String, Object>) root.get("components");
+    assertNotNull(components, "components szekció nem található az OpenAPI fájlban!");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> schemas = (Map<String, Object>) components.get("schemas");
+    assertNotNull(schemas, "schemas szekció nem található az OpenAPI fájlban!");
+
+    List<Class<?>> dtoClasses = List.of(
+        DashboardResponseDto.class,
+        PortalStatusDto.class,
+        MarketStatsDto.class,
+        MarketSegmentStatsDto.class,
+        PriceDropItemDto.class);
+
+    for (Class<?> dtoClass : dtoClasses) {
+      String schemaName = dtoClass.getSimpleName();
+      @SuppressWarnings("unchecked")
+      Map<String, Object> schema = (Map<String, Object>) schemas.get(schemaName);
+      assertNotNull(schema, "OpenAPI séma hiányzik a DTO-hoz: " + schemaName);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+      assertNotNull(properties, "Nincsenek 'properties' definiálva a sémában: " + schemaName);
+
+      for (Method method : dtoClass.getDeclaredMethods()) {
+        if (!Modifier.isPublic(method.getModifiers()) || method.getParameterCount() > 0) {
+          continue;
+        }
+        String name = method.getName();
+        String propName = null;
+        if (name.startsWith("get") && name.length() > 3 && !name.equals("getClass")) {
+          propName = Character.toLowerCase(name.charAt(3)) + name.substring(4);
+        } else if (name.startsWith("is") && name.length() > 2) {
+          propName = Character.toLowerCase(name.charAt(2)) + name.substring(3);
+        }
+
+        if (propName != null) {
+          assertTrue(
+              properties.containsKey(propName),
+              String.format(
+                  "A(z) %s DTO getteréből származtatott '%s' tulajdonság hiányzik az OpenAPI '%s' sémájából!",
+                  schemaName, propName, schemaName));
+        }
       }
     }
   }

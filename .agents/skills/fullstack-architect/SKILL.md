@@ -129,7 +129,7 @@ For every review, the specialist must follow this four-phase workflow:
 ### B. Virtual Threads and Concurrency
 
 - [ ] Virtual threads are enabled (`spring.threads.virtual.enabled=true`).
-- [ ] No calls block carrier threads (for example, synchronized blocks around I/O or `ThreadLocal` memory leaks; no `synchronized` in service/portal/core/web paths).
+- [ ] No calls block carrier threads: zero `synchronized` methods or blocks anywhere in `src/main/java/ingatlanok/` (enforced by Checkstyle `noSynchronized`, ArchUnit `NO_SYNCHRONIZED_METHODS_IN_VIRTUAL_THREAD_PATHS`, and `validate-skills.sh`). Mutual exclusion uses `ReentrantLock` or concurrent data structures.
 - [ ] Parallel scraping and aggregation use `Executors.newVirtualThreadPerTaskExecutor()` or a Spring asynchronous mechanism.
 
 ### C. Persistence, Lombok, and MapStruct Conventions
@@ -147,6 +147,8 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] The frontend compiles with zero errors under strict TypeScript compiler options (`noImplicitReturns`, `noImplicitOverride`, `forceConsistentCasingInFileNames`).
 - [ ] ESLint passes with zero warnings (`--max-warnings 0`) under Clean Code metrics (`complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`).
 - [ ] Direct `window.open` calls in frontend components are forbidden by ESLint AST rule; all external links use `openExternalUrl` from `utils/formatters.ts`.
+- [ ] Multi-Source domain invariants are strictly preserved: no direct access to `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` across UI components, hooks, or filters; canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` from `src/utils/formatters.ts` are used (enforced by ESLint AST rule `no-restricted-syntax`).
+- [ ] Cross-Layer presentation DTO and OpenAPI contract sync: any modification or addition to presentation DTOs is 1:1 synchronized with `openapi/api-spec.yaml` and `frontend/src/types/generated-api.ts` (enforced by `OpenApiSpecIntegrityTest.java` and `scripts/verify-pr-compliance.mjs`).
 - [ ] DTO types in `types/` derive directly from `generated-api.ts` (`components['schemas']`) without hand-written schema duplication or dead API functions.
 - [ ] Shared domain calculations (`getEffectivePrice`, `getEffectiveSqmPrice`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, `openExternalUrl`) and UI primitives (`NumericStepper`, `useOutsideDismiss`, `SORT_OPTIONS`) are reused rather than duplicated across components, hooks, or stores.
 - [ ] No redundant pass-through wrapper components or orphaned configuration entries exist.

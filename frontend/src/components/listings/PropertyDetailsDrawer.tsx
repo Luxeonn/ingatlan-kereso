@@ -8,6 +8,7 @@ import {
   getPortalStyle,
   clampQualityScore,
   getQualityConfig,
+  getEffectivePrice,
   openExternalUrl,
 } from '../../utils/formatters'
 import { PropertyTypeBadge } from './PropertyTypeBadge'
@@ -29,7 +30,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
             url: item.url,
             title: item.title,
             imageUrl: item.imageUrl,
-            priceHuf: item.priceInfo?.amountHuf,
+            priceHuf: getEffectivePrice(item).priceFt,
             status: item.status || 'ACTIVE',
             firstSeenAt: item.discoveredAt,
             lastSeenAt: item.discoveredAt,
