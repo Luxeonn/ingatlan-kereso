@@ -1,5 +1,5 @@
 import type { IngatlanItem } from '../types/property'
-import { normalizePropertyType } from './formatters'
+import { normalizePropertyType, getEffectiveSqmPrice } from './formatters'
 
 export interface HistogramBin {
   rangeLabel: string
@@ -279,7 +279,7 @@ export function calculateDistributionStats(
           maxVal: maxPricePerSqm,
           step: sqmStep,
           numBins: sqmNumBins,
-          getValue: (it) => it.detailsInfo?.pricePerSquareMeter,
+          getValue: (it) => getEffectiveSqmPrice(it) ?? undefined,
           formatLabel: (binMin, binMax) => `${Math.round(binMin / 1000)}k - ${Math.round(binMax / 1000)}k`,
           roundAvg: (avg) => Math.round(avg),
         })

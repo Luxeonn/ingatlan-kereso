@@ -178,4 +178,112 @@ class LocationAndTextualMatcherTest {
     assertTrue(SemanticConflictDetector.hasConflict(tanya, iker));
     assertFalse(SemanticConflictDetector.hasConflict(null, null));
   }
+
+  @Test
+  @DisplayName("#354: LocationConflictDetector kinyeri a városrészt a details mezőből és a városközpont szinonimát")
+  void testIssue354QuarterFromDetailsAndVaroskozpontSynonym() {
+    IngatlanItem itemKertvarosDetails = new IngatlanItem();
+    itemKertvarosDetails.setTitle("Fedezze fel álmai otthonát Hajdúszoboszlón – új 4 szobás ház várja Önt!");
+    itemKertvarosDetails.setLocation("Hajdúszoboszló");
+    itemKertvarosDetails.setDetails("107m² Kertváros 4 szoba");
+
+    ExtractedLocation locKertvaros =
+        LocationConflictDetector.extractLocation(itemKertvarosDetails, "hajduszoboszlo");
+    assertEquals("kertvaros", locKertvaros.quarter());
+
+    IngatlanItem itemVaroskozpontTitle = new IngatlanItem();
+    itemVaroskozpontTitle.setTitle("Nappali +3 szobás sorház a városközpontban!");
+    itemVaroskozpontTitle.setLocation("Hajdúszoboszló");
+
+    ExtractedLocation locBelvaros =
+        LocationConflictDetector.extractLocation(itemVaroskozpontTitle, "hajduszoboszlo");
+    assertEquals("belvaros", locBelvaros.quarter());
+
+    assertTrue(LocationConflictDetector.hasConflict(locKertvaros, locBelvaros, "hajduszoboszlo"));
+  }
+
+  @Test
+  @DisplayName("#354: SemanticConflictDetector felismeri a sorház vs ikerház és családi/új építésű ház ütközést")
+  void testIssue354HouseSubtypeAndNewConstructionConflicts() {
+    IngatlanItem sorhaz = new IngatlanItem();
+    sorhaz.setPropertyType(PropertyType.HAZ);
+    sorhaz.setTitle("Nappali +3 szobás sorház a városközpontban");
+
+    IngatlanItem ikerhaz = new IngatlanItem();
+    ikerhaz.setPropertyType(PropertyType.HAZ);
+    ikerhaz.setTitle("Modern ikerház garázzsal");
+
+    assertTrue(SemanticConflictDetector.hasConflict(sorhaz, ikerhaz), "Sorház és ikerház ütközik");
+
+    IngatlanItem csaladi = new IngatlanItem();
+    csaladi.setPropertyType(PropertyType.HAZ);
+    csaladi.setTitle("Önálló családi ház nagy kerttel");
+
+    assertTrue(SemanticConflictDetector.hasConflict(sorhaz, csaladi), "Sorház és önálló családi ház ütközik");
+
+    IngatlanItem newHouse = new IngatlanItem();
+    newHouse.setPropertyType(PropertyType.HAZ);
+    newHouse.setTitle("Új 4 szobás ház");
+    newHouse.setNewConstruction(true);
+
+    assertTrue(
+        SemanticConflictDetector.hasConflict(newHouse, sorhaz),
+        "Új építésű ház és használt sorház ütközik");
+
+    IngatlanItem ikerCsaladi = new IngatlanItem();
+    ikerCsaladi.setPropertyType(PropertyType.HAZ);
+    ikerCsaladi.setTitle("Eladó iker családi ház Debrecenben");
+    assertFalse(
+        SemanticConflictDetector.hasConflict(ikerhaz, ikerCsaladi),
+        "Ikerház és iker családi ház nem ütközhet önálló családi házként");
+
+    IngatlanItem kertvarosias = new IngatlanItem();
+    kertvarosias.setTitle("Kertvárosias környezetben eladó családi ház");
+    kertvarosias.setLocation("Debrecen");
+    ExtractedLocation locKertvarosias = LocationConflictDetector.extractLocation(kertvarosias, "debrecen");
+    assertNull(locKertvarosias.quarter(), "A 'kertvárosias' jelző nem minősülhet Kertváros városrésznek");
+
+    IngatlanItem kertvarosMellett = new IngatlanItem();
+    kertvarosMellett.setTitle("Kertváros közelében, csendes utcában eladó családi ház");
+    kertvarosMellett.setLocation("Debrecen");
+    ExtractedLocation locKertvarosMellett =
+        LocationConflictDetector.extractLocation(kertvarosMellett, "debrecen");
+    assertNull(
+        locKertvarosMellett.quarter(),
+        "A 'Kertváros közelében' nem minősülhet Kertváros városrésznek");
+
+    IngatlanItem kertvarosHataraban = new IngatlanItem();
+    kertvarosHataraban.setTitle("Kertváros határában eladó építési telek");
+    kertvarosHataraban.setLocation("Debrecen");
+    ExtractedLocation locKertvarosHataraban =
+        LocationConflictDetector.extractLocation(kertvarosHataraban, "debrecen");
+    assertNull(
+        locKertvarosHataraban.quarter(),
+        "A 'Kertváros határában' nem minősülhet Kertváros városrésznek");
+  }
+
+  @Test
+  @DisplayName("#354: TextualSimilarityMatcher kiszűri az OC marketing sablonszavakat és a városnevet")
+  void testIssue354MarketingTemplateStopwordsAndCityExcluded() {
+    IngatlanItem u0050372 = new IngatlanItem();
+    u0050372.setCity("Hajdúszoboszló");
+    u0050372.setTitle("Fedezze fel álmai otthonát Hajdúszoboszlón – új 4 szobás ház várja Önt!");
+
+    IngatlanItem h526222 = new IngatlanItem();
+    h526222.setCity("Hajdúszoboszló");
+    h526222.setTitle(
+        "Fedezze fel álmai otthonát Hajdúszoboszló szívében – Nappali +3 szobás sorház a városközpontban!");
+
+    Set<String> tokensA = TextualSimilarityMatcher.extractDistinctiveTokens(u0050372);
+    Set<String> tokensB = TextualSimilarityMatcher.extractDistinctiveTokens(h526222);
+
+    assertFalse(tokensA.contains("fedezze"));
+    assertFalse(tokensA.contains("almai"));
+    assertFalse(tokensA.contains("otthonat"));
+    assertFalse(tokensA.contains("varja"));
+    assertFalse(tokensA.contains("ont"));
+    assertFalse(tokensA.contains("hajduszoboszlo"));
+    assertFalse(tokensA.contains("hajduszoboszlon"));
+    assertFalse(tokensB.contains("hajduszoboszlo"));
+  }
 }

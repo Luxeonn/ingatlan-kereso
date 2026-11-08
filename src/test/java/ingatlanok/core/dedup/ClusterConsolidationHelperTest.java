@@ -60,6 +60,25 @@ class ClusterConsolidationHelperTest {
   }
 
   @Test
+  @DisplayName("adoptMissingDetailsFromCluster megőrzi a félszobás (pl. 2.5 szoba) kijelzést kerekítés nélkül")
+  void testAdoptMissingDetailsPreservesHalfRoomsInRawText() {
+    IngatlanItem primary = new IngatlanItem();
+    primary.setPriceInfo(PriceInfo.builder().amountHuf(40_000_000L).build());
+
+    IngatlanItem memberWithHalfRooms = new IngatlanItem();
+    memberWithHalfRooms.setDetailsInfo(
+        PropertyDetails.builder().areaSquareMeters(55.0).roomCount(2.5).build());
+
+    ClusterConsolidationHelper.adoptMissingDetailsFromCluster(
+        primary, List.of(primary, memberWithHalfRooms));
+
+    assertNotNull(primary.getDetailsInfo());
+    assertEquals(2.5, primary.getDetailsInfo().getRoomCount());
+    assertEquals("55 m² • 2.5 szoba", primary.getDetailsInfo().getRawText());
+    assertEquals("55 m² • 2.5 szoba", primary.getDetails());
+  }
+
+  @Test
   @DisplayName("adoptMissingDetailsFromCluster null és üres bemenetek esetén hibamentes")
   void testAdoptMissingDetailsEdgeCases() {
     ClusterConsolidationHelper.adoptMissingDetailsFromCluster(null, null);
@@ -110,5 +129,40 @@ class ClusterConsolidationHelperTest {
     assertEquals("", ClusterConsolidationHelper.normalizeImageUrl("   "));
     assertEquals("", ClusterConsolidationHelper.normalizeImageUrl("https://img.hu/default.jpg"));
     assertEquals("img.hu/pic.jpg", ClusterConsolidationHelper.normalizeImageUrl("https://img.hu/pic.jpg?x=1"));
+  }
+
+  @Test
+  @DisplayName("isSamePortalDifferentUrl felismeri az azonos portálon belüli eltérő URL-eket")
+  void testIsSamePortalDifferentUrl() {
+    assertFalse(ClusterConsolidationHelper.isSamePortalDifferentUrl(null, null));
+
+    IngatlanItem a = new IngatlanItem();
+    a.setUrl("https://www.oc.hu/ingatlanok/U0050372");
+    a.setPortal("Otthon Centrum");
+
+    IngatlanItem b = new IngatlanItem();
+    b.setUrl("https://www.oc.hu/ingatlanok/H526222");
+    b.setPortal("oc");
+
+    assertTrue(ClusterConsolidationHelper.isSamePortalDifferentUrl(a, b));
+
+    // Same URL -> false
+    IngatlanItem sameUrl = new IngatlanItem();
+    sameUrl.setUrl("https://www.oc.hu/ingatlanok/U0050372");
+    sameUrl.setPortal("oc");
+    assertFalse(ClusterConsolidationHelper.isSamePortalDifferentUrl(a, sameUrl));
+
+    // Different portal -> false
+    IngatlanItem dh = new IngatlanItem();
+    dh.setUrl("https://dh.hu/ingatlan/DH123");
+    dh.setPortal("Duna House");
+    assertFalse(ClusterConsolidationHelper.isSamePortalDifferentUrl(a, dh));
+
+    // Ingatlan.com URL fallback -> true when portal field is missing
+    IngatlanItem ic1 = new IngatlanItem();
+    ic1.setUrl("https://ingatlan.com/debrecen/elado+lakas/111111");
+    IngatlanItem ic2 = new IngatlanItem();
+    ic2.setUrl("https://ingatlan.com/debrecen/elado+lakas/222222");
+    assertTrue(ClusterConsolidationHelper.isSamePortalDifferentUrl(ic1, ic2));
   }
 }

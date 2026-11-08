@@ -16,6 +16,7 @@ import com.sun.net.httpserver.HttpServer;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +24,11 @@ class HttpFetcherTest {
 
   private static HttpServer testServer;
   private static int testPort;
+
+  @BeforeEach
+  void resetResilience() {
+    HttpFetcher.resetResilienceStateForTests();
+  }
 
   @BeforeAll
   static void startServer() throws IOException {

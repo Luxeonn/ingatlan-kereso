@@ -2,7 +2,10 @@ import type { FC } from 'react'
 
 export const ListingSkeleton: FC = () => {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-lg animate-shimmer">
+    <div
+      data-testid="listing-skeleton"
+      className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-lg animate-shimmer"
+    >
       {/* Header shimmer */}
       <div className="flex items-center justify-between pb-3">
         <div className="h-6 w-20 rounded-md bg-white/5" />

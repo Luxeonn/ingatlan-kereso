@@ -89,6 +89,51 @@ Regression protection is anchored to the versioned static dataset `src/test/reso
 
 All regression tests execute deterministically offline without network access or LLM token overhead.
 
+---
+
+## 5. Portal Golden Dataset Scraper Regression Suite (#370)
+
+The portal regression suite proves that portal scrapers reliably extract previously supported listing data following any parser or adapter modifications. The focus is on the quality of final normalized listings (`IngatlanItem`), verified end-to-end through the production `PortalEngine.scrape(criteria, fetcher)` pipeline.
+
+### Supported Portals & Fixture Structure
+
+Every supported portal maintains an isolated directory under `src/test/resources/fixtures/golden/portals/<portalId>/`:
+
+| Portal ID | Portal Name | Source Type | Coverage & Scenarios |
+| :--- | :--- | :--- | :--- |
+| `dh` | Duna House | HTML | Standard flat, family house, plot without rooms/image |
+| `oc` | Otthon Centrum | HTML + SEO JSON | House with SEO data, new construction flat with decimal rooms, building plot |
+| `jofogas` | Jófogás Ingatlan | HTML | Standard flat, new construction house with decimal rooms, plot without rooms |
+| `ingatlanbazar` | Ingatlanbazár | REST JSON API | Multi-room house, new construction flat, plot without rooms or images |
+| `koltozzbe` | Költözzbe | HTML + JSON-LD | Family house card, ItemList JSON-LD new construction flat, building plot card |
+| `ingatlancom` | Ingatlan.com | HTML | Flat with labeled half-rooms and new construction badge, house, building plot |
+
+Each portal directory contains three required files:
+1. `source.html` (or `source.json`): Representative, sanitized source excerpt from the search results page.
+2. `metadata.json`: Portal ID, display name, version, sample type, recording date, description, and query criteria.
+3. `expected.json`: Hand-verified canonical normalized listings covering ID, URL, title, property type, city, price (HUF & million), area, rooms, image URL, and new construction flag. Unsupported/missing fields remain explicitly `null`.
+
+### Diagnosability Across Portal, Record, and Field Levels
+
+When a parser deviation occurs, `PortalGoldenDatasetRegressionTest` reports exact diagnostic messages:
+```text
+[portalId] [Rekord: recordId] [Mező: fieldName] Elvárt: <expectedValue>, Kapott: <actualValue>
+```
+If record counts diverge or an expected listing ID is missing, the suite diagnoses the discrepancy at the record inventory level before inspecting individual attributes.
+
+### Governed Workflow for Adding or Updating Portal Fixtures
+
+To protect test integrity and prevent silent regression masks:
+- **No Automated Writes:** Test execution must never automatically regenerate or mutate fixture or expected output files.
+- **Manual, Reviewed Procedure:**
+  1. Capture a representative HTML or API JSON payload for the target portal under realistic search criteria.
+  2. Strip personal data, session tokens, binary data, third-party tracking tags, and irrelevant layout markup to keep fixtures lightweight.
+  3. Place the sanitized sample into `src/test/resources/fixtures/golden/portals/<portalId>/source.html` (or `.json`).
+  4. Record the recording metadata and criteria in `metadata.json`.
+  5. Manually verify and define the expected normalized items in `expected.json` (unsupported attributes must remain `null`).
+  6. Execute `PortalGoldenDatasetRegressionTest` offline to ensure deterministic parity.
+  7. Commit fixture updates alongside the corresponding parser or adapter changes in a reviewed pull request.
+
 Related Documentation:
 - System Architecture: [docs/architecture.md](architecture.md)
 - PR Compliance & Governance: [docs/pr-compliance.md](pr-compliance.md)

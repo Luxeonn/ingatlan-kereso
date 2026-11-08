@@ -36,7 +36,7 @@ Format (Markdown table or structured list):
 | Criterion 2 description | `frontend/src/.../MyView.tsx` | `npm run test` (Vitest PASS) |
 ```
 
-The Traceability table must account for all modified files in the diff. Unsolicited refactoring, unrequested version bumps, or unapproved contract changes will cause the compliance gate to reject the PR. Small supportive edits are permitted only with explicit justification in the table.
+The Traceability table must account for all modified files in the diff. Unsolicited refactoring, unrequested version bumps, or unapproved contract changes will cause the compliance gate to reject the PR. Small supportive edits are permitted only with explicit justification in the table. Test references in the Traceability table (`*Test.java`, `*.test.ts`, `*.test.tsx`, `*.spec.ts`) are mechanically verified against the repository filesystem by `verify-pr-compliance.mjs`. Referencing non-existent or misspelled test files triggers immediate failure.
 
 ### 2.4. 🧪 Tesztelés és Ellenőrzés (Testing & Verification)
 The exact verification commands executed locally and their outcomes (e.g., `./gradlew check`, `npm run lint`, `bash scripts/validate-skills.sh -v`).
@@ -96,9 +96,14 @@ node scripts/verify-pr-compliance.mjs --body-file pr_body.md --diff-base origin/
 # Or via bash wrapper:
 bash scripts/verify-pr-compliance.sh --body-file pr_body.md --diff-base origin/develop
 
-# Run validator self-test suite (14 unit tests):
+# Run validator self-test suite (19 unit tests):
 node --test scripts/test-verify-pr-compliance.mjs
 ```
+
+Key automated checks performed by `verify-pr-compliance.mjs`:
+- Traceability test file existence check: every referenced test file must physically exist in the repository.
+- Cross-Layer presentation DTO & OpenAPI contract drift check: modifying `presentation/*Dto.java` requires `openapi/api-spec.yaml` and `frontend/src/types/generated-api.ts` synchronization or explicit justification.
+- Review Risk Matrix alignment: specialists cannot claim `[NOT_APPLICABLE]` when their domain files are modified.
 
 ### 5.2. Governance & Specialist Skill Validator (`validate-skills.sh`)
 Deterministic offline validator enforcing 7 sequential phases:
@@ -136,3 +141,14 @@ Recommended Required Status Checks on GitHub Branch Protection / Rulesets:
 - `Branch up-to-date with develop`
 - `PR title`
 - `CodeQL`
+
+---
+
+## 7. Mandatory Adversarial Self-Review Protocol
+
+Before opening any Pull Request or marking an implementation task complete, every AI agent must execute a two-phase workflow: first as an **Implementer**, then as an **Adversarial Reviewer** auditing their own diff against four mandatory invariant pillars:
+
+1. **Multi-Source Domain Invariant:** Verify that deduplicated clusters (`IngatlanItem`) with multiple source listings are handled canonically. No UI component, hook, or filter may access `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` directly; canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` (`src/utils/formatters.ts`) must be used (enforced by ESLint AST rule `no-restricted-syntax`).
+2. **Multi-City & Partial Failure Invariant:** Verify that search aggregation and portal cards properly support mixed statuses (`SUCCESS`, `PARTIAL_SUCCESS`, `TOTAL_FAILURE`, `BOT_PROTECTED`) across multiple queried cities without throwing unhandled exceptions or showing empty states.
+3. **End-to-End Contract Traceability:** Verify that every backend DTO change propagates across `openapi/api-spec.yaml` -> `PresentationMapper` -> `generated-api.ts` -> UI components. Every test file referenced in the PR description must physically exist in the repository (enforced by `OpenApiSpecIntegrityTest.java` and `verify-pr-compliance.mjs`).
+4. **Hermetic Test Isolation & Virtual Thread Concurrency:** Verify that tests run completely offline and order-independently without `app.test-mode` flags leaking into production code (`src/main/java`). Production code must contain zero `synchronized` methods or blocks to eliminate Java 25 virtual thread carrier pinning (enforced by Checkstyle `noSynchronized`, ArchUnit, and `validate-skills.sh`).

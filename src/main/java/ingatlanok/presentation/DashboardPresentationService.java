@@ -1,10 +1,7 @@
 package ingatlanok.presentation;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 
 import ingatlanok.core.MarketAnalyticsEngine;
@@ -43,49 +40,12 @@ public class DashboardPresentationService {
       return new ArrayList<>();
     }
 
-    Map<String, PortalStatusDto> byPortalId = new LinkedHashMap<>();
+    List<PortalStatusDto> statuses = new ArrayList<>(searchResult.getPortalResults().size());
     for (PortalScrapeResult pr : searchResult.getPortalResults()) {
-      if (pr == null) {
-        continue;
-      }
-      String key = resolvePortalKey(pr);
-      int itemCount = pr.getItems() != null ? pr.getItems().size() : 0;
-      String statusName = pr.getStatus() != null ? pr.getStatus().name() : "UNKNOWN";
-
-      PortalStatusDto existing = byPortalId.get(key);
-      if (existing == null) {
-        byPortalId.put(key, PresentationMapper.INSTANCE.toPortalStatusDto(pr));
-      } else {
-        byPortalId.put(key, mergePortalStatus(existing, pr, itemCount, statusName));
+      if (pr != null) {
+        statuses.add(PresentationMapper.INSTANCE.toPortalStatusDto(pr));
       }
     }
-    return new ArrayList<>(byPortalId.values());
-  }
-
-  private String resolvePortalKey(PortalScrapeResult pr) {
-    if (pr.getPortalId() != null && !pr.getPortalId().isBlank()) {
-      return pr.getPortalId().trim().toLowerCase(Locale.ROOT);
-    }
-    if (pr.getPortalName() != null) {
-      return pr.getPortalName().trim().toLowerCase(Locale.ROOT);
-    }
-    return "unknown";
-  }
-
-  private PortalStatusDto mergePortalStatus(
-      PortalStatusDto existing, PortalScrapeResult pr, int itemCount, String statusName) {
-    int foundCount = existing.getFoundCount() + itemCount;
-    String fallbackUrl = existing.getFallbackUrl();
-    if (fallbackUrl == null && pr.getFallbackUrl() != null) {
-      fallbackUrl = pr.getFallbackUrl();
-    }
-    String mergedStatus =
-        "SUCCESS".equals(statusName) || foundCount > 0 ? "SUCCESS" : existing.getStatus();
-    return existing.toBuilder()
-        .foundCount(foundCount)
-        .latencyMs(existing.getLatencyMs() + Math.max(0L, pr.getExecutionTimeMs()))
-        .fallbackUrl(fallbackUrl)
-        .status(mergedStatus)
-        .build();
+    return statuses;
   }
 }

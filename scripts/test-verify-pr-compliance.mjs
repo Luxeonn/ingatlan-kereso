@@ -181,3 +181,88 @@ test('Review Risk Matrix: quality-devops-engineer cannot be NOT_APPLICABLE when 
     )
   );
 });
+
+test('Traceability table referencing non-existent test file fails fail-closed', () => {
+  const bodyWithFakeTest = VALID_SAMPLE_BODY.replace(
+    /`node --test scripts\/test-verify-pr-compliance\.mjs`/,
+    '`NonExistentRegressionTest.java` és `fake-missing.test.ts`'
+  );
+  const result = verifyPrCompliance({
+    bodyText: bodyWithFakeTest,
+    changedFiles: ['docs/architecture.md'],
+  });
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.errors.some((e) =>
+      e.includes("A lefedettségi táblázatban hivatkozott tesztfájl nem található a repositoryban: 'NonExistentRegressionTest.java'")
+    )
+  );
+  assert.ok(
+    result.errors.some((e) =>
+      e.includes("A lefedettségi táblázatban hivatkozott tesztfájl nem található a repositoryban: 'fake-missing.test.ts'")
+    )
+  );
+});
+
+test('Traceability table referencing real existing test files passes', () => {
+  const bodyWithRealTests = VALID_SAMPLE_BODY.replace(
+    /`node --test scripts\/test-verify-pr-compliance\.mjs`/,
+    '`OpenApiSpecIntegrityTest.java` és `PropertyCard.test.tsx`'
+  );
+  const result = verifyPrCompliance({
+    bodyText: bodyWithRealTests,
+    changedFiles: ['docs/architecture.md'],
+  });
+  assert.equal(result.valid, true);
+  assert.ok(result.passes.some((p) => p.includes("Hivatkozott tesztfájl létezik a repositoryban: 'OpenApiSpecIntegrityTest.java'")));
+  assert.ok(result.passes.some((p) => p.includes("Hivatkozott tesztfájl létezik a repositoryban: 'PropertyCard.test.tsx'")));
+});
+
+test('Cross-Layer Contract Drift: presentation DTO modified without openapi/api-spec.yaml and generated-api.ts fails', () => {
+  const result = verifyPrCompliance({
+    bodyText: VALID_SAMPLE_BODY,
+    changedFiles: [
+      'src/main/java/ingatlanok/presentation/DashboardResponseDto.java',
+      'src/main/java/ingatlanok/presentation/DashboardPresentationService.java',
+    ],
+  });
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.errors.some((e) =>
+      e.includes('Cross-Layer Contract Drift: A PR módosította a prezentációs DTO-kat')
+    )
+  );
+});
+
+test('Cross-Layer Contract Drift: presentation DTO modified with openapi/api-spec.yaml and generated-api.ts passes', () => {
+  const result = verifyPrCompliance({
+    bodyText: VALID_SAMPLE_BODY,
+    changedFiles: [
+      'src/main/java/ingatlanok/presentation/DashboardResponseDto.java',
+      'openapi/api-spec.yaml',
+      'frontend/src/types/generated-api.ts',
+    ],
+  });
+  assert.equal(result.valid, true);
+  assert.ok(
+    result.passes.some((p) =>
+      p.includes('Cross-layer szerződés szinkronizáció rendben')
+    )
+  );
+});
+
+test('Cross-Layer Contract Drift: presentation DTO modified with explicit exemption in PR body passes', () => {
+  const bodyWithExemption = VALID_SAMPLE_BODY + '\nMegjegyzés: belső DTO refaktorálás történt, OpenAPI szerződés nem szükséges / változatlan.\n';
+  const result = verifyPrCompliance({
+    bodyText: bodyWithExemption,
+    changedFiles: [
+      'src/main/java/ingatlanok/presentation/PortalStatusDto.java',
+    ],
+  });
+  assert.equal(result.valid, true);
+  assert.ok(
+    result.passes.some((p) =>
+      p.includes('Cross-layer szerződés mentesség dokumentálva')
+    )
+  );
+});

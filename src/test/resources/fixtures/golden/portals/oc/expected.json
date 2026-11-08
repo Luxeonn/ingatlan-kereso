@@ -1,0 +1,41 @@
+[
+  {
+    "id": "H45678",
+    "url": "https://www.oc.hu/ingatlanok/H45678",
+    "title": "Csodás családi ház",
+    "propertyType": "HAZ",
+    "city": "Debrecen",
+    "priceHuf": 75000000,
+    "priceMillion": 75.0,
+    "areaSquareMeters": 120.0,
+    "roomCount": 4.0,
+    "imageUrl": "https://www.oc.hu/photos/h45678.jpg",
+    "newConstruction": false
+  },
+  {
+    "id": "L99123",
+    "url": "https://www.oc.hu/ingatlanok/L99123",
+    "title": "Új építésű modern lakás",
+    "propertyType": "LAKAS",
+    "city": "Debrecen",
+    "priceHuf": 54000000,
+    "priceMillion": 54.0,
+    "areaSquareMeters": 62.0,
+    "roomCount": 2.5,
+    "imageUrl": "https://www.oc.hu/photos/l99123.jpg",
+    "newConstruction": true
+  },
+  {
+    "id": "T77889",
+    "url": "https://www.oc.hu/ingatlanok/T77889",
+    "title": "Csendes építési telek",
+    "propertyType": "TELEK",
+    "city": "Debrecen",
+    "priceHuf": 28000000,
+    "priceMillion": 28.0,
+    "areaSquareMeters": 800.0,
+    "roomCount": null,
+    "imageUrl": null,
+    "newConstruction": false
+  }
+]

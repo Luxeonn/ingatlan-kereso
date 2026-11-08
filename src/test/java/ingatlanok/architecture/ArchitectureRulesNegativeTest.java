@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.core.testsupport.FixtureCoreViolatingSpringWeb;
+import ingatlanok.core.testsupport.FixtureCoreViolatingSynchronized;
 import ingatlanok.portal.testsupport.FixturePortalViolatingPersistence;
 
 class ArchitectureRulesNegativeTest {
@@ -34,6 +35,19 @@ class ArchitectureRulesNegativeTest {
         assertThrows(
             AssertionError.class,
             () -> ArchitectureRulesTest.CORE_AND_MODEL_AND_PORTAL_DO_NOT_DEPEND_ON_SPRING_WEB.check(classes));
+    assertTrue(
+        error.getMessage().contains("was violated"),
+        "ArchUnit szabálysértési üzenetnek meg kell jelennie, de ez volt: " + error.getMessage());
+  }
+
+  @Test
+  @DisplayName("Virtuális szál útvonalon lévő synchronized metódus esetén az ArchUnit szabály AssertionError-t dob")
+  void verifiesSynchronizedMethodViolationThrowsAssertionError() {
+    JavaClasses classes = new ClassFileImporter().importClasses(FixtureCoreViolatingSynchronized.class);
+    AssertionError error =
+        assertThrows(
+            AssertionError.class,
+            () -> ArchitectureRulesTest.NO_SYNCHRONIZED_METHODS_IN_VIRTUAL_THREAD_PATHS.check(classes));
     assertTrue(
         error.getMessage().contains("was violated"),
         "ArchUnit szabálysértési üzenetnek meg kell jelennie, de ez volt: " + error.getMessage());

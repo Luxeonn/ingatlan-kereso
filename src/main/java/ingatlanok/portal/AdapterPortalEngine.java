@@ -66,7 +66,7 @@ public class AdapterPortalEngine implements PortalEngine {
         if (result.status() == PortalScrapeStatus.SUCCESS && !result.listings().isEmpty()) {
           List<IngatlanItem> items = normalizeListings(result, descriptor, safeCriteria);
           long elapsed = System.currentTimeMillis() - startTime;
-          return buildSuccessResult(descriptor, result, items, elapsed);
+          return buildSuccessResult(descriptor, result, items, defaultSearchUrl, elapsed);
         }
         if (result.status() == PortalScrapeStatus.BOT_PROTECTED) {
           lastBotProtected = result;
@@ -91,6 +91,7 @@ public class AdapterPortalEngine implements PortalEngine {
       SearchCriteria safeCriteria) {
     List<IngatlanItem> normalizedItems = new ArrayList<>();
     Set<String> processedUrls = new HashSet<>();
+    Set<String> processedNativeIds = new HashSet<>();
     String now = PortalSupport.nowTimestamp();
     int rejected = 0;
     int duplicates = 0;
@@ -103,7 +104,8 @@ public class AdapterPortalEngine implements PortalEngine {
       if (item == null) {
         rejected++;
         LOGGER.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
-      } else if (PortalSupport.markProcessed(processedUrls, item.getUrl())) {
+      } else if (PortalSupport.markProcessedListing(
+          processedUrls, processedNativeIds, item.getUrl(), raw.nativeId())) {
         normalizedItems.add(item);
       } else {
         duplicates++;
@@ -123,6 +125,7 @@ public class AdapterPortalEngine implements PortalEngine {
       PortalDescriptor descriptor,
       RawExtractionResult result,
       List<IngatlanItem> items,
+      String defaultSearchUrl,
       long elapsed) {
     PortalScrapeResult scrapeResult = PortalScrapeResult.success(
         descriptor.id(),
@@ -130,7 +133,14 @@ public class AdapterPortalEngine implements PortalEngine {
         items,
         elapsed
     );
-    if (result.usedMethod() != null) {
+    scrapeResult.setFallbackUrl(
+        result.fallbackUrl() != null ? result.fallbackUrl() : defaultSearchUrl);
+    if (result.technicalDetails() != null && !result.technicalDetails().isBlank()) {
+      String methodPrefix = result.usedMethod() != null
+          ? "Strategy: " + result.usedMethod().name() + " | "
+          : "";
+      scrapeResult.setTechnicalDetails(methodPrefix + result.technicalDetails());
+    } else if (result.usedMethod() != null) {
       scrapeResult.setTechnicalDetails("Strategy: " + result.usedMethod().name());
     }
     return scrapeResult;

@@ -1,0 +1,41 @@
+[
+  {
+    "id": "12345678",
+    "url": "https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_lakas_12345678.htm",
+    "title": "Debrecen Belvárosi tégla lakás",
+    "propertyType": "LAKAS",
+    "city": "Debrecen",
+    "priceHuf": 48000000,
+    "priceMillion": 48.0,
+    "areaSquareMeters": 55.0,
+    "roomCount": 2.0,
+    "imageUrl": "https://img.jofogas.hu/images/jf123.jpg",
+    "newConstruction": false
+  },
+  {
+    "id": "23456789",
+    "url": "https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_haz_23456789.htm",
+    "title": "Új építésű családi ház Debrecen",
+    "propertyType": "HAZ",
+    "city": "Debrecen",
+    "priceHuf": 85000000,
+    "priceMillion": 85.0,
+    "areaSquareMeters": 110.0,
+    "roomCount": 3.5,
+    "imageUrl": "https://img.jofogas.hu/images/jf234.jpg",
+    "newConstruction": true
+  },
+  {
+    "id": "34567890",
+    "url": "https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_telek_34567890.htm",
+    "title": "Debreceni építési telek eladó",
+    "propertyType": "TELEK",
+    "city": "Debrecen",
+    "priceHuf": 25000000,
+    "priceMillion": 25.0,
+    "areaSquareMeters": 720.0,
+    "roomCount": null,
+    "imageUrl": null,
+    "newConstruction": false
+  }
+]

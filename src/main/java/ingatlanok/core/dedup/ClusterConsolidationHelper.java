@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PortalSource;
 import ingatlanok.model.PropertyDetails;
 
 /**
@@ -90,15 +91,23 @@ public final class ClusterConsolidationHelper {
 
   private static String formatDetailsText(Double area, Double rooms) {
     if (area != null && rooms != null) {
-      return Math.round(area) + " m² • " + Math.round(rooms) + " szoba";
+      return Math.round(area) + " m² • " + formatRoomCount(rooms) + " szoba";
     }
     if (area != null) {
       return Math.round(area) + " m²";
     }
     if (rooms != null) {
-      return Math.round(rooms) + " szoba";
+      return formatRoomCount(rooms) + " szoba";
     }
     return "";
+  }
+
+  private static String formatRoomCount(double rooms) {
+    long rounded = Math.round(rooms);
+    if (Math.abs(rooms - rounded) < 0.01) {
+      return Long.toString(rounded);
+    }
+    return Double.toString(rooms);
   }
 
   public static Long resolveSourcePricePerM2(IngatlanItem item, Long priceHuf, Double fallbackArea) {
@@ -136,5 +145,79 @@ public final class ClusterConsolidationHelper {
       return "";
     }
     return cleaned.trim();
+  }
+
+  public static boolean isSamePortalDifferentUrl(IngatlanItem a, IngatlanItem b) {
+    if (a == null || b == null) {
+      return false;
+    }
+    String portalA = resolvePortalKey(a);
+    String portalB = resolvePortalKey(b);
+    if (portalA.isEmpty() || !portalA.equals(portalB)) {
+      return false;
+    }
+    String urlA = a.getUrl() != null ? a.getUrl().trim() : "";
+    String urlB = b.getUrl() != null ? b.getUrl().trim() : "";
+    return !urlA.isEmpty() && !urlB.isEmpty() && !urlA.equalsIgnoreCase(urlB);
+  }
+
+  private static String resolvePortalKey(IngatlanItem item) {
+    String urlHost = extractPortalFromUrl(item.getUrl());
+    if (!urlHost.isEmpty()) {
+      return urlHost;
+    }
+    String portal = item.getPortal();
+    if (portal != null && !portal.isBlank()) {
+      return normalizePortalName(portal);
+    }
+    if (item.getSource() != null) {
+      String sourceId = item.getSource().getPortalId();
+      if (sourceId != null && !sourceId.isBlank()) {
+        return normalizePortalName(sourceId);
+      }
+      String sourceName = item.getSource().getPortalName();
+      if (sourceName != null && !sourceName.isBlank()) {
+        return normalizePortalName(sourceName);
+      }
+    }
+    return "";
+  }
+
+  private static String normalizePortalName(String raw) {
+    String lower = raw.trim().toLowerCase(Locale.ROOT);
+    String portalId = PortalSource.of(lower).getPortalId();
+    if ("jf".equals(portalId)) {
+      return "jofogas";
+    }
+    if ("ib".equals(portalId)) {
+      return "ingatlanbazar";
+    }
+    return portalId != null ? portalId : lower;
+  }
+
+  private static String extractPortalFromUrl(String url) {
+    if (url == null || url.isBlank()) {
+      return "";
+    }
+    String lower = url.toLowerCase(Locale.ROOT);
+    if (lower.contains("dh.hu")) {
+      return "dh";
+    }
+    if (lower.contains("oc.hu")) {
+      return "oc";
+    }
+    if (lower.contains("jofogas.hu")) {
+      return "jofogas";
+    }
+    if (lower.contains("koltozzbe.hu")) {
+      return "koltozzbe";
+    }
+    if (lower.contains("ingatlanbazar.hu")) {
+      return "ingatlanbazar";
+    }
+    if (lower.contains("ingatlan.com")) {
+      return "ingatlancom";
+    }
+    return "";
   }
 }

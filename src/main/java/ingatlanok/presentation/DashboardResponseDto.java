@@ -26,6 +26,7 @@ public class DashboardResponseDto implements Serializable {
   private int newCount;
   private int totalFound;
   private String executedAt;
+  private String executionStatus;
   @Builder.Default
   private Map<String, Integer> portalCounts = new LinkedHashMap<>();
   @Builder.Default
@@ -44,6 +45,10 @@ public class DashboardResponseDto implements Serializable {
       this.newCount = searchResult.getNewCount();
       this.totalFound = searchResult.getTotalFound();
       this.executedAt = searchResult.getExecutedAt();
+      this.executionStatus =
+          searchResult.getExecutionStatus() != null
+              ? searchResult.getExecutionStatus().name()
+              : null;
       this.portalCounts = searchResult.getPortalCounts();
       this.cityCounts = searchResult.getCityCounts();
       this.newCitiesInitialized = searchResult.getNewCitiesInitialized();

@@ -1,25 +1,23 @@
 import { create } from 'zustand'
-import { z } from 'zod'
 import type { SearchCriteria } from '../types/api'
+import { normalizePortalKey } from '../utils/formatters'
+import {
+  parseUrlParams,
+  appendCriteriaParams,
+  appendUiFilterParams,
+  DEFAULT_PORTALS,
+  type SortOption,
+} from './filterUrlSync'
 
-export type SortOption =
-  | 'price_asc'
-  | 'price_desc'
-  | 'sqm_price_asc'
-  | 'sqm_price_desc'
-  | 'area_desc'
-  | 'date_desc'
+export { DEFAULT_PORTALS, type SortOption }
 
 export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
   { value: 'price_asc', label: 'Ár: Növekvő (alapértelmezett)' },
   { value: 'price_desc', label: 'Ár: Csökkenő' },
-  { value: 'sqm_price_asc', label: 'Ft/m²: Növekvő' },
-  { value: 'sqm_price_desc', label: 'Ft/m²: Csökkenő' },
   { value: 'area_desc', label: 'Méret: Legnagyobb elöl' },
   { value: 'date_desc', label: 'Felfedezés: Legfrissebb' },
+  { value: 'bargain_desc', label: 'Alkalmi vétel: Legnagyobb kedvezmény elöl' },
 ]
-
-export const DEFAULT_PORTALS = ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe']
 
 const VALID_SORTS: SortOption[] = SORT_OPTIONS.map((o) => o.value)
 
@@ -49,6 +47,10 @@ function getStoredExcludeViewed(): boolean {
   return safeGetStorageItem('preferred_exclude_viewed') === 'true'
 }
 
+function getStoredExcludeMultiSource(): boolean {
+  return safeGetStorageItem('preferred_exclude_multi_source') === 'true'
+}
+
 const DEFAULT_CRITERIA: SearchCriteria = {
   cities: ['Hajdúszoboszló'],
   city: 'Hajdúszoboszló',
@@ -64,29 +66,13 @@ const DEFAULT_CRITERIA: SearchCriteria = {
   onlyNewConstruction: false,
 }
 
-const urlSchema = z.object({
-  cities: z.string().max(1000).optional(),
-  city: z.string().max(100).optional(),
-  type: z.enum(['lakas', 'haz', 'telek']).optional(),
-  minPrice: z.coerce.number().finite().min(0).max(100_000).optional(),
-  maxPrice: z.coerce.number().finite().min(0).max(100_000).optional(),
-  minArea: z.coerce.number().finite().min(0).max(100_000).optional(),
-  maxArea: z.coerce.number().finite().min(0).max(100_000).optional(),
-  portals: z.string().max(500).optional(),
-  autoOpen: z.enum(['true', 'false']).optional(),
-  excludeViewed: z.enum(['true', 'false']).optional(),
-  onlyNewConstruction: z.enum(['true', 'false']).optional(),
-  sort: z.enum(['price_asc', 'price_desc', 'sqm_price_asc', 'sqm_price_desc', 'area_desc', 'date_desc']).optional(),
-  onlyNew: z.enum(['true', 'false']).optional(),
-  onlyBargain: z.enum(['true', 'false']).optional(),
-  minQuality: z.coerce.number().finite().min(0).max(100).optional(),
-})
 
 interface FilterState {
   criteria: SearchCriteria
   sortOption: SortOption
   onlyNew: boolean
   onlyBargain: boolean
+  excludeMultiSource: boolean
   minQualityScore: number
   quickSearchQuery: string
   selectedPortalFilter: string
@@ -109,6 +95,7 @@ interface FilterState {
   setSortOption: (sort: SortOption) => void
   setOnlyNew: (onlyNew: boolean) => void
   setOnlyBargain: (onlyBargain: boolean) => void
+  setExcludeMultiSource: (excludeMultiSource: boolean) => void
   setMinQualityScore: (score: number) => void
   setQuickSearchQuery: (query: string) => void
   setSelectedPortalFilter: (portal: string) => void
@@ -118,145 +105,43 @@ interface FilterState {
   syncToUrl: () => void
 }
 
-type ParsedUrlParams = z.infer<typeof urlSchema>
 
-function parseCitiesParam(citiesParam?: string): { cities: string[]; city: string } | null {
-  if (!citiesParam) return null
-  const list = citiesParam
-    .split(',')
-    .map((c) => c.trim())
-    .filter((c) => c.length > 0 && c.length <= 100)
-    .slice(0, 20)
-  if (list.length === 0) return null
-  return { cities: list, city: list[0] }
-}
-
-function parsePortalsParam(portalsParam?: string): string[] | null {
-  if (!portalsParam) return null
-  const validPortals = portalsParam
-    .split(',')
-    .map((p) => p.trim())
-    .filter((p) => DEFAULT_PORTALS.includes(p))
-  return validPortals.length > 0 ? validPortals : null
-}
-
-function parseNumericRanges(params: ParsedUrlParams, result: Partial<SearchCriteria>): void {
-  if (params.minPrice !== undefined) result.minPriceMillion = params.minPrice
-  if (params.maxPrice !== undefined) result.maxPriceMillion = params.maxPrice
-  if (params.minArea !== undefined) result.minArea = params.minArea
-  if (params.maxArea !== undefined) result.maxArea = params.maxArea
-}
-
-function parseBooleanFlags(params: ParsedUrlParams, result: Partial<SearchCriteria>): void {
-  if (params.autoOpen !== null && params.autoOpen !== undefined) result.autoOpenBrowser = params.autoOpen === 'true'
-  if (params.excludeViewed !== null && params.excludeViewed !== undefined) result.excludeViewed = params.excludeViewed === 'true'
-  if (params.onlyNewConstruction !== null && params.onlyNewConstruction !== undefined) {
-    result.onlyNewConstruction = params.onlyNewConstruction === 'true'
-  }
-}
-
-function parseUrlParams(): {
-  criteria?: Partial<SearchCriteria>
-  sort?: SortOption
-  onlyNew?: boolean
-  onlyBargain?: boolean
-  minQualityScore?: number
-} {
-  if (typeof window === 'undefined') return {}
-  const parsedUrl = urlSchema.safeParse(Object.fromEntries(new URLSearchParams(window.location.search)))
-  if (!parsedUrl.success) return {}
-  const params = parsedUrl.data
-  const result: Partial<SearchCriteria> = {}
-
-  const parsedCities = parseCitiesParam(params.cities || params.city)
-  if (parsedCities) {
-    result.cities = parsedCities.cities
-    result.city = parsedCities.city
-  }
-
-  if (params.type) result.propertyType = params.type
-  parseNumericRanges(params, result)
-
-  const parsedPortals = parsePortalsParam(params.portals)
-  if (parsedPortals) {
-    result.portals = parsedPortals
-  }
-
-  parseBooleanFlags(params, result)
-
-  return {
-    criteria: result,
-    sort: params.sort,
-    onlyNew: params.onlyNew === 'true',
-    onlyBargain: params.onlyBargain === 'true',
-    minQualityScore: params.minQuality ?? 0,
-  }
-}
-
-function appendNumericRangeParams(params: URLSearchParams, criteria: SearchCriteria): void {
-  const { minPriceMillion, maxPriceMillion, minArea, maxArea } = criteria
-  if (minPriceMillion !== null && minPriceMillion !== undefined && minPriceMillion !== 70) {
-    params.set('minPrice', String(minPriceMillion))
-  }
-  if (maxPriceMillion !== null && maxPriceMillion !== undefined && maxPriceMillion !== 120) {
-    params.set('maxPrice', String(maxPriceMillion))
-  }
-  if (minArea !== null && minArea !== undefined && minArea !== 90) {
-    params.set('minArea', String(minArea))
-  }
-  if (maxArea !== null && maxArea !== undefined && maxArea !== 200) {
-    params.set('maxArea', String(maxArea))
-  }
-}
-
-function appendFilterCategoryParams(params: URLSearchParams, criteria: SearchCriteria): void {
-  if (criteria.cities && criteria.cities.length > 0) params.set('cities', criteria.cities.join(','))
-  if (criteria.propertyType && criteria.propertyType !== 'lakas') params.set('type', criteria.propertyType)
-  if (criteria.portals && criteria.portals.length < DEFAULT_PORTALS.length) {
-    params.set('portals', criteria.portals.join(','))
-  }
-  if (criteria.autoOpenBrowser) params.set('autoOpen', 'true')
-  if (criteria.excludeViewed) params.set('excludeViewed', 'true')
-  if (criteria.onlyNewConstruction) params.set('onlyNewConstruction', 'true')
-}
-
-function appendCriteriaParams(params: URLSearchParams, criteria: SearchCriteria): void {
-  appendFilterCategoryParams(params, criteria)
-  appendNumericRangeParams(params, criteria)
-}
-
-function appendUiFilterParams(
-  params: URLSearchParams,
-  sortOption: SortOption,
-  onlyNew: boolean,
-  onlyBargain: boolean,
-  minQualityScore: number,
-): void {
-  if (sortOption !== 'price_asc') params.set('sort', sortOption)
-  if (onlyNew) params.set('onlyNew', 'true')
-  if (onlyBargain) params.set('onlyBargain', 'true')
-  if (minQualityScore > 0) params.set('minQuality', String(minQualityScore))
+function resolvePortalFilterForPortals(portals: string[] | undefined, currentFilter: string): string {
+  const normalized = (portals || []).map(normalizePortalKey).filter(Boolean)
+  if (normalized.length === 1) return normalized[0]
+  if (currentFilter !== 'all' && !normalized.includes(currentFilter)) return 'all'
+  return currentFilter
 }
 
 export const useFilterStore = create<FilterState>((set, get) => {
   const initial = parseUrlParams()
+  const initialCriteria: SearchCriteria = {
+    ...DEFAULT_CRITERIA,
+    excludeViewed: getStoredExcludeViewed(),
+    ...(initial.criteria || {}),
+  }
+
   const updateCriteria = (partial: Partial<SearchCriteria>) => {
-    set((state) => ({ criteria: { ...state.criteria, ...partial } }))
+    set((state) => {
+      const nextCriteria = { ...state.criteria, ...partial }
+      const nextPortalFilter =
+        partial.portals !== undefined
+          ? resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter)
+          : state.selectedPortalFilter
+      return { criteria: nextCriteria, selectedPortalFilter: nextPortalFilter }
+    })
     get().syncToUrl()
   }
 
   return {
-    criteria: {
-      ...DEFAULT_CRITERIA,
-      excludeViewed: getStoredExcludeViewed(),
-      ...(initial.criteria || {}),
-    },
+    criteria: initialCriteria,
     sortOption: initial.sort || getStoredSortOption(),
     onlyNew: initial.onlyNew || false,
     onlyBargain: initial.onlyBargain || false,
+    excludeMultiSource: initial.excludeMultiSource ?? getStoredExcludeMultiSource(),
     minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
-    selectedPortalFilter: 'all',
+    selectedPortalFilter: resolvePortalFilterForPortals(initialCriteria.portals, 'all'),
     showHidden: false,
 
     setCriteria: updateCriteria,
@@ -320,6 +205,12 @@ export const useFilterStore = create<FilterState>((set, get) => {
       get().syncToUrl()
     },
 
+    setExcludeMultiSource: (excludeMultiSource) => {
+      safeSetStorageItem('preferred_exclude_multi_source', String(excludeMultiSource))
+      set({ excludeMultiSource })
+      get().syncToUrl()
+    },
+
     setMinQualityScore: (minQualityScore) => {
       set({ minQualityScore })
       get().syncToUrl()
@@ -330,11 +221,15 @@ export const useFilterStore = create<FilterState>((set, get) => {
     setShowHidden: (showHidden) => set({ showHidden }),
 
     resetToDefaults: () => {
+      safeSetStorageItem('preferred_sort_option', 'price_asc')
+      safeSetStorageItem('preferred_exclude_viewed', 'false')
+      safeSetStorageItem('preferred_exclude_multi_source', 'false')
       set({
-        criteria: { ...DEFAULT_CRITERIA },
+        criteria: { ...DEFAULT_CRITERIA, excludeViewed: false },
         sortOption: 'price_asc',
         onlyNew: false,
         onlyBargain: false,
+        excludeMultiSource: false,
         minQualityScore: 0,
         quickSearchQuery: '',
         selectedPortalFilter: 'all',
@@ -347,21 +242,30 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     syncFromUrl: () => {
       const parsed = parseUrlParams()
-      set({
-        criteria: { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) },
+      const nextCriteria = { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) }
+      set((state) => ({
+        criteria: nextCriteria,
         sortOption: parsed.sort || getStoredSortOption(),
         onlyNew: parsed.onlyNew ?? false,
         onlyBargain: parsed.onlyBargain ?? false,
+        excludeMultiSource: parsed.excludeMultiSource ?? getStoredExcludeMultiSource(),
         minQualityScore: parsed.minQualityScore ?? 0,
-      })
+        selectedPortalFilter: resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter),
+      }))
     },
 
     syncToUrl: () => {
       if (typeof window === 'undefined') return
-      const { criteria, sortOption, onlyNew, onlyBargain, minQualityScore } = get()
+      const { criteria, sortOption, onlyNew, onlyBargain, excludeMultiSource, minQualityScore } = get()
       const params = new URLSearchParams()
       appendCriteriaParams(params, criteria)
-      appendUiFilterParams(params, sortOption, onlyNew, onlyBargain, minQualityScore)
+      appendUiFilterParams(params, {
+        sortOption,
+        onlyNew,
+        onlyBargain,
+        excludeMultiSource,
+        minQualityScore,
+      })
 
       const queryString = params.toString()
       const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname

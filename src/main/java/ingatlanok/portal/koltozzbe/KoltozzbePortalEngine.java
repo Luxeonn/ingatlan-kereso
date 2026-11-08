@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.jsoup.nodes.Document;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
@@ -15,8 +14,6 @@ import ingatlanok.portal.PortalEngine;
 public class KoltozzbePortalEngine implements PortalEngine {
 
   public static final int DEFAULT_MAX_PAGES = 5;
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbePortalEngine.class);
 
   private final KoltozzbeUrlBuilder urlBuilder;
   private final int maxPages;
@@ -47,14 +44,22 @@ public class KoltozzbePortalEngine implements PortalEngine {
 
   @Override
   public PortalScrapeResult scrape(SearchCriteria criteria) {
-    return scrape(criteria, HttpFetcher::fetchDocument);
+    return adapterEngine.scrape(criteria);
   }
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
+    return scrape(criteria, documentFetcher, maxPages);
+  }
+
+  public PortalScrapeResult scrape(
+      SearchCriteria criteria,
+      java.util.function.Function<String, Document> documentFetcher,
+      int customMaxPages) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new KoltozzbePortalAdapter(urlBuilder,
         List.of(
-            new KoltozzbeExtractionStrategy(urlBuilder, new KoltozzbeRawParser(), documentFetcher, maxPages)
+            new KoltozzbeExtractionStrategy(
+                urlBuilder, new KoltozzbeRawParser(), documentFetcher, customMaxPages)
         )));
     return dynamicEngine.scrape(criteria);
   }

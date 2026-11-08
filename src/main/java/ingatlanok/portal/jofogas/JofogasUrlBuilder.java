@@ -32,6 +32,13 @@ public class JofogasUrlBuilder implements PortalUrlBuilder {
     return BASE_URL + route + "?" + String.join("&", queryParams);
   }
 
+  public String buildPageUrl(String searchUrl, int page) {
+    if (page <= 1) {
+      return searchUrl;
+    }
+    return searchUrl + "&o=" + page;
+  }
+
   private String resolveLocationSegment(String city) {
     String citySlug = SlugUtils.toSlug(city);
     if (citySlug.isEmpty()) {

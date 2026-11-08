@@ -1,0 +1,41 @@
+[
+  {
+    "id": "35344073",
+    "url": "https://ingatlan.com/35344073",
+    "title": "Debrecen, Rózsavölgy utca 209. [Új építésű]",
+    "propertyType": "LAKAS",
+    "city": "Debrecen",
+    "priceHuf": 68500000,
+    "priceMillion": 68.5,
+    "areaSquareMeters": 97.0,
+    "roomCount": 3.5,
+    "imageUrl": "https://ip.ingatlancdn.com/resize/magan/800x800/photo1.jpg",
+    "newConstruction": true
+  },
+  {
+    "id": "35344074",
+    "url": "https://ingatlan.com/35344074",
+    "title": "Debrecen, Kertváros",
+    "propertyType": "HAZ",
+    "city": "Debrecen",
+    "priceHuf": 85000000,
+    "priceMillion": 85.0,
+    "areaSquareMeters": 140.0,
+    "roomCount": 4.0,
+    "imageUrl": "https://ip.ingatlancdn.com/resize/magan/800x800/photo2.jpg",
+    "newConstruction": false
+  },
+  {
+    "id": "35344075",
+    "url": "https://ingatlan.com/35344075",
+    "title": "Debrecen, Júliatelep",
+    "propertyType": "TELEK",
+    "city": "Debrecen",
+    "priceHuf": 22000000,
+    "priceMillion": 22.0,
+    "areaSquareMeters": 900.0,
+    "roomCount": null,
+    "imageUrl": null,
+    "newConstruction": false
+  }
+]

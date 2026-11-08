@@ -9,6 +9,7 @@
  *       ingatlanok.model.PriceDropItem}: Immutable market analytics domain models.
  *   <li>{@link ingatlanok.model.PriceInfo}, {@link ingatlanok.model.PropertyDetails}, {@link
  *       ingatlanok.model.PortalSource}: Read-only value objects without setters.
+ *   <li>{@link ingatlanok.model.SearchExecutionStatus}: Multi-portal search execution status.
  * </ul>
  *
  * <p>Architectural constraint: Must remain independent of all higher application layers.

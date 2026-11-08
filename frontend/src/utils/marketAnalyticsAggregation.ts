@@ -114,7 +114,7 @@ export function buildCityComparison(
       .map((it) => it.priceInfo?.amountMillion)
       .filter((p): p is number => p !== null && p !== undefined && p > 0)
     const citySqmPrices = cityItems
-      .map((it) => it.detailsInfo?.pricePerSquareMeter)
+      .map((it) => getEffectiveSqmPrice(it))
       .filter((p): p is number => p !== null && p !== undefined && p > 0)
 
     const cityAvgPrice = cityPrices.length > 0 ? cityPrices.reduce((a, b) => a + b, 0) / cityPrices.length : 0

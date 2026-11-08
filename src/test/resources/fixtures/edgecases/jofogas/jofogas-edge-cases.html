@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <title>Jófogás Edge Cases</title>
+</head>
+<body>
+  <!-- Card 1: Standard valid listing (Control) -->
+  <a href="https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_lakas_12345678.htm">
+    <img src="/img/jf1.jpg" alt="Lakás 1" />
+    <h3>Debrecen Belvárosi tégla lakás</h3>
+    <div>Debrecen Belvárosi tégla lakás 48 M Ft 55 m2 2 szoba</div>
+  </a>
+
+  <!-- Card 2: Missing price in card text -->
+  <a href="https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_lakas_12345679.htm">
+    <img src="/img/jf2.jpg" alt="Lakás 2" />
+    <h3>Debrecen Nagyerdő felújított lakás</h3>
+    <div>Debrecen Nagyerdő felújított lakás 65 m2 3 szoba</div>
+  </a>
+
+  <!-- Card 3: Missing area and room count -->
+  <a href="https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_haz_12345680.htm">
+    <img src="/img/jf3.jpg" alt="Ház 3" />
+    <h3>Debrecen Belvárosi családi ház</h3>
+    <div>Debrecen Belvárosi családi ház 82 M Ft</div>
+  </a>
+
+  <!-- Card 4: Full HUF price with non-breaking spaces -->
+  <a href="https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_lakas_12345681.htm">
+    <img src="/img/jf4.jpg" alt="Lakás 4" />
+    <h3>Debrecen Vénkerti panellakás</h3>
+    <div>Debrecen Vénkerti panellakás 45&nbsp;500&nbsp;000 Ft 58 m2 2 szoba</div>
+  </a>
+
+  <!-- Card 5: Placeholder image marker -->
+  <a href="https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_lakas_12345682.htm">
+    <img src="/img/placeholder.jpg" alt="Lakás 5" />
+    <h3>Debrecen Újkerti lakás</h3>
+    <div>Debrecen Újkerti lakás 35 M Ft 40 m2 1 szoba</div>
+  </a>
+
+  <!-- Card 6: Non-listing informational link ending in .htm -->
+  <a href="https://ingatlan.jofogas.hu/sugo_tajekoztato.htm">
+    <div>Gyakran ismételt kérdések súgó oldal</div>
+  </a>
+
+  <!-- Card 7: Corrupted / too short listing (< 10 chars) -->
+  <a href="https://ingatlan.jofogas.hu/hajdu_bihar/Debrecen_bad_99999999.htm">Rövid</a>
+</body>
+</html>

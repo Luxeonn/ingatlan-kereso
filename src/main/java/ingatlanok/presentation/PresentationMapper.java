@@ -35,6 +35,11 @@ public interface PresentationMapper {
   @Mapping(target = "newCount", source = "searchResult.newCount")
   @Mapping(target = "totalFound", source = "searchResult.totalFound")
   @Mapping(target = "executedAt", source = "searchResult.executedAt")
+  @Mapping(
+      target = "executionStatus",
+      expression =
+          "java(searchResult != null && searchResult.getExecutionStatus() != null"
+              + " ? searchResult.getExecutionStatus().name() : null)")
   @Mapping(target = "portalCounts", source = "searchResult.portalCounts")
   @Mapping(target = "cityCounts", source = "searchResult.cityCounts")
   @Mapping(target = "newCitiesInitialized", source = "searchResult.newCitiesInitialized")

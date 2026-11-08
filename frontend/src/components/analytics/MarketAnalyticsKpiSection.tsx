@@ -15,6 +15,7 @@ import {
   formatPriceMillion,
   formatPricePerSqm,
   formatPriceFt,
+  getEffectivePrice,
   getPortalStyle,
 } from '../../utils/formatters'
 import { PropertyTypeBadge } from '../listings/PropertyTypeBadge'
@@ -253,7 +254,7 @@ export const TopPriceDropsSection: FC<TopPriceDropsSectionProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {topPriceDrops.slice(0, 6).map((item) => {
         const portalStyle = getPortalStyle(item.portal)
-        const currentPrice = item.priceInfo?.amountHuf
+        const currentPrice = getEffectivePrice(item).priceFt
         const priceDelta = item.priceDelta ?? 0
         const originalPrice = currentPrice ? currentPrice - priceDelta : null
 

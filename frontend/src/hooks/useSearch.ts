@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { executeSearch } from '../api/searchApi'
 import {
@@ -23,6 +23,18 @@ import {
 
 export { normalizePortalKey, normalizeSearchText, isItemBargain, filterAndSortItems }
 
+interface SearchMutationVariables {
+  criteria: SearchCriteria
+  requestId: number
+}
+
+interface RawFavoriteItemsParams {
+  starredUrls: string[]
+  starredItemsCache: Record<string, IngatlanItem | undefined>
+  historyItems?: IngatlanItem[]
+  currentItems?: IngatlanItem[]
+}
+
 function buildOrphanItem(url: string): IngatlanItem {
   const portalInfo = detectPortalFromUrl(url)
   return {
@@ -42,6 +54,26 @@ function buildOrphanItem(url: string): IngatlanItem {
   }
 }
 
+function buildRawFavoriteItems({
+  starredUrls,
+  starredItemsCache,
+  historyItems,
+  currentItems,
+}: RawFavoriteItemsParams): IngatlanItem[] {
+  const byUrl = new Map<string, IngatlanItem>()
+  Object.entries(starredItemsCache).forEach(([u, item]) => {
+    if (item) byUrl.set(u, item)
+  })
+  ;(historyItems ?? []).forEach((item) => {
+    if (item.url) byUrl.set(item.url, item)
+  })
+  ;(currentItems ?? []).forEach((item) => {
+    if (item.url) byUrl.set(item.url, item)
+  })
+
+  return starredUrls.map((url) => byUrl.get(url) ?? buildOrphanItem(url))
+}
+
 export function useSearch() {
   const queryClient = useQueryClient()
   const {
@@ -49,6 +81,7 @@ export function useSearch() {
     sortOption,
     onlyNew,
     onlyBargain,
+    excludeMultiSource,
     minQualityScore,
     quickSearchQuery,
     selectedPortalFilter,
@@ -58,6 +91,9 @@ export function useSearch() {
   const [data, setData] = useState<DashboardResponseDto | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [toastUndoItem, setToastUndoItem] = useState<IngatlanItem | null>(null)
+  const [searchError, setSearchError] = useState<Error | null>(null)
+  const [isSearchPending, setIsSearchPending] = useState(false)
+  const searchRequestIdRef = useRef(0)
 
   const historyQuery = useQuery({
     queryKey: ['history', criteria.onlyNewConstruction],
@@ -85,9 +121,27 @@ export function useSearch() {
     queryClient.invalidateQueries({ queryKey: ['hidden-properties'] })
   }
 
-  const searchMutation = useMutation({
-    mutationFn: (searchParams: SearchCriteria) => executeSearch(searchParams),
-    onSuccess: (result) => {
+  const searchMutation = useMutation<DashboardResponseDto, Error, SearchMutationVariables>({
+    mutationFn: ({ criteria: searchParams }) => executeSearch(searchParams),
+    onMutate: ({ requestId }) => {
+      setSearchError(null)
+      if (requestId === searchRequestIdRef.current) {
+        setData(null)
+      }
+    },
+    onError: (err, { requestId }) => {
+      if (requestId !== searchRequestIdRef.current) {
+        return
+      }
+      setIsSearchPending(false)
+      setSearchError(err)
+      setData(null)
+    },
+    onSuccess: (result, { requestId }) => {
+      if (requestId !== searchRequestIdRef.current) {
+        return
+      }
+      setIsSearchPending(false)
       setData(result)
       invalidateDashboardQueries()
 
@@ -109,7 +163,21 @@ export function useSearch() {
       prev
         ? {
             ...prev,
-            items: prev.items.map((item) => (urlSet.has(item.url) ? { ...item, viewed: true } : item)),
+            items: prev.items.map((item) => {
+              const directMatch = Boolean(item.url && urlSet.has(item.url))
+              const sourceMatch = Boolean(
+                item.sourceListings?.some((sl) => sl.url && urlSet.has(sl.url)),
+              )
+              if (!directMatch && !sourceMatch) return item
+              return {
+                ...item,
+                viewed: true,
+                isNew: false,
+                sourceListings: item.sourceListings?.map((sl) =>
+                  sl.url && urlSet.has(sl.url) ? { ...sl, viewed: true } : sl,
+                ),
+              }
+            }),
           }
         : prev,
     )
@@ -177,7 +245,7 @@ export function useSearch() {
   })
 
   const openClientTabs = (urls: string[]) => {
-    urls.forEach(openExternalUrl)
+    urls.forEach((u) => openExternalUrl(u))
     openUrlsMutation.mutate(urls)
   }
 
@@ -186,6 +254,7 @@ export function useSearch() {
       excludeViewed: criteria.excludeViewed,
       onlyNewConstruction: criteria.onlyNewConstruction,
       onlyBargain,
+      excludeMultiSource,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
@@ -195,6 +264,7 @@ export function useSearch() {
       criteria.excludeViewed,
       criteria.onlyNewConstruction,
       onlyBargain,
+      excludeMultiSource,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
@@ -224,20 +294,16 @@ export function useSearch() {
     [historyQuery.data, sharedFilterOptions],
   )
 
-  const rawFavoriteItems = useMemo(() => {
-    const byUrl = new Map<string, IngatlanItem>()
-    Object.entries(starredItemsCache).forEach(([u, item]) => {
-      if (item) byUrl.set(u, item)
-    })
-    ;(historyQuery.data ?? []).forEach((item) => {
-      if (item.url) byUrl.set(item.url, item)
-    })
-    ;(data?.items ?? []).forEach((item) => {
-      if (item.url) byUrl.set(item.url, item)
-    })
-
-    return starredUrls.map((url) => byUrl.get(url) ?? buildOrphanItem(url))
-  }, [starredUrls, starredItemsCache, historyQuery.data, data?.items])
+  const rawFavoriteItems = useMemo(
+    () =>
+      buildRawFavoriteItems({
+        starredUrls,
+        starredItemsCache,
+        historyItems: historyQuery.data,
+        currentItems: data?.items,
+      }),
+    [starredUrls, starredItemsCache, historyQuery.data, data?.items],
+  )
 
   const favoriteItems = useMemo(
     () => filterAndSortItems(rawFavoriteItems, { ...sharedFilterOptions, onlyNew: false }),
@@ -264,11 +330,18 @@ export function useSearch() {
       setToastMessage(null)
       setToastUndoItem(null)
     },
-    isLoading: searchMutation.isPending,
-    isError: searchMutation.isError,
-    error: searchMutation.error,
+    isLoading: isSearchPending,
+    isError: searchError !== null,
+    error: searchError,
     search: (overrideCriteria?: Partial<SearchCriteria>) => {
-      searchMutation.mutate({ ...criteria, ...(overrideCriteria || {}) })
+      const nextRequestId = searchRequestIdRef.current + 1
+      searchRequestIdRef.current = nextRequestId
+      setSearchError(null)
+      setIsSearchPending(true)
+      searchMutation.mutate({
+        criteria: { ...criteria, ...(overrideCriteria || {}) },
+        requestId: nextRequestId,
+      })
     },
     markAsViewed: (url: string) => markViewedMutation.mutate(url),
     hideProperty: (item: IngatlanItem) => hideMutation.mutate(item),

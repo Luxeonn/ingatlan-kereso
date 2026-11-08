@@ -25,9 +25,13 @@ public class DunaHouseRawParser {
 
     Elements anchorLinks = document.select("a[href*=/ingatlan/]");
     for (Element a : anchorLinks) {
-      RawPropertyListing raw = parseListingElement(a);
-      if (raw != null) {
-        items.add(raw);
+      try {
+        RawPropertyListing raw = parseListingElement(a);
+        if (raw != null) {
+          items.add(raw);
+        }
+      } catch (Exception ignored) {
+        // Keep fault-isolated so one bad record does not abort the batch.
       }
     }
 
@@ -40,14 +44,19 @@ public class DunaHouseRawParser {
       return null;
     }
 
-    String fullLink = PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href);
+    String fullLink = PortalSupport.canonicalListingUrl(
+        PortalSupport.resolveUrl(DunaHouseUrlBuilder.BASE_URL, href));
     if (!fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+/.*")
         && !fullLink.matches(".*/ingatlan/[A-Za-z0-9\\-]+$")) {
       return null;
     }
 
-    String cardText = a.text().replaceAll("\\s+", " ").trim();
     String id = resolveDhId(fullLink);
+    if (id == null) {
+      return null;
+    }
+
+    String cardText = a.text().replaceAll("\\s+", " ").trim();
     String extractedCity = resolveDhCity(cardText, fullLink);
     String title = cleanTitle(cardText, extractedCity, id);
     String imageUrl = PortalSupport.extractImageWithFallback(a, DunaHouseUrlBuilder.BASE_URL);
@@ -73,6 +82,9 @@ public class DunaHouseRawParser {
       if (segments.length > 0 && !segments[segments.length - 1].isBlank()) {
         id = segments[segments.length - 1];
       }
+    }
+    if (id == null || "elado".equalsIgnoreCase(id) || "kiado".equalsIgnoreCase(id)) {
+      return null;
     }
     return id;
   }

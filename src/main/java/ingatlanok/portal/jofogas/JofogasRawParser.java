@@ -25,46 +25,62 @@ public class JofogasRawParser {
 
     Elements links = document.select("a[href*=/ingatlan/], a[href*=_]");
     for (Element a : links) {
-      String href = a.attr("href");
-      if (href == null || href.isBlank() || !href.endsWith(".htm")) {
-        continue;
+      try {
+        RawPropertyListing raw = parseSingleLink(a);
+        if (raw != null) {
+          items.add(raw);
+        }
+      } catch (Exception ignored) {
+        // Keep fault-isolated so one bad link does not abort the batch.
       }
-
-      String fullLink = PortalSupport.resolveUrl(JofogasUrlBuilder.BASE_URL, href);
-      String cardText = a.text().replaceAll("\\s+", " ").trim();
-      if (cardText.length() < 10) {
-        continue;
-      }
-
-      String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
-
-      String title = null;
-      Element heading = a.selectFirst("h1, h2, h3, h4, h5");
-      if (heading != null && !heading.text().isBlank()) {
-        title = heading.text().trim();
-      }
-      if (title == null || title.isBlank()) {
-        title = cleanTitle(cardText, id);
-      }
-
-      String imageUrl = PortalSupport.extractImageWithFallback(a, JofogasUrlBuilder.BASE_URL);
-
-      RawPropertyListing raw = RawPropertyListing.builder()
-          .portalId("jofogas")
-          .nativeId(id)
-          .url(fullLink)
-          .title(title)
-          .priceText(cardText)
-          .detailsText(cardText)
-          .imageUrl(imageUrl)
-          .descriptionText(cardText)
-          .method(ExtractionMethod.HTML)
-          .build();
-
-      items.add(raw);
     }
 
     return items;
+  }
+
+  private RawPropertyListing parseSingleLink(Element a) {
+    String href = a.attr("href");
+    if (href == null || href.isBlank()) {
+      return null;
+    }
+
+    String fullLink = PortalSupport.canonicalListingUrl(
+        PortalSupport.resolveUrl(JofogasUrlBuilder.BASE_URL, href));
+    if (!fullLink.endsWith(".htm")) {
+      return null;
+    }
+    String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
+    if (id == null || id.isBlank()) {
+      return null;
+    }
+
+    String cardText = a.text().replaceAll("\\s+", " ").trim();
+    if (cardText.length() < 10) {
+      return null;
+    }
+
+    String title = resolveHeadingTitle(a, cardText, id);
+    String imageUrl = PortalSupport.extractImageWithFallback(a, JofogasUrlBuilder.BASE_URL);
+
+    return RawPropertyListing.builder()
+        .portalId("jofogas")
+        .nativeId(id)
+        .url(fullLink)
+        .title(title)
+        .priceText(cardText)
+        .detailsText(cardText)
+        .imageUrl(imageUrl)
+        .descriptionText(cardText)
+        .method(ExtractionMethod.HTML)
+        .build();
+  }
+
+  private String resolveHeadingTitle(Element a, String cardText, String id) {
+    Element heading = a.selectFirst("h1, h2, h3, h4, h5");
+    if (heading != null && !heading.text().isBlank()) {
+      return heading.text().trim();
+    }
+    return cleanTitle(cardText, id);
   }
 
   public String cleanTitle(String text, String id) {

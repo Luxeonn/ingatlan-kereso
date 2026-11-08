@@ -12,10 +12,11 @@ import {
   formatRooms,
   getPortalStyle,
   getEffectivePrice,
+  getEffectiveSqmPrice,
   openExternalUrl,
 } from '../../utils/formatters'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
-import { PropertyCardBadges, PropertyThumbnail } from './PropertyCardParts'
+import { PropertyCardBadges, PropertyDetailsModal, PropertyThumbnail } from './PropertyCardParts'
 import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
@@ -40,6 +41,14 @@ function getCardBorderClass(isStarred: boolean, isViewed?: boolean): string {
 function getPortalIdentifier(item: IngatlanItem): string {
   if (item.portal) return item.portal
   return item.source?.portalId ?? ''
+}
+
+function getSourcesCount(item: IngatlanItem): number {
+  return item.sourcesCount ?? (item.sourceListings?.length || 1)
+}
+
+function hasValidImageUrl(imageUrl: string | undefined, imageError: boolean): boolean {
+  return Boolean(imageUrl && imageUrl.trim().length > 0 && !imageError)
 }
 
 interface PropertyParametersChipsProps {
@@ -237,15 +246,15 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
   const isStarred = starredUrls.includes(item.url)
   const [isHiding, setIsHiding] = useState(false)
 
-  const sourcesCount = item.sourcesCount ?? (item.sourceListings?.length || 1)
+  const sourcesCount = getSourcesCount(item)
   const portalStyle = getPortalStyle(getPortalIdentifier(item))
   const { priceMillion } = getEffectivePrice(item)
 
-  const sqmPrice = item.detailsInfo?.pricePerSquareMeter
+  const sqmPrice = getEffectiveSqmPrice(item) ?? undefined
   const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
 
-  const hasValidImage = Boolean(item.imageUrl && item.imageUrl.trim().length > 0 && !imageError)
+  const hasValidImage = hasValidImageUrl(item.imageUrl, imageError)
 
   const handleOpen = () => {
     openExternalUrl(item.url)
@@ -293,7 +302,16 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
         onRestore={handleRestore}
       />
 
-      {isDrawerOpen && <PropertyDetailsDrawer item={item} onMarkViewed={onMarkViewed} />}
+      {isDrawerOpen &&
+        (viewMode === 'list' ? (
+          <PropertyDetailsDrawer item={item} onMarkViewed={onMarkViewed} />
+        ) : (
+          <PropertyDetailsModal
+            item={item}
+            onClose={() => setIsDrawerOpen(false)}
+            onMarkViewed={onMarkViewed}
+          />
+        ))}
     </div>
   )
 }

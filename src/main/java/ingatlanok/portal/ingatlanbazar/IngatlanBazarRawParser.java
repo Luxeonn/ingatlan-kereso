@@ -9,6 +9,7 @@ import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.portal.PortalSupport;
 
 public class IngatlanBazarRawParser {
 
@@ -30,9 +31,13 @@ public class IngatlanBazarRawParser {
 
       for (JsonNode el : root.get("hits")) {
         if (el.isObject()) {
-          RawPropertyListing rawListing = parseSingleHit(el);
-          if (rawListing != null) {
-            result.add(rawListing);
+          try {
+            RawPropertyListing rawListing = parseSingleHit(el);
+            if (rawListing != null) {
+              result.add(rawListing);
+            }
+          } catch (Exception ignored) {
+            // Keep fault-isolated so one bad hit does not abort the batch.
           }
         }
       }
@@ -55,9 +60,10 @@ public class IngatlanBazarRawParser {
         ? hit.get("propertyId").asString().trim()
         : null;
 
-    String fullUrl = seoUrl.startsWith("http")
+    String rawUrl = seoUrl.startsWith("http")
         ? seoUrl
         : IngatlanBazarQueryBuilder.BASE_URL + (seoUrl.startsWith("/") ? "" : "/") + seoUrl;
+    String fullUrl = PortalSupport.canonicalListingUrl(rawUrl);
 
     String title = hit.has("title") && !hit.get("title").isNull()
         ? hit.get("title").asString().trim()
@@ -81,7 +87,8 @@ public class IngatlanBazarRawParser {
   private Long extractLong(JsonNode hit, String field) {
     if (hit.has(field) && !hit.get(field).isNull()) {
       try {
-        return hit.get(field).asLong();
+        long val = hit.get(field).asLong();
+        return val > 0 ? val : null;
       } catch (Exception ignored) {
         // Keep unavailable when malformed
       }
@@ -92,7 +99,8 @@ public class IngatlanBazarRawParser {
   private Double extractDouble(JsonNode hit, String field) {
     if (hit.has(field) && !hit.get(field).isNull()) {
       try {
-        return hit.get(field).asDouble();
+        double val = hit.get(field).asDouble();
+        return val > 0 ? val : null;
       } catch (Exception ignored) {
         // Keep unavailable when malformed
       }

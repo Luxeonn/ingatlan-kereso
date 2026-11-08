@@ -274,5 +274,73 @@ class PortalStatusDiagnosticTest {
     assertEquals("FAILED", ocStatus.getStatus());
     assertEquals(0, ocStatus.getFoundCount());
     assertEquals(100L, ocStatus.getLatencyMs());
+    assertEquals("PARTIAL_SUCCESS", response.getExecutionStatus());
+  }
+
+  @Test
+  @DisplayName(
+      "Többvárosos keresésnél részleges városhiba esetén a sikeres portál üzenete jelzi a részleges"
+          + " hibát is")
+  void testMultiCityPartialPortalFailurePreservesWarningInSuccessMessage() {
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of("Debrecen", "Nyíregyháza"));
+    criteria.setPortals(List.of("dh"));
+    criteria.setMinPriceMillion(30);
+    criteria.setMaxPriceMillion(80);
+    criteria.setMinArea(40);
+    criteria.setMaxArea(100);
+
+    PortalEngine dhEngine =
+        new PortalEngine() {
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "dh", "Duna House", "#008638", "https://dh.hu", true, List.of("lakas"), true);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria searchCriteria) {
+            if ("Debrecen".equals(searchCriteria.getCity())) {
+              IngatlanItem item =
+                  new IngatlanItem(
+                      "deb-1",
+                      PortalSource.of("Duna House"),
+                      "https://dh.hu/ingatlan/deb-1",
+                      "Debrecen lakás",
+                      new PriceInfo("50 M Ft", 50_000_000L, 50.0),
+                      "Debrecen",
+                      new PropertyDetails("60 m²", 60.0, 2.0, 833_333L),
+                      "2026-10-20 10:00:00",
+                      false);
+              return PortalScrapeResult.success("dh", "Duna House", List.of(item), 100);
+            }
+            return PortalScrapeResult.failure(
+                "dh", "Duna House", "HTTP 503 hiba Nyíregyháza lekérdezésekor", 50, 503, "https://dh.hu");
+          }
+        };
+
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
+    SearchExecutionEngine search =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            analytics);
+
+    DashboardResponseDto response =
+        new DashboardPresentationService(search, analytics).executeSearch(criteria);
+
+    assertEquals("PARTIAL_SUCCESS", response.getExecutionStatus());
+    assertEquals(1, response.getPortalStatuses().size());
+    PortalStatusDto dhStatus = response.getPortalStatuses().get(0);
+    assertEquals("SUCCESS", dhStatus.getStatus());
+    assertEquals(1, dhStatus.getFoundCount());
+    assertTrue(
+        dhStatus.getMessage().contains("részleges hiba"),
+        "A részleges városhibát jeleznie kell az összesített státuszüzenetnek: "
+            + dhStatus.getMessage());
   }
 }

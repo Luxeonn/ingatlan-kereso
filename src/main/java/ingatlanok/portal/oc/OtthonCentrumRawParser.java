@@ -33,9 +33,13 @@ public class OtthonCentrumRawParser {
     }
 
     for (Element card : cards) {
-      RawPropertyListing raw = parseCard(card);
-      if (raw != null) {
-        items.add(raw);
+      try {
+        RawPropertyListing raw = parseCard(card);
+        if (raw != null) {
+          items.add(raw);
+        }
+      } catch (Exception ignored) {
+        // Keep fault-isolated so one bad card does not abort the batch.
       }
     }
 
@@ -44,13 +48,20 @@ public class OtthonCentrumRawParser {
 
   private RawPropertyListing parseCard(Element card) {
     String href = extractHref(card);
-    if (href == null || href.isBlank() || !href.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
+    if (href == null || href.isBlank()) {
       return null;
     }
 
-    String fullLink = PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href);
-    String cardText = card.text().replaceAll("\\s+", " ").trim();
+    String fullLink = PortalSupport.canonicalListingUrl(
+        PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href));
+    if (!fullLink.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
+      return null;
+    }
     String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
+    if (id == null || "lista".equalsIgnoreCase(id) || "terkep".equalsIgnoreCase(id)) {
+      return null;
+    }
+    String cardText = card.text().replaceAll("\\s+", " ").trim();
 
     String seoAttr = extractSeoAttr(card);
     SeoMetadata seo = parseSeoMetadata(seoAttr);
@@ -109,6 +120,9 @@ public class OtthonCentrumRawParser {
       Long price = first.has("price") && !first.get("price").isNull()
           ? first.get("price").asLong()
           : null;
+      if (price != null && price <= 0) {
+        price = null;
+      }
       return new SeoMetadata(city, price);
     } catch (Exception ignored) {
       return new SeoMetadata(null, null);

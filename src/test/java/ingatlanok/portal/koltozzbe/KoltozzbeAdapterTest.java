@@ -2,6 +2,7 @@ package ingatlanok.portal.koltozzbe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -135,5 +136,58 @@ class KoltozzbeAdapterTest {
         Jsoup.parse("<img data-src='https://cdn.example.com/no-image.jpg'>").body(), "https://koltozzbe.hu"));
     assertEquals("https://cdn.example.com/real.jpg", PortalSupport.extractImageWithFallback(
         Jsoup.parse("<img data-src='https://cdn.example.com/real.jpg'>").body(), "https://koltozzbe.hu"));
+  }
+
+  @Test
+  @DisplayName("KoltozzbeExtractionStrategy összefésüli a HTML és JSON-LD kiegészítő mezőit azonos hirdetésnél")
+  void testKoltozzbeExtractionStrategyMergesComplementaryHtmlAndJsonLdFields() {
+    String html = """
+        <html>
+        <head>
+          <script type="application/ld+json">
+          {"@context":"https://schema.org","@type":"ItemList","itemListElement":[{
+            "@type":"ListItem","item":{"@type":"Product",
+            "url":"https://koltozzbe.hu/elado-haz-debrecen/h5001",
+            "name":"Debreceni családi ház",
+            "offers":{"price":85000000}
+          }}]}
+          </script>
+        </head>
+        <body>
+          <div class="listing-card" data-lid="5001">
+            <a class="listing-item-link" href="/elado-haz-debrecen/h5001" title="Debreceni családi ház">
+              <div class="listing-thumbnail">
+                <img data-src="https://k1-cdn.koltozzbe.hu/img2/1920x1080/5001.jpg" class="lazy">
+              </div>
+              <div class="listing-details">120 m² • 4 szoba</div>
+              <div class="listing-location">Debrecen</div>
+            </a>
+          </div>
+        </body>
+        </html>
+        """;
+    Document doc = Jsoup.parse(html, KoltozzbeUrlBuilder.BASE_URL);
+
+    KoltozzbeExtractionStrategy strategy =
+        new KoltozzbeExtractionStrategy(
+            new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), url -> doc, 1);
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("haz");
+
+    var result = strategy.extract(criteria);
+    assertEquals(PortalScrapeStatus.SUCCESS, result.status());
+    assertEquals(1, result.listings().size());
+    RawPropertyListing merged = result.listings().get(0);
+    assertEquals("5001", merged.nativeId());
+    assertEquals(85_000_000L, merged.priceHuf(), "JSON-LD árat át kell vennie a HTML kártyába");
+    assertEquals(
+        "https://k1-cdn.koltozzbe.hu/img2/1920x1080/5001.jpg",
+        merged.imageUrl(),
+        "HTML kártya képének meg kell maradnia");
+    assertTrue(
+        merged.detailsText().contains("120 m² • 4 szoba"),
+        "HTML kártya részleteinek meg kell maradnia");
   }
 }
