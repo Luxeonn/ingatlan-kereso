@@ -34,6 +34,7 @@ public interface PresentationMapper {
   @Mapping(target = "items", source = "searchResult.items")
   @Mapping(target = "newCount", source = "searchResult.newCount")
   @Mapping(target = "totalFound", source = "searchResult.totalFound")
+  @Mapping(target = "filteredCount", source = "searchResult.filteredCount")
   @Mapping(target = "executedAt", source = "searchResult.executedAt")
   @Mapping(
       target = "executionStatus",

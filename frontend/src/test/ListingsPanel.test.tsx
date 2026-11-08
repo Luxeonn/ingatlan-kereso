@@ -72,10 +72,7 @@ describe('ListingsPanel component (#264)', () => {
     // Multi-source summary notice: 2 unique items (1x2 sources + 1x1 source = 3 total source listings, 1 multi-source item)
     const notice = screen.getByTestId('multi-source-summary-notice')
     expect(notice).toBeTruthy()
-    expect(notice.textContent).toMatch(/2 db egyedi ingatlan jelenik meg/i)
-    expect(notice.textContent).toMatch(/összesen 3 db hirdetés-találatból/i)
-    expect(notice.textContent).toMatch(/ebből 1 db ingatlan több forrásból összevonva/i)
-    expect(notice.textContent).not.toMatch(/több portálon is szereplő/i)
+    expect(notice.textContent).toBe('2 / 3 (1 összevonva)')
   })
 
   it('accurately calculates 6 unique properties and 9 total source listings for 4x1 + 1x2 + 1x3 source items (#358)', () => {
@@ -119,6 +116,7 @@ describe('ListingsPanel component (#264)', () => {
       <ListingsPanel
         items={sixItemsNineSources}
         totalRawCount={6}
+        serverFilteredCount={1}
         isLoading={false}
         hasSearched={true}
         mode="listings"
@@ -129,9 +127,7 @@ describe('ListingsPanel component (#264)', () => {
     )
 
     const notice = screen.getByTestId('multi-source-summary-notice')
-    expect(notice.textContent).toBe(
-      '6 db egyedi ingatlan jelenik meg összesen 9 db hirdetés-találatból (ebből 2 db ingatlan több forrásból összevonva).',
-    )
+    expect(notice.textContent).toBe('6 / 9 · 1 szűrt (2 összevonva)')
   })
 
   it('renders live status announcement for screen readers', () => {

@@ -11,6 +11,7 @@ export interface ListingsPanelProps {
   items: IngatlanItem[]
   rawItems?: IngatlanItem[]
   totalRawCount: number
+  serverFilteredCount?: number
   isLoading: boolean
   hasSearched: boolean
   mode?: ListingSubView
@@ -33,6 +34,40 @@ export interface ListingsPanelProps {
 
 function isMultiSourceItem(it: IngatlanItem): boolean {
   return getItemSourceListingsCount(it) > 1
+}
+
+interface MultiSourceNoticeProps {
+  itemsCount: number
+  totalSourceListingsCount: number
+  serverFilteredCount?: number
+  multiSourceCount: number
+}
+
+const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
+  itemsCount,
+  totalSourceListingsCount,
+  serverFilteredCount,
+  multiSourceCount,
+}) => {
+  const hasFiltered = serverFilteredCount !== undefined && serverFilteredCount > 0
+  if (multiSourceCount === 0 && !hasFiltered) return null
+
+  return (
+    <div
+      data-testid="multi-source-summary-notice"
+      className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300"
+    >
+      <span>
+        <strong className="font-bold text-indigo-200">{itemsCount} / {totalSourceListingsCount}</strong>
+        {hasFiltered && (
+          <> · <strong className="font-bold text-indigo-200">{serverFilteredCount} szűrt</strong></>
+        )}
+        {multiSourceCount > 0 && (
+          <> ({multiSourceCount} összevonva)</>
+        )}
+      </span>
+    </div>
+  )
 }
 
 interface ListingsSubViewNavProps {
@@ -111,6 +146,7 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   items,
   rawItems,
   totalRawCount,
+  serverFilteredCount,
   isLoading,
   hasSearched,
   mode,
@@ -158,17 +194,13 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
       />
 
       {/* Multi-source clustering summary notice if present in listings mode */}
-      {activeMode === 'listings' && multiSourceCount > 0 && (
-        <div
-          data-testid="multi-source-summary-notice"
-          className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300"
-        >
-          <span>
-            <strong className="font-bold text-indigo-200">{items.length} db egyedi ingatlan</strong> jelenik meg{' '}
-            <strong className="font-bold text-indigo-200">összesen {totalSourceListingsCount} db hirdetés-találatból</strong>{' '}
-            (ebből <strong className="font-bold text-indigo-200">{multiSourceCount} db ingatlan</strong> több forrásból összevonva).
-          </span>
-        </div>
+      {activeMode === 'listings' && (
+        <MultiSourceNotice
+          itemsCount={items.length}
+          totalSourceListingsCount={totalSourceListingsCount}
+          serverFilteredCount={serverFilteredCount}
+          multiSourceCount={multiSourceCount}
+        />
       )}
 
       {/* Screen reader live region for results announcements */}

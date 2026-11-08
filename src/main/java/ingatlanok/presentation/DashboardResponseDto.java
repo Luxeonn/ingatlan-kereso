@@ -25,6 +25,7 @@ public class DashboardResponseDto implements Serializable {
   private List<IngatlanItem> items = new ArrayList<>();
   private int newCount;
   private int totalFound;
+  private int filteredCount;
   private String executedAt;
   private String executionStatus;
   @Builder.Default
@@ -44,6 +45,7 @@ public class DashboardResponseDto implements Serializable {
       this.items = searchResult.getItems();
       this.newCount = searchResult.getNewCount();
       this.totalFound = searchResult.getTotalFound();
+      this.filteredCount = searchResult.getFilteredCount();
       this.executedAt = searchResult.getExecutedAt();
       this.executionStatus =
           searchResult.getExecutionStatus() != null

@@ -25,6 +25,7 @@ public class SearchResult implements Serializable {
   private List<IngatlanItem> items = new ArrayList<>();
   private int newCount;
   private int totalFound;
+  private int filteredCount;
   private String executedAt;
   @Builder.Default
   private Map<String, Integer> portalCounts = new HashMap<>();

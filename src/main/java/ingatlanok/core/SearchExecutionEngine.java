@@ -142,6 +142,7 @@ public class SearchExecutionEngine {
     }
 
     int cityIndex = 0;
+    int totalFilteredCount = 0;
     for (String currentCity : citiesToSearch) {
       cityIndex++;
       pauseBetweenCities(cityIndex);
@@ -156,10 +157,11 @@ public class SearchExecutionEngine {
         LOGGER.info("[Ismert Város] '{}' adatbázisa létezik. Differenciál-keresés...", currentCity);
       }
 
-      List<IngatlanItem> visibleCityItems =
+      CityProcessResult cityResult =
           processCity(currentCity, effectiveCriteria, portalCounts, allScrapeResults, isFirstSearch);
-      cityCounts.put(currentCity, visibleCityItems.size());
-      allAggregatedItems.addAll(visibleCityItems);
+      cityCounts.put(currentCity, cityResult.items().size());
+      allAggregatedItems.addAll(cityResult.items());
+      totalFilteredCount += cityResult.filteredCount();
     }
 
     List<IngatlanItem> uniqueAggregatedList = dedupEngine.deduplicateMultiSignal(allAggregatedItems);
@@ -179,6 +181,7 @@ public class SearchExecutionEngine {
             cityCounts,
             newCitiesInitialized);
     result.getPortalResults().addAll(aggregatedPortalResults);
+    result.setFilteredCount(totalFilteredCount);
     applyMultiCityExecutionStatus(result, allScrapeResults);
 
     logSearchEnd(result);
@@ -229,7 +232,7 @@ public class SearchExecutionEngine {
     }
   }
 
-  private List<IngatlanItem> processCity(
+  private CityProcessResult processCity(
       String currentCity,
       SearchCriteria criteria,
       Map<String, Integer> portalCounts,
@@ -280,8 +283,13 @@ public class SearchExecutionEngine {
         relevanceResult.filteredByAreaCount(),
         viewResult.filteredByViewedCount());
 
-    return visibleCityItems;
+    int cityFilteredCount = relevanceResult.filteredByPriceCount()
+        + relevanceResult.filteredByAreaCount()
+        + relevanceResult.filteredByCityCount();
+    return new CityProcessResult(visibleCityItems, cityFilteredCount);
   }
+
+  private record CityProcessResult(List<IngatlanItem> items, int filteredCount) {}
 
   private void logQualityStats(int totalItems, List<IngatlanItem> uniqueAggregatedList) {
     long lowQuality =
