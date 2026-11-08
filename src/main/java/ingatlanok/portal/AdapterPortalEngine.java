@@ -21,7 +21,7 @@ public class AdapterPortalEngine implements PortalEngine {
   private final RawListingNormalizer normalizer;
 
   public AdapterPortalEngine(PortalAdapter adapter) {
-    this(adapter, RawListingNormalizer.getDefault());
+    this(adapter, null);
   }
 
   public AdapterPortalEngine(PortalAdapter adapter, RawListingNormalizer normalizer) {
@@ -29,7 +29,7 @@ public class AdapterPortalEngine implements PortalEngine {
       throw new IllegalArgumentException("PortalAdapter cannot be null");
     }
     this.adapter = adapter;
-    this.normalizer = normalizer != null ? normalizer : RawListingNormalizer.getDefault();
+    this.normalizer = normalizer;
   }
 
   @Override
@@ -96,11 +96,12 @@ public class AdapterPortalEngine implements PortalEngine {
     int rejected = 0;
     int duplicates = 0;
 
+    RawListingNormalizer effectiveNormalizer = getNormalizer();
     for (RawPropertyListing raw : result.listings()) {
       if (raw == null) {
         continue;
       }
-      IngatlanItem item = normalizer.normalize(raw, descriptor, safeCriteria, now);
+      IngatlanItem item = effectiveNormalizer.normalize(raw, descriptor, safeCriteria, now);
       if (item == null) {
         rejected++;
         LOGGER.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
@@ -184,6 +185,6 @@ public class AdapterPortalEngine implements PortalEngine {
   }
 
   public RawListingNormalizer getNormalizer() {
-    return normalizer;
+    return normalizer != null ? normalizer : RawListingNormalizer.getDefault();
   }
 }
