@@ -399,16 +399,19 @@ export interface components {
             name: string;
             criteria: components["schemas"]["SearchCriteria"];
             /**
+             * Format: date-time
              * @description Létrehozás időpontja ISO-8601 formátumban
              * @example 2026-11-06T17:30:00Z
              */
             createdAt?: string | null;
             /**
+             * Format: date-time
              * @description Utolsó módosítás időpontja ISO-8601 formátumban
              * @example 2026-11-06T17:30:00Z
              */
             updatedAt?: string | null;
             /**
+             * Format: date-time
              * @description Legutóbbi kiválasztás/használat időpontja ISO-8601 formátumban
              * @example 2026-11-06T17:35:00Z
              */
@@ -427,72 +430,123 @@ export interface components {
             hidden: boolean;
             id: string;
         };
-        SuccessResponse: {
+        PropertyHideResponseDto: components["schemas"]["PropertyHideResponse"];
+        ActionSuccessResponseDto: {
             success: boolean;
         };
-        ErrorResponse: {
+        SuccessResponse: components["schemas"]["ActionSuccessResponseDto"];
+        ApiErrorResponse: {
+            /**
+             * Format: date-time
+             * @description Időbélyeg ISO-8601 formátumban
+             */
+            timestamp: string;
+            /** @description HTTP státuszkód */
+            status: number;
+            /** @description Hiba összefoglaló kódja vagy neve */
             error: string;
+            /** @description Részletes hibaüzenet */
+            message: string;
+            /** @description A végpont elérési útja */
+            path: string;
         };
+        ErrorResponse: components["schemas"]["ApiErrorResponse"];
         OpenUrlsResponse: {
             success: boolean;
             count: number;
         };
+        OpenUrlsResponseDto: components["schemas"]["OpenUrlsResponse"];
         MarkViewedResponse: {
             success: boolean;
             marked: boolean;
             url: string;
         };
+        MarkViewedResponseDto: components["schemas"]["MarkViewedResponse"];
         ClearHistoryResponse: {
             success: boolean;
-            clearedCity?: string;
-            clearedAll?: boolean;
+            clearedCity?: string | null;
+            clearedAll?: boolean | null;
+        };
+        ClearHistoryResponseDto: components["schemas"]["ClearHistoryResponse"];
+        PropertyBatchActionRequest: {
+            /** @description Ingatlan közvetlen URL-je */
+            url?: string | null;
+            /** @description Csoportosított hirdetéshez tartozó forrás URL-ek */
+            urls?: string[] | null;
+        };
+        MarkViewedRequest: {
+            /** @description A megtekintett hirdetés URL címe */
+            url: string;
+        };
+        ClearHistoryRequest: {
+            /** @description Opcionális városnév a törléshez */
+            city?: string | null;
         };
         StatusResponse: {
             /** @example UP */
             status: string;
             /** @example 8080 */
             port: number;
-            /** @example 1240 */
+            /**
+             * Format: int64
+             * @example 1240
+             */
             totalInDb: number;
+            /** Format: date-time */
             lastRunTime?: string | null;
-            trackedCities?: {
-                [key: string]: number;
-            };
+            trackedCities: components["schemas"]["TrackedCityInfo"][];
         };
+        StatusResponseDto: components["schemas"]["StatusResponse"];
         PredefinedCity: {
-            key?: string;
+            key: string;
             name: string;
-            county?: string;
-            description?: string;
+            county: string;
+            description: string;
         };
         TrackedCityInfo: {
-            name: string;
             key: string;
+            name: string;
+            /** Format: int64 */
             count: number;
         };
         CitiesResponse: {
-            predefined: (components["schemas"]["PredefinedCity"] | string)[];
+            predefined: components["schemas"]["PredefinedCity"][];
             presets: {
                 [key: string]: string[];
             };
-            trackedCities: components["schemas"]["TrackedCityInfo"][] | {
-                [key: string]: number;
-            };
+            trackedCities: components["schemas"]["TrackedCityInfo"][];
         };
+        CitiesResponseDto: components["schemas"]["CitiesResponse"];
+        /**
+         * @description Támogatott ingatlanportál azonosító
+         * @enum {string}
+         */
+        PortalId: "dh" | "oc" | "jofogas" | "koltozzbe" | "ingatlanbazar" | "ingatlancom" | "unknown";
         PortalDescriptor: {
             id: string;
             name: string;
-            color: string;
-            searchUrl: string;
-            supportedTypes: string[];
-            savedListingCount?: number;
+            brandColor: string;
+            /** Format: uri */
+            homepageUrl: string;
+            enabledByDefault: boolean;
+            supportedTypes: components["schemas"]["PropertyType"][];
+            directListingSupported: boolean;
+            /** Format: int64 */
+            savedListingCount: number;
         };
+        /**
+         * @description Portál lekérdezési státusza
+         * @enum {string}
+         */
+        PortalScrapeStatus: "SUCCESS" | "EMPTY" | "BOT_PROTECTED" | "SPA_FALLBACK" | "FAILED";
         PortalStatusDto: {
             portalId: string;
             portalName: string;
-            status: string;
+            status: components["schemas"]["PortalScrapeStatus"];
             foundCount: number;
+            /** Format: int64 */
             latencyMs: number;
+            /** Format: uri */
             fallbackUrl?: string | null;
             message?: string | null;
             httpStatusCode?: number | null;
@@ -500,6 +554,7 @@ export interface components {
         };
         PriceInfo: {
             rawText?: string;
+            /** Format: int64 */
             amountHuf?: number;
             amountMillion?: number;
         };
@@ -510,61 +565,92 @@ export interface components {
             pricePerSquareMeter?: number;
         };
         PortalSource: {
-            portalId?: string;
-            portalName?: string;
-            themeColor?: string;
+            portalId: string;
+            portalName: string;
+            themeColor?: string | null;
             directListing?: boolean;
         };
         PriceHistoryEntry: {
-            id?: number;
-            propertyId?: string;
-            recordedAt?: string;
-            priceRaw?: string;
-            priceAmount?: number;
-            priceMillions?: number;
-            pricePerSqm?: number;
-            previousPriceAmount?: number;
-            priceDelta?: number;
-            changePercent?: number;
+            /** Format: int64 */
+            id: number;
+            propertyId: string;
+            /** Format: date-time */
+            recordedAt: string;
+            priceRaw?: string | null;
+            /** Format: int64 */
+            priceAmount?: number | null;
+            priceMillions?: number | null;
+            /** Format: int64 */
+            pricePerSqm?: number | null;
+            /** Format: int64 */
+            previousPriceAmount?: number | null;
+            /** Format: int64 */
+            priceDelta?: number | null;
+            changePercent?: number | null;
         };
         StatusLogEntry: {
-            id?: number;
-            propertyId?: string;
-            status?: string;
-            changedAt?: string;
-            note?: string;
+            /** Format: int64 */
+            id: number;
+            propertyId: string;
+            status: string;
+            /** Format: date-time */
+            changedAt: string;
+            note?: string | null;
         };
         SourceListing: {
             portal?: string;
-            externalListingId?: string;
+            externalListingId?: string | null;
+            /** Format: uri */
             url?: string;
-            title?: string;
-            imageUrl?: string;
-            firstSeenAt?: string;
-            lastSeenAt?: string;
+            title?: string | null;
+            /** Format: uri */
+            imageUrl?: string | null;
+            /** Format: date-time */
+            firstSeenAt?: string | null;
+            /** Format: date-time */
+            lastSeenAt?: string | null;
             status?: string;
-            priceHuf?: number;
-            pricePerM2?: number;
+            /** Format: int64 */
+            priceHuf?: number | null;
+            /** Format: int64 */
+            pricePerM2?: number | null;
             viewed?: boolean;
-            viewedAt?: string;
+            /** Format: date-time */
+            viewedAt?: string | null;
             hidden?: boolean;
-            hiddenAt?: string;
+            /** Format: date-time */
+            hiddenAt?: string | null;
         };
         ListingObservation: {
+            /** Format: date-time */
             observedAt?: string;
-            priceHuf?: number;
-            pricePerM2?: number;
+            /** Format: int64 */
+            priceHuf?: number | null;
+            /** Format: int64 */
+            pricePerM2?: number | null;
             /** @enum {string} */
             statusEvent?: "NEW" | "UNCHANGED" | "PRICE_CHANGED" | "RELISTED";
-            priceDelta?: number;
-            changePercent?: number;
+            /** Format: int64 */
+            priceDelta?: number | null;
+            changePercent?: number | null;
         };
+        /**
+         * @description Hirdetés életciklus státusza
+         * @enum {string}
+         */
+        ListingStatus: "ACTIVE" | "PRICE_DROP" | "PRICE_INCREASE" | "INACTIVE" | "REMOVED" | "ARCHIVED";
+        /**
+         * @description Rendezési sorrend a lekérdezésekhez
+         * @default DISCOVERED_DESC
+         * @enum {string}
+         */
+        ListingSortOption: "DISCOVERED_DESC" | "PRICE_ASC" | "PRICE_DESC" | "AREA_ASC" | "AREA_DESC" | "ROOMS_ASC" | "ROOMS_DESC" | "BARGAIN_DESC";
         SearchCriteria: {
             city?: string;
             /** @default [] */
             cities: string[];
-            /** @default haz */
-            propertyType: string;
+            /** @default HAZ */
+            propertyType: components["schemas"]["PropertyType"];
             /** @default 0 */
             minPriceMillion: number;
             /** @default 9999 */
@@ -587,6 +673,7 @@ export interface components {
         };
         MarketStatsDto: {
             averagePriceMillion?: number;
+            /** Format: int64 */
             averagePricePerM2?: number;
             minPriceMillion?: number;
             maxPriceMillion?: number;
@@ -594,20 +681,26 @@ export interface components {
             cityBreakdown?: {
                 [key: string]: number;
             };
+            /** Format: int64 */
             medianPricePerM2?: number;
             totalSampleSize?: number;
             insufficientData?: boolean;
+            /** Format: int64 */
             residentialMedianPricePerM2?: number;
+            /** Format: int64 */
             residentialAveragePricePerM2?: number;
             residentialSampleSize?: number;
             residentialInsufficientData?: boolean;
+            /** Format: int64 */
             plotMedianPricePerM2?: number;
+            /** Format: int64 */
             plotAveragePricePerM2?: number;
             plotSampleSize?: number;
             plotInsufficientData?: boolean;
             segments?: components["schemas"]["MarketSegmentStatsDto"][];
             priceDropCount?: number;
             priceDropRatePercent?: number;
+            /** Format: int64 */
             averagePriceDropAmountHuf?: number;
             averagePriceDropPercent?: number;
             topPriceDrops?: components["schemas"]["PriceDropItemDto"][];
@@ -617,23 +710,30 @@ export interface components {
         IngatlanItem: {
             id: string;
             portal: string;
+            /** Format: uri */
             url: string;
             title: string;
             price: string;
             location: string;
             city: string;
             details?: string;
+            /** Format: date-time */
             discoveredAt?: string;
             isNew?: boolean;
             viewed?: boolean;
+            /** Format: date-time */
             viewedAt?: string;
             hidden?: boolean;
+            /** Format: date-time */
             hiddenAt?: string;
+            /** Format: uri */
             imageUrl?: string;
             newConstruction?: boolean;
             status?: string;
+            /** Format: int64 */
             priceDelta?: number;
             priceChangePercent?: number;
+            /** Format: date-time */
             lastPriceChangeAt?: string;
             priceInfo?: components["schemas"]["PriceInfo"];
             detailsInfo?: components["schemas"]["PropertyDetails"];
@@ -643,11 +743,12 @@ export interface components {
             sourcesCount: number;
             sourceListings?: components["schemas"]["SourceListing"][];
             isBargain?: boolean;
+            /** Format: int64 */
             referenceMedianPricePerSquareMeter?: number;
             percentageBelowMedian?: number;
             referenceSampleSize?: number;
             /** @description Adatminőségi pontszám (0-100) */
-            qualityScore?: number | null;
+            qualityScore?: number;
             /** @description Minőségi levonási okok listája */
             qualityDeductions?: string[];
         };
@@ -656,18 +757,20 @@ export interface components {
          * @enum {string}
          */
         PropertyType: "LAKAS" | "HAZ" | "TELEK" | "GARAZS" | "IPARI_KERESKEDELMI" | "EGYEB_ISMERETLEN";
+        /**
+         * @description A keresés összesített végrehajtási státusza
+         * @enum {string}
+         */
+        SearchExecutionStatus: "SUCCESS" | "PARTIAL_SUCCESS" | "TOTAL_FAILURE";
         DashboardResponseDto: {
             items: components["schemas"]["IngatlanItem"][];
             newCount: number;
             totalFound: number;
             /** @description A keresési feltételek (ár, méret, város) alapján szabályszerűen kiszűrt hirdetések száma */
             filteredCount?: number;
+            /** Format: date-time */
             executedAt?: string;
-            /**
-             * @description A keresés összesített végrehajtási státusza
-             * @enum {string}
-             */
-            executionStatus?: "SUCCESS" | "PARTIAL_SUCCESS" | "TOTAL_FAILURE";
+            executionStatus?: components["schemas"]["SearchExecutionStatus"];
             portalCounts?: {
                 [key: string]: number;
             };
@@ -686,7 +789,9 @@ export interface components {
             plot?: boolean;
             sampleSize?: number;
             insufficientData?: boolean;
+            /** Format: int64 */
             medianPricePerM2?: number;
+            /** Format: int64 */
             averagePricePerM2?: number;
             medianPriceMillion?: number;
             averagePriceMillion?: number;
@@ -696,17 +801,23 @@ export interface components {
         };
         PriceDropItemDto: {
             id?: string;
+            /** Format: uri */
             url?: string;
             title?: string;
             city?: string;
             portal?: string;
             propertyType?: components["schemas"]["PropertyType"];
+            /** Format: int64 */
             currentPriceHuf?: number;
             currentPriceMillion?: number;
+            /** Format: int64 */
             priceDelta?: number;
             changePercent?: number;
+            /** Format: int64 */
             pricePerM2?: number;
+            /** Format: uri */
             imageUrl?: string;
+            /** Format: date-time */
             lastPriceChangeAt?: string;
         };
     };
@@ -817,7 +928,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SuccessResponse"];
+                    "application/json": components["schemas"]["ActionSuccessResponseDto"];
                 };
             };
         };
@@ -936,7 +1047,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SuccessResponse"];
+                    "application/json": components["schemas"]["ActionSuccessResponseDto"];
                 };
             };
             /** @description A megadott azonosítójú sablon nem található */
@@ -1004,7 +1115,7 @@ export interface operations {
                 /** @description Csak új építésű ingatlanok */
                 onlyNewConstruction?: boolean;
                 /** @description Rendezési sorrend (pl. DISCOVERED_DESC, PRICE_ASC, PRICE_PER_M2_ASC) */
-                sortBy?: string;
+                sortBy?: components["schemas"]["ListingSortOption"];
                 /** @description Maximális találati szám lapozáshoz */
                 limit?: number;
                 /** @description Találati eltolás lapozáshoz */
@@ -1257,12 +1368,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** @description Ingatlan közvetlen URL-je */
-                    url?: string;
-                    /** @description Csoportosított hirdetéshez tartozó forrás URL-ek */
-                    urls?: string[];
-                };
+                "application/json": components["schemas"]["PropertyBatchActionRequest"];
             };
         };
         responses: {
@@ -1289,12 +1395,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** @description Ingatlan közvetlen URL-je */
-                    url?: string;
-                    /** @description Csoportosított hirdetéshez tartozó forrás URL-ek */
-                    urls?: string[];
-                };
+                "application/json": components["schemas"]["PropertyBatchActionRequest"];
             };
         };
         responses: {
@@ -1389,10 +1490,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** @description A megtekintett hirdetés URL címe */
-                    url?: string;
-                };
+                "application/json": components["schemas"]["MarkViewedRequest"];
             };
         };
         responses: {
@@ -1419,10 +1517,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** @description Opcionális városnév a törléshez */
-                    city?: string;
-                };
+                "application/json": components["schemas"]["ClearHistoryRequest"];
             };
         };
         responses: {

@@ -190,7 +190,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
 
             {/* Property type tabs */}
             <PropertyTypeTabs
-              value={criteria.propertyType}
+              value={criteria.propertyType || 'haz'}
               onChange={setPropertyType}
             />
 

@@ -72,7 +72,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: '#/components/schemas/ActionSuccessResponseDto'
 
   /api/presets:
     get:
@@ -161,7 +161,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: '#/components/schemas/ActionSuccessResponseDto'
         '404':
           description: A megadott azonosítójú sablon nem található
 
@@ -216,36 +216,42 @@ paths:
           required: false
           schema:
             type: number
+            minimum: 0
           description: Minimum ár (millió Ft)
         - name: maxPrice
           in: query
           required: false
           schema:
             type: number
+            minimum: 0
           description: Maximum ár (millió Ft)
         - name: minArea
           in: query
           required: false
           schema:
             type: number
+            minimum: 0
           description: Minimum alapterület (m²)
         - name: maxArea
           in: query
           required: false
           schema:
             type: number
+            minimum: 0
           description: Maximum alapterület (m²)
         - name: minRooms
           in: query
           required: false
           schema:
             type: number
+            minimum: 0
           description: Minimum szobaszám
         - name: maxRooms
           in: query
           required: false
           schema:
             type: number
+            minimum: 0
           description: Maximum szobaszám
         - name: excludeViewed
           in: query
@@ -265,20 +271,21 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-            default: DISCOVERED_DESC
+            $ref: '#/components/schemas/ListingSortOption'
           description: Rendezési sorrend (pl. DISCOVERED_DESC, PRICE_ASC, PRICE_PER_M2_ASC)
         - name: limit
           in: query
           required: false
           schema:
             type: integer
+            minimum: 1
           description: Maximális találati szám lapozáshoz
         - name: offset
           in: query
           required: false
           schema:
             type: integer
+            minimum: 0
           description: Találati eltolás lapozáshoz
       responses:
         '200':
@@ -500,16 +507,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                url:
-                  type: string
-                  description: Ingatlan közvetlen URL-je
-                urls:
-                  type: array
-                  items:
-                    type: string
-                  description: Csoportosított hirdetéshez tartozó forrás URL-ek
+              $ref: '#/components/schemas/PropertyBatchActionRequest'
       responses:
         '200':
           description: Elrejtés eredménye
@@ -534,16 +532,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                url:
-                  type: string
-                  description: Ingatlan közvetlen URL-je
-                urls:
-                  type: array
-                  items:
-                    type: string
-                  description: Csoportosított hirdetéshez tartozó forrás URL-ek
+              $ref: '#/components/schemas/PropertyBatchActionRequest'
       responses:
         '200':
           description: Visszaállítás eredménye
@@ -620,11 +609,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                url:
-                  type: string
-                  description: A megtekintett hirdetés URL címe
+              $ref: '#/components/schemas/MarkViewedRequest'
       responses:
         '200':
           description: Megtekintettség állapota
@@ -649,11 +634,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                city:
-                  type: string
-                  description: Opcionális városnév a törléshez
+              $ref: '#/components/schemas/ClearHistoryRequest'
       responses:
         '200':
           description: Törlés eredménye
@@ -684,16 +665,19 @@ components:
           $ref: '#/components/schemas/SearchCriteria'
         createdAt:
           type: string
+          format: date-time
           nullable: true
           description: Létrehozás időpontja ISO-8601 formátumban
           example: '2026-11-06T17:30:00Z'
         updatedAt:
           type: string
+          format: date-time
           nullable: true
           description: Utolsó módosítás időpontja ISO-8601 formátumban
           example: '2026-11-06T17:30:00Z'
         lastUsedAt:
           type: string
+          format: date-time
           nullable: true
           description: Legutóbbi kiválasztás/használat időpontja ISO-8601 formátumban
           example: '2026-11-06T17:35:00Z'
@@ -724,7 +708,10 @@ components:
         id:
           type: string
 
-    SuccessResponse:
+    PropertyHideResponseDto:
+      $ref: '#/components/schemas/PropertyHideResponse'
+
+    ActionSuccessResponseDto:
       type: object
       required:
         - success
@@ -732,13 +719,37 @@ components:
         success:
           type: boolean
 
-    ErrorResponse:
+    SuccessResponse:
+      $ref: '#/components/schemas/ActionSuccessResponseDto'
+
+    ApiErrorResponse:
       type: object
       required:
+        - timestamp
+        - status
         - error
+        - message
+        - path
       properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Időbélyeg ISO-8601 formátumban
+        status:
+          type: integer
+          description: HTTP státuszkód
         error:
           type: string
+          description: Hiba összefoglaló kódja vagy neve
+        message:
+          type: string
+          description: Részletes hibaüzenet
+        path:
+          type: string
+          description: A végpont elérési útja
+
+    ErrorResponse:
+      $ref: '#/components/schemas/ApiErrorResponse'
 
     OpenUrlsResponse:
       type: object
@@ -750,6 +761,9 @@ components:
           type: boolean
         count:
           type: integer
+
+    OpenUrlsResponseDto:
+      $ref: '#/components/schemas/OpenUrlsResponse'
 
     MarkViewedResponse:
       type: object
@@ -765,6 +779,9 @@ components:
         url:
           type: string
 
+    MarkViewedResponseDto:
+      $ref: '#/components/schemas/MarkViewedResponse'
+
     ClearHistoryResponse:
       type: object
       required:
@@ -774,8 +791,44 @@ components:
           type: boolean
         clearedCity:
           type: string
+          nullable: true
         clearedAll:
           type: boolean
+          nullable: true
+
+    ClearHistoryResponseDto:
+      $ref: '#/components/schemas/ClearHistoryResponse'
+
+    PropertyBatchActionRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          nullable: true
+          description: Ingatlan közvetlen URL-je
+        urls:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Csoportosított hirdetéshez tartozó forrás URL-ek
+
+    MarkViewedRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: A megtekintett hirdetés URL címe
+
+    ClearHistoryRequest:
+      type: object
+      properties:
+        city:
+          type: string
+          nullable: true
+          description: Opcionális városnév a törléshez
 
     StatusResponse:
       type: object
@@ -783,6 +836,7 @@ components:
         - status
         - port
         - totalInDb
+        - trackedCities
       properties:
         status:
           type: string
@@ -792,19 +846,27 @@ components:
           example: 8080
         totalInDb:
           type: integer
+          format: int64
           example: 1240
         lastRunTime:
           type: string
+          format: date-time
           nullable: true
         trackedCities:
-          type: object
-          additionalProperties:
-            type: integer
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackedCityInfo'
+
+    StatusResponseDto:
+      $ref: '#/components/schemas/StatusResponse'
 
     PredefinedCity:
       type: object
       required:
+        - key
         - name
+        - county
+        - description
       properties:
         key:
           type: string
@@ -818,16 +880,17 @@ components:
     TrackedCityInfo:
       type: object
       required:
-        - name
         - key
+        - name
         - count
       properties:
-        name:
-          type: string
         key:
+          type: string
+        name:
           type: string
         count:
           type: integer
+          format: int64
 
     CitiesResponse:
       type: object
@@ -839,9 +902,7 @@ components:
         predefined:
           type: array
           items:
-            anyOf:
-              - $ref: '#/components/schemas/PredefinedCity'
-              - type: string
+            $ref: '#/components/schemas/PredefinedCity'
         presets:
           type: object
           additionalProperties:
@@ -849,37 +910,67 @@ components:
             items:
               type: string
         trackedCities:
-          anyOf:
-            - type: array
-              items:
-                $ref: '#/components/schemas/TrackedCityInfo'
-            - type: object
-              additionalProperties:
-                type: integer
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackedCityInfo'
+
+    CitiesResponseDto:
+      $ref: '#/components/schemas/CitiesResponse'
+
+    PortalId:
+      type: string
+      enum:
+        - dh
+        - oc
+        - jofogas
+        - koltozzbe
+        - ingatlanbazar
+        - ingatlancom
+        - unknown
+      description: Támogatott ingatlanportál azonosító
 
     PortalDescriptor:
       type: object
       required:
         - id
         - name
-        - color
-        - searchUrl
+        - brandColor
+        - homepageUrl
+        - enabledByDefault
         - supportedTypes
+        - directListingSupported
+        - savedListingCount
       properties:
         id:
           type: string
         name:
           type: string
-        color:
+        brandColor:
           type: string
-        searchUrl:
+        homepageUrl:
           type: string
+          format: uri
+        enabledByDefault:
+          type: boolean
         supportedTypes:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/PropertyType'
+        directListingSupported:
+          type: boolean
         savedListingCount:
           type: integer
+          format: int64
+
+    PortalScrapeStatus:
+      type: string
+      enum:
+        - SUCCESS
+        - EMPTY
+        - BOT_PROTECTED
+        - SPA_FALLBACK
+        - FAILED
+      description: Portál lekérdezési státusza
 
     PortalStatusDto:
       type: object
@@ -895,13 +986,15 @@ components:
         portalName:
           type: string
         status:
-          type: string
+          $ref: '#/components/schemas/PortalScrapeStatus'
         foundCount:
           type: integer
         latencyMs:
           type: integer
+          format: int64
         fallbackUrl:
           type: string
+          format: uri
           nullable: true
         message:
           type: string
@@ -920,6 +1013,7 @@ components:
           type: string
         amountHuf:
           type: integer
+          format: int64
         amountMillion:
           type: number
 
@@ -937,6 +1031,9 @@ components:
 
     PortalSource:
       type: object
+      required:
+        - portalId
+        - portalName
       properties:
         portalId:
           type: string
@@ -944,46 +1041,72 @@ components:
           type: string
         themeColor:
           type: string
+          nullable: true
         directListing:
           type: boolean
 
     PriceHistoryEntry:
       type: object
+      required:
+        - id
+        - propertyId
+        - recordedAt
       properties:
         id:
           type: integer
+          format: int64
         propertyId:
           type: string
         recordedAt:
           type: string
+          format: date-time
         priceRaw:
           type: string
+          nullable: true
         priceAmount:
           type: integer
+          format: int64
+          nullable: true
         priceMillions:
           type: number
+          nullable: true
         pricePerSqm:
           type: integer
+          format: int64
+          nullable: true
         previousPriceAmount:
           type: integer
+          format: int64
+          nullable: true
         priceDelta:
           type: integer
+          format: int64
+          nullable: true
         changePercent:
           type: number
+          nullable: true
 
     StatusLogEntry:
       type: object
+      required:
+        - id
+        - propertyId
+        - status
+        - changedAt
       properties:
         id:
           type: integer
+          format: int64
         propertyId:
           type: string
         status:
           type: string
         changedAt:
           type: string
+          format: date-time
         note:
           type: string
+          nullable: true
 
     SourceListing:
       type: object
@@ -992,40 +1115,62 @@ components:
           type: string
         externalListingId:
           type: string
+          nullable: true
         url:
           type: string
+          format: uri
         title:
           type: string
+          nullable: true
         imageUrl:
           type: string
+          format: uri
+          nullable: true
         firstSeenAt:
           type: string
+          format: date-time
+          nullable: true
         lastSeenAt:
           type: string
+          format: date-time
+          nullable: true
         status:
           type: string
         priceHuf:
           type: integer
+          format: int64
+          nullable: true
         pricePerM2:
           type: integer
+          format: int64
+          nullable: true
         viewed:
           type: boolean
         viewedAt:
           type: string
+          format: date-time
+          nullable: true
         hidden:
           type: boolean
         hiddenAt:
           type: string
+          format: date-time
+          nullable: true
 
     ListingObservation:
       type: object
       properties:
         observedAt:
           type: string
+          format: date-time
         priceHuf:
           type: integer
+          format: int64
+          nullable: true
         pricePerM2:
           type: integer
+          format: int64
+          nullable: true
         statusEvent:
           type: string
           enum:
@@ -1035,8 +1180,36 @@ components:
             - RELISTED
         priceDelta:
           type: integer
+          format: int64
+          nullable: true
         changePercent:
           type: number
+          nullable: true
+
+    ListingStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - PRICE_DROP
+        - PRICE_INCREASE
+        - INACTIVE
+        - REMOVED
+        - ARCHIVED
+      description: Hirdetés életciklus státusza
+
+    ListingSortOption:
+      type: string
+      enum:
+        - DISCOVERED_DESC
+        - PRICE_ASC
+        - PRICE_DESC
+        - AREA_ASC
+        - AREA_DESC
+        - ROOMS_ASC
+        - ROOMS_DESC
+        - BARGAIN_DESC
+      default: DISCOVERED_DESC
+      description: Rendezési sorrend a lekérdezésekhez
 
     SearchCriteria:
       type: object
@@ -1049,22 +1222,27 @@ components:
             type: string
           default: []
         propertyType:
-          type: string
-          default: "haz"
+          $ref: '#/components/schemas/PropertyType'
+          default: HAZ
         minPriceMillion:
-          type: number
+          type: integer
+          minimum: 0
           default: 0
         maxPriceMillion:
-          type: number
+          type: integer
+          minimum: 0
           default: 9999
         minArea:
-          type: number
+          type: integer
+          minimum: 0
           default: 0
         maxArea:
-          type: number
+          type: integer
+          minimum: 0
           default: 9999
         minRooms:
-          type: number
+          type: integer
+          minimum: 0
         portals:
           type: array
           items:
@@ -1089,7 +1267,8 @@ components:
         averagePriceMillion:
           type: number
         averagePricePerM2:
-          type: number
+          type: integer
+          format: int64
         minPriceMillion:
           type: number
         maxPriceMillion:
@@ -1102,22 +1281,27 @@ components:
             type: integer
         medianPricePerM2:
           type: integer
+          format: int64
         totalSampleSize:
           type: integer
         insufficientData:
           type: boolean
         residentialMedianPricePerM2:
           type: integer
+          format: int64
         residentialAveragePricePerM2:
           type: integer
+          format: int64
         residentialSampleSize:
           type: integer
         residentialInsufficientData:
           type: boolean
         plotMedianPricePerM2:
           type: integer
+          format: int64
         plotAveragePricePerM2:
           type: integer
+          format: int64
         plotSampleSize:
           type: integer
         plotInsufficientData:
@@ -1132,6 +1316,7 @@ components:
           type: number
         averagePriceDropAmountHuf:
           type: integer
+          format: int64
         averagePriceDropPercent:
           type: number
         topPriceDrops:
@@ -1160,6 +1345,7 @@ components:
           type: string
         url:
           type: string
+          format: uri
         title:
           type: string
         price:
@@ -1172,28 +1358,34 @@ components:
           type: string
         discoveredAt:
           type: string
+          format: date-time
         isNew:
           type: boolean
         viewed:
           type: boolean
         viewedAt:
           type: string
+          format: date-time
         hidden:
           type: boolean
         hiddenAt:
           type: string
+          format: date-time
         imageUrl:
           type: string
+          format: uri
         newConstruction:
           type: boolean
         status:
           type: string
         priceDelta:
           type: integer
+          format: int64
         priceChangePercent:
           type: number
         lastPriceChangeAt:
           type: string
+          format: date-time
         priceInfo:
           $ref: '#/components/schemas/PriceInfo'
         detailsInfo:
@@ -1213,13 +1405,13 @@ components:
           type: boolean
         referenceMedianPricePerSquareMeter:
           type: integer
+          format: int64
         percentageBelowMedian:
           type: number
         referenceSampleSize:
           type: integer
         qualityScore:
           type: integer
-          nullable: true
           description: Adatminőségi pontszám (0-100)
         qualityDeductions:
           type: array
@@ -1237,6 +1429,14 @@ components:
         - IPARI_KERESKEDELMI
         - EGYEB_ISMERETLEN
       description: Kanonikus ingatlantípus
+
+    SearchExecutionStatus:
+      type: string
+      enum:
+        - SUCCESS
+        - PARTIAL_SUCCESS
+        - TOTAL_FAILURE
+      description: A keresés összesített végrehajtási státusza
 
     DashboardResponseDto:
       type: object
@@ -1258,13 +1458,9 @@ components:
           description: A keresési feltételek (ár, méret, város) alapján szabályszerűen kiszűrt hirdetések száma
         executedAt:
           type: string
+          format: date-time
         executionStatus:
-          type: string
-          enum:
-            - SUCCESS
-            - PARTIAL_SUCCESS
-            - TOTAL_FAILURE
-          description: A keresés összesített végrehajtási státusza
+          $ref: '#/components/schemas/SearchExecutionStatus'
         portalCounts:
           type: object
           additionalProperties:
@@ -1303,8 +1499,10 @@ components:
           type: boolean
         medianPricePerM2:
           type: integer
+          format: int64
         averagePricePerM2:
           type: integer
+          format: int64
         medianPriceMillion:
           type: number
         averagePriceMillion:
@@ -1323,6 +1521,7 @@ components:
           type: string
         url:
           type: string
+          format: uri
         title:
           type: string
         city:
@@ -1333,15 +1532,20 @@ components:
           $ref: '#/components/schemas/PropertyType'
         currentPriceHuf:
           type: integer
+          format: int64
         currentPriceMillion:
           type: number
         priceDelta:
           type: integer
+          format: int64
         changePercent:
           type: number
         pricePerM2:
           type: integer
+          format: int64
         imageUrl:
           type: string
+          format: uri
         lastPriceChangeAt:
           type: string
+          format: date-time

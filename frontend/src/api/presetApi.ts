@@ -1,32 +1,40 @@
-import { apiClient } from './client'
+import { fetchClient, unwrapApiResponse } from './client'
 import type { SearchPreset, SearchPresetInput } from '../types/api'
+import type { components } from '../types/generated-api'
 
 export async function getPresets(): Promise<SearchPreset[]> {
-  return apiClient<SearchPreset[]>('/api/presets')
+  return unwrapApiResponse(fetchClient.GET('/api/presets'))
 }
 
 export async function createPreset(preset: SearchPresetInput): Promise<SearchPreset> {
-  return apiClient<SearchPreset>('/api/presets', {
-    method: 'POST',
-    body: JSON.stringify(preset),
-  })
+  return unwrapApiResponse(
+    fetchClient.POST('/api/presets', {
+      body: preset as components['schemas']['SearchPresetInput'],
+    }),
+  )
 }
 
 export async function updatePreset(id: number, preset: SearchPresetInput): Promise<SearchPreset> {
-  return apiClient<SearchPreset>(`/api/presets/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(preset),
-  })
+  return unwrapApiResponse(
+    fetchClient.PUT('/api/presets/{id}', {
+      params: { path: { id } },
+      body: preset as components['schemas']['SearchPresetInput'],
+    }),
+  )
 }
 
 export async function deletePreset(id: number): Promise<{ success: boolean }> {
-  return apiClient<{ success: boolean }>(`/api/presets/${id}`, {
-    method: 'DELETE',
-  })
+  return unwrapApiResponse(
+    fetchClient.DELETE('/api/presets/{id}', {
+      params: { path: { id } },
+    }),
+  )
 }
 
 export async function recordPresetUsage(id: number): Promise<SearchPreset> {
-  return apiClient<SearchPreset>(`/api/presets/${id}/use`, {
-    method: 'POST',
-  })
+  return unwrapApiResponse(
+    fetchClient.POST('/api/presets/{id}/use', {
+      params: { path: { id } },
+    }),
+  )
 }

@@ -86,7 +86,17 @@ class OpenApiSpecIntegrityTest {
             "MarketStatsDto:",
             "CitiesResponse:",
             "StatusResponse:",
-            "PropertyType:");
+            "PropertyType:",
+            "PortalId:",
+            "PortalScrapeStatus:",
+            "SearchExecutionStatus:",
+            "ListingStatus:",
+            "ListingSortOption:",
+            "PropertyBatchActionRequest:",
+            "MarkViewedRequest:",
+            "ClearHistoryRequest:",
+            "ActionSuccessResponseDto:",
+            "ApiErrorResponse:");
 
     for (String schema : requiredSchemas) {
       assertTrue(
@@ -192,6 +202,57 @@ class OpenApiSpecIntegrityTest {
         }
       }
     }
+  }
+
+  @Test
+  @DisplayName("PortalDescriptor és API-001..API-015 szerződéses sémák paritásának ellenőrzése")
+  void testContractEnumsAndProjectionsInOpenApiSpec() throws IOException {
+    Path specPath = getSpecPath();
+    Yaml yaml = new Yaml();
+    Map<String, Object> root;
+    try (InputStream is = Files.newInputStream(specPath)) {
+      root = yaml.load(is);
+    }
+    @SuppressWarnings("unchecked")
+    Map<String, Object> components = (Map<String, Object>) root.get("components");
+    assertNotNull(components, "components szekció nem található!");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> schemas = (Map<String, Object>) components.get("schemas");
+    assertNotNull(schemas, "schemas szekció nem található!");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> portalDescriptor = (Map<String, Object>) schemas.get("PortalDescriptor");
+    assertNotNull(portalDescriptor, "PortalDescriptor séma hiányzik!");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> descriptorProps = (Map<String, Object>) portalDescriptor.get("properties");
+    assertNotNull(descriptorProps, "PortalDescriptor properties hiányzik!");
+    assertTrue(descriptorProps.containsKey("brandColor"), "brandColor mező hiányzik (API-004)!");
+    assertTrue(descriptorProps.containsKey("homepageUrl"), "homepageUrl mező hiányzik (API-004)!");
+    assertTrue(descriptorProps.containsKey("enabledByDefault"), "enabledByDefault mező hiányzik (API-004)!");
+    assertTrue(descriptorProps.containsKey("directListingSupported"), "directListingSupported mező hiányzik!");
+    assertTrue(descriptorProps.containsKey("savedListingCount"), "savedListingCount mező hiányzik!");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> citiesResponse = (Map<String, Object>) schemas.get("CitiesResponse");
+    assertNotNull(citiesResponse, "CitiesResponse séma hiányzik!");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> citiesProps = (Map<String, Object>) citiesResponse.get("properties");
+    assertNotNull(citiesProps, "CitiesResponse properties hiányzik!");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> predefined = (Map<String, Object>) citiesProps.get("predefined");
+    assertNotNull(predefined, "predefined mező hiányzik!");
+    assertTrue("array".equals(predefined.get("type")), "predefined típusnak array-nak kell lennie (API-009)!");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> statusResponse = (Map<String, Object>) schemas.get("StatusResponse");
+    assertNotNull(statusResponse, "StatusResponse séma hiányzik!");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> statusProps = (Map<String, Object>) statusResponse.get("properties");
+    assertNotNull(statusProps, "StatusResponse properties hiányzik!");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> trackedCities = (Map<String, Object>) statusProps.get("trackedCities");
+    assertNotNull(trackedCities, "trackedCities mező hiányzik!");
+    assertTrue("array".equals(trackedCities.get("type")), "trackedCities típusnak array-nak kell lennie (API-009)!");
   }
 
   private Path getSpecPath() {

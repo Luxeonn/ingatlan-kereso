@@ -1,11 +1,12 @@
 import type { components } from './generated-api'
-import type { IngatlanItem } from './property'
+import type { IngatlanItem, PropertyType } from './property'
 import type { PortalStatusDto } from './portal'
 
 export type SearchCriteria = Omit<
   components['schemas']['SearchCriteria'],
-  'onlyDiscounted' | 'onlyNewConstruction'
+  'propertyType' | 'onlyDiscounted' | 'onlyNewConstruction'
 > & {
+  propertyType?: PropertyType
   onlyDiscounted?: boolean
   onlyNewConstruction?: boolean
 }

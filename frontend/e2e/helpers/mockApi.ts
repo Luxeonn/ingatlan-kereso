@@ -16,12 +16,12 @@ export const DEFAULT_MOCK_CONFIG: SearchCriteria = {
 }
 
 export const DEFAULT_MOCK_PORTALS: PortalDescriptor[] = [
-  { id: 'dh', name: 'Duna House', color: '#0066cc', searchUrl: 'https://dh.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 5 },
-  { id: 'oc', name: 'Otthon Centrum', color: '#ff9800', searchUrl: 'https://oc.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 8 },
-  { id: 'jofogas', name: 'Jófogás', color: '#4caf50', searchUrl: 'https://jofogas.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 12 },
-  { id: 'koltozzbe', name: 'Költözzbe', color: '#2196f3', searchUrl: 'https://koltozzbe.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 3 },
-  { id: 'ingatlanbazar', name: 'Ingatlanbazár', color: '#9c27b0', searchUrl: 'https://ingatlanbazar.hu', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 15 },
-  { id: 'ingatlancom', name: 'Ingatlan.com', color: '#ff5722', searchUrl: 'https://ingatlan.com', supportedTypes: ['FLAT', 'HOUSE'], savedListingCount: 0 },
+  { id: 'dh', name: 'Duna House', brandColor: '#0066cc', homepageUrl: 'https://dh.hu', enabledByDefault: true, supportedTypes: ['LAKAS', 'HAZ'], directListingSupported: true, savedListingCount: 5 },
+  { id: 'oc', name: 'Otthon Centrum', brandColor: '#ff9800', homepageUrl: 'https://oc.hu', enabledByDefault: true, supportedTypes: ['LAKAS', 'HAZ'], directListingSupported: true, savedListingCount: 8 },
+  { id: 'jofogas', name: 'Jófogás', brandColor: '#4caf50', homepageUrl: 'https://jofogas.hu', enabledByDefault: true, supportedTypes: ['LAKAS', 'HAZ'], directListingSupported: false, savedListingCount: 12 },
+  { id: 'koltozzbe', name: 'Költözzbe', brandColor: '#2196f3', homepageUrl: 'https://koltozzbe.hu', enabledByDefault: true, supportedTypes: ['LAKAS', 'HAZ'], directListingSupported: true, savedListingCount: 3 },
+  { id: 'ingatlanbazar', name: 'Ingatlanbazár', brandColor: '#9c27b0', homepageUrl: 'https://ingatlanbazar.hu', enabledByDefault: true, supportedTypes: ['LAKAS', 'HAZ'], directListingSupported: false, savedListingCount: 15 },
+  { id: 'ingatlancom', name: 'Ingatlan.com', brandColor: '#ff5722', homepageUrl: 'https://ingatlan.com', enabledByDefault: true, supportedTypes: ['LAKAS', 'HAZ'], directListingSupported: false, savedListingCount: 0 },
 ]
 
 export const DEFAULT_MOCK_CITIES = {

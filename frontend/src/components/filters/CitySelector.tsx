@@ -36,13 +36,7 @@ export const CitySelector: FC<CitySelectorProps> = ({
       return DEFAULT_CITIES
     }
     const extracted = citiesData.predefined
-      .map((item) => {
-        if (typeof item === 'string') return item.trim()
-        if (item && typeof item === 'object') {
-          return (item.name || item.key || '').trim()
-        }
-        return ''
-      })
+      .map((item) => (item?.name || item?.key || '').trim())
       .filter((name): name is string => Boolean(name && name.length > 0))
 
     return extracted.length > 0 ? extracted : DEFAULT_CITIES
