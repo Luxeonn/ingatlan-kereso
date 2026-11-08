@@ -291,17 +291,14 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     await avgPriceCard.click()
     await expect(headerBar.getByTestId('tab-listings')).toHaveAttribute('aria-pressed', 'true')
 
-    // Switch between embedded Favorites, Archive, and Listings sub-views (#157)
+    // Switch between embedded Favorites and Listings sub-views (#157)
     const listingsPanel = page.getByTestId('listings-panel')
+    await expect(listingsPanel.getByTestId('subview-archive')).toHaveCount(0)
+
     const favoritesTabBtn = listingsPanel.getByTestId('subview-favorites')
     await expect(favoritesTabBtn).toBeVisible()
     await favoritesTabBtn.click()
     await expect(page.getByText('Még nincsenek kedvencnek jelölt ingatlanok')).toBeVisible()
-
-    const archiveTabBtn = listingsPanel.getByTestId('subview-archive')
-    await expect(archiveTabBtn).toBeVisible()
-    await archiveTabBtn.click()
-    await expect(page.getByText('Archív belvárosi polgári lakás')).toBeVisible()
 
     const listingsSubViewBtn = listingsPanel.getByTestId('subview-listings')
     await expect(listingsSubViewBtn).toBeVisible()
