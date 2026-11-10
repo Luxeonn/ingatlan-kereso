@@ -34,6 +34,15 @@ public interface RawListingNormalizer {
   }
 
   private static RawListingNormalizer createDefaultNormalizer() {
+    try {
+      java.util.ServiceLoader<RawListingNormalizer> loader =
+          java.util.ServiceLoader.load(RawListingNormalizer.class);
+      for (RawListingNormalizer provider : loader) {
+        return provider;
+      }
+    } catch (Exception ignored) {
+      // Fall through to fallback
+    }
     return (raw, descriptor, criteria, now) -> {
       if (raw == null) {
         return null;
