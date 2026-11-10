@@ -128,6 +128,7 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
       location: 'Debrecen',
       city: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
       priceInfo: { amountHuf: 50000000, amountMillion: 50.0 },
       sourceListings: [],
     }

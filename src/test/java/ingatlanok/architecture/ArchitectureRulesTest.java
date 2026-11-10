@@ -1,11 +1,20 @@
 package ingatlanok.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
+import java.util.Map;
+
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaField;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaModifier;
+import com.tngtech.archunit.core.domain.JavaParameterizedType;
+import com.tngtech.archunit.core.domain.JavaType;
+import com.tngtech.archunit.core.domain.JavaWildcardType;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -226,5 +235,129 @@ public final class ArchitectureRulesTest {
           .haveModifier(JavaModifier.SYNCHRONIZED)
           .because("Synchronized methods cause carrier thread pinning on Java 25 virtual threads");
 
+  @ArchTest
+  static final ArchRule CONTROLLERS_DO_NOT_RETURN_OBJECT_MAPS_OR_WILDCARDS =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+          .should(
+              new ArchCondition<JavaMethod>("not return raw Map, Map with Object, or wildcard ResponseEntity") {
+                @Override
+                public void check(JavaMethod method, ConditionEvents events) {
+                  if (hasUntypedMapOrWildcardReturn(method.getReturnType())) {
+                    String msg = String.format(
+                        "Controller method %s must return typed DTO instead of "
+                            + "raw/object Map or wildcard ResponseEntity",
+                        method.getFullName());
+                    events.add(SimpleConditionEvent.violated(method, msg));
+                  }
+                }
+              })
+          .because("REST controllers must return strongly-typed DTOs to enforce end-to-end API type-safety");
+
+  @ArchTest
+  static final ArchRule REPOSITORIES_DO_NOT_RETURN_OBJECT_ARRAYS =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("..ingatlanok.persistence.repository..")
+          .should(
+              new ArchCondition<JavaMethod>("not return Object[] or collections of Object[]") {
+                @Override
+                public void check(JavaMethod method, ConditionEvents events) {
+                  if (returnsObjectArray(method.getReturnType(), method.getRawReturnType())) {
+                    String msg = String.format(
+                        "Repository method %s returns Object[]; use typed record projection instead",
+                        method.getFullName());
+                    events.add(SimpleConditionEvent.violated(method, msg));
+                  }
+                }
+              })
+          .because("Spring Data JPA repositories must project to typed records rather than raw Object[]");
+
+  @ArchTest
+  static final ArchRule NO_REFLECTIVE_CLASS_LOADING_IN_PRODUCTION =
+      noClasses()
+          .that()
+          .resideInAPackage("ingatlanok..")
+          .should()
+          .callMethod(Class.class, "forName", String.class)
+          .because("Reflective class loading is forbidden; use Spring dependency injection or interfaces instead");
+
+  @ArchTest
+  static final ArchRule DOMAIN_AND_ENTITY_CLOSED_SETS_USE_ENUMS =
+      fields()
+          .that()
+          .areDeclaredInClassesThat()
+          .areAnnotatedWith("jakarta.persistence.Entity")
+          .and()
+          .haveNameMatching("^(status|propertyType|statusEvent)$")
+          .should(
+              new ArchCondition<JavaField>("not be typed as String") {
+                @Override
+                public void check(JavaField field, ConditionEvents events) {
+                  if (field.getRawType().isEquivalentTo(String.class)) {
+                    String msg = String.format(
+                        "Entity field %s.%s must be an Enum type, not String",
+                        field.getOwner().getSimpleName(), field.getName());
+                    events.add(SimpleConditionEvent.violated(field, msg));
+                  }
+                }
+              })
+          .because("Closed sets on JPA entities must be strongly typed Java Enums, not raw Strings");
+
   private ArchitectureRulesTest() {}
+
+  static boolean hasUntypedMapOrWildcardReturn(JavaType type) {
+    if (type instanceof JavaParameterizedType paramType) {
+      if (paramType.toErasure().getSimpleName().equals("ResponseEntity")) {
+        for (JavaType arg : paramType.getActualTypeArguments()) {
+          if (arg instanceof JavaWildcardType || arg.getName().equals("java.lang.Object")
+              || isUntypedMap(arg)) {
+            return true;
+          }
+        }
+      }
+      return isUntypedMap(type);
+    }
+    if (type instanceof JavaClass jc) {
+      return jc.getSimpleName().equals("ResponseEntity") || jc.isAssignableTo(Map.class);
+    }
+    String name = type.getName();
+    return name.equals("java.util.Map")
+        || name.equals("org.springframework.http.ResponseEntity");
+  }
+
+  static boolean isUntypedMap(JavaType type) {
+    if (type instanceof JavaParameterizedType pt) {
+      if (pt.toErasure().isAssignableTo(Map.class)) {
+        for (JavaType arg : pt.getActualTypeArguments()) {
+          if (arg instanceof JavaWildcardType || arg.getName().equals("java.lang.Object")) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    if (type instanceof JavaClass jc) {
+      return jc.isAssignableTo(Map.class);
+    }
+    return type.getName().equals("java.util.Map");
+  }
+
+  static boolean returnsObjectArray(JavaType returnType, JavaClass rawReturnType) {
+    if (rawReturnType.isArray() && rawReturnType.getComponentType().isEquivalentTo(Object.class)) {
+      return true;
+    }
+    if (returnType instanceof JavaParameterizedType pt) {
+      for (JavaType arg : pt.getActualTypeArguments()) {
+        if (arg instanceof JavaClass jc && jc.isArray()
+            && jc.getComponentType().isEquivalentTo(Object.class)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }

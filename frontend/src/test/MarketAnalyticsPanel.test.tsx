@@ -26,6 +26,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 40, amountHuf: 40_000_000 },
       detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 800_000 },
       priceDelta: -2_000_000,
@@ -40,6 +41,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 45, amountHuf: 45_000_000 },
       detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 900_000 },
     },
@@ -52,6 +54,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 50, amountHuf: 50_000_000 },
       detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 1_000_000 },
     },
@@ -64,6 +67,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 55, amountHuf: 55_000_000 },
       detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 1_100_000 },
     },
@@ -76,6 +80,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 60, amountHuf: 60_000_000 },
       detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 1_200_000 },
     },
@@ -89,6 +94,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'TELEK',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 20, amountHuf: 20_000_000 },
       detailsInfo: { areaSquareMeters: 1000, pricePerSquareMeter: 20_000 },
     },
@@ -101,6 +107,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'TELEK',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 25, amountHuf: 25_000_000 },
       detailsInfo: { areaSquareMeters: 1000, pricePerSquareMeter: 25_000 },
     },
@@ -113,6 +120,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'TELEK',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 30, amountHuf: 30_000_000 },
       detailsInfo: { areaSquareMeters: 1000, pricePerSquareMeter: 30_000 },
     },
@@ -125,6 +133,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'TELEK',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 35, amountHuf: 35_000_000 },
       detailsInfo: { areaSquareMeters: 1000, pricePerSquareMeter: 35_000 },
     },
@@ -137,6 +146,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'TELEK',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 40, amountHuf: 40_000_000 },
       detailsInfo: { areaSquareMeters: 1000, pricePerSquareMeter: 40_000 },
     },
@@ -191,6 +201,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       location: 'Debrecen',
       city: 'Debrecen',
       propertyType: 'HAZ',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 70 + i * 5, amountHuf: (70 + i * 5) * 1_000_000 },
       detailsInfo: { areaSquareMeters: 100, pricePerSquareMeter: 700_000 + i * 50_000 },
     }))
@@ -223,6 +234,7 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
       location: 'Szeged',
       city: 'Szeged',
       propertyType: 'HAZ',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 60 + i * 5, amountHuf: (60 + i * 5) * 1_000_000 },
       detailsInfo: { areaSquareMeters: 90, pricePerSquareMeter: 650_000 },
     }))
@@ -258,8 +270,8 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
 
     const dropCards = screen.getAllByTestId('price-drop-card')
     expect(dropCards.length).toBeGreaterThan(0)
-    expect(dropCards[0].textContent).toContain('Lakás 1')
-    expect(dropCards[0].textContent).toContain('-5%')
+    expect(dropCards[0]!.textContent).toContain('Lakás 1')
+    expect(dropCards[0]!.textContent).toContain('-5%')
 
     const openLink = screen.getByRole('link', { name: /Megnyitás/i })
     fireEvent.click(openLink)

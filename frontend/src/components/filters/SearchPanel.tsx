@@ -1,5 +1,6 @@
 import type { FC, FormEvent } from 'react'
 import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal, AlertTriangle } from 'lucide-react'
+import type { CanonicalPropertyType } from '../../types/property'
 import { useFilterStore, DEFAULT_PORTALS } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
 import { CitySelector } from './CitySelector'
@@ -14,9 +15,17 @@ interface SearchPanelProps {
   isLoading: boolean
 }
 
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  lakas: 'Lakás',
+export type FilterPropertyType = CanonicalPropertyType | 'lakas' | 'haz' | 'telek'
+
+const PROPERTY_TYPE_LABELS: Record<FilterPropertyType, string> = {
+  HAZ: 'Családi ház',
+  LAKAS: 'Lakás',
+  TELEK: 'Telek',
+  GARAZS: 'Garázs',
+  IPARI_KERESKEDELMI: 'Ipari / Kereskedelmi',
+  EGYEB_ISMERETLEN: 'Egyéb',
   haz: 'Családi ház',
+  lakas: 'Lakás',
   telek: 'Telek',
 }
 
@@ -46,8 +55,11 @@ function resolveCitiesSummary(cities?: string[], defaultCity?: string): string {
 }
 
 function resolveTypeLabel(propertyType?: string): string {
-  const key = (propertyType || 'lakas').toLowerCase()
-  return PROPERTY_TYPE_LABELS[key] || propertyType || 'Lakás'
+  const key = (propertyType || 'haz').toLowerCase()
+  if (Object.prototype.hasOwnProperty.call(PROPERTY_TYPE_LABELS, key)) {
+    return PROPERTY_TYPE_LABELS[key as FilterPropertyType]
+  }
+  return propertyType || 'Családi ház'
 }
 
 interface CollapsedFilterSummaryProps {
@@ -138,9 +150,8 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   const typeLabel = resolveTypeLabel(criteria.propertyType)
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
+    <div
+      data-testid="search-panel-container"
       className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-xl transition-all duration-200 sm:p-5"
     >
       {/* Panel Header */}
@@ -161,113 +172,115 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
         </button>
       </div>
 
-      {/* Quick Search Presets Bar */}
+      {/* Quick Search Presets Bar (outside form to avoid invalid HTML nested forms) */}
       <SearchPresetsBar onSearch={onSearch} />
 
-      {/* Collapsed summary bar (#157) */}
-      {isFiltersCollapsed && (
-        <CollapsedFilterSummary
-          citiesSummary={citiesSummary}
-          typeLabel={typeLabel}
-          minPriceMillion={criteria.minPriceMillion}
-          maxPriceMillion={criteria.maxPriceMillion}
-          minArea={criteria.minArea}
-          maxArea={criteria.maxArea}
-          portalsCount={criteria.portals.length}
-        />
-      )}
-
-      {/* Main filters content */}
-      {!isFiltersCollapsed && (
-        <div className="space-y-4 pt-4">
-          {/* City selector */}
-          <CitySelector
-            selectedCities={criteria.cities}
-            onAddCity={addCity}
-            onRemoveCity={removeCity}
-            onSetCities={setCities}
+      <form onSubmit={handleSubmit} noValidate>
+        {/* Collapsed summary bar (#157) */}
+        {isFiltersCollapsed && (
+          <CollapsedFilterSummary
+            citiesSummary={citiesSummary}
+            typeLabel={typeLabel}
+            minPriceMillion={criteria.minPriceMillion}
+            maxPriceMillion={criteria.maxPriceMillion}
+            minArea={criteria.minArea}
+            maxArea={criteria.maxArea}
+            portalsCount={criteria.portals.length}
           />
-
-          {/* Property type tabs */}
-          <PropertyTypeTabs
-            value={criteria.propertyType}
-            onChange={setPropertyType}
-          />
-
-          {/* Steppers grid */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <PriceStepper
-              label="Minimális ár"
-              value={criteria.minPriceMillion}
-              onChange={setMinPriceMillion}
-              min={0}
-              step={1}
-            />
-            <PriceStepper
-              label="Maximális ár"
-              value={criteria.maxPriceMillion}
-              onChange={setMaxPriceMillion}
-              min={0}
-              step={1}
-            />
-            <AreaStepper
-              label="Minimális alapterület"
-              value={criteria.minArea}
-              onChange={setMinArea}
-              min={1}
-              step={1}
-            />
-            <AreaStepper
-              label="Maximális alapterület"
-              value={criteria.maxArea}
-              onChange={setMaxArea}
-              min={1}
-              step={1}
-            />
-          </div>
-
-          {/* Portal toggles */}
-          <PortalToggleGroup
-            selectedPortals={criteria.portals}
-            onToggle={togglePortal}
-            onSelectAll={setAllPortals}
-          />
-        </div>
-      )}
-
-      {/* Submit button bar */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-color)] pt-3">
-        {hasValidationErrors ? (
-          <div
-            role="alert"
-            data-testid="search-validation-warning"
-            className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-400"
-          >
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
-            <span>{validationWarnings.join(' ')}</span>
-          </div>
-        ) : (
-          <div />
         )}
 
-        <button
-          type="submit"
-          disabled={isLoading || criteria.portals.length === 0 || hasValidationErrors}
-          className="flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Keresés folyamatban...</span>
-            </>
+        {/* Main filters content */}
+        {!isFiltersCollapsed && (
+          <div className="space-y-4 pt-4">
+            {/* City selector */}
+            <CitySelector
+              selectedCities={criteria.cities}
+              onAddCity={addCity}
+              onRemoveCity={removeCity}
+              onSetCities={setCities}
+            />
+
+            {/* Property type tabs */}
+            <PropertyTypeTabs
+              value={criteria.propertyType || 'haz'}
+              onChange={setPropertyType}
+            />
+
+            {/* Steppers grid */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <PriceStepper
+                label="Minimális ár"
+                value={criteria.minPriceMillion}
+                onChange={setMinPriceMillion}
+                min={0}
+                step={1}
+              />
+              <PriceStepper
+                label="Maximális ár"
+                value={criteria.maxPriceMillion}
+                onChange={setMaxPriceMillion}
+                min={0}
+                step={1}
+              />
+              <AreaStepper
+                label="Minimális alapterület"
+                value={criteria.minArea}
+                onChange={setMinArea}
+                min={1}
+                step={1}
+              />
+              <AreaStepper
+                label="Maximális alapterület"
+                value={criteria.maxArea}
+                onChange={setMaxArea}
+                min={1}
+                step={1}
+              />
+            </div>
+
+            {/* Portal toggles */}
+            <PortalToggleGroup
+              selectedPortals={criteria.portals}
+              onToggle={togglePortal}
+              onSelectAll={setAllPortals}
+            />
+          </div>
+        )}
+
+        {/* Submit button bar */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-color)] pt-3">
+          {hasValidationErrors ? (
+            <div
+              role="alert"
+              data-testid="search-validation-warning"
+              className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-400"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+              <span>{validationWarnings.join(' ')}</span>
+            </div>
           ) : (
-            <>
-              <Search className="h-4 w-4" />
-              <span>Ingatlanok Keresése</span>
-            </>
+            <div />
           )}
-        </button>
-      </div>
-    </form>
+
+          <button
+            type="submit"
+            disabled={isLoading || criteria.portals.length === 0 || hasValidationErrors}
+            className="flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Keresés folyamatban...</span>
+              </>
+            ) : (
+              <>
+                <Search className="h-4 w-4" />
+                <span>Ingatlanok Keresése</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   )
 }

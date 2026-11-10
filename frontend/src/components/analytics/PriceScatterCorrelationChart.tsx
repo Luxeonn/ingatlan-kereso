@@ -1,16 +1,6 @@
-import type { FC} from 'react';
+import type { FC } from 'react'
 import { useState, useRef, useCallback } from 'react'
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ZAxis,
-  Cell,
-} from 'recharts'
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis, Cell } from 'recharts'
 import { ExternalLink, Sparkles, TrendingDown, HelpCircle, X } from 'lucide-react'
 import type { ScatterPoint } from '../../hooks/useMarketAnalytics'
 import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
@@ -19,6 +9,20 @@ import { formatPriceMillion, formatPricePerSqm, openExternalUrl } from '../../ut
 interface PriceScatterCorrelationChartProps {
   scatterData: ScatterPoint[]
   onOpenListing?: (url: string) => void
+}
+
+function isScatterPoint(val: unknown): val is ScatterPoint {
+  return typeof val === 'object' && val !== null && 'url' in val && typeof (val as { url: unknown }).url === 'string'
+}
+
+function extractScatterUrl(eventData: unknown): string | null {
+  if (!eventData || typeof eventData !== 'object') return null
+  const candidate = 'payload' in eventData ? (eventData as { payload?: unknown }).payload : eventData
+  if (candidate && typeof candidate === 'object' && 'url' in candidate) {
+    const url = (candidate as { url?: unknown }).url
+    return typeof url === 'string' ? url : null
+  }
+  return null
 }
 
 export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps> = ({
@@ -39,11 +43,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
 
   const handlePointClick = useCallback(
     (eventData?: unknown) => {
-      if (!eventData || typeof eventData !== 'object') return
-      const raw = eventData as Record<string, unknown>
-      const payload = (raw.payload && typeof raw.payload === 'object' ? raw.payload : raw) as Partial<ScatterPoint>
-      const targetUrl = payload.url
-
+      const targetUrl = extractScatterUrl(eventData)
       if (targetUrl) {
         const now = Date.now()
         if (lastClickedRef.current && lastClickedRef.current.url === targetUrl && now - lastClickedRef.current.time < 300) {
@@ -272,8 +272,10 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                 cursor={{ strokeDasharray: '3 3' }}
                 wrapperStyle={{ zIndex: 100 }}
                 content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload as ScatterPoint
+                  if (active && payload && payload.length > 0) {
+                    const firstItem = payload[0]
+                    const data = firstItem?.payload
+                    if (!isScatterPoint(data)) return null
                     return (
                       <div
                         onClick={(e) => {
@@ -340,9 +342,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                 cursor="pointer"
               >
                 {filteredData.map((entry, index) => {
-                  let fill = '#3b82f6'
-                  if (entry.segment === 'bargain') fill = '#10b981'
-                  if (entry.segment === 'premium') fill = '#f59e0b'
+                  const fill = entry.segment === 'bargain' ? '#10b981' : entry.segment === 'premium' ? '#f59e0b' : '#3b82f6'
                   return (
                     <Cell
                       key={`scatter-cell-${entry.id || index}`}

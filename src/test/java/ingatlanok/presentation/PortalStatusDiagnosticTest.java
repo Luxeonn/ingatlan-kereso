@@ -36,7 +36,7 @@ class PortalStatusDiagnosticTest {
         new PortalStatusDto(
             "oc",
             "Otthon Centrum",
-            "FAILED",
+            PortalScrapeStatus.FAILED,
             0,
             350L,
             "https://oc.hu/elado/lakas",
@@ -46,7 +46,7 @@ class PortalStatusDiagnosticTest {
 
     assertEquals("oc", dto.getPortalId());
     assertEquals("Otthon Centrum", dto.getPortalName());
-    assertEquals("FAILED", dto.getStatus());
+    assertEquals(PortalScrapeStatus.FAILED, dto.getStatus());
     assertEquals(0, dto.getFoundCount());
     assertEquals(350L, dto.getLatencyMs());
     assertEquals("https://oc.hu/elado/lakas", dto.getFallbackUrl());
@@ -58,7 +58,7 @@ class PortalStatusDiagnosticTest {
         dto.toBuilder()
             .portalId("dh")
             .portalName("Duna House")
-            .status("SUCCESS")
+            .status(PortalScrapeStatus.SUCCESS)
             .foundCount(15)
             .latencyMs(420L)
             .fallbackUrl("https://dh.hu")
@@ -69,7 +69,7 @@ class PortalStatusDiagnosticTest {
 
     assertEquals("dh", dto.getPortalId());
     assertEquals("Duna House", dto.getPortalName());
-    assertEquals("SUCCESS", dto.getStatus());
+    assertEquals(PortalScrapeStatus.SUCCESS, dto.getStatus());
     assertEquals(15, dto.getFoundCount());
     assertEquals(420L, dto.getLatencyMs());
     assertEquals("https://dh.hu", dto.getFallbackUrl());
@@ -256,7 +256,7 @@ class PortalStatusDiagnosticTest {
 
     PortalStatusDto dhStatus =
         statuses.stream().filter(s -> "dh".equals(s.getPortalId())).findFirst().orElseThrow();
-    assertEquals("SUCCESS", dhStatus.getStatus());
+    assertEquals(PortalScrapeStatus.SUCCESS, dhStatus.getStatus());
     assertEquals(2, dhStatus.getFoundCount());
     assertEquals(220L, dhStatus.getLatencyMs());
 
@@ -265,16 +265,16 @@ class PortalStatusDiagnosticTest {
             .filter(s -> "ingatlancom".equals(s.getPortalId()))
             .findFirst()
             .orElseThrow();
-    assertEquals("BOT_PROTECTED", icStatus.getStatus());
+    assertEquals(PortalScrapeStatus.BOT_PROTECTED, icStatus.getStatus());
     assertEquals(0, icStatus.getFoundCount());
     assertEquals(100L, icStatus.getLatencyMs());
 
     PortalStatusDto ocStatus =
         statuses.stream().filter(s -> "oc".equals(s.getPortalId())).findFirst().orElseThrow();
-    assertEquals("FAILED", ocStatus.getStatus());
+    assertEquals(PortalScrapeStatus.FAILED, ocStatus.getStatus());
     assertEquals(0, ocStatus.getFoundCount());
     assertEquals(100L, ocStatus.getLatencyMs());
-    assertEquals("PARTIAL_SUCCESS", response.getExecutionStatus());
+    assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.getExecutionStatus());
   }
 
   @Test
@@ -333,10 +333,10 @@ class PortalStatusDiagnosticTest {
     DashboardResponseDto response =
         new DashboardPresentationService(search, analytics).executeSearch(criteria);
 
-    assertEquals("PARTIAL_SUCCESS", response.getExecutionStatus());
+    assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.getExecutionStatus());
     assertEquals(1, response.getPortalStatuses().size());
     PortalStatusDto dhStatus = response.getPortalStatuses().get(0);
-    assertEquals("SUCCESS", dhStatus.getStatus());
+    assertEquals(PortalScrapeStatus.SUCCESS, dhStatus.getStatus());
     assertEquals(1, dhStatus.getFoundCount());
     assertTrue(
         dhStatus.getMessage().contains("részleges hiba"),

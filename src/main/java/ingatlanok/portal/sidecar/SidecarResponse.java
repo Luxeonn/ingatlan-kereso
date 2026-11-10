@@ -22,7 +22,7 @@ public class SidecarResponse implements Serializable {
 
   private String portalId;
 
-  private String status;
+  private SidecarStatus status = SidecarStatus.FAILED;
 
   private List<SidecarItem> items = new ArrayList<>();
 
@@ -31,7 +31,19 @@ public class SidecarResponse implements Serializable {
   private long elapsedMs;
 
   public boolean isSuccess() {
-    return "SUCCESS".equalsIgnoreCase(status);
+    return status == SidecarStatus.SUCCESS;
+  }
+
+  public SidecarStatus getStatus() {
+    return status != null ? status : SidecarStatus.FAILED;
+  }
+
+  public void setStatus(SidecarStatus status) {
+    this.status = status != null ? status : SidecarStatus.FAILED;
+  }
+
+  public void setStatus(String raw) {
+    this.status = SidecarStatus.fromString(raw);
   }
 
   public List<SidecarItem> getItems() {

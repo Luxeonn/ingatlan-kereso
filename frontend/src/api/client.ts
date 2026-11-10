@@ -1,46 +1,58 @@
+import createClient from 'openapi-fetch'
+import type { paths } from '../types/generated-api'
+
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public data?: unknown) {
+  constructor(
+    public status: number,
+    message: string,
+    public data?: unknown,
+  ) {
     super(message)
     this.name = 'ApiError'
   }
 }
 
-export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-  
-  const headers = new Headers(options.headers || {})
-  if (!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
-    headers.set('Content-Type', 'application/json')
-  }
+const defaultBaseUrl =
+  typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'http://localhost:8080'
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  })
+/**
+ * Single source of truth typed OpenAPI client.
+ * Endpoint routes, HTTP methods, query params, request bodies, and responses
+ * are automatically derived from openapi/api-spec.yaml via generated-api.ts paths.
+ */
+export const fetchClient = createClient<paths>({
+  baseUrl: defaultBaseUrl,
+  fetch: (request: Request) => globalThis.fetch(request),
+})
 
-  if (!response.ok) {
+export type FetchResponse<T> = Promise<{
+  data?: T
+  error?: unknown
+  response: Response
+}>
+
+/**
+ * Strictly typed unwrap helper for openapi-fetch calls.
+ * Caller cannot supply an arbitrary generic response type;
+ * the returned data type is strictly derived from the endpoint schema.
+ */
+export async function unwrapApiResponse<T>(fetchPromise: FetchResponse<T>): Promise<T> {
+  const { data, error, response } = await fetchPromise
+
+  if (error || !response.ok || data === undefined) {
     let errorMsg = `HTTP Error ${response.status}: ${response.statusText}`
-    let errorData = null
-    try {
-      errorData = await response.json()
-      if (errorData && typeof errorData === 'object' && 'error' in errorData) {
-        errorMsg = String(errorData.error)
+    if (error && typeof error === 'object') {
+      const errObj = error as Record<string, unknown>
+      if ('error' in errObj && errObj['error']) {
+        errorMsg = String(errObj['error'])
+      } else if ('message' in errObj && errObj['message']) {
+        errorMsg = String(errObj['message'])
       }
-    } catch {
-      // not JSON
     }
-    throw new ApiError(response.status, errorMsg, errorData)
+    throw new ApiError(response.status, errorMsg, error)
   }
 
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return {} as T
-  }
-
-  const contentType = response.headers.get('content-type')
-  if (contentType && contentType.includes('application/json')) {
-    return (await response.json()) as T
-  }
-
-  return (await response.text()) as unknown as T
+  return data
 }

@@ -7,7 +7,7 @@ import {
   filterAndSortItems,
 } from '../utils/listingFilters'
 import { createMockIngatlanItem } from './testFixtures'
-import type { BargainInfo, IngatlanItem } from '../types/property'
+import type { IngatlanItem } from '../types/property'
 
 describe('listingFilters utility', () => {
   describe('normalizeSearchText', () => {
@@ -26,25 +26,15 @@ describe('listingFilters utility', () => {
       expect(isItemBargain(undefined as unknown as IngatlanItem)).toBe(false)
     })
 
-    it('identifies bargains via isBargain flag or bargainInfo or percentage threshold', () => {
+    it('identifies bargains via isBargain flag or percentage threshold', () => {
       const normalItem = createMockIngatlanItem({ isBargain: false })
       expect(isItemBargain(normalItem)).toBe(false)
 
       const flaggedItem = createMockIngatlanItem({ isBargain: true })
       expect(isItemBargain(flaggedItem)).toBe(true)
 
-      const nestedFlagItem = createMockIngatlanItem({
-        bargainInfo: { isBargain: true, percentageBelowMedian: 10 } as unknown as BargainInfo,
-      })
-      expect(isItemBargain(nestedFlagItem)).toBe(true)
-
       const percentageItem = createMockIngatlanItem({ percentageBelowMedian: 22 })
       expect(isItemBargain(percentageItem)).toBe(true)
-
-      const nestedPercentageItem = createMockIngatlanItem({
-        bargainInfo: { isBargain: false, percentageBelowMedian: 25 } as unknown as BargainInfo,
-      })
-      expect(isItemBargain(nestedPercentageItem)).toBe(true)
 
       const belowThresholdItem = createMockIngatlanItem({ percentageBelowMedian: 15 })
       expect(isItemBargain(belowThresholdItem)).toBe(false)
@@ -54,13 +44,6 @@ describe('listingFilters utility', () => {
   describe('getBargainPercentage', () => {
     it('extracts percentage or falls back to -Infinity safely', () => {
       expect(getBargainPercentage(createMockIngatlanItem({ percentageBelowMedian: 30 }))).toBe(30)
-      expect(
-        getBargainPercentage(
-          createMockIngatlanItem({
-            bargainInfo: { percentageBelowMedian: 18 } as unknown as BargainInfo,
-          }),
-        ),
-      ).toBe(18)
       expect(getBargainPercentage(createMockIngatlanItem())).toBe(-Infinity)
     })
   })
@@ -114,37 +97,37 @@ describe('listingFilters utility', () => {
     it('filters by onlyNew flag', () => {
       const filtered = applyItemFilters(items, { onlyNew: true })
       expect(filtered).toHaveLength(1)
-      expect(filtered[0].id).toBe('1')
+      expect(filtered[0]!.id).toBe('1')
     })
 
     it('filters by excludeViewed flag', () => {
       const filtered = applyItemFilters(items, { excludeViewed: true })
       expect(filtered).toHaveLength(1)
-      expect(filtered[0].id).toBe('1')
+      expect(filtered[0]!.id).toBe('1')
     })
 
     it('filters by onlyNewConstruction flag', () => {
       const filtered = applyItemFilters(items, { onlyNewConstruction: true })
       expect(filtered).toHaveLength(1)
-      expect(filtered[0].id).toBe('1')
+      expect(filtered[0]!.id).toBe('1')
     })
 
     it('filters by onlyBargain flag', () => {
       const filtered = applyItemFilters(items, { onlyBargain: true })
       expect(filtered).toHaveLength(1)
-      expect(filtered[0].id).toBe('1')
+      expect(filtered[0]!.id).toBe('1')
     })
 
     it('filters by excludeMultiSource flag', () => {
       const filtered = applyItemFilters(items, { excludeMultiSource: true })
       expect(filtered).toHaveLength(1)
-      expect(filtered[0].id).toBe('1')
+      expect(filtered[0]!.id).toBe('1')
     })
 
     it('filters by minQualityScore', () => {
       const highQuality = applyItemFilters(items, { minQualityScore: 80 })
       expect(highQuality).toHaveLength(1)
-      expect(highQuality[0].id).toBe('1')
+      expect(highQuality[0]!.id).toBe('1')
 
       const all = applyItemFilters(items, { minQualityScore: 50 })
       expect(all).toHaveLength(2)
@@ -157,11 +140,11 @@ describe('listingFilters utility', () => {
 
       const ocItems = applyItemFilters(items, { selectedPortalFilter: 'oc' })
       expect(ocItems).toHaveLength(1)
-      expect(ocItems[0].id).toBe('2')
+      expect(ocItems[0]!.id).toBe('2')
 
       const jfItems = applyItemFilters(items, { selectedPortalFilter: 'jofogas' })
       expect(jfItems).toHaveLength(1)
-      expect(jfItems[0].id).toBe('2')
+      expect(jfItems[0]!.id).toBe('2')
 
       const allItems = applyItemFilters(items, { selectedPortalFilter: 'all' })
       expect(allItems).toHaveLength(2)
@@ -173,7 +156,7 @@ describe('listingFilters utility', () => {
 
       const matchNagyerdohaz = applyItemFilters(items, { quickSearchQuery: 'nagyerdő haz' })
       expect(matchNagyerdohaz).toHaveLength(1)
-      expect(matchNagyerdohaz[0].id).toBe('1')
+      expect(matchNagyerdohaz[0]!.id).toBe('1')
 
       const noMatch = applyItemFilters(items, { quickSearchQuery: 'Miskolc' })
       expect(noMatch).toHaveLength(0)
@@ -190,11 +173,11 @@ describe('listingFilters utility', () => {
       const sorted = filterAndSortItems([noPrice1, exp, noPrice2, cheap], {
         sortOption: 'price_asc',
       })
-      expect(sorted[0].id).toBe('c')
-      expect(sorted[1].id).toBe('e')
+      expect(sorted[0]!.id).toBe('c')
+      expect(sorted[1]!.id).toBe('e')
       // Both noPrice items are stably placed at the end without throwing or breaking sort
-      expect(['n1', 'n2']).toContain(sorted[2].id)
-      expect(['n1', 'n2']).toContain(sorted[3].id)
+      expect(['n1', 'n2']).toContain(sorted[2]!.id)
+      expect(['n1', 'n2']).toContain(sorted[3]!.id)
     })
 
     it('sorts by price_desc stably even when prices are missing', () => {
@@ -203,9 +186,9 @@ describe('listingFilters utility', () => {
       const noPrice = createMockIngatlanItem({ id: 'n', priceInfo: undefined })
 
       const sorted = filterAndSortItems([cheap, noPrice, exp], { sortOption: 'price_desc' })
-      expect(sorted[0].id).toBe('e')
-      expect(sorted[1].id).toBe('c')
-      expect(sorted[2].id).toBe('n')
+      expect(sorted[0]!.id).toBe('e')
+      expect(sorted[1]!.id).toBe('c')
+      expect(sorted[2]!.id).toBe('n')
     })
 
     it('sorts by area_desc', () => {
@@ -214,9 +197,9 @@ describe('listingFilters utility', () => {
       const noArea = createMockIngatlanItem({ id: 'n', detailsInfo: undefined })
 
       const sorted = filterAndSortItems([small, noArea, large], { sortOption: 'area_desc' })
-      expect(sorted[0].id).toBe('l')
-      expect(sorted[1].id).toBe('s')
-      expect(sorted[2].id).toBe('n')
+      expect(sorted[0]!.id).toBe('l')
+      expect(sorted[1]!.id).toBe('s')
+      expect(sorted[2]!.id).toBe('n')
     })
 
     it('sorts by date_desc', () => {
@@ -224,8 +207,8 @@ describe('listingFilters utility', () => {
       const newItem = createMockIngatlanItem({ id: 'new', discoveredAt: '2026-03-01 10:00:00' })
 
       const sorted = filterAndSortItems([oldItem, newItem], { sortOption: 'date_desc' })
-      expect(sorted[0].id).toBe('new')
-      expect(sorted[1].id).toBe('old')
+      expect(sorted[0]!.id).toBe('new')
+      expect(sorted[1]!.id).toBe('old')
     })
 
     it('sorts by bargain_desc without NaN issues when no bargain info exists', () => {
@@ -237,10 +220,10 @@ describe('listingFilters utility', () => {
       const sorted = filterAndSortItems([nonBargain1, topBargain, nonBargain2, midBargain], {
         sortOption: 'bargain_desc',
       })
-      expect(sorted[0].id).toBe('b1')
-      expect(sorted[1].id).toBe('b2')
-      expect(['nb1', 'nb2']).toContain(sorted[2].id)
-      expect(['nb1', 'nb2']).toContain(sorted[3].id)
+      expect(sorted[0]!.id).toBe('b1')
+      expect(sorted[1]!.id).toBe('b2')
+      expect(['nb1', 'nb2']).toContain(sorted[2]!.id)
+      expect(['nb1', 'nb2']).toContain(sorted[3]!.id)
     })
 
     it('uses default sortOption price_asc when omitted', () => {
@@ -248,8 +231,8 @@ describe('listingFilters utility', () => {
       const exp = createMockIngatlanItem({ id: 'e', priceInfo: { amountHuf: 80_000_000 } })
 
       const sorted = filterAndSortItems([exp, cheap])
-      expect(sorted[0].id).toBe('c')
-      expect(sorted[1].id).toBe('e')
+      expect(sorted[0]!.id).toBe('c')
+      expect(sorted[1]!.id).toBe('e')
     })
 
     it('sorts by effective lowest active price from sourceListings when priceInfo differs', () => {

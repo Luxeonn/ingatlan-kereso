@@ -1,15 +1,18 @@
 import type { FC } from 'react'
+import type { PropertyType } from '../../types/property'
 import { cn } from '../../utils/cn'
 
+export type FilterPropertyType = 'LAKAS' | 'HAZ' | 'TELEK' | 'lakas' | 'haz' | 'telek'
+
 interface PropertyTypeTabsProps {
-  value: string
-  onChange: (type: string) => void
+  value: PropertyType | string
+  onChange: (type: PropertyType) => void
 }
 
-const TYPES = [
-  { id: 'lakas', label: 'Lakás' },
-  { id: 'haz', label: 'Ház' },
-  { id: 'telek', label: 'Telek' },
+const TYPES: Array<{ id: PropertyType; label: string }> = [
+  { id: 'LAKAS', label: 'Lakás' },
+  { id: 'HAZ', label: 'Ház' },
+  { id: 'TELEK', label: 'Telek' },
 ]
 
 export const PropertyTypeTabs: FC<PropertyTypeTabsProps> = ({ value, onChange }) => {
@@ -20,7 +23,7 @@ export const PropertyTypeTabs: FC<PropertyTypeTabsProps> = ({ value, onChange })
       </label>
       <div className="flex flex-wrap gap-1.5">
         {TYPES.map((t) => {
-          const isActive = (value || '').toLowerCase() === t.id.toLowerCase()
+          const isActive = (value || '').toUpperCase() === t.id
           return (
             <button
               key={t.id}

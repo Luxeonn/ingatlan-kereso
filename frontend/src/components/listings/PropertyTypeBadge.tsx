@@ -1,9 +1,10 @@
 import type { FC } from 'react'
+import type { CanonicalPropertyType } from '../../types/property'
 import { getPropertyTypeConfig } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 export interface PropertyTypeBadgeProps {
-  propertyType?: string | null
+  propertyType?: CanonicalPropertyType | null
   className?: string
   showIcon?: boolean
 }

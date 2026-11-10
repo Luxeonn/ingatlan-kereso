@@ -16,7 +16,7 @@ class SearchCriteriaAndScraperTest {
     SearchCriteria criteria = new SearchCriteria();
 
     assertEquals("Hajdúszoboszló", criteria.getCity());
-    assertEquals("haz", criteria.getPropertyType());
+    assertEquals(ingatlanok.model.PropertyType.HAZ, criteria.getPropertyType());
     assertEquals(70, criteria.getMinPriceMillion());
     assertEquals(120, criteria.getMaxPriceMillion());
     assertEquals(90, criteria.getMinArea());
@@ -38,7 +38,7 @@ class SearchCriteriaAndScraperTest {
     assertEquals(60, criteria.getMaxPriceMillion());
     assertEquals(80, criteria.getMinArea());
     assertEquals(150, criteria.getMaxArea());
-    assertEquals("telek", criteria.getPropertyType());
+    assertEquals(ingatlanok.model.PropertyType.TELEK, criteria.getPropertyType());
     assertEquals(2, criteria.getMinRooms());
 
     criteria.setPortalEnabled("custom", true);

@@ -14,6 +14,7 @@ describe('PropertyCard component (#270)', () => {
     location: 'Debrecen',
     city: 'Debrecen',
     propertyType: 'LAKAS',
+    sourcesCount: 1,
     isNew: true,
     viewed: false,
     newConstruction: true,
@@ -363,6 +364,28 @@ describe('PropertyCard component (#270)', () => {
     expect(card.className).toContain('ring-amber-500/30')
     expect(card.className).not.toContain('opacity-70')
     expect(card.className).not.toContain('grayscale-[15%]')
+  })
+
+  it('highlights multi-source property cards with a distinct yellow border highlight', () => {
+    const multiSourceItem: IngatlanItem = {
+      ...mockItem,
+      sourcesCount: 3,
+      sourceListings: [
+        { portal: 'dh', url: 'https://dh.hu/1' },
+        { portal: 'oc', url: 'https://oc.hu/1' },
+        { portal: 'jofogas', url: 'https://jofogas.hu/1' },
+      ],
+    }
+    const { rerender } = render(<PropertyCard item={multiSourceItem} onMarkViewed={() => {}} />)
+    const card = screen.getByTestId('property-card')
+    expect(card.getAttribute('data-multisource')).toBe('true')
+    expect(card.className).toContain('border-yellow-400')
+    expect(card.className).toContain('ring-yellow-400/40')
+
+    // Viewed multi-source item keeps yellow tint but adds opacity-70
+    rerender(<PropertyCard item={{ ...multiSourceItem, viewed: true }} onMarkViewed={() => {}} />)
+    expect(card.className).toContain('border-yellow-400/60')
+    expect(card.className).toContain('opacity-70')
   })
 
   it('opens property details in a portal modal in grid view without expanding the card DOM, and closes via close button, outside click, or Escape (#357)', () => {

@@ -46,6 +46,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
     location: 'Debrecen, Belváros',
     city: 'Debrecen',
     propertyType: 'LAKAS',
+    sourcesCount: 1,
     isBargain: true,
     percentageBelowMedian: 28.0,
     referenceMedianPricePerSquareMeter: 1_000_000,
@@ -84,13 +85,12 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       )
       expect(cNeg.firstChild).toBeNull()
 
-      // sampleSize undefined and bargainInfo undefined
+      // sampleSize undefined
       const { container: cUndef } = render(
         <BargainBadge
           item={{
             ...baseBargainItem,
             referenceSampleSize: undefined,
-            bargainInfo: undefined,
           }}
         />
       )
@@ -258,6 +258,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'LAKAS',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 40 + i * 5, amountHuf: (40 + i * 5) * 1_000_000 },
       detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 800_000 + i * 50_000 },
       priceDelta: i === 0 ? -3_000_000 : 0,
@@ -273,6 +274,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       city: 'Debrecen',
       location: 'Debrecen',
       propertyType: 'HAZ',
+      sourcesCount: 1,
       priceInfo: { amountMillion: 80 + i * 10, amountHuf: (80 + i * 10) * 1_000_000 },
       detailsInfo: { areaSquareMeters: 120, pricePerSquareMeter: 650_000 },
     }))
@@ -330,7 +332,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
 
       const dropCards = screen.getAllByTestId('price-drop-card')
       expect(dropCards.length).toBe(1)
-      const card = dropCards[0]
+      const card = dropCards[0]!
 
       // Struck-through original price verification
       // Current = 40M, delta = -3M -> original = 43M
@@ -433,12 +435,6 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       expect(useUiStore.getState().listingSubView).toBe('favorites')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-      // 4. Switch to Archive sub-view within listings panel
-      const archiveBtn = screen.getByRole('button', { name: /Archívum/i })
-      fireEvent.click(archiveBtn)
-      expect(useUiStore.getState().dashboardTab).toBe('listings')
-      expect(useUiStore.getState().listingSubView).toBe('archive')
-      expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
       // 5. Switch back to Hirdetések sub-view
       const activeListingsBtn = screen.getByRole('button', { name: /Hirdetések/i })

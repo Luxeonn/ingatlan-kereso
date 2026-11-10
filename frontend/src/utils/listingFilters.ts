@@ -13,13 +13,9 @@ export function isItemBargain(item: IngatlanItem): boolean {
   if (!item) return false
   return Boolean(
     item.isBargain ||
-      item.bargainInfo?.isBargain ||
       (item.percentageBelowMedian !== null &&
         item.percentageBelowMedian !== undefined &&
-        item.percentageBelowMedian >= 20) ||
-      (item.bargainInfo?.percentageBelowMedian !== null &&
-        item.bargainInfo?.percentageBelowMedian !== undefined &&
-        item.bargainInfo.percentageBelowMedian >= 20),
+        item.percentageBelowMedian >= 20),
   )
 }
 
@@ -37,9 +33,6 @@ function getPriceHuf(item: IngatlanItem, fallback: number): number {
 export function getBargainPercentage(item: IngatlanItem): number {
   if (item.percentageBelowMedian !== null && item.percentageBelowMedian !== undefined) {
     return item.percentageBelowMedian
-  }
-  if (item.bargainInfo?.percentageBelowMedian !== null && item.bargainInfo?.percentageBelowMedian !== undefined) {
-    return item.bargainInfo.percentageBelowMedian
   }
   return -Infinity
 }
@@ -126,6 +119,11 @@ export interface ItemFilterOptions {
   quickSearchQuery?: string
 }
 
+export function isListingNew(item: IngatlanItem | null | undefined): boolean {
+  if (!item) return false
+  return Boolean(item.isNew)
+}
+
 export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions = {}): IngatlanItem[] {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return []
@@ -133,7 +131,7 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
   let items = [...rawItems]
 
   if (options.onlyNew) {
-    items = items.filter((item) => item.isNew)
+    items = items.filter(isListingNew)
   }
   if (options.excludeViewed) {
     items = items.filter((item) => !item.viewed)
@@ -147,16 +145,18 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
   if (options.excludeMultiSource) {
     items = items.filter((item) => getItemSourceListingsCount(item) === 1)
   }
-  if (options.minQualityScore !== null && options.minQualityScore !== undefined && options.minQualityScore > 0) {
+  const minQuality = options.minQualityScore
+  if (minQuality !== null && minQuality !== undefined && minQuality > 0) {
     items = items.filter(
       (item) =>
         item.qualityScore !== null &&
         item.qualityScore !== undefined &&
-        item.qualityScore >= options.minQualityScore!,
+        item.qualityScore >= minQuality,
     )
   }
-  if (options.selectedPortalFilter && options.selectedPortalFilter !== 'all') {
-    items = items.filter((item) => getItemPortalKeys(item).has(options.selectedPortalFilter!))
+  const selectedPortal = options.selectedPortalFilter
+  if (selectedPortal && selectedPortal !== 'all') {
+    items = items.filter((item) => getItemPortalKeys(item).has(selectedPortal))
   }
 
   const q = normalizeSearchText(options.quickSearchQuery).trim()

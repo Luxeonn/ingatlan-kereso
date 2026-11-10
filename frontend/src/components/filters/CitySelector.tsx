@@ -36,13 +36,7 @@ export const CitySelector: FC<CitySelectorProps> = ({
       return DEFAULT_CITIES
     }
     const extracted = citiesData.predefined
-      .map((item) => {
-        if (typeof item === 'string') return item.trim()
-        if (item && typeof item === 'object') {
-          return (item.name || item.key || '').trim()
-        }
-        return ''
-      })
+      .map((item) => (item?.name || item?.key || '').trim())
       .filter((name): name is string => Boolean(name && name.length > 0))
 
     return extracted.length > 0 ? extracted : DEFAULT_CITIES
@@ -65,9 +59,11 @@ export const CitySelector: FC<CitySelectorProps> = ({
       )
       return found !== null && found !== undefined && typeof found.count === 'number' ? found.count : null
     }
-    if (typeof citiesData.trackedCities === 'object') {
-      const val = (citiesData.trackedCities as Record<string, number>)[city]
-      return typeof val === 'number' ? val : null
+    if (typeof citiesData.trackedCities === 'object' && citiesData.trackedCities !== null) {
+      if (Object.prototype.hasOwnProperty.call(citiesData.trackedCities, city)) {
+        const val = (citiesData.trackedCities as Record<string, unknown>)[city]
+        return typeof val === 'number' ? val : null
+      }
     }
     return null
   }
@@ -81,8 +77,9 @@ export const CitySelector: FC<CitySelectorProps> = ({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      if (filteredCities.length > 0) {
-        handleSelect(filteredCities[0])
+      const firstCity = filteredCities[0]
+      if (firstCity) {
+        handleSelect(firstCity)
       } else if (query.trim()) {
         handleSelect(query.trim())
       }

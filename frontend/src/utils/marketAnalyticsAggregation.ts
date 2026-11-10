@@ -1,9 +1,11 @@
 import type { IngatlanItem } from '../types/property'
 import { getEffectiveSqmPrice } from './formatters'
+import { isListingNew } from './listingFilters'
 import {
   type BargainItem,
   type CityStat,
   type ScatterPoint,
+  type AnalyticsCategory,
   calculateMedian,
   hasPriceDrop,
   normalizeCategoryType,
@@ -24,7 +26,7 @@ export interface ItemAggregation {
 }
 
 function categorizeSqmPrice(
-  category: 'lakas' | 'haz' | 'telek' | null,
+  category: AnalyticsCategory | null,
   sqPrice: number,
   agg: ItemAggregation,
 ): void {
@@ -40,6 +42,15 @@ function categorizeSqmPrice(
   }
 }
 
+function getOrCreateArray<K, V>(map: Map<K, V[]>, key: K): V[] {
+  let list = map.get(key)
+  if (!list) {
+    list = []
+    map.set(key, list)
+  }
+  return list
+}
+
 function recordCityAndSegment(
   cityName: string,
   rawType: string,
@@ -48,15 +59,8 @@ function recordCityAndSegment(
   agg: ItemAggregation,
 ): void {
   const bucketKey = `${cityName.toLowerCase()}#${rawType}`
-  if (!agg.segmentMap.has(bucketKey)) {
-    agg.segmentMap.set(bucketKey, [])
-  }
-  agg.segmentMap.get(bucketKey)!.push(sqPrice)
-
-  if (!agg.cityMap.has(cityName)) {
-    agg.cityMap.set(cityName, [])
-  }
-  agg.cityMap.get(cityName)!.push(item)
+  getOrCreateArray(agg.segmentMap, bucketKey).push(sqPrice)
+  getOrCreateArray(agg.cityMap, cityName).push(item)
 }
 
 export function aggregateItems(items: IngatlanItem[]): ItemAggregation {
@@ -75,7 +79,7 @@ export function aggregateItems(items: IngatlanItem[]): ItemAggregation {
   }
 
   items.forEach((item) => {
-    if (item.isNew) agg.newCount++
+    if (isListingNew(item)) agg.newCount++
     if (hasPriceDrop(item)) agg.discountedCount++
 
     const pMillion = item.priceInfo?.amountMillion
@@ -93,10 +97,7 @@ export function aggregateItems(items: IngatlanItem[]): ItemAggregation {
       categorizeSqmPrice(category, sqPrice, agg)
       recordCityAndSegment(cityName, rawType, sqPrice, item, agg)
     } else {
-      if (!agg.cityMap.has(cityName)) {
-        agg.cityMap.set(cityName, [])
-      }
-      agg.cityMap.get(cityName)!.push(item)
+      getOrCreateArray(agg.cityMap, cityName).push(item)
     }
   })
 
@@ -233,7 +234,7 @@ function evaluateScatterPoint(
     area,
     price,
     sqmPrice,
-    isNew: Boolean(item.isNew),
+    isNew: isListingNew(item),
     isDiscounted: isPriceDrop,
     priceDelta: item.priceDelta,
     priceChangePercent: item.priceChangePercent,

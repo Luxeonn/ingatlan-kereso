@@ -9,7 +9,7 @@ import ingatlanok.model.raw.RawPropertyListing;
 
 /**
  * Functional interface for normalizing raw extracted portal listings into canonical items.
- * Allows decoupling portal engines from core normalization business logic.
+ * Allows decoupling portal engines from core normalization business logic (#401 / JAVA-026).
  */
 @FunctionalInterface
 public interface RawListingNormalizer {
@@ -35,21 +35,25 @@ public interface RawListingNormalizer {
 
   private static RawListingNormalizer createDefaultNormalizer() {
     try {
-      Class<?> clazz = Class.forName("ingatlanok.core.normalization.ListingNormalizer");
-      return (RawListingNormalizer) clazz.getDeclaredConstructor().newInstance();
-    } catch (ReflectiveOperationException | LinkageError e) {
-      return (raw, descriptor, criteria, now) -> {
-        if (raw == null) {
-          return null;
-        }
-        return IngatlanItem.builder()
-            .id(raw.nativeId())
-            .source(PortalSource.of(raw.portalId()))
-            .url(raw.url())
-            .title(raw.title())
-            .location(raw.locationText())
-            .build();
-      };
+      java.util.ServiceLoader<RawListingNormalizer> loader =
+          java.util.ServiceLoader.load(RawListingNormalizer.class);
+      for (RawListingNormalizer provider : loader) {
+        return provider;
+      }
+    } catch (Exception ignored) {
+      // Fall through to fallback
     }
+    return (raw, descriptor, criteria, now) -> {
+      if (raw == null) {
+        return null;
+      }
+      return IngatlanItem.builder()
+          .id(raw.nativeId())
+          .source(PortalSource.of(raw.portalId()))
+          .url(raw.url())
+          .title(raw.title())
+          .location(raw.locationText())
+          .build();
+    };
   }
 }

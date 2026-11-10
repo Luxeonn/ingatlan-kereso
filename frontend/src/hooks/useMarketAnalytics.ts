@@ -11,6 +11,7 @@ import {
   calculateMedian,
   calculateStdDev,
   createEmptyMarketAnalyticsData,
+  type AnalyticsCategory,
   hasPriceDrop,
   normalizeCategoryType,
 } from '../utils/marketAnalyticsMath'
@@ -27,25 +28,31 @@ export {
   type HistogramOptions,
   type MarketAnalyticsData,
   type ScatterPoint,
+  type AnalyticsCategory,
   normalizeCategoryType,
 }
 
 function resolveActiveCategory(
-  targetCategory: 'lakas' | 'haz' | 'telek' | null,
+  targetCategory: AnalyticsCategory | null,
   sampleCounts: Record<'lakas' | 'haz' | 'telek', number>,
-): 'lakas' | 'haz' | 'telek' | null {
-  if (targetCategory && sampleCounts[targetCategory] > 0) {
+): AnalyticsCategory | null {
+  if (
+    targetCategory &&
+    (targetCategory === 'lakas' || targetCategory === 'haz' || targetCategory === 'telek') &&
+    sampleCounts[targetCategory] > 0
+  ) {
     return targetCategory
   }
   const categoriesWithSamples = (['lakas', 'haz', 'telek'] as const).filter((cat) => sampleCounts[cat] > 0)
   if (categoriesWithSamples.length === 1) {
-    return categoriesWithSamples[0]
+    const single = categoriesWithSamples[0]
+    if (single) return single
   }
   return targetCategory ?? null
 }
 
 interface OverallMedianParams {
-  activeCategory: 'lakas' | 'haz' | 'telek' | null
+  activeCategory: AnalyticsCategory | null
   categoryMedianMap: Record<'lakas' | 'haz' | 'telek', number | null>
   residentialMedian: number | null
   plotMedian: number | null
@@ -57,8 +64,14 @@ function resolveOverallMedianPricePerSqm(params: OverallMedianParams): number {
   const { activeCategory, categoryMedianMap, residentialMedian, plotMedian, residentialSampleSize, sqmPrices } =
     params
 
-  if (activeCategory && categoryMedianMap[activeCategory] !== null && categoryMedianMap[activeCategory] !== undefined) {
-    return categoryMedianMap[activeCategory]!
+  if (
+    activeCategory &&
+    (activeCategory === 'lakas' || activeCategory === 'haz' || activeCategory === 'telek')
+  ) {
+    const catMedian = categoryMedianMap[activeCategory]
+    if (catMedian !== null && catMedian !== undefined) {
+      return catMedian
+    }
   }
   if (residentialMedian !== null && residentialMedian !== undefined) {
     return residentialMedian
@@ -81,7 +94,7 @@ interface KpiCalculationParams {
   telekSqmPrices: number[]
   residentialSqmPrices: number[]
   plotSqmPrices: number[]
-  targetCategory: 'lakas' | 'haz' | 'telek' | null
+  targetCategory: AnalyticsCategory | null
   discountedCount: number
   newCount: number
   detectedBargainsCount: number
@@ -116,10 +129,13 @@ function calculateKpiStats(params: KpiCalculationParams): MarketAnalyticsData['k
   const residentialMedianPricePerSqm = medianIfValid(residentialSqmPrices)
   const plotMedianPricePerSqm = medianIfValid(plotSqmPrices)
 
-  const sampleCounts: Record<'lakas' | 'haz' | 'telek', number> = {
+  const sampleCounts: Record<AnalyticsCategory, number> = {
     lakas: lakasSampleSize,
     haz: hazSampleSize,
     telek: telekSampleSize,
+    garazs: 0,
+    ipari: 0,
+    egyeb: 0,
   }
 
   const activeCategory = resolveActiveCategory(targetCategory, sampleCounts)

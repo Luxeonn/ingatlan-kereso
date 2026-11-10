@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
+import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PropertyType;
 
 @Entity
@@ -115,9 +116,10 @@ public class PropertyEntity implements Serializable {
   @Column(length = 50)
   private String hiddenAt;
 
+  @Enumerated(EnumType.STRING)
   @Column(length = 50)
   @Builder.Default
-  private String status = "ACTIVE";
+  private ListingStatus status = ListingStatus.ACTIVE;
 
   private Long priceDelta;
 

@@ -76,13 +76,15 @@ public interface PropertyRepository
   @Query("SELECT p.url FROM PropertyEntity p")
   List<String> findAllUrls();
 
-  @Query("SELECT p.portal, COUNT(p) FROM PropertyEntity p GROUP BY p.portal")
-  List<Object[]> countByPortalGroup();
+  @Query(
+      "SELECT new ingatlanok.persistence.repository.PortalCountProjection(p.portal, COUNT(p))"
+          + " FROM PropertyEntity p GROUP BY p.portal")
+  List<PortalCountProjection> countByPortalGroup();
 
   @Query(
-      "SELECT p.city, p.normalizedCity, COUNT(p) FROM PropertyEntity p GROUP BY p.city,"
-          + " p.normalizedCity")
-  List<Object[]> countByCityGroup();
+      "SELECT new ingatlanok.persistence.repository.CityCountProjection(p.city, p.normalizedCity, COUNT(p))"
+          + " FROM PropertyEntity p GROUP BY p.city, p.normalizedCity")
+  List<CityCountProjection> countByCityGroup();
 
   @Query("SELECT MAX(p.discoveredAt) FROM PropertyEntity p")
   String findLatestDiscoveredAt();

@@ -10,6 +10,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.AdapterPortalEngine;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.RawListingNormalizer;
 
 public class DunaHousePortalEngine implements PortalEngine {
 
@@ -17,13 +18,18 @@ public class DunaHousePortalEngine implements PortalEngine {
   private final AdapterPortalEngine adapterEngine;
 
   public DunaHousePortalEngine() {
-    this(new DunaHouseUrlBuilder());
+    this(new DunaHouseUrlBuilder(), null);
   }
 
   public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder) {
+    this(urlBuilder, null);
+  }
+
+  public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new DunaHouseUrlBuilder();
     this.adapterEngine = new AdapterPortalEngine(new DunaHousePortalAdapter(this.urlBuilder,
-        List.of(new DunaHouseHtmlStrategy(this.urlBuilder, new DunaHouseRawParser(), HttpFetcher::fetchDocument))));
+        List.of(new DunaHouseHtmlStrategy(this.urlBuilder, new DunaHouseRawParser(), HttpFetcher::fetchDocument))),
+        normalizer);
   }
 
   @Override
@@ -46,11 +52,16 @@ public class DunaHousePortalEngine implements PortalEngine {
       java.util.function.Function<String, Document> documentFetcher,
       int maxPages) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new DunaHousePortalAdapter(urlBuilder,
-        List.of(new DunaHouseHtmlStrategy(urlBuilder, new DunaHouseRawParser(), documentFetcher, maxPages))));
+        List.of(new DunaHouseHtmlStrategy(urlBuilder, new DunaHouseRawParser(), documentFetcher, maxPages))),
+        adapterEngine.getNormalizer());
     return dynamicEngine.scrape(criteria);
   }
 
   public DunaHouseUrlBuilder getUrlBuilder() {
     return urlBuilder;
+  }
+
+  public RawListingNormalizer getNormalizer() {
+    return adapterEngine.getNormalizer();
   }
 }

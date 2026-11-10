@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { LayoutGrid, Star, Archive } from 'lucide-react'
+import { LayoutGrid, Star } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
 import type { ListingSubView } from '../../store/useUiStore'
@@ -11,6 +11,7 @@ export interface ListingsPanelProps {
   items: IngatlanItem[]
   rawItems?: IngatlanItem[]
   totalRawCount: number
+  serverFilteredCount?: number
   isLoading: boolean
   hasSearched: boolean
   mode?: ListingSubView
@@ -35,11 +36,45 @@ function isMultiSourceItem(it: IngatlanItem): boolean {
   return getItemSourceListingsCount(it) > 1
 }
 
+interface MultiSourceNoticeProps {
+  itemsCount: number
+  totalSourceListingsCount: number
+  serverFilteredCount?: number
+  multiSourceCount: number
+}
+
+const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
+  itemsCount,
+  totalSourceListingsCount,
+  serverFilteredCount,
+  multiSourceCount,
+}) => {
+  const hasFiltered = serverFilteredCount !== undefined && serverFilteredCount > 0
+  if (multiSourceCount === 0 && !hasFiltered) return null
+
+  return (
+    <div
+      data-testid="multi-source-summary-notice"
+      className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300"
+    >
+      <span>
+        <strong className="font-bold text-indigo-200">{itemsCount} / {totalSourceListingsCount}</strong>
+        {hasFiltered && (
+          <> · <strong className="font-bold text-indigo-200">{serverFilteredCount} szűrt</strong></>
+        )}
+        {multiSourceCount > 0 && (
+          <> ({multiSourceCount} összevonva)</>
+        )}
+      </span>
+    </div>
+  )
+}
+
 interface ListingsSubViewNavProps {
   activeMode: ListingSubView
   activeSearchCount: number
   activeFavoritesCount: number
-  activeArchiveCount: number
+  activeArchiveCount?: number
   onSubViewChange: (newSubView: ListingSubView) => void
 }
 
@@ -47,7 +82,6 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
   activeMode,
   activeSearchCount,
   activeFavoritesCount,
-  activeArchiveCount,
   onSubViewChange,
 }) => (
   <nav
@@ -87,22 +121,6 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
         <Star className="h-3.5 w-3.5" />
         <span>⭐ Kedvencek ({activeFavoritesCount})</span>
       </button>
-
-      <button
-        type="button"
-        data-testid="subview-archive"
-        aria-pressed={activeMode === 'archive'}
-        onClick={() => onSubViewChange('archive')}
-        className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
-          activeMode === 'archive'
-            ? 'bg-purple-600 text-white shadow-sm'
-            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
-        )}
-      >
-        <Archive className="h-3.5 w-3.5" />
-        <span>Archívum ({activeArchiveCount})</span>
-      </button>
     </div>
   </nav>
 )
@@ -111,6 +129,7 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   items,
   rawItems,
   totalRawCount,
+  serverFilteredCount,
   isLoading,
   hasSearched,
   mode,
@@ -158,17 +177,13 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
       />
 
       {/* Multi-source clustering summary notice if present in listings mode */}
-      {activeMode === 'listings' && multiSourceCount > 0 && (
-        <div
-          data-testid="multi-source-summary-notice"
-          className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300"
-        >
-          <span>
-            <strong className="font-bold text-indigo-200">{items.length} db egyedi ingatlan</strong> jelenik meg{' '}
-            <strong className="font-bold text-indigo-200">összesen {totalSourceListingsCount} db hirdetés-találatból</strong>{' '}
-            (ebből <strong className="font-bold text-indigo-200">{multiSourceCount} db ingatlan</strong> több forrásból összevonva).
-          </span>
-        </div>
+      {activeMode === 'listings' && (
+        <MultiSourceNotice
+          itemsCount={items.length}
+          totalSourceListingsCount={totalSourceListingsCount}
+          serverFilteredCount={serverFilteredCount}
+          multiSourceCount={multiSourceCount}
+        />
       )}
 
       {/* Screen reader live region for results announcements */}

@@ -1,6 +1,6 @@
-import { apiClient } from './client'
+import { fetchClient, unwrapApiResponse } from './client'
 import type { CitiesResponse } from '../types/api'
 
 export async function getCities(): Promise<CitiesResponse> {
-  return apiClient<CitiesResponse>('/api/cities')
+  return unwrapApiResponse(fetchClient.GET('/api/cities'))
 }

@@ -32,7 +32,7 @@ describe('PropertyType Adversarial & Stress Testing', () => {
     it.each(maliciousAndEdgeCases)(
       'safely handles $name without crashing and defaults to EGYEB_ISMERETLEN ("Egyéb")',
       ({ value }) => {
-        const { unmount } = render(<PropertyTypeBadge propertyType={value} />)
+        const { unmount } = render(<PropertyTypeBadge propertyType={value as unknown as CanonicalPropertyType} />)
         const badge = screen.getByTestId('property-type-badge')
         expect(badge).toBeTruthy()
         expect(badge.getAttribute('data-property-type')).toBe('EGYEB_ISMERETLEN')
@@ -60,6 +60,7 @@ describe('PropertyType Adversarial & Stress Testing', () => {
           location: 'Budapest',
           propertyType: edgeType as unknown as IngatlanItem['propertyType'],
           imageUrl: undefined, // test thumbnail fallback simultaneously
+          sourcesCount: 1,
         }
 
         const { unmount } = render(<PropertyCard item={item} onMarkViewed={() => {}} />)
@@ -134,7 +135,7 @@ describe('PropertyType Adversarial & Stress Testing', () => {
         v /= 255
         return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
       })
-      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722
+      return (a[0] ?? 0) * 0.2126 + (a[1] ?? 0) * 0.7152 + (a[2] ?? 0) * 0.0722
     }
 
     function composite(fgRgb: [number, number, number], bgRgb: [number, number, number], alpha: number): [number, number, number] {
@@ -183,8 +184,10 @@ describe('PropertyType Adversarial & Stress Testing', () => {
       const darkBgRgb = hexToRgb(DARK_BG)
 
       for (const [, { textKey, bgKey, alpha }] of Object.entries(typeColorMap)) {
-        const textRgb = hexToRgb(TAILWIND_COLORS[textKey])
-        const bgBaseRgb = hexToRgb(TAILWIND_COLORS[bgKey])
+        const textHex = TAILWIND_COLORS[textKey as keyof typeof TAILWIND_COLORS] ?? '#ffffff'
+        const bgHex = TAILWIND_COLORS[bgKey as keyof typeof TAILWIND_COLORS] ?? '#000000'
+        const textRgb = hexToRgb(textHex)
+        const bgBaseRgb = hexToRgb(bgHex)
         const compositeBg = composite(bgBaseRgb, darkBgRgb, alpha)
 
         const lText = sRgbLuminance(...textRgb)
@@ -201,8 +204,10 @@ describe('PropertyType Adversarial & Stress Testing', () => {
       const lightModeResults: Record<string, { ratio: number; passesWcagAa: boolean }> = {}
 
       for (const [type, { textKey, bgKey, alpha }] of Object.entries(typeColorMap)) {
-        const textRgb = hexToRgb(TAILWIND_COLORS[textKey])
-        const bgBaseRgb = hexToRgb(TAILWIND_COLORS[bgKey])
+        const textHex = TAILWIND_COLORS[textKey as keyof typeof TAILWIND_COLORS] ?? '#ffffff'
+        const bgHex = TAILWIND_COLORS[bgKey as keyof typeof TAILWIND_COLORS] ?? '#000000'
+        const textRgb = hexToRgb(textHex)
+        const bgBaseRgb = hexToRgb(bgHex)
         const compositeBg = composite(bgBaseRgb, lightBgRgb, alpha)
 
         const lText = sRgbLuminance(...textRgb)
@@ -218,9 +223,9 @@ describe('PropertyType Adversarial & Stress Testing', () => {
       // We document that light mode contrast fails WCAG AA (4.5:1) because text-*-400 classes
       // are light pastel shades designed for dark mode without light mode variants
       // For instance, amber-400 on light bg has contrast < 2.0:1
-      expect(lightModeResults['HAZ'].ratio).toBeLessThan(4.5)
-      expect(lightModeResults['GARAZS'].ratio).toBeLessThan(4.5)
-      expect(lightModeResults['TELEK'].ratio).toBeLessThan(4.5)
+      expect(lightModeResults['HAZ']?.ratio).toBeLessThan(4.5)
+      expect(lightModeResults['GARAZS']?.ratio).toBeLessThan(4.5)
+      expect(lightModeResults['TELEK']?.ratio).toBeLessThan(4.5)
     })
   })
 })

@@ -28,14 +28,14 @@ class CityUtilsTest {
 
   @Test
   void testPredefinedCities() {
-    List<Map<String, String>> cities = CityUtils.getPredefinedCities();
+    List<ingatlanok.model.PredefinedCity> cities = CityUtils.getPredefinedCities();
     assertNotNull(cities);
     assertFalse(cities.isEmpty());
 
-    boolean hasDebrecen = cities.stream().anyMatch(c -> "Debrecen".equals(c.get("name")));
+    boolean hasDebrecen = cities.stream().anyMatch(c -> "Debrecen".equals(c.name()));
     boolean hasHajduszoboszlo =
-        cities.stream().anyMatch(c -> "Hajdúszoboszló".equals(c.get("name")));
-    boolean hasBudapest = cities.stream().anyMatch(c -> "Budapest".equals(c.get("name")));
+        cities.stream().anyMatch(c -> "Hajdúszoboszló".equals(c.name()));
+    boolean hasBudapest = cities.stream().anyMatch(c -> "Budapest".equals(c.name()));
 
     assertTrue(hasDebrecen, "Predefined listának tartalmaznia kell Debrecent");
     assertTrue(hasHajduszoboszlo, "Predefined listának tartalmaznia kell Hajdúszoboszlót");

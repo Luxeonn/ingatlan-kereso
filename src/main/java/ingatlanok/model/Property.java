@@ -50,6 +50,18 @@ public class Property implements Serializable {
     }
   }
 
+  public void setFloorAreaSquareMeters(Double floorAreaSquareMeters) {
+    this.floorAreaSquareMeters = floorAreaSquareMeters;
+  }
+
+  public void setRoomCount(Double roomCount) {
+    this.roomCount = roomCount;
+  }
+
+  public void setMinActivePriceHuf(Long minActivePriceHuf) {
+    this.minActivePriceHuf = minActivePriceHuf;
+  }
+
   public PropertyType getPropertyType() {
     return propertyType != null ? propertyType : PropertyType.EGYEB_ISMERETLEN;
   }

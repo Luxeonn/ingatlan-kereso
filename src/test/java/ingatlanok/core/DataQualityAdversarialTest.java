@@ -314,7 +314,7 @@ class DataQualityAdversarialTest {
     // Dynamic candidate with score evaluated < 70 on the fly (null qualityScore)
     // 250k HUF price (< 1M) and 5,000 Ft/m² (< 100k) -> score = 100 - 30 - 20 = 50 (< 70)
     IngatlanItem dynamicCorrupt = createBaselineResidential("dyn-corrupt", 250_000L, 50.0, 2.0);
-    dynamicCorrupt.setQualityScore(null);
+    dynamicCorrupt.setQualityScore((ingatlanok.model.QualityScore) null);
     items.add(dynamicCorrupt);
 
     analyticsEngine.calculateMarketStats(items);

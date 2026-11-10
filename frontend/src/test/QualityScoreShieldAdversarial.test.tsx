@@ -15,6 +15,7 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
     location: 'Debrecen, Belváros',
     city: 'Debrecen',
     propertyType: 'LAKAS',
+    sourcesCount: 1,
     isNew: false,
     viewed: false,
     priceInfo: {
@@ -521,7 +522,7 @@ describe('Challenger R5-2: QualityScoreShield & PropertyCard Adversarial & Acces
       expect(listItems.length).toBe(10)
 
       for (let i = 0; i < 10; i++) {
-        expect(listItems[i].textContent).toContain(tenDeductions[i])
+        expect(listItems[i]?.textContent).toContain(tenDeductions[i])
       }
     })
 

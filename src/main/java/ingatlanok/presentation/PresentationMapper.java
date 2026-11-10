@@ -24,9 +24,7 @@ public interface PresentationMapper {
 
   PresentationMapper INSTANCE = Mappers.getMapper(PresentationMapper.class);
 
-  @Mapping(
-      target = "status",
-      expression = "java(pr.getStatus() != null ? pr.getStatus().name() : \"UNKNOWN\")")
+  @Mapping(target = "status", source = "status")
   @Mapping(target = "foundCount", expression = "java(pr.getItems() != null ? pr.getItems().size() : 0)")
   @Mapping(target = "latencyMs", source = "executionTimeMs")
   PortalStatusDto toPortalStatusDto(PortalScrapeResult pr);
@@ -34,12 +32,9 @@ public interface PresentationMapper {
   @Mapping(target = "items", source = "searchResult.items")
   @Mapping(target = "newCount", source = "searchResult.newCount")
   @Mapping(target = "totalFound", source = "searchResult.totalFound")
+  @Mapping(target = "filteredCount", source = "searchResult.filteredCount")
   @Mapping(target = "executedAt", source = "searchResult.executedAt")
-  @Mapping(
-      target = "executionStatus",
-      expression =
-          "java(searchResult != null && searchResult.getExecutionStatus() != null"
-              + " ? searchResult.getExecutionStatus().name() : null)")
+  @Mapping(target = "executionStatus", source = "searchResult.executionStatus")
   @Mapping(target = "portalCounts", source = "searchResult.portalCounts")
   @Mapping(target = "cityCounts", source = "searchResult.cityCounts")
   @Mapping(target = "newCitiesInitialized", source = "searchResult.newCitiesInitialized")

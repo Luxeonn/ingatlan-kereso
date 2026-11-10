@@ -18,6 +18,7 @@ import { detectPortalFromUrl, normalizePortalKey, openExternalUrl } from '../uti
 import {
   normalizeSearchText,
   isItemBargain,
+  isListingNew,
   filterAndSortItems,
 } from '../utils/listingFilters'
 
@@ -46,6 +47,7 @@ function buildOrphanItem(url: string): IngatlanItem {
     location: 'Elmentett hivatkozás',
     city: 'Ismeretlen',
     propertyType: 'EGYEB_ISMERETLEN',
+    sourcesCount: 1,
     source: {
       portalId: portalInfo.portalId,
       portalName: portalInfo.portalName,
@@ -147,7 +149,7 @@ export function useSearch() {
 
       if (criteria.autoOpenBrowser && result.items && result.items.length > 0) {
         const newUrls = result.items
-          .filter((item) => item.isNew)
+          .filter(isListingNew)
           .map((item) => item.url)
           .filter(Boolean)
 

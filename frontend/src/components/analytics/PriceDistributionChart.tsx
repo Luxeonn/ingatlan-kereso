@@ -26,6 +26,10 @@ interface PriceDistributionChartProps {
   onSelectRange?: (type: 'price' | 'sqmPrice', min: number, max: number) => void
 }
 
+function isHistogramBin(entry: unknown): entry is HistogramBin {
+  return typeof entry === 'object' && entry !== null && 'min' in entry && 'max' in entry && 'count' in entry
+}
+
 export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
   priceBins,
   sqmPriceBins,
@@ -161,7 +165,9 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
-                    const data = payload[0].payload as HistogramBin
+                    const firstItem = payload[0]
+                    const data = firstItem?.payload
+                    if (!isHistogramBin(data)) return null
                     return (
                       <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-xl backdrop-blur-md text-xs">
                         <p className="font-bold text-[var(--text-primary)] mb-1">{data.rangeLabel}</p>
@@ -195,7 +201,11 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
                 dataKey="count"
                 cursor="pointer"
                 radius={[6, 6, 0, 0]}
-                onClick={(entry, index) => handleBarClick(entry as unknown as HistogramBin, index)}
+                onClick={(entry, index) => {
+                  if (isHistogramBin(entry)) {
+                    handleBarClick(entry, index)
+                  }
+                }}
               >
                 {activeBins.map((_, index) => (
                   <Cell

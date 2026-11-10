@@ -8,7 +8,7 @@ import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { SearchErrorBanner, PartialPortalWarningBanner } from './components/layout/StatusBanners'
 import { useSearch } from './hooks/useSearch'
 import { useFilterStore } from './store/useFilterStore'
-import { useUiStore } from './store/useUiStore'
+import { useUiStore, type ListingSubView } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
 import { cn } from './utils/cn'
@@ -23,7 +23,7 @@ const MarketAnalyticsPanel = lazy(() =>
 )
 
 interface ActiveSliceParams {
-  listingSubView: string
+  listingSubView: ListingSubView
   items: IngatlanItem[]
   rawItems: IngatlanItem[]
   rawCount: number
@@ -36,27 +36,32 @@ interface ActiveSliceParams {
 }
 
 function resolveActiveListingsSlice(params: ActiveSliceParams) {
-  if (params.listingSubView === 'favorites') {
-    return {
-      activeItems: params.favoriteItems,
-      activeRawItems: params.rawFavoriteItems,
-      activeRawCount: params.rawFavoriteItems.length,
-      activeLoading: false,
+  switch (params.listingSubView) {
+    case 'favorites':
+      return {
+        activeItems: params.favoriteItems,
+        activeRawItems: params.rawFavoriteItems,
+        activeRawCount: params.rawFavoriteItems.length,
+        activeLoading: false,
+      }
+    case 'archive':
+      return {
+        activeItems: params.archiveItems,
+        activeRawItems: params.rawArchiveItems,
+        activeRawCount: params.rawArchiveItems.length,
+        activeLoading: params.isArchiveLoading,
+      }
+    case 'listings':
+      return {
+        activeItems: params.items,
+        activeRawItems: params.rawItems,
+        activeRawCount: params.rawCount,
+        activeLoading: params.isLoading,
+      }
+    default: {
+      const _exhaustive: never = params.listingSubView
+      return _exhaustive
     }
-  }
-  if (params.listingSubView === 'archive') {
-    return {
-      activeItems: params.archiveItems,
-      activeRawItems: params.rawArchiveItems,
-      activeRawCount: params.rawArchiveItems.length,
-      activeLoading: params.isArchiveLoading,
-    }
-  }
-  return {
-    activeItems: params.items,
-    activeRawItems: params.rawItems,
-    activeRawCount: params.rawCount,
-    activeLoading: params.isLoading,
   }
 }
 
@@ -161,6 +166,11 @@ export const App: FC = () => {
     isArchiveLoading,
   })
 
+  const hasSearched = listingSubView !== 'listings' || Boolean(data)
+  const handleClearHistory = listingSubView === 'archive'
+    ? () => { void clearArchiveHistory() }
+    : undefined
+
   return (
     <div className="min-h-screen bg-[var(--bg-body)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Sticky Header */}
@@ -233,8 +243,9 @@ export const App: FC = () => {
             items={activeItems}
             rawItems={activeRawItems}
             totalRawCount={activeRawCount}
+            serverFilteredCount={data?.filteredCount}
             isLoading={activeLoading}
-            hasSearched={listingSubView === 'listings' ? data !== null && data !== undefined : true}
+            hasSearched={hasSearched}
             mode={listingSubView}
             subView={listingSubView}
             onSubViewChange={setListingSubView}
@@ -244,14 +255,8 @@ export const App: FC = () => {
             onMarkViewed={markAsViewed}
             onOpenAll={openAllTabs}
             onTriggerSearch={handleSearch}
-            onClearHistory={
-              listingSubView === 'archive'
-                ? () => {
-                    void clearArchiveHistory()
-                  }
-                : undefined
-            }
-isClearingHistory={isClearingHistory}
+            onClearHistory={handleClearHistory}
+            isClearingHistory={isClearingHistory}
             onHide={hideProperty}
             onRestore={restoreProperty}
             hiddenCount={hiddenCount}

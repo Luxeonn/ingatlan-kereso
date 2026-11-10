@@ -1,18 +1,26 @@
-import { apiClient } from './client'
+import { fetchClient, unwrapApiResponse } from './client'
 import type { IngatlanItem } from '../types/property'
+import type { components } from '../types/generated-api'
 
-export async function markAsViewed(url: string): Promise<{ success: boolean; marked: boolean; url: string }> {
-  return apiClient<{ success: boolean; marked: boolean; url: string }>('/api/items/viewed', {
-    method: 'POST',
-    body: JSON.stringify({ url }),
-  })
+export type MarkViewedResponse = components['schemas']['MarkViewedResponse']
+export type OpenUrlsResponse = components['schemas']['OpenUrlsResponse']
+export type PropertyHideResponse = components['schemas']['PropertyHideResponse']
+export type ClearHistoryResponse = components['schemas']['ClearHistoryResponse']
+
+export async function markAsViewed(url: string): Promise<MarkViewedResponse> {
+  return unwrapApiResponse(
+    fetchClient.POST('/api/items/viewed', {
+      body: { url },
+    }),
+  )
 }
 
-export async function openUrls(urls: string[]): Promise<{ success: boolean; count: number }> {
-  return apiClient<{ success: boolean; count: number }>('/api/open-urls', {
-    method: 'POST',
-    body: JSON.stringify(urls),
-  })
+export async function openUrls(urls: string[]): Promise<OpenUrlsResponse> {
+  return unwrapApiResponse(
+    fetchClient.POST('/api/open-urls', {
+      body: urls,
+    }),
+  )
 }
 
 export async function getHistory(
@@ -20,34 +28,54 @@ export async function getHistory(
   onlyDiscounted?: boolean,
   onlyNewConstruction?: boolean,
 ): Promise<IngatlanItem[]> {
-  const params = new URLSearchParams()
-  if (city) params.set('city', city)
-  if (onlyDiscounted) params.set('onlyDiscounted', 'true')
-  if (onlyNewConstruction) params.set('onlyNewConstruction', 'true')
-  const query = params.toString() ? `?${params.toString()}` : ''
-  return apiClient<IngatlanItem[]>(`/api/history${query}`)
+  return unwrapApiResponse(
+    fetchClient.GET('/api/history', {
+      params: {
+        query: {
+          city,
+          onlyDiscounted,
+          onlyNewConstruction,
+        },
+      },
+    }),
+  )
 }
 
-export async function clearHistory(city?: string): Promise<{ success: boolean }> {
-  return apiClient<{ success: boolean }>('/api/history/clear', {
-    method: 'POST',
-    body: JSON.stringify(city ? { city } : {}),
-  })
-}
-export async function hideProperty(id: string, urls?: string[]): Promise<{ success: boolean; hidden: boolean; id: string }> {
-  return apiClient<{ success: boolean; hidden: boolean; id: string }>(`/api/properties/${encodeURIComponent(id)}/hide`, {
-    method: 'POST',
-    body: JSON.stringify(urls && urls.length > 0 ? { urls } : {}),
-  })
+export async function clearHistory(city?: string): Promise<ClearHistoryResponse> {
+  return unwrapApiResponse(
+    fetchClient.POST('/api/history/clear', {
+      params: {
+        query: {
+          city,
+        },
+      },
+      body: city ? { city } : undefined,
+    }),
+  )
 }
 
-export async function restoreProperty(id: string, urls?: string[]): Promise<{ success: boolean; hidden: boolean; id: string }> {
-  return apiClient<{ success: boolean; hidden: boolean; id: string }>(`/api/properties/${encodeURIComponent(id)}/restore`, {
-    method: 'POST',
-    body: JSON.stringify(urls && urls.length > 0 ? { urls } : {}),
-  })
+export async function hideProperty(id: string, urls?: string[]): Promise<PropertyHideResponse> {
+  return unwrapApiResponse(
+    fetchClient.POST('/api/properties/{id}/hide', {
+      params: {
+        path: { id },
+      },
+      body: urls && urls.length > 0 ? { urls } : undefined,
+    }),
+  )
+}
+
+export async function restoreProperty(id: string, urls?: string[]): Promise<PropertyHideResponse> {
+  return unwrapApiResponse(
+    fetchClient.POST('/api/properties/{id}/restore', {
+      params: {
+        path: { id },
+      },
+      body: urls && urls.length > 0 ? { urls } : undefined,
+    }),
+  )
 }
 
 export async function getHiddenProperties(): Promise<IngatlanItem[]> {
-  return apiClient<IngatlanItem[]>('/api/properties/hidden')
+  return unwrapApiResponse(fetchClient.GET('/api/properties/hidden'))
 }

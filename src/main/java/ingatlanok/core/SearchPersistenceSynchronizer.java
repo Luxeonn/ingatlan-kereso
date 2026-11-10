@@ -69,7 +69,7 @@ public class SearchPersistenceSynchronizer {
     item.setPriceDelta(persisted.getPriceDelta());
     item.setPriceChangePercent(persisted.getPriceChangePercent());
     item.setLastPriceChangeAt(persisted.getLastPriceChangeAt());
-    if (persisted.getStatus() != null && !persisted.getStatus().isBlank()) {
+    if (persisted.getStatus() != null) {
       item.setStatus(persisted.getStatus());
     }
     item.setNewConstruction(item.isNewConstruction() || persisted.isNewConstruction());

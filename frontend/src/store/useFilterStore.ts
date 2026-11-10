@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { SearchCriteria } from '../types/api'
-import { normalizePortalKey } from '../utils/formatters'
+import type { PropertyType } from '../types/property'
+import type { PortalId, PortalFilterOption } from '../types/portal'
+import { normalizePortalKey, normalizePropertyType } from '../utils/formatters'
+import { safeParseSortOption, safeParseStorageBoolean } from '../utils/validation'
 import {
   parseUrlParams,
   appendCriteriaParams,
@@ -38,23 +41,27 @@ function safeSetStorageItem(key: string, value: string): void {
   }
 }
 
+export function isSortOption(val: unknown): val is SortOption {
+  return typeof val === 'string' && VALID_SORTS.includes(val as SortOption)
+}
+
 function getStoredSortOption(): SortOption {
-  const saved = safeGetStorageItem('preferred_sort_option') as SortOption | null
-  return saved && VALID_SORTS.includes(saved) ? saved : 'price_asc'
+  const saved = safeGetStorageItem('preferred_sort_option')
+  return safeParseSortOption(saved)
 }
 
 function getStoredExcludeViewed(): boolean {
-  return safeGetStorageItem('preferred_exclude_viewed') === 'true'
+  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_viewed'))
 }
 
 function getStoredExcludeMultiSource(): boolean {
-  return safeGetStorageItem('preferred_exclude_multi_source') === 'true'
+  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_multi_source'))
 }
 
 const DEFAULT_CRITERIA: SearchCriteria = {
   cities: ['Hajdúszoboszló'],
   city: 'Hajdúszoboszló',
-  propertyType: 'haz',
+  propertyType: 'HAZ',
   minPriceMillion: 70,
   maxPriceMillion: 120,
   minArea: 90,
@@ -75,20 +82,20 @@ interface FilterState {
   excludeMultiSource: boolean
   minQualityScore: number
   quickSearchQuery: string
-  selectedPortalFilter: string
+  selectedPortalFilter: PortalFilterOption | string
   showHidden: boolean
 
   setCriteria: (criteria: Partial<SearchCriteria>) => void
   addCity: (city: string) => void
   removeCity: (city: string) => void
   setCities: (cities: string[]) => void
-  setPropertyType: (type: string) => void
+  setPropertyType: (type: PropertyType | string) => void
   setMinPriceMillion: (min: number) => void
   setMaxPriceMillion: (max: number) => void
   setMinArea: (min: number) => void
   setMaxArea: (max: number) => void
-  togglePortal: (portalId: string) => void
-  setAllPortals: (portals: string[]) => void
+  togglePortal: (portalId: PortalId | string) => void
+  setAllPortals: (portals: (PortalId | string)[]) => void
   setAutoOpen: (auto: boolean) => void
   setExcludeViewed: (exclude: boolean) => void
   setOnlyNewConstruction: (onlyNewConstruction: boolean) => void
@@ -98,7 +105,7 @@ interface FilterState {
   setExcludeMultiSource: (excludeMultiSource: boolean) => void
   setMinQualityScore: (score: number) => void
   setQuickSearchQuery: (query: string) => void
-  setSelectedPortalFilter: (portal: string) => void
+  setSelectedPortalFilter: (portal: PortalFilterOption | string) => void
   setShowHidden: (show: boolean) => void
   resetToDefaults: () => void
   syncFromUrl: () => void
@@ -107,9 +114,10 @@ interface FilterState {
 
 
 function resolvePortalFilterForPortals(portals: string[] | undefined, currentFilter: string): string {
-  const normalized = (portals || []).map(normalizePortalKey).filter(Boolean)
-  if (normalized.length === 1) return normalized[0]
-  if (currentFilter !== 'all' && !normalized.includes(currentFilter)) return 'all'
+  const normalized = (portals || []).map(normalizePortalKey).filter((k): k is PortalId => Boolean(k) && k !== 'egyeb')
+  const firstNorm = normalized[0]
+  if (firstNorm && normalized.length === 1) return firstNorm
+  if (currentFilter !== 'all' && !normalized.includes(currentFilter as PortalId)) return 'all'
   return currentFilter
 }
 
@@ -123,9 +131,25 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
   const updateCriteria = (partial: Partial<SearchCriteria>) => {
     set((state) => {
-      const nextCriteria = { ...state.criteria, ...partial }
+      const sanitized = { ...partial }
+      if (sanitized.minPriceMillion !== undefined) {
+        sanitized.minPriceMillion = Number.isFinite(sanitized.minPriceMillion) ? Math.max(0, sanitized.minPriceMillion) : 0
+      }
+      if (sanitized.maxPriceMillion !== undefined) {
+        sanitized.maxPriceMillion = Number.isFinite(sanitized.maxPriceMillion) ? Math.max(0, sanitized.maxPriceMillion) : 0
+      }
+      if (sanitized.minArea !== undefined) {
+        sanitized.minArea = Number.isFinite(sanitized.minArea) ? Math.max(0, sanitized.minArea) : 0
+      }
+      if (sanitized.maxArea !== undefined) {
+        sanitized.maxArea = Number.isFinite(sanitized.maxArea) ? Math.max(0, sanitized.maxArea) : 0
+      }
+      if (sanitized.minRooms !== undefined) {
+        sanitized.minRooms = Number.isFinite(sanitized.minRooms) ? Math.max(0, sanitized.minRooms) : 0
+      }
+      const nextCriteria = { ...state.criteria, ...sanitized }
       const nextPortalFilter =
-        partial.portals !== undefined
+        sanitized.portals !== undefined
           ? resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter)
           : state.selectedPortalFilter
       return { criteria: nextCriteria, selectedPortalFilter: nextPortalFilter }
@@ -157,15 +181,17 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     removeCity: (city) => {
       const updated = (get().criteria.cities || []).filter((c) => c !== city)
-      updateCriteria({ cities: updated, city: updated[0] || 'Hajdúszoboszló' })
+      const firstCity = updated[0]
+      updateCriteria({ cities: updated, city: firstCity ?? 'Hajdúszoboszló' })
     },
 
     setCities: (cities) => {
       const list = cities.map((c) => c.trim()).filter(Boolean)
-      updateCriteria({ cities: list, city: list[0] || 'Hajdúszoboszló' })
+      const firstCity = list[0]
+      updateCriteria({ cities: list, city: firstCity ?? 'Hajdúszoboszló' })
     },
 
-    setPropertyType: (propertyType) => updateCriteria({ propertyType }),
+    setPropertyType: (propertyType) => updateCriteria({ propertyType: normalizePropertyType(propertyType) }),
     setMinPriceMillion: (minPriceMillion) => updateCriteria({ minPriceMillion }),
     setMaxPriceMillion: (maxPriceMillion) => updateCriteria({ maxPriceMillion }),
     setMinArea: (minArea) => updateCriteria({ minArea }),

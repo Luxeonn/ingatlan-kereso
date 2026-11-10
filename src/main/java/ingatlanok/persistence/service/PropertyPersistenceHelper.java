@@ -4,6 +4,7 @@ import java.util.List;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
+import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
@@ -187,9 +188,9 @@ public class PropertyPersistenceHelper {
       return ListingObservation.StatusEvent.PRICE_CHANGED.name();
     }
     boolean wasInactive =
-        "INACTIVE".equalsIgnoreCase(existing.getStatus())
-            || "ARCHIVED".equalsIgnoreCase(existing.getStatus());
-    if (wasInactive && "ACTIVE".equalsIgnoreCase(calc.resolvedStatus())) {
+        existing.getStatus() == ListingStatus.INACTIVE
+            || existing.getStatus() == ListingStatus.ARCHIVED;
+    if (wasInactive && calc.resolvedStatus() == ListingStatus.ACTIVE) {
       return ListingObservation.StatusEvent.RELISTED.name();
     }
     return ListingObservation.StatusEvent.UNCHANGED.name();

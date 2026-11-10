@@ -39,11 +39,11 @@ describe('PropertyTypeBadge component', () => {
   })
 
   it('resolves string aliases to canonical types', () => {
-    const { unmount } = render(<PropertyTypeBadge propertyType="családi ház" />)
+    const { unmount } = render(<PropertyTypeBadge propertyType={'családi ház' as unknown as CanonicalPropertyType} />)
     expect(screen.getByTestId('property-type-badge').getAttribute('data-property-type')).toBe('HAZ')
     unmount()
 
-    render(<PropertyTypeBadge propertyType="társasházi lakás" />)
+    render(<PropertyTypeBadge propertyType={'társasházi lakás' as unknown as CanonicalPropertyType} />)
     expect(screen.getByTestId('property-type-badge').getAttribute('data-property-type')).toBe('LAKAS')
   })
 
@@ -51,7 +51,7 @@ describe('PropertyTypeBadge component', () => {
     const testValues = [null, undefined, '', '   ', 'ismeretlen_kategoria_xyz']
 
     for (const val of testValues) {
-      const { unmount } = render(<PropertyTypeBadge propertyType={val} />)
+      const { unmount } = render(<PropertyTypeBadge propertyType={val as unknown as CanonicalPropertyType} />)
       const badge = screen.getByTestId('property-type-badge')
       expect(badge.getAttribute('data-property-type')).toBe('EGYEB_ISMERETLEN')
       expect(badge.textContent).toContain('Egyéb')

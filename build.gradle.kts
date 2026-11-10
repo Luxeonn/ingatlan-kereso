@@ -46,7 +46,7 @@ application {
     mainClass.set("ingatlanok.IngatlanApplication")
 }
 
-val jsoupVersion = "1.23.2"
+val jsoupVersion = "1.24.1"
 val commonsIoVersion = "2.22.0"
 val commonsLang3Version = "3.21.0"
 val caffeineVersion = "3.3.1"
@@ -155,7 +155,7 @@ configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     resolutionStrategy {
         force("org.codehaus.plexus:plexus-utils:4.1.0")
         force("commons-beanutils:commons-beanutils:1.11.0")
-        force("com.google.guava:guava:33.7.2-jre")
+        force("com.google.guava:guava:33.8.0-jre")
     }
 }
 

@@ -2,6 +2,7 @@ package ingatlanok.portal.ingatlancom;
 
 import java.util.List;
 
+import ingatlanok.model.PropertyType;
 import ingatlanok.portal.ExtractionStrategy;
 import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalDescriptor;
@@ -16,7 +17,7 @@ public class IngatlanComPortalAdapter implements PortalAdapter {
           "#0284c7",
           "https://ingatlan.com",
           true,
-          List.of("lakas", "haz", "telek"),
+          List.of(PropertyType.LAKAS, PropertyType.HAZ, PropertyType.TELEK),
           false);
 
   private final IngatlanComUrlBuilder urlBuilder;

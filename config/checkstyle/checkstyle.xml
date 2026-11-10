@@ -26,6 +26,16 @@
         <property name="id" value="noSynchronized"/>
         <property name="files" value="[/\\]FixtureCoreViolatingSynchronized\.java"/>
     </module>
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="RegexpSinglelineJava"/>
+        <property name="id" value="noSuppressWarnings"/>
+        <property name="files" value="[/\\]src[/\\]test[/\\]"/>
+    </module>
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="RegexpSinglelineJava"/>
+        <property name="id" value="noReflectiveClassLoading"/>
+        <property name="files" value="[/\\]src[/\\]test[/\\]"/>
+    </module>
 
     <module name="TreeWalker">
         <module name="Indentation">
@@ -159,6 +169,18 @@
             <property name="format" value="\bsynchronized\s*\(|\bsynchronized\s+([A-Za-z0-9_&lt;&gt;\[\]]+)\s+[A-Za-z0-9_]+\s*\("/>
             <property name="ignoreComments" value="true"/>
             <property name="message" value="The synchronized keyword is forbidden to prevent carrier thread pinning on Java 25 virtual threads. Use java.util.concurrent.locks.ReentrantLock or atomic/concurrent data structures instead."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="noSuppressWarnings"/>
+            <property name="format" value="@(java\.lang\.)?SuppressWarnings\b"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="@SuppressWarnings is forbidden in production code (Issue #404). Fix raw types, unchecked casts, or deprecations instead of suppressing compiler warnings."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="noReflectiveClassLoading"/>
+            <property name="format" value="\bClass\.forName\s*\("/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Reflective Class.forName is forbidden in production code (Issue #404 / JAVA-026). Use explicit constructor injection or functional interfaces instead."/>
         </module>
     </module>
 </module>

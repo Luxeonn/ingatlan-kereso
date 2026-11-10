@@ -22,15 +22,18 @@ import tools.jackson.databind.ObjectMapper;
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
+import ingatlanok.model.ListingSortOption;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchPreset;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.model.TrackedCityInfo;
 import ingatlanok.persistence.entity.ConfigEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
 import ingatlanok.persistence.mapper.JpaEntityMapper;
 import ingatlanok.persistence.repository.ConfigRepository;
 import ingatlanok.persistence.repository.ListingObservationRepository;
+import ingatlanok.persistence.repository.PortalCountProjection;
 import ingatlanok.persistence.repository.PriceHistoryRepository;
 import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
@@ -210,14 +213,14 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
 
   @Override
   @Transactional(readOnly = true)
-  public List<Map<String, Object>> getTrackedCitiesInfo() {
+  public List<TrackedCityInfo> getTrackedCitiesInfo() {
     return propertyRepo.countByCityGroup().stream()
         .map(
             r ->
-                Map.<String, Object>of(
-                    "name", r[0] != null ? (String) r[0] : "Ismeretlen",
-                    "key", r[1] != null ? (String) r[1] : CityUtils.normalizeCityKey((String) r[0]),
-                    "count", ((Number) r[2]).longValue()))
+                new TrackedCityInfo(
+                    r.city() != null ? r.city() : "Ismeretlen",
+                    r.normalizedCity() != null ? r.normalizedCity() : CityUtils.normalizeCityKey(r.city()),
+                    r.count()))
         .toList();
   }
 
@@ -252,9 +255,9 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   @Transactional(readOnly = true)
   public Map<String, Long> countByPortal() {
     Map<String, Long> map = new HashMap<>();
-    for (Object[] r : propertyRepo.countByPortalGroup()) {
-      if (r[0] != null && !((String) r[0]).isBlank()) {
-        map.put((String) r[0], ((Number) r[1]).longValue());
+    for (PortalCountProjection r : propertyRepo.countByPortalGroup()) {
+      if (r.portal() != null && !r.portal().isBlank()) {
+        map.put(r.portal(), r.count());
       }
     }
     return map;
@@ -326,34 +329,29 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
         filter != null
             ? filter
             : new PropertySearchCriteria(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                false,
-                false,
-                "DISCOVERED_DESC",
-                0,
-                100);
-    Sort sort = switch (criteria.sortBy() == null ? "" : criteria.sortBy().toUpperCase()) {
-      case "PRICE_ASC" -> Sort.by(Sort.Direction.ASC, "priceMillions");
-      case "PRICE_DESC" -> Sort.by(Sort.Direction.DESC, "priceMillions");
-      case "AREA_ASC" -> Sort.by(Sort.Direction.ASC, "areaSqm");
-      case "AREA_DESC" -> Sort.by(Sort.Direction.DESC, "areaSqm");
-      case "ROOMS_ASC" -> Sort.by(Sort.Direction.ASC, "rooms");
-      case "ROOMS_DESC" -> Sort.by(Sort.Direction.DESC, "rooms");
-      default -> Sort.by(Sort.Direction.DESC, "discoveredAt");
-    };
+                null, null, null, null, null, null, null, null, false, false, false,
+                ListingSortOption.DISCOVERED_DESC, 0, 100);
+    ListingSortOption sortOption =
+        criteria.sortBy() != null ? criteria.sortBy() : ListingSortOption.DISCOVERED_DESC;
+    Sort sort = resolveSort(sortOption);
     int offset = Math.max(0, criteria.offset());
     int size = Math.max(1, Math.min(200, criteria.size()));
     return mapper.toItems(
         propertyRepo
             .findAll(PropertySpecifications.from(criteria), new OffsetPageRequest(offset, size, sort))
             .getContent());
+  }
+
+  private Sort resolveSort(ListingSortOption sortOption) {
+    return switch (sortOption) {
+      case PRICE_ASC -> Sort.by(Sort.Direction.ASC, "priceMillions");
+      case PRICE_DESC -> Sort.by(Sort.Direction.DESC, "priceMillions");
+      case AREA_ASC -> Sort.by(Sort.Direction.ASC, "areaSqm");
+      case AREA_DESC -> Sort.by(Sort.Direction.DESC, "areaSqm");
+      case ROOMS_ASC -> Sort.by(Sort.Direction.ASC, "rooms");
+      case ROOMS_DESC -> Sort.by(Sort.Direction.DESC, "rooms");
+      case DISCOVERED_DESC, BARGAIN_DESC -> Sort.by(Sort.Direction.DESC, "discoveredAt");
+    };
   }
 
   @Override

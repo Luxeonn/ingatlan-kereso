@@ -122,4 +122,20 @@ describe('SearchPanel component', () => {
     fireEvent.click(submitBtn)
     expect(onSearch).toHaveBeenCalledTimes(1)
   })
+
+  it('does not trigger onSearch when interacting with SearchPresetsBar (#394)', () => {
+    renderSearchPanel(false)
+
+    // Open the preset create form in SearchPresetsBar
+    const savePresetBtn = screen.getByTestId('save-preset-button')
+    fireEvent.click(savePresetBtn)
+
+    // The submit button inside SearchPresetsBar
+    const presetSaveSubmitBtn = screen.getByTitle('Mentés sablonként')
+    expect(presetSaveSubmitBtn).toBeTruthy()
+
+    // Submitting preset should not trigger onSearch
+    fireEvent.click(presetSaveSubmitBtn)
+    expect(onSearch).not.toHaveBeenCalled()
+  })
 })

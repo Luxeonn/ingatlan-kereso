@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
@@ -115,7 +114,7 @@ class DeduplicationEngineTest {
           }
 
           @Override
-          public List<Map<String, Object>> getTrackedCitiesInfo() {
+          public List<ingatlanok.model.TrackedCityInfo> getTrackedCitiesInfo() {
             return List.of();
           }
 
