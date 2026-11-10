@@ -134,6 +134,14 @@ public class SourceListing implements Serializable {
     this.status = raw != null ? ListingStatus.fromString(raw) : null;
   }
 
+  public void setPriceHuf(Long priceHuf) {
+    this.priceHuf = priceHuf;
+  }
+
+  public void setPricePerM2(Long pricePerM2) {
+    this.pricePerM2 = pricePerM2;
+  }
+
   public boolean isActive() {
     return status == ListingStatus.ACTIVE;
   }

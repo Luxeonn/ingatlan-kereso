@@ -17,7 +17,13 @@ public class ListingValidator {
     if (!isValidArea(raw.areaSquareMeters())) {
       return false;
     }
-    return isValidPrice(raw.priceHuf());
+    if (!isValidPrice(raw.priceHuf())) {
+      return false;
+    }
+    if (!isValidRooms(raw.roomCount())) {
+      return false;
+    }
+    return isValidText(raw.title()) && isValidText(raw.locationText());
   }
 
   private boolean isValidUrl(String url) {
@@ -60,5 +66,19 @@ public class ListingValidator {
       return true;
     }
     return price > 0 && price <= 50_000_000_000L;
+  }
+
+  private boolean isValidRooms(Double rooms) {
+    if (rooms == null) {
+      return true;
+    }
+    return rooms >= 0.0 && rooms <= 100.0;
+  }
+
+  private boolean isValidText(String text) {
+    if (text == null) {
+      return true;
+    }
+    return text.length() <= 1000 && !text.contains("\u0000");
   }
 }

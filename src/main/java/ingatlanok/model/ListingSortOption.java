@@ -30,7 +30,7 @@ public enum ListingSortOption implements Serializable {
         return option;
       }
     }
-    return DISCOVERED_DESC;
+    throw new IllegalArgumentException("Ismeretlen rendezési opció: " + raw);
   }
 
   @JsonValue

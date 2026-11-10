@@ -3,6 +3,7 @@ import type { SearchCriteria } from '../types/api'
 import type { PropertyType } from '../types/property'
 import type { PortalId, PortalFilterOption } from '../types/portal'
 import { normalizePortalKey, normalizePropertyType } from '../utils/formatters'
+import { safeParseSortOption, safeParseStorageBoolean } from '../utils/validation'
 import {
   parseUrlParams,
   appendCriteriaParams,
@@ -46,15 +47,15 @@ export function isSortOption(val: unknown): val is SortOption {
 
 function getStoredSortOption(): SortOption {
   const saved = safeGetStorageItem('preferred_sort_option')
-  return isSortOption(saved) ? saved : 'price_asc'
+  return safeParseSortOption(saved)
 }
 
 function getStoredExcludeViewed(): boolean {
-  return safeGetStorageItem('preferred_exclude_viewed') === 'true'
+  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_viewed'))
 }
 
 function getStoredExcludeMultiSource(): boolean {
-  return safeGetStorageItem('preferred_exclude_multi_source') === 'true'
+  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_multi_source'))
 }
 
 const DEFAULT_CRITERIA: SearchCriteria = {
@@ -130,9 +131,25 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
   const updateCriteria = (partial: Partial<SearchCriteria>) => {
     set((state) => {
-      const nextCriteria = { ...state.criteria, ...partial }
+      const sanitized = { ...partial }
+      if (sanitized.minPriceMillion !== undefined) {
+        sanitized.minPriceMillion = Number.isFinite(sanitized.minPriceMillion) ? Math.max(0, sanitized.minPriceMillion) : 0
+      }
+      if (sanitized.maxPriceMillion !== undefined) {
+        sanitized.maxPriceMillion = Number.isFinite(sanitized.maxPriceMillion) ? Math.max(0, sanitized.maxPriceMillion) : 0
+      }
+      if (sanitized.minArea !== undefined) {
+        sanitized.minArea = Number.isFinite(sanitized.minArea) ? Math.max(0, sanitized.minArea) : 0
+      }
+      if (sanitized.maxArea !== undefined) {
+        sanitized.maxArea = Number.isFinite(sanitized.maxArea) ? Math.max(0, sanitized.maxArea) : 0
+      }
+      if (sanitized.minRooms !== undefined) {
+        sanitized.minRooms = Number.isFinite(sanitized.minRooms) ? Math.max(0, sanitized.minRooms) : 0
+      }
+      const nextCriteria = { ...state.criteria, ...sanitized }
       const nextPortalFilter =
-        partial.portals !== undefined
+        sanitized.portals !== undefined
           ? resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter)
           : state.selectedPortalFilter
       return { criteria: nextCriteria, selectedPortalFilter: nextPortalFilter }

@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,8 +142,11 @@ public class RestApiController {
   public ResponseEntity<ActionSuccessResponseDto> saveLastCriteria(
       @RequestBody(required = false) SearchCriteria criteria) {
     ConfigStorage cs = getConfigStorage();
-    if (criteria != null && cs != null) {
-      cs.saveLastCriteria(criteria);
+    if (criteria != null) {
+      criteria.validate();
+      if (cs != null) {
+        cs.saveLastCriteria(criteria);
+      }
     }
     return ResponseEntity.ok(ActionSuccessResponseDto.of(true));
   }
@@ -162,8 +166,17 @@ public class RestApiController {
     if (cs == null) {
       return ResponseEntity.badRequest().build();
     }
-    if (preset == null || preset.name() == null || preset.name().isBlank()) {
-      return ResponseEntity.badRequest().build();
+    if (preset == null) {
+      throw new IllegalArgumentException("A preset nem lehet üres!");
+    }
+    if (preset.name() == null || preset.name().isBlank()) {
+      throw new IllegalArgumentException("A preset neve kötelező!");
+    }
+    if (preset.name().length() > 100) {
+      throw new IllegalArgumentException("A preset neve legfeljebb 100 karakter lehet!");
+    }
+    if (preset.criteria() != null) {
+      preset.criteria().validate();
     }
     SearchPreset created = cs.savePreset(preset);
     return ResponseEntity.ok(created);
@@ -176,6 +189,18 @@ public class RestApiController {
     if (cs == null || id == null || preset == null) {
       return ResponseEntity.badRequest().build();
     }
+    if (id <= 0) {
+      throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
+    }
+    if (preset.name() != null && preset.name().isBlank()) {
+      throw new IllegalArgumentException("A preset neve nem lehet üres!");
+    }
+    if (preset.name() != null && preset.name().length() > 100) {
+      throw new IllegalArgumentException("A preset neve legfeljebb 100 karakter lehet!");
+    }
+    if (preset.criteria() != null) {
+      preset.criteria().validate();
+    }
     return cs.updatePreset(id, preset)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.notFound().build());
@@ -186,6 +211,9 @@ public class RestApiController {
     ConfigStorage cs = getConfigStorage();
     if (cs == null || id == null) {
       return ResponseEntity.badRequest().build();
+    }
+    if (id <= 0) {
+      throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
     }
     boolean deleted = cs.deletePreset(id);
     if (!deleted) {
@@ -199,6 +227,9 @@ public class RestApiController {
     ConfigStorage cs = getConfigStorage();
     if (cs == null || id == null) {
       return ResponseEntity.badRequest().build();
+    }
+    if (id <= 0) {
+      throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
     }
     return cs.markPresetAsUsed(id)
         .map(ResponseEntity::ok)
@@ -235,6 +266,9 @@ public class RestApiController {
     if (key == null || key.isBlank()) {
       throw new IllegalArgumentException("Hiányzó 'id' vagy 'url' paraméter!");
     }
+    if (key.length() > 1000) {
+      throw new IllegalArgumentException("A megadott azonosító vagy URL túl hosszú!");
+    }
     List<PriceHistoryEntry> history = listingStorage.getPriceHistory(key);
     return ResponseEntity.ok(history);
   }
@@ -250,6 +284,9 @@ public class RestApiController {
             : (paramId != null && !paramId.isBlank() ? paramId : paramUrl);
     if (key == null || key.isBlank()) {
       throw new IllegalArgumentException("Hiányzó 'id' vagy 'url' paraméter!");
+    }
+    if (key.length() > 1000) {
+      throw new IllegalArgumentException("A megadott azonosító vagy URL túl hosszú!");
     }
     List<StatusLogEntry> log = listingStorage.getStatusLog(key);
     return ResponseEntity.ok(log);
@@ -267,6 +304,9 @@ public class RestApiController {
     if (key == null || key.isBlank()) {
       throw new IllegalArgumentException("Hiányzó 'id' vagy 'url' paraméter!");
     }
+    if (key.length() > 1000) {
+      throw new IllegalArgumentException("A megadott azonosító vagy URL túl hosszú!");
+    }
     List<ListingObservation> observations = listingStorage.getListingObservations(key);
     return ResponseEntity.ok(observations);
   }
@@ -281,19 +321,8 @@ public class RestApiController {
   public ResponseEntity<PropertyHideResponseDto> hideProperty(
       @PathVariable("id") String id,
       @RequestBody(required = false) PropertyBatchActionRequest body) {
-    boolean success = listingStorage.hideProperty(id);
-    if (body != null) {
-      if (body.url() != null && !body.url().isBlank()) {
-        success = listingStorage.hideProperty(body.url()) || success;
-      }
-      if (body.urls() != null) {
-        for (String item : body.urls()) {
-          if (item != null && !item.isBlank()) {
-            success = listingStorage.hideProperty(item) || success;
-          }
-        }
-      }
-    }
+    validatePropertyId(id);
+    boolean success = processBatchAction(id, body, listingStorage::hideProperty);
     if (!success) {
       return ResponseEntity.notFound().build();
     }
@@ -304,23 +333,39 @@ public class RestApiController {
   public ResponseEntity<PropertyHideResponseDto> restoreProperty(
       @PathVariable("id") String id,
       @RequestBody(required = false) PropertyBatchActionRequest body) {
-    boolean success = listingStorage.restoreProperty(id);
-    if (body != null) {
-      if (body.url() != null && !body.url().isBlank()) {
-        success = listingStorage.restoreProperty(body.url()) || success;
-      }
-      if (body.urls() != null) {
-        for (String item : body.urls()) {
-          if (item != null && !item.isBlank()) {
-            success = listingStorage.restoreProperty(item) || success;
-          }
-        }
-      }
-    }
+    validatePropertyId(id);
+    boolean success = processBatchAction(id, body, listingStorage::restoreProperty);
     if (!success) {
       return ResponseEntity.notFound().build();
     }
     return ResponseEntity.ok(PropertyHideResponseDto.of(true, false, id));
+  }
+
+  private void validatePropertyId(String id) {
+    if (id == null || id.isBlank()) {
+      throw new IllegalArgumentException("Az azonosító nem lehet üres!");
+    }
+    if (id.length() > 500) {
+      throw new IllegalArgumentException("Az azonosító túl hosszú!");
+    }
+  }
+
+  private boolean processBatchAction(
+      String id, PropertyBatchActionRequest body, Predicate<String> action) {
+    boolean success = action.test(id);
+    if (body != null) {
+      if (body.url() != null && !body.url().isBlank()) {
+        success = action.test(body.url()) || success;
+      }
+      if (body.urls() != null) {
+        for (String item : body.urls()) {
+          if (item != null && !item.isBlank()) {
+            success = action.test(item) || success;
+          }
+        }
+      }
+    }
+    return success;
   }
 
   @GetMapping("/properties/discounted")
@@ -334,6 +379,7 @@ public class RestApiController {
   public ResponseEntity<DashboardResponseDto> executeSearch(
       @RequestBody(required = false) SearchCriteria criteria) {
     SearchCriteria effectiveCriteria = criteria != null ? criteria : new SearchCriteria();
+    effectiveCriteria.validate();
     DashboardResponseDto result = dashboardPresentationService.executeSearch(effectiveCriteria);
     return ResponseEntity.ok(result);
   }

@@ -122,6 +122,68 @@ public class SearchCriteria implements Serializable {
     this.propertyType = PropertyType.fromString(raw);
   }
 
+  public void validate() {
+    validatePriceRanges();
+    validateAreaRanges();
+    if (minRooms != null && minRooms < 0) {
+      throw new IllegalArgumentException("A minimum szobaszám nem lehet negatív: " + minRooms);
+    }
+    validateCities();
+    validatePortals();
+  }
+
+  private void validatePriceRanges() {
+    if (minPriceMillion != null && minPriceMillion < 0) {
+      throw new IllegalArgumentException("A minimum ár nem lehet negatív: " + minPriceMillion);
+    }
+    if (maxPriceMillion != null && maxPriceMillion < 0) {
+      throw new IllegalArgumentException("A maximum ár nem lehet negatív: " + maxPriceMillion);
+    }
+    if (minPriceMillion != null && maxPriceMillion != null && minPriceMillion > maxPriceMillion) {
+      throw new IllegalArgumentException(
+          "A minimum ár nem lehet nagyobb a maximum árnál: " + minPriceMillion + " > " + maxPriceMillion);
+    }
+  }
+
+  private void validateAreaRanges() {
+    if (minArea != null && minArea < 0) {
+      throw new IllegalArgumentException("A minimum alapterület nem lehet negatív: " + minArea);
+    }
+    if (maxArea != null && maxArea < 0) {
+      throw new IllegalArgumentException("A maximum alapterület nem lehet negatív: " + maxArea);
+    }
+    if (minArea != null && maxArea != null && minArea > maxArea) {
+      throw new IllegalArgumentException(
+          "A minimum alapterület nem lehet nagyobb a maximum alapterületnél: " + minArea + " > " + maxArea);
+    }
+  }
+
+  private void validateCities() {
+    if (city != null && city.length() > 200) {
+      throw new IllegalArgumentException("A település neve túl hosszú (max. 200 karakter)!");
+    }
+    if (cities != null) {
+      if (cities.size() > 50) {
+        throw new IllegalArgumentException("Túl sok település lett megadva (max. 50 megengedett)!");
+      }
+      for (String c : cities) {
+        if (c != null && c.length() > 200) {
+          throw new IllegalArgumentException("A település neve túl hosszú: " + c);
+        }
+      }
+    }
+  }
+
+  private void validatePortals() {
+    if (portals != null) {
+      for (String p : portals) {
+        if (p != null && !p.isBlank() && PortalId.fromString(p) == PortalId.UNKNOWN) {
+          throw new IllegalArgumentException("Ismeretlen portál azonosító a keresési feltételekben: " + p);
+        }
+      }
+    }
+  }
+
   public boolean isPortalEnabled(String portalKey) {
     return portals != null && portals.contains(portalKey);
   }

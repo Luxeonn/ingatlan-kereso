@@ -3,6 +3,7 @@ package ingatlanok.web;
 import java.util.List;
 
 import ingatlanok.model.ListingSortOption;
+import ingatlanok.model.PortalId;
 import ingatlanok.persistence.PropertySearchCriteria;
 
 /**
@@ -56,7 +57,73 @@ public record HistoryQueryDto(
         offset);
   }
 
+  public void validate() {
+    validatePrices();
+    validateAreas();
+    validateRooms();
+    validatePaging();
+    validatePortalAndCity();
+  }
+
+  private void validatePrices() {
+    if (minPrice != null && minPrice < 0) {
+      throw new IllegalArgumentException("A minimum ár nem lehet negatív: " + minPrice);
+    }
+    if (maxPrice != null && maxPrice < 0) {
+      throw new IllegalArgumentException("A maximum ár nem lehet negatív: " + maxPrice);
+    }
+    if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
+      throw new IllegalArgumentException(
+          "A minimum ár nem lehet nagyobb a maximum árnál: " + minPrice + " > " + maxPrice);
+    }
+  }
+
+  private void validateAreas() {
+    if (minArea != null && minArea < 0) {
+      throw new IllegalArgumentException("A minimum alapterület nem lehet negatív: " + minArea);
+    }
+    if (maxArea != null && maxArea < 0) {
+      throw new IllegalArgumentException("A maximum alapterület nem lehet negatív: " + maxArea);
+    }
+    if (minArea != null && maxArea != null && minArea > maxArea) {
+      throw new IllegalArgumentException(
+          "A minimum alapterület nem lehet nagyobb a maximum alapterületnél: " + minArea + " > " + maxArea);
+    }
+  }
+
+  private void validateRooms() {
+    if (minRooms != null && minRooms < 0) {
+      throw new IllegalArgumentException("A minimum szobaszám nem lehet negatív: " + minRooms);
+    }
+    if (maxRooms != null && maxRooms < 0) {
+      throw new IllegalArgumentException("A maximum szobaszám nem lehet negatív: " + maxRooms);
+    }
+    if (minRooms != null && maxRooms != null && minRooms > maxRooms) {
+      throw new IllegalArgumentException(
+          "A minimum szobaszám nem lehet nagyobb a maximum szobaszámnál: " + minRooms + " > " + maxRooms);
+    }
+  }
+
+  private void validatePaging() {
+    if (limit != null && limit <= 0) {
+      throw new IllegalArgumentException("A limit értéke csak pozitív egész szám lehet: " + limit);
+    }
+    if (offset != null && offset < 0) {
+      throw new IllegalArgumentException("Az offset értéke nem lehet negatív: " + offset);
+    }
+  }
+
+  private void validatePortalAndCity() {
+    if (portal != null && !portal.isBlank() && PortalId.fromString(portal) == PortalId.UNKNOWN) {
+      throw new IllegalArgumentException("Ismeretlen portál azonosító: " + portal);
+    }
+    if (city != null && city.length() > 200) {
+      throw new IllegalArgumentException("A település neve túl hosszú: " + city);
+    }
+  }
+
   public PropertySearchCriteria toCriteria() {
+    validate();
     List<String> cities = (city != null && !city.isBlank()) ? List.of(city) : null;
     List<String> portals = (portal != null && !portal.isBlank()) ? List.of(portal) : null;
     int pageSize = limit == null || limit <= 0 ? 50 : Math.min(limit, 200);
