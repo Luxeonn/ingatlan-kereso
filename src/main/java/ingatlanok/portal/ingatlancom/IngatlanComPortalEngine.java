@@ -10,6 +10,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.AdapterPortalEngine;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.RawListingNormalizer;
 
 public class IngatlanComPortalEngine implements PortalEngine {
 
@@ -17,10 +18,14 @@ public class IngatlanComPortalEngine implements PortalEngine {
   private final AdapterPortalEngine adapterEngine;
 
   public IngatlanComPortalEngine() {
-    this(new IngatlanComUrlBuilder());
+    this(new IngatlanComUrlBuilder(), null);
   }
 
   public IngatlanComPortalEngine(IngatlanComUrlBuilder urlBuilder) {
+    this(urlBuilder, null);
+  }
+
+  public IngatlanComPortalEngine(IngatlanComUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new IngatlanComUrlBuilder();
     this.adapterEngine =
         new AdapterPortalEngine(
@@ -31,7 +36,8 @@ public class IngatlanComPortalEngine implements PortalEngine {
                     new IngatlanComHtmlStrategy(
                         this.urlBuilder,
                         new IngatlanComRawParser(),
-                        null))));
+                        null))),
+            normalizer);
   }
 
   @Override
@@ -52,11 +58,16 @@ public class IngatlanComPortalEngine implements PortalEngine {
                 urlBuilder,
                 List.of(
                     new IngatlanComHtmlStrategy(
-                        urlBuilder, new IngatlanComRawParser(), documentFetcher))));
+                        urlBuilder, new IngatlanComRawParser(), documentFetcher))),
+            adapterEngine.getNormalizer());
     return dynamicEngine.scrape(criteria);
   }
 
   public IngatlanComUrlBuilder getUrlBuilder() {
     return urlBuilder;
+  }
+
+  public RawListingNormalizer getNormalizer() {
+    return adapterEngine.getNormalizer();
   }
 }

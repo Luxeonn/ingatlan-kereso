@@ -10,6 +10,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.AdapterPortalEngine;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.RawListingNormalizer;
 
 public class KoltozzbePortalEngine implements PortalEngine {
 
@@ -20,21 +21,29 @@ public class KoltozzbePortalEngine implements PortalEngine {
   private final AdapterPortalEngine adapterEngine;
 
   public KoltozzbePortalEngine() {
-    this(new KoltozzbeUrlBuilder(), DEFAULT_MAX_PAGES);
+    this(new KoltozzbeUrlBuilder(), DEFAULT_MAX_PAGES, null);
   }
 
   public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder) {
-    this(urlBuilder, DEFAULT_MAX_PAGES);
+    this(urlBuilder, DEFAULT_MAX_PAGES, null);
   }
 
   public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder, int maxPages) {
+    this(urlBuilder, maxPages, null);
+  }
+
+  public KoltozzbePortalEngine(
+      KoltozzbeUrlBuilder urlBuilder,
+      int maxPages,
+      RawListingNormalizer normalizer) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new KoltozzbeUrlBuilder();
     this.maxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
     this.adapterEngine = new AdapterPortalEngine(new KoltozzbePortalAdapter(this.urlBuilder,
         List.of(
             new KoltozzbeExtractionStrategy(this.urlBuilder, new KoltozzbeRawParser(),
                 HttpFetcher::fetchDocument, this.maxPages)
-        )));
+        )),
+        normalizer);
   }
 
   @Override
@@ -60,7 +69,8 @@ public class KoltozzbePortalEngine implements PortalEngine {
         List.of(
             new KoltozzbeExtractionStrategy(
                 urlBuilder, new KoltozzbeRawParser(), documentFetcher, customMaxPages)
-        )));
+        )),
+        adapterEngine.getNormalizer());
     return dynamicEngine.scrape(criteria);
   }
 
@@ -68,7 +78,7 @@ public class KoltozzbePortalEngine implements PortalEngine {
     return urlBuilder;
   }
 
-  public int getMaxPages() {
-    return maxPages;
+  public RawListingNormalizer getNormalizer() {
+    return adapterEngine.getNormalizer();
   }
 }
