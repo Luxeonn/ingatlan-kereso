@@ -43,7 +43,11 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleMessageNotReadable(
       org.springframework.http.converter.HttpMessageNotReadableException ex,
       HttpServletRequest request) {
-    String msg = "Érvénytelen kéréstörzs (hibás JSON formátum)";
+    Throwable cause = ex.getMostSpecificCause();
+    String msg =
+        (cause instanceof IllegalArgumentException && cause.getMessage() != null && !cause.getMessage().isBlank())
+            ? cause.getMessage()
+            : "Érvénytelen kéréstörzs (hibás JSON formátum)";
     LOGGER.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }

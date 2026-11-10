@@ -7,6 +7,12 @@ import java.io.Serializable;
  */
 public record Money(long amountHuf) implements Comparable<Money>, Serializable {
 
+  public Money {
+    if (amountHuf < 0) {
+      throw new IllegalArgumentException("Monetary amount cannot be negative: " + amountHuf);
+    }
+  }
+
   public static Money ofHuf(long huf) {
     return new Money(huf);
   }
