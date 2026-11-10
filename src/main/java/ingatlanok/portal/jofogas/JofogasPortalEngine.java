@@ -10,6 +10,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.AdapterPortalEngine;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.RawListingNormalizer;
 
 public class JofogasPortalEngine implements PortalEngine {
 
@@ -17,13 +18,18 @@ public class JofogasPortalEngine implements PortalEngine {
   private final AdapterPortalEngine adapterEngine;
 
   public JofogasPortalEngine() {
-    this(new JofogasUrlBuilder());
+    this(new JofogasUrlBuilder(), null);
   }
 
   public JofogasPortalEngine(JofogasUrlBuilder urlBuilder) {
+    this(urlBuilder, null);
+  }
+
+  public JofogasPortalEngine(JofogasUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new JofogasUrlBuilder();
     this.adapterEngine = new AdapterPortalEngine(new JofogasPortalAdapter(this.urlBuilder,
-        List.of(new JofogasHtmlStrategy(this.urlBuilder, new JofogasRawParser(), HttpFetcher::fetchDocument))));
+        List.of(new JofogasHtmlStrategy(this.urlBuilder, new JofogasRawParser(), HttpFetcher::fetchDocument))),
+        normalizer);
   }
 
   @Override
@@ -54,11 +60,16 @@ public class JofogasPortalEngine implements PortalEngine {
           "jofogas", "Jófogás Ingatlan", "Criteria is null", 0, 400, "https://ingatlan.jofogas.hu");
     }
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new JofogasPortalAdapter(urlBuilder,
-        List.of(new JofogasHtmlStrategy(urlBuilder, new JofogasRawParser(), documentFetcher, maxPages))));
+        List.of(new JofogasHtmlStrategy(urlBuilder, new JofogasRawParser(), documentFetcher, maxPages))),
+        adapterEngine.getNormalizer());
     return dynamicEngine.scrape(criteria);
   }
 
   public JofogasUrlBuilder getUrlBuilder() {
     return urlBuilder;
+  }
+
+  public RawListingNormalizer getNormalizer() {
+    return adapterEngine.getNormalizer();
   }
 }

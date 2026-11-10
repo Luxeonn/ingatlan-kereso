@@ -8,6 +8,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.AdapterPortalEngine;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.RawListingNormalizer;
 
 public class IngatlanBazarPortalEngine implements PortalEngine {
 
@@ -15,14 +16,19 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
   private final AdapterPortalEngine adapterEngine;
 
   public IngatlanBazarPortalEngine() {
-    this(new IngatlanBazarQueryBuilder());
+    this(new IngatlanBazarQueryBuilder(), null);
   }
 
   public IngatlanBazarPortalEngine(IngatlanBazarQueryBuilder queryBuilder) {
+    this(queryBuilder, null);
+  }
+
+  public IngatlanBazarPortalEngine(IngatlanBazarQueryBuilder queryBuilder, RawListingNormalizer normalizer) {
     this.queryBuilder = queryBuilder != null ? queryBuilder : new IngatlanBazarQueryBuilder();
     this.adapterEngine = new AdapterPortalEngine(new IngatlanBazarPortalAdapter(this.queryBuilder,
         List.of(new IngatlanBazarApiStrategy(this.queryBuilder, new IngatlanBazarRawParser(),
-            HttpFetcher::fetchJson))));
+            HttpFetcher::fetchJson))),
+        normalizer);
   }
 
   @Override
@@ -45,11 +51,16 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
       java.util.function.Function<String, String> jsonFetcher,
       int maxPages) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new IngatlanBazarPortalAdapter(queryBuilder,
-        List.of(new IngatlanBazarApiStrategy(queryBuilder, new IngatlanBazarRawParser(), jsonFetcher, maxPages))));
+        List.of(new IngatlanBazarApiStrategy(queryBuilder, new IngatlanBazarRawParser(), jsonFetcher, maxPages))),
+        adapterEngine.getNormalizer());
     return dynamicEngine.scrape(criteria);
   }
 
   public IngatlanBazarQueryBuilder getQueryBuilder() {
     return queryBuilder;
+  }
+
+  public RawListingNormalizer getNormalizer() {
+    return adapterEngine.getNormalizer();
   }
 }
