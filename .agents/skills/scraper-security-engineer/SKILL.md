@@ -154,16 +154,6 @@ The specialist must record the following concrete evidence during review:
 - **SSRF and domain-allowlist evidence**: Verify URL-construction and validation logic in the affected engines, and assert `Jsoup.connect` isolation.
 - **Offline parser-test results**: Record results for affected portal tests, for example `./gradlew test --tests "*PortalEngineTest*"`.
 
-### Thematic Agent Approval Gate Output
-
-Use the following text in the Pull Request's Thematic Gate block:
-
-```markdown
-- [x] Scraper & Security (`scraper-security-engineer`): [NO_FINDING / NOT_APPLICABLE] - [One concise sentence describing scraper resilience and AppSec hardening]
-```
-
-*Note: For `FINDING`, leave the checkbox unchecked (`[ ]`), set the status to `[FINDING]`, and attach a detailed report in the PR description or a comment.*
-
 ---
 
 ## 6. Standard Decision Semantics

@@ -358,10 +358,10 @@ To safeguard the quality and integrity of changes, the repository enforces a str
 
 ### 10.2 Standard Decision Tokens
 
-Every Pull Request description's Thematic Gate block must strictly use one of the following four standardized decision tokens:
+Specialist agent reviews use the following four standardized decision tokens:
 - **`[NO_FINDING]`**: The review completed successfully with no defect or violation identified.
 - **`[NOT_APPLICABLE]`**: The change does not affect the specialist's domain (mandatory 1-sentence rationale required).
-- **`[NOT_VERIFIED]`**: Review not completed or unable to verify; the CI compliance gate treats this as an error and blocks approval.
+- **`[NOT_VERIFIED]`**: Review not completed or unable to verify; fail-closed blocking status.
 - **`[FINDING]`**: A violation or defect was identified; blocking until remediated.
 
 Legacy or informal status markers (such as `[OK]`, `[NOK]`, `[PASS]`) are strictly forbidden.
@@ -413,7 +413,7 @@ Deterministic verification of these rules is demonstrated by `ingatlanok.archite
    - Unrequested refactoring, technology upgrades, unsolicited formatting changes, or contract modifications are strictly forbidden.
 2. **Supporting Edits**:
    - Permitted only when strictly necessary to fulfill an acceptance criterion (e.g., parameterizing a shared utility).
-   - Must be explicitly documented in the PR body under `What changes` and `Acceptance Criteria Traceability`.
+   - Must be explicitly documented in the PR body under `🛠️ Mit módosít / Mit javít?`.
 3. **Out-of-Scope Discoveries**:
    - When an agent or developer discovers an improvement outside the issue scope, document the motivation and propose a separate issue; do not execute it opportunistically.
 4. **Architectural Waiver Process**:
