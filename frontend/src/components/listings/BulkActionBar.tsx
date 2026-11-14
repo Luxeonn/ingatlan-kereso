@@ -10,10 +10,36 @@ import {
 import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
 import { useFilterStore, SORT_OPTIONS, isSortOption } from '../../store/useFilterStore'
-import { isItemBargain } from '../../hooks/useSearch'
-import { PORTAL_CHIPS, getPrimaryPortalKey, getTotalSourceListingsCount } from '../../utils/formatters'
+import { isItemBargain, isListingNew } from '../../utils/listingFilters'
+import {
+  PORTAL_CHIPS,
+  getItemSourceListingsCount,
+  getPrimaryPortalKey,
+  getTotalSourceListingsCount,
+} from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
+
+function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
+  const counts = {
+    bargain: 0,
+    onlyNew: 0,
+    excludeViewed: 0,
+    onlyNewConstruction: 0,
+    excludeMultiSource: 0,
+    onlyMultiSource: 0,
+  }
+  for (const item of sourceItems) {
+    if (isItemBargain(item)) counts.bargain += 1
+    if (isListingNew(item)) counts.onlyNew += 1
+    if (!item.viewed) counts.excludeViewed += 1
+    if (item.newConstruction) counts.onlyNewConstruction += 1
+    const sourceCount = getItemSourceListingsCount(item)
+    if (sourceCount === 1) counts.excludeMultiSource += 1
+    if (sourceCount > 1) counts.onlyMultiSource += 1
+  }
+  return counts
+}
 
 interface BulkActionBarProps {
   items: IngatlanItem[]
@@ -63,6 +89,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setOnlyBargain,
     excludeMultiSource,
     setExcludeMultiSource,
+    onlyMultiSource,
+    setOnlyMultiSource,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -75,8 +103,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   const totalSourceListingsCount = useMemo(() => getTotalSourceListingsCount(items), [items])
   const sourceItems = rawItems ?? items
 
-  const bargainCount = useMemo(
-    () => sourceItems.filter((it) => isItemBargain(it)).length,
+  const quickFilterCounts = useMemo(
+    () => computeQuickFilterCounts(sourceItems),
     [sourceItems],
   )
 
@@ -222,15 +250,22 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
       <QuickFilterChipsRow
         onlyNew={onlyNew}
         setOnlyNew={setOnlyNew}
+        onlyNewCount={quickFilterCounts.onlyNew}
         onlyNewConstruction={criteria.onlyNewConstruction}
         setOnlyNewConstruction={setOnlyNewConstruction}
+        onlyNewConstructionCount={quickFilterCounts.onlyNewConstruction}
         onlyBargain={onlyBargain}
         setOnlyBargain={setOnlyBargain}
-        bargainCount={bargainCount}
+        bargainCount={quickFilterCounts.bargain}
         excludeViewed={criteria.excludeViewed}
         setExcludeViewed={setExcludeViewed}
+        excludeViewedCount={quickFilterCounts.excludeViewed}
         excludeMultiSource={excludeMultiSource}
         setExcludeMultiSource={setExcludeMultiSource}
+        excludeMultiSourceCount={quickFilterCounts.excludeMultiSource}
+        onlyMultiSource={onlyMultiSource}
+        setOnlyMultiSource={setOnlyMultiSource}
+        onlyMultiSourceCount={quickFilterCounts.onlyMultiSource}
         showHidden={showHidden}
         setShowHidden={setShowHidden}
         hiddenCount={hiddenCount}

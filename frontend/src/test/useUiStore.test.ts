@@ -151,6 +151,7 @@ describe('useUiStore', () => {
         'excludeViewed',
         'onlyNewConstruction',
         'excludeMultiSource',
+        'onlyMultiSource',
         'invalid_key' as QuickFilterId,
       ])
       expect(useUiStore.getState().pinnedQuickFilters).toHaveLength(MAX_PINNED_QUICK_FILTERS)
@@ -161,6 +162,7 @@ describe('useUiStore', () => {
         'excludeViewed',
         'onlyNewConstruction',
         'excludeMultiSource',
+        'onlyMultiSource',
       ])
     })
   })

@@ -109,6 +109,14 @@ public final class LocationConflictDetector {
           Map.entry("budafok", 22), Map.entry("nagyteteny", 22), Map.entry("budateteny", 22),
           Map.entry("soroksar", 23));
 
+  private static final List<String> ROMAN_DISTRICTS = List.of(
+      "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+      "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
+      "XXI", "XXII", "XXIII");
+
+  private static final List<String> FLOOR_QUARTER_NOISE_TOKENS = List.of(
+      "emelet", "foldszint", "fszt", "tetoter", "zaroszint");
+
   private LocationConflictDetector() {}
 
   /**
@@ -323,7 +331,22 @@ public final class LocationConflictDetector {
       return null;
     }
     String q = normalizeQuarterSynonym(SlugUtils.toSlug(suffix));
+    if (isFloorDescriptor(q)) {
+      return null;
+    }
     return !q.isBlank() && !q.equals(normalizedCity) ? q : null;
+  }
+
+  private static boolean isFloorDescriptor(String slug) {
+    if (slug == null || slug.isBlank()) {
+      return false;
+    }
+    for (String token : FLOOR_QUARTER_NOISE_TOKENS) {
+      if (slug.contains(token)) {
+        return true;
+      }
+    }
+    return slug.equals("em") || slug.endsWith("-em");
   }
 
   private static boolean matchesSlugWordPrefix(String slug, String prefix) {
@@ -413,31 +436,7 @@ public final class LocationConflictDetector {
     if (roman == null) {
       return null;
     }
-    return switch (roman.toUpperCase(Locale.ROOT)) {
-      case "I" -> 1;
-      case "II" -> 2;
-      case "III" -> 3;
-      case "IV" -> 4;
-      case "V" -> 5;
-      case "VI" -> 6;
-      case "VII" -> 7;
-      case "VIII" -> 8;
-      case "IX" -> 9;
-      case "X" -> 10;
-      case "XI" -> 11;
-      case "XII" -> 12;
-      case "XIII" -> 13;
-      case "XIV" -> 14;
-      case "XV" -> 15;
-      case "XVI" -> 16;
-      case "XVII" -> 17;
-      case "XVIII" -> 18;
-      case "XIX" -> 19;
-      case "XX" -> 20;
-      case "XXI" -> 21;
-      case "XXII" -> 22;
-      case "XXIII" -> 23;
-      default -> null;
-    };
+    int index = ROMAN_DISTRICTS.indexOf(roman.toUpperCase(Locale.ROOT));
+    return index >= 0 ? index + 1 : null;
   }
 }

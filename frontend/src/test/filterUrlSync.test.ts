@@ -88,6 +88,13 @@ describe('filterUrlSync utility', () => {
       expect(result.sort).toBe('bargain_desc')
     })
 
+    it('parses onlyMulti flag and keeps excludeMultiSource false when both are present (#436)', () => {
+      setLocation('https://example.com/?onlyMulti=1&hideMulti=1')
+      const result = parseUrlParams()
+      expect(result.onlyMultiSource).toBe(true)
+      expect(result.excludeMultiSource).toBe(false)
+    })
+
     it('gracefully handles and rejects invalid or malformed URL parameters', () => {
       setLocation(
         'https://example.com/?sort=nonexistent_sort&minPrice=not_a_number&minQuality=999',
@@ -168,7 +175,16 @@ describe('filterUrlSync utility', () => {
       expect(params.get('onlyNew')).toBe('true')
       expect(params.get('onlyBargain')).toBe('true')
       expect(params.get('hideMulti')).toBe('1')
+      expect(params.get('onlyMulti')).toBeNull()
       expect(params.get('minQuality')).toBe('70')
+
+      const onlyMultiParams = new URLSearchParams()
+      appendUiFilterParams(onlyMultiParams, {
+        ...uiOptions,
+        onlyMultiSource: true,
+      })
+      expect(onlyMultiParams.get('onlyMulti')).toBe('1')
+      expect(onlyMultiParams.get('hideMulti')).toBeNull()
     })
 
     it('supports round-trip serialization and deserialization', () => {

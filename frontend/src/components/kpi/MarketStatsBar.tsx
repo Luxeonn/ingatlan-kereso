@@ -1,20 +1,32 @@
 import type { FC } from 'react'
-import { Building2, Sparkles, DollarSign, Ruler } from 'lucide-react'
+import { Building2, Sparkles, TrendingDown, Ruler } from 'lucide-react'
 import type { DashboardResponseDto } from '../../types/api'
-import { formatPriceMillion, formatPricePerSqm } from '../../utils/formatters'
+import { formatPricePerSqm } from '../../utils/formatters'
+import { isItemBargain } from '../../utils/listingFilters'
 
 interface MarketStatsBarProps {
   data: DashboardResponseDto | null
 }
 
+function resolveBargainCount(data: DashboardResponseDto): number {
+  const statsBargainCount = data.marketStats?.bargainCount
+  if (statsBargainCount !== null && statsBargainCount !== undefined) {
+    return statsBargainCount
+  }
+  return data.items ? data.items.filter(isItemBargain).length : 0
+}
+
+function resolveMedianSqmPrice(stats: DashboardResponseDto['marketStats']): number | undefined {
+  return stats?.medianPricePerM2 ?? stats?.residentialMedianPricePerM2 ?? stats?.plotMedianPricePerM2
+}
+
 export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
   if (!data) return null
 
-  const stats = data.marketStats
   const total = data.totalFound ?? data.items?.length ?? 0
   const newCount = data.newCount ?? 0
-  const avgPrice = stats?.averagePriceMillion
-  const avgSqmPrice = stats?.averagePricePerM2
+  const bargainCount = resolveBargainCount(data)
+  const medianSqmPrice = resolveMedianSqmPrice(data.marketStats)
 
   return (
     <div
@@ -45,28 +57,26 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
         </div>
       </div>
 
-      {/* 3. Average Price */}
+      {/* 3. Bargain Count */}
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
-          <DollarSign className="h-5 w-5" />
+          <TrendingDown className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Átlagos Kínálati Ár</p>
-          <p className="text-lg font-extrabold text-[var(--text-primary)]">
-            {avgPrice !== null && avgPrice !== undefined ? formatPriceMillion(avgPrice) : 'N/A'}
-          </p>
+          <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Alkalmi Vételek</p>
+          <p className="text-lg font-extrabold text-[var(--text-primary)]">{bargainCount} db</p>
         </div>
       </div>
 
-      {/* 4. Average Price per m² */}
+      {/* 4. Median Price per m² */}
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
           <Ruler className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Átlagos Fajlagos Ár</p>
+          <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Medián m² ár</p>
           <p className="text-lg font-extrabold text-[var(--text-primary)]">
-            {avgSqmPrice !== null && avgSqmPrice !== undefined ? formatPricePerSqm(avgSqmPrice) : 'N/A'}
+            {medianSqmPrice && medianSqmPrice > 0 ? formatPricePerSqm(medianSqmPrice) : 'N/A'}
           </p>
         </div>
       </div>

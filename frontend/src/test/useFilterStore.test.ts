@@ -151,12 +151,31 @@ describe('useFilterStore', () => {
       useFilterStore.getState().setShowHidden(true)
       expect(useFilterStore.getState().showHidden).toBe(true)
     })
+
+    it('enforces mutual exclusion between onlyMultiSource and excludeMultiSource and persists to storage (#436)', () => {
+      useFilterStore.getState().setExcludeMultiSource(true)
+      expect(useFilterStore.getState().excludeMultiSource).toBe(true)
+      expect(useFilterStore.getState().onlyMultiSource).toBe(false)
+
+      useFilterStore.getState().setOnlyMultiSource(true)
+      expect(useFilterStore.getState().onlyMultiSource).toBe(true)
+      expect(useFilterStore.getState().excludeMultiSource).toBe(false)
+      expect(localStorage.getItem('preferred_only_multi_source')).toBe('true')
+      expect(localStorage.getItem('preferred_exclude_multi_source')).toBe('false')
+
+      useFilterStore.getState().setExcludeMultiSource(true)
+      expect(useFilterStore.getState().excludeMultiSource).toBe(true)
+      expect(useFilterStore.getState().onlyMultiSource).toBe(false)
+      expect(localStorage.getItem('preferred_exclude_multi_source')).toBe('true')
+      expect(localStorage.getItem('preferred_only_multi_source')).toBe('false')
+    })
   })
 
   describe('resetToDefaults & URL synchronization', () => {
     it('resets all state values and clears URL query string', () => {
       useFilterStore.getState().addCity('Debrecen')
       useFilterStore.getState().setOnlyBargain(true)
+      useFilterStore.getState().setOnlyMultiSource(true)
       useFilterStore.getState().setSortOption('bargain_desc')
       useFilterStore.getState().setExcludeViewed(true)
       useFilterStore.getState().setMinQualityScore(70)
@@ -166,6 +185,9 @@ describe('useFilterStore', () => {
       const state = useFilterStore.getState()
       expect(state.criteria.cities).toEqual(['Hajdúszoboszló'])
       expect(state.onlyBargain).toBe(false)
+      expect(state.onlyMultiSource).toBe(false)
+      expect(state.excludeMultiSource).toBe(false)
+      expect(localStorage.getItem('preferred_only_multi_source')).toBe('false')
       expect(state.sortOption).toBe('price_asc')
       expect(state.criteria.excludeViewed).toBe(false)
       expect(localStorage.getItem('preferred_sort_option')).toBe('price_asc')

@@ -107,6 +107,8 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
               marketStats: {
                 averagePriceMillion: 89,
                 averagePricePerM2: 936842,
+                bargainCount: 1,
+                medianPricePerM2: 936842,
                 minPriceMillion: 89,
                 maxPriceMillion: 89,
                 newRatePercent: 100,
@@ -287,8 +289,8 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     // Verify static MarketStatsBar cards (#R3)
     const statsBar = page.getByTestId('market-stats-bar')
     await expect(statsBar).toBeVisible()
-    const avgPriceCard = statsBar.getByText('Átlagos Kínálati Ár')
-    await avgPriceCard.click()
+    const bargainCard = statsBar.getByText('Alkalmi Vételek')
+    await bargainCard.click()
     await expect(headerBar.getByTestId('tab-listings')).toHaveAttribute('aria-pressed', 'true')
 
     // Switch between embedded Favorites and Listings sub-views (#157)

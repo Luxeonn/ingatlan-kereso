@@ -114,6 +114,7 @@ export interface ItemFilterOptions {
   onlyNewConstruction?: boolean
   onlyBargain?: boolean
   excludeMultiSource?: boolean
+  onlyMultiSource?: boolean
   minQualityScore?: number
   selectedPortalFilter?: string
   quickSearchQuery?: string
@@ -124,27 +125,22 @@ export function isListingNew(item: IngatlanItem | null | undefined): boolean {
   return Boolean(item.isNew)
 }
 
+function matchesItemFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
+  if (options.onlyNew && !isListingNew(item)) return false
+  if (options.excludeViewed && item.viewed) return false
+  if (options.onlyNewConstruction && !item.newConstruction) return false
+  if (options.onlyBargain && !isItemBargain(item)) return false
+  if (options.excludeMultiSource && getItemSourceListingsCount(item) !== 1) return false
+  if (options.onlyMultiSource && getItemSourceListingsCount(item) <= 1) return false
+  return true
+}
+
 export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions = {}): IngatlanItem[] {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return []
   }
-  let items = [...rawItems]
+  let items = rawItems.filter((item) => matchesItemFlags(item, options))
 
-  if (options.onlyNew) {
-    items = items.filter(isListingNew)
-  }
-  if (options.excludeViewed) {
-    items = items.filter((item) => !item.viewed)
-  }
-  if (options.onlyNewConstruction) {
-    items = items.filter((item) => Boolean(item.newConstruction))
-  }
-  if (options.onlyBargain) {
-    items = items.filter(isItemBargain)
-  }
-  if (options.excludeMultiSource) {
-    items = items.filter((item) => getItemSourceListingsCount(item) === 1)
-  }
   const minQuality = options.minQualityScore
   if (minQuality !== null && minQuality !== undefined && minQuality > 0) {
     items = items.filter(
