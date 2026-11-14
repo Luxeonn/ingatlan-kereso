@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { useState, type FC } from 'react'
 import { ExternalLink, Clock, Layers, Tag, AlertTriangle, Check } from 'lucide-react'
 import type { IngatlanItem, SourceListing } from '../../types/property'
 import {
@@ -144,95 +144,156 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({ item, on
           </div>
 
           <div className="flex flex-col divide-y divide-[var(--border-color)]/40">
-            {sources.map((source, idx) => {
-              const portalName = source.portal || 'Forrás'
-              const portalStyle = getPortalStyle(portalName)
-              const million =
-                source.priceHuf !== null && source.priceHuf !== undefined ? source.priceHuf / 1_000_000 : null
-              const isActive =
-                !source.status || source.status.toUpperCase() === 'ACTIVE'
-              const freshness = source.lastSeenAt || source.firstSeenAt
-
-              return (
-                <div
-                  key={source.url || `${source.portal}-${idx}`}
-                  data-testid="source-item"
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-2 first:pt-1 last:pb-1"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Portal badge */}
-                    <span
-                      data-testid="source-portal-badge"
-                      className={cn(
-                        'rounded-md px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase',
-                        portalStyle.bg
-                      )}
-                    >
-                      {portalName}
-                    </span>
-
-                    {/* Status badge */}
-                    <span
-                      data-testid="source-status-badge"
-                      className={cn(
-                        'rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase',
-                        isActive
-                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                          : 'border-slate-500/30 bg-slate-500/10 text-slate-400'
-                      )}
-                    >
-                      {isActive ? 'Aktív' : 'Inaktív'}
-                    </span>
-
-                    {/* Freshness timestamp */}
-                    {freshness && (
-                      <span
-                        data-testid="source-freshness"
-                        className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]"
-                        title={`Utoljára észlelve: ${freshness}`}
-                      >
-                        <Clock className="h-3 w-3 opacity-60" aria-hidden="true" />
-                        <span>{formatDate(freshness)}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                    {/* Price display */}
-                    <div className="text-right">
-                      <div className="text-xs font-bold text-blue-400">
-                        {million !== null && million !== undefined
-                          ? formatPriceMillion(million)
-                          : 'Ár a hirdetésben'}
-                      </div>
-                      {source.priceHuf !== null && source.priceHuf !== undefined && (
-                        <div className="text-[10px] text-[var(--text-secondary)]">
-                          {formatPriceFt(source.priceHuf)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Direct external link button */}
-                    {source.url && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSource(source.url)}
-                        aria-label={`Megnyitás: ${portalName}`}
-                        title={`Megnyitás: ${portalName}`}
-                        data-testid="source-external-link"
-                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-400 active:scale-95 transition-all"
-                      >
-                        <span className="hidden xs:inline">Megnyitás</span>
-                        <ExternalLink className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            {sources.map((source, idx) => (
+              <SourceItemRow
+                key={source.url || `${source.portal}-${idx}`}
+                source={source}
+                onOpenSource={handleOpenSource}
+              />
+            ))}
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+interface SourceThumbnailPreviewProps {
+  imageUrl: string
+  alt: string
+  onError: () => void
+}
+
+const SourceThumbnailPreview: FC<SourceThumbnailPreviewProps> = ({ imageUrl, alt, onError }) => (
+  <div
+    data-testid="source-thumbnail-preview"
+    className="pointer-events-none absolute left-0 bottom-full mb-1.5 z-50 h-[120px] w-[160px] overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-1 shadow-xl animate-in fade-in-0 duration-150"
+  >
+    <img
+      src={imageUrl}
+      alt={alt}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={onError}
+      className="h-full w-full rounded object-cover"
+    />
+  </div>
+)
+
+function resolveSourceRowMeta(source: SourceListing) {
+  const portalName = source.portal || 'Forrás'
+  const hasPrice = source.priceHuf !== null && source.priceHuf !== undefined
+  return {
+    portalName,
+    portalStyle: getPortalStyle(portalName),
+    hasPrice,
+    million: hasPrice ? (source.priceHuf ?? 0) / 1_000_000 : null,
+    isActive: !source.status || source.status.toUpperCase() === 'ACTIVE',
+    freshness: source.lastSeenAt || source.firstSeenAt,
+    imageUrl: source.imageUrl?.trim() || '',
+  }
+}
+
+interface SourceItemRowProps {
+  source: SourceListing
+  onOpenSource: (url?: string) => void
+}
+
+const SourceItemRow: FC<SourceItemRowProps> = ({ source, onOpenSource }) => {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+
+  const { portalName, portalStyle, hasPrice, million, isActive, freshness, imageUrl } =
+    resolveSourceRowMeta(source)
+  const canShowPreview = isPreviewOpen && imageUrl.length > 0 && failedImageUrl !== imageUrl
+
+  return (
+    <div
+      data-testid="source-item"
+      onMouseEnter={() => setIsPreviewOpen(true)}
+      onMouseLeave={() => setIsPreviewOpen(false)}
+      onFocus={() => setIsPreviewOpen(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setIsPreviewOpen(false)
+        }
+      }}
+      className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-2 first:pt-1 last:pb-1"
+    >
+      {canShowPreview && (
+        <SourceThumbnailPreview
+          imageUrl={imageUrl}
+          alt={source.title || `${portalName} előnézet`}
+          onError={() => setFailedImageUrl(imageUrl)}
+        />
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Portal badge */}
+        <span
+          data-testid="source-portal-badge"
+          className={cn(
+            'rounded-md px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase',
+            portalStyle.bg,
+          )}
+        >
+          {portalName}
+        </span>
+
+        {/* Status badge */}
+        <span
+          data-testid="source-status-badge"
+          className={cn(
+            'rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase',
+            isActive
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : 'border-slate-500/30 bg-slate-500/10 text-slate-400',
+          )}
+        >
+          {isActive ? 'Aktív' : 'Inaktív'}
+        </span>
+
+        {/* Freshness timestamp */}
+        {freshness && (
+          <span
+            data-testid="source-freshness"
+            className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]"
+            title={`Utoljára észlelve: ${freshness}`}
+          >
+            <Clock className="h-3 w-3 opacity-60" aria-hidden="true" />
+            <span>{formatDate(freshness)}</span>
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+        {/* Price display */}
+        <div className="text-right">
+          <div className="text-xs font-bold text-blue-400">
+            {million !== null ? formatPriceMillion(million) : 'Ár a hirdetésben'}
+          </div>
+          {hasPrice && source.priceHuf !== undefined && source.priceHuf !== null && (
+            <div className="text-[10px] text-[var(--text-secondary)]">
+              {formatPriceFt(source.priceHuf)}
+            </div>
+          )}
+        </div>
+
+        {/* Direct external link button */}
+        {source.url && (
+          <button
+            type="button"
+            onClick={() => onOpenSource(source.url)}
+            aria-label={`Megnyitás: ${portalName}`}
+            title={`Megnyitás: ${portalName}`}
+            data-testid="source-external-link"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-400 active:scale-95 transition-all"
+          >
+            <span className="hidden xs:inline">Megnyitás</span>
+            <ExternalLink className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
