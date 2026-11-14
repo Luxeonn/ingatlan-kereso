@@ -24,33 +24,33 @@ public final class IngatlanBazarLocationResolver {
     registerLocation("budapest", 1050);
     registerLocation("debrecen", 1435);
     registerLocation("szeged", 1099);
-    registerLocation("miskolc", 617);
-    registerLocation("pecs", 896);
+    registerLocation("miskolc", 896);
+    registerLocation("pecs", 404);
     registerLocation("gyor", 1260);
     registerLocation("nyiregyhaza", 2499);
     registerLocation("kecskemet", 255);
     registerLocation("szekesfehervar", 1216);
     registerLocation("szombathely", 2842);
     registerLocation("szolnok", 1654);
-    registerLocation("tatabanya", 1499);
+    registerLocation("tatabanya", 1745);
     registerLocation("kaposvar", 2190);
-    registerLocation("bekescsaba", 404);
+    registerLocation("bekescsaba", 617);
     registerLocation("veszprem", 3074);
     registerLocation("zalaegerszeg", 3300);
-    registerLocation("eger", 1745);
+    registerLocation("eger", 1499);
     registerLocation("salgotarjan", 1870);
     registerLocation("szekszard", 2624);
     registerLocation("hajduszoboszlo", 1462);
-    registerLocation("dunaujvaros", 1000000001);
-    registerLocation("nagykanizsa", 1000000003);
-    registerLocation("sopron", 1260);
-    registerLocation("erd", 1050);
-    registerLocation("budaors", 1050);
-    registerLocation("godollo", 1050);
-    registerLocation("vac", 1050);
-    registerLocation("dunakeszi", 1050);
-    registerLocation("szentendre", 1050);
-    registerLocation("siofok", 2190);
+    registerLocation("dunaujvaros", 1147);
+    registerLocation("nagykanizsa", 3213);
+    registerLocation("sopron", 1375);
+    registerLocation("erd", 1939);
+    registerLocation("budaors", 1902);
+    registerLocation("godollo", 1944);
+    registerLocation("vac", 2065);
+    registerLocation("dunakeszi", 1934);
+    registerLocation("szentendre", 2033);
+    registerLocation("siofok", 2295);
   }
 
   private IngatlanBazarLocationResolver() {}
@@ -74,7 +74,7 @@ public final class IngatlanBazarLocationResolver {
       String url = String.format(GEO_MATCH_URL, encoded);
       LOGGER.debug("Ingatlanbazár településkód lekérdezése: {} -> {}", cityName, url);
       String json = HttpFetcher.fetchJson(url);
-      Optional<Integer> resolved = parseLocationIdFromJson(json);
+      Optional<Integer> resolved = parseLocationIdFromJson(json, cityName);
       if (resolved.isPresent()) {
         int id = resolved.get();
         LOCATION_CACHE.put(slug, id);
@@ -88,7 +88,7 @@ public final class IngatlanBazarLocationResolver {
     return Optional.empty();
   }
 
-  private static Optional<Integer> parseLocationIdFromJson(String json) {
+  static Optional<Integer> parseLocationIdFromJson(String json, String cityName) {
     if (json == null || json.isBlank()) {
       return Optional.empty();
     }
@@ -96,11 +96,27 @@ public final class IngatlanBazarLocationResolver {
     if (!root.has("data") || !root.get("data").isArray()) {
       return Optional.empty();
     }
+    String targetSlug = SlugUtils.toSlug(cityName);
+    Integer fallbackId = null;
     for (JsonNode el : root.get("data")) {
-      if (el.isObject() && el.has("id") && !el.get("id").isNull()) {
-        return Optional.of(el.get("id").asInt());
+      if (!el.isObject() || !el.has("id") || el.get("id").isNull()) {
+        continue;
+      }
+      int id = el.get("id").asInt();
+      if (fallbackId == null) {
+        fallbackId = id;
+      }
+      if (isExactCityMatch(el, targetSlug)) {
+        return Optional.of(id);
       }
     }
-    return Optional.empty();
+    return Optional.ofNullable(fallbackId);
+  }
+
+  private static boolean isExactCityMatch(JsonNode el, String targetSlug) {
+    if (targetSlug.isEmpty() || !el.has("name") || el.get("name").isNull()) {
+      return false;
+    }
+    return targetSlug.equals(SlugUtils.toSlug(el.get("name").asString()));
   }
 }
