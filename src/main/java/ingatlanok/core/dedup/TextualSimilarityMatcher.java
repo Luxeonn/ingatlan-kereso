@@ -23,6 +23,7 @@ public final class TextualSimilarityMatcher {
           "meg", "csak", "mar", "vagy", "hogy", "mert", "akarmilyen",
           "fedezze", "fel", "almai", "otthonat", "varja", "ont", "sziveben",
           "csaladi", "ikerhaz", "sorhaz", "tegla", "panel",
+          "panellakas", "teglalakas", "garzon", "garzonlakas",
           "kisterseg", "kistersegben", "jaras", "megye", "megyeben");
 
   private static final Set<String> MULTI_GEN_MARKERS =
@@ -161,9 +162,32 @@ public final class TextualSimilarityMatcher {
     if (hasAffirmativeLocation) {
       return true;
     }
+    int minTokens = minTokenCount(tokensA, tokensB);
     String titleA = a != null ? a.getTitle() : "";
     String titleB = b != null ? b.getTitle() : "";
-    return isSlugSimilar(titleA, titleB) || hasTokenSimilarity(tokensA, tokensB);
+    if (isExactDistinctiveSlugMatch(titleA, titleB, minTokens)) {
+      return true;
+    }
+    if (minTokens == 0) {
+      return false;
+    }
+    return (minTokens >= 2 && isSlugSimilar(titleA, titleB)) || hasTokenSimilarity(tokensA, tokensB);
+  }
+
+  private static int minTokenCount(Set<String> tokensA, Set<String> tokensB) {
+    if (tokensA == null || tokensB == null) {
+      return 0;
+    }
+    return Math.min(tokensA.size(), tokensB.size());
+  }
+
+  private static boolean isExactDistinctiveSlugMatch(String titleA, String titleB, int minTokens) {
+    String slugA = SlugUtils.toSlug(titleA);
+    String slugB = SlugUtils.toSlug(titleB);
+    if (slugA.isBlank() || !slugA.equals(slugB)) {
+      return false;
+    }
+    return minTokens >= 1 || slugA.split("-").length >= 5;
   }
 
   public static boolean hasIdenticalTitleSlug(IngatlanItem a, IngatlanItem b) {
@@ -204,7 +228,8 @@ public final class TextualSimilarityMatcher {
 
   private static boolean hasTokenSimilarity(Set<String> tokensA, Set<String> tokensB) {
     double jaccard = calculateJaccardSimilarity(tokensA, tokensB);
-    if (jaccard >= 0.50) {
+    int minSize = (tokensA != null && tokensB != null) ? Math.min(tokensA.size(), tokensB.size()) : 0;
+    if (minSize >= 2 && jaccard >= 0.50) {
       return true;
     }
     return jaccard >= 0.33 && hasDistinctiveKeywordOverlap(tokensA, tokensB);

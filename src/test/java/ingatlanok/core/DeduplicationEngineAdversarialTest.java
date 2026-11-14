@@ -30,8 +30,10 @@ class DeduplicationEngineAdversarialTest {
     // 95.0 vs 100.0: diff 5.0 / 100.0 = 0.0500 (exact 5.0%) -> matches
     IngatlanItem item95 = createItem("1", "dh", "http://1", "Lakás 95m2",
         "Budapest", PropertyType.LAKAS, 95.0, 3.0, 50_000_000L, "ACTIVE");
+    item95.setLocation("Budapest, XI. kerület");
     IngatlanItem item100 = createItem("2", "oc", "http://2", "Lakás 100m2",
         "Budapest", PropertyType.LAKAS, 100.0, 3.0, 50_000_000L, "ACTIVE");
+    item100.setLocation("Budapest, XI. kerület");
 
     assertTrue(engine.isMatch(item95, item100), "Exact 5.0% area diff should match");
     List<IngatlanItem> clustered5 = engine.deduplicateMultiSignal(List.of(item95, item100));
@@ -41,6 +43,7 @@ class DeduplicationEngineAdversarialTest {
     // 94.9 vs 100.0: diff 5.1 / 100.0 = 0.051 (5.1%) -> fails
     IngatlanItem item949 = createItem("3", "jf", "http://3", "Lakás 94.9m2",
         "Budapest", PropertyType.LAKAS, 94.9, 3.0, 50_000_000L, "ACTIVE");
+    item949.setLocation("Budapest, XI. kerület");
 
     assertFalse(engine.isMatch(item949, item100), "5.1% area diff must fail to match");
     List<IngatlanItem> clustered51 = engine.deduplicateMultiSignal(List.of(item949, item100));
@@ -53,8 +56,10 @@ class DeduplicationEngineAdversarialTest {
     // 3.0 vs 3.5 rooms: diff 0.5 -> matches
     IngatlanItem item3 = createItem("1", "dh", "http://1", "3 szobás",
         "Budapest", PropertyType.LAKAS, 80.0, 3.0, 50_000_000L, "ACTIVE");
+    item3.setLocation("Budapest, XI. kerület");
     IngatlanItem item35 = createItem("2", "oc", "http://2", "3.5 szobás",
         "Budapest", PropertyType.LAKAS, 80.0, 3.5, 50_000_000L, "ACTIVE");
+    item35.setLocation("Budapest, XI. kerület");
 
     assertTrue(engine.isMatch(item3, item35), "0.5 room diff should match");
     List<IngatlanItem> clusteredHalf = engine.deduplicateMultiSignal(List.of(item3, item35));
@@ -63,6 +68,7 @@ class DeduplicationEngineAdversarialTest {
     // 3.0 vs 4.0 rooms: diff 1.0 -> fails conflict guard
     IngatlanItem item4 = createItem("3", "jf", "http://3", "4 szobás",
         "Budapest", PropertyType.LAKAS, 80.0, 4.0, 50_000_000L, "ACTIVE");
+    item4.setLocation("Budapest, XI. kerület");
 
     assertFalse(engine.isMatch(item3, item4), "1.0 room diff must fail conflict guard");
     List<IngatlanItem> clusteredOne = engine.deduplicateMultiSignal(List.of(item3, item4));
@@ -75,8 +81,10 @@ class DeduplicationEngineAdversarialTest {
     // 100M vs 80M: diff 20M / 100M = 0.200 (exact 20.0%) -> matches
     IngatlanItem item100M = createItem("1", "dh", "http://1", "100M Ft",
         "Budapest", PropertyType.LAKAS, 80.0, 3.0, 100_000_000L, "ACTIVE");
+    item100M.setLocation("Budapest, XI. kerület");
     IngatlanItem item80M = createItem("2", "oc", "http://2", "80M Ft",
         "Budapest", PropertyType.LAKAS, 80.0, 3.0, 80_000_000L, "ACTIVE");
+    item80M.setLocation("Budapest, XI. kerület");
 
     assertTrue(engine.isMatch(item100M, item80M), "Exact 20.0% price diff should match");
     List<IngatlanItem> clustered20 = engine.deduplicateMultiSignal(List.of(item100M, item80M));
@@ -85,6 +93,7 @@ class DeduplicationEngineAdversarialTest {
     // 100M vs 79.9M: diff 20.1M / 100M = 0.201 (20.1%) -> fails
     IngatlanItem item799M = createItem("3", "jf", "http://3", "79.9M Ft",
         "Budapest", PropertyType.LAKAS, 80.0, 3.0, 79_900_000L, "ACTIVE");
+    item799M.setLocation("Budapest, XI. kerület");
 
     assertFalse(engine.isMatch(item100M, item799M), "20.1% price diff must fail to match");
     List<IngatlanItem> clustered201 = engine.deduplicateMultiSignal(List.of(item100M, item799M));
@@ -166,8 +175,10 @@ class DeduplicationEngineAdversarialTest {
     // Both with 0 rooms -> clusters
     IngatlanItem t1 = createItem("1", "dh", "http://1", "Telek 1",
         "Győr", PropertyType.TELEK, 1000.0, 0.0, 30_000_000L, "ACTIVE");
+    t1.setLocation("Győr, Belváros");
     IngatlanItem t2 = createItem("2", "oc", "http://2", "Telek 2",
         "Győr", PropertyType.TELEK, 1020.0, 0.0, 29_000_000L, "ACTIVE");
+    t2.setLocation("Győr, Belváros");
 
     assertTrue(engine.isMatch(t1, t2));
     assertEquals(1, engine.deduplicateMultiSignal(List.of(t1, t2)).size());
@@ -175,11 +186,13 @@ class DeduplicationEngineAdversarialTest {
     // One with 0 rooms and one with 1 room -> clusters (0 is treated as missing)
     IngatlanItem t3 = createItem("3", "jf", "http://3", "Telek faházzal",
         "Győr", PropertyType.TELEK, 1000.0, 1.0, 30_000_000L, "ACTIVE");
+    t3.setLocation("Győr, Belváros");
     assertTrue(engine.isMatch(t1, t3));
 
     // Both with positive rooms, but diff >= 1.0 -> rejects
     IngatlanItem t4 = createItem("4", "dh", "http://4", "Telek 2 szobás házzal",
         "Győr", PropertyType.TELEK, 1000.0, 2.0, 30_000_000L, "ACTIVE");
+    t4.setLocation("Győr, Belváros");
     assertFalse(engine.isMatch(t3, t4), "TELEK with room diff >= 1.0 must be rejected");
   }
 
@@ -191,10 +204,13 @@ class DeduplicationEngineAdversarialTest {
     // A: 95m2 vs C: 104m2 -> diff 9m2 / 104m2 = 8.65% > 5% (A conflicts with C!)
     IngatlanItem itemA = createItem("A", "dh", "http://A", "Lakás A 95m2",
         "Budapest", PropertyType.LAKAS, 95.0, 3.0, 50_000_000L, "ACTIVE");
+    itemA.setLocation("Budapest, XI. kerület");
     IngatlanItem itemB = createItem("B", "oc", "http://B", "Lakás B 100m2",
         "Budapest", PropertyType.LAKAS, 100.0, 3.0, 50_000_000L, "ACTIVE");
+    itemB.setLocation("Budapest, XI. kerület");
     IngatlanItem itemC = createItem("C", "jf", "http://C", "Lakás C 104m2",
         "Budapest", PropertyType.LAKAS, 104.0, 3.0, 50_000_000L, "ACTIVE");
+    itemC.setLocation("Budapest, XI. kerület");
 
     assertTrue(engine.isMatch(itemA, itemB), "A should match B");
     assertTrue(engine.isMatch(itemB, itemC), "B should match C");
@@ -231,10 +247,13 @@ class DeduplicationEngineAdversarialTest {
     // All 3 pairwise match within 20% price band!
     IngatlanItem inactive42M = createItem("1", "dh", "http://dh/42m", "DH Régi Inaktív",
         "Debrecen", PropertyType.LAKAS, 70.0, 2.0, 42_000_000L, "INACTIVE");
+    inactive42M.setLocation("Debrecen, Belváros");
     IngatlanItem active50M = createItem("2", "oc", "http://oc/50m", "OC Friss Aktív",
         "Debrecen", PropertyType.LAKAS, 70.0, 2.0, 50_000_000L, "ACTIVE");
+    active50M.setLocation("Debrecen, Belváros");
     IngatlanItem active52M = createItem("3", "jf", "http://jf/52m", "JF Friss Aktív",
         "Debrecen", PropertyType.LAKAS, 70.0, 2.0, 52_000_000L, "ACTIVE");
+    active52M.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(inactive42M, active50M, active52M));
     assertEquals(1, clustered.size(), "All three should be clustered together");
@@ -308,10 +327,12 @@ class DeduplicationEngineAdversarialTest {
   void testImageAdoptionFallback() {
     IngatlanItem activeNoImage = createItem("1", "dh", "http://dh/noimg", "Kép nélkül",
         "Debrecen", PropertyType.LAKAS, 70.0, 2.0, 50_000_000L, "ACTIVE");
+    activeNoImage.setLocation("Debrecen, Belváros");
     activeNoImage.setImageUrl(null);
 
     IngatlanItem activeWithImage = createItem("2", "oc", "http://oc/withimg", "Képpel",
         "Debrecen", PropertyType.LAKAS, 70.0, 2.0, 52_000_000L, "ACTIVE");
+    activeWithImage.setLocation("Debrecen, Belváros");
     activeWithImage.setImageUrl("https://images.example.com/photo.jpg");
 
     List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(activeNoImage, activeWithImage));
