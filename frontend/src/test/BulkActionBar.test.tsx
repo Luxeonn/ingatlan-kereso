@@ -250,7 +250,7 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     expect(screen.getByText('6 ingatlan (9 hirdetés)')).toBeTruthy()
   })
 
-  it('includes total source listings count when filtered or progressively batched (#358)', () => {
+  it('includes total source listings count when filtered and omits DOM batch Megjelenítve prefix (#358, #432)', () => {
     const clusteredItems: IngatlanItem[] = [
       createMockIngatlanItem({ id: '1', sourcesCount: 2 }),
       createMockIngatlanItem({ id: '2', sourcesCount: 3 }),
@@ -277,10 +277,11 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
       />,
     )
 
-    expect(screen.getByText('Megjelenítve: 1 / 2 db (5 hirdetés)')).toBeTruthy()
+    expect(screen.getByText('2 ingatlan (5 hirdetés)')).toBeTruthy()
+    expect(screen.queryByText(/Megjelenítve:/i)).toBeNull()
   })
 
-  it('counts all portals from sourceListings in portal quick-filter chips (#390)', () => {
+  it('counts only the primary winning portal per item in portal quick-filter chips so sum equals net total (#432)', () => {
     const multiPortalItems: IngatlanItem[] = [
       createMockIngatlanItem({
         id: '1',
@@ -292,20 +293,36 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
           { portal: 'dh', url: 'https://dh.hu/1' },
         ],
       }),
+      createMockIngatlanItem({
+        id: '2',
+        portal: 'Költözzbe',
+        source: { portalId: 'koltozzbe', portalName: 'Költözzbe' },
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'koltozzbe', url: 'https://koltozzbe.hu/2' },
+          { portal: 'jofogas', url: 'https://jofogas.hu/2' },
+        ],
+      }),
     ]
 
     render(
       <BulkActionBar
         items={multiPortalItems}
         rawItems={multiPortalItems}
-        totalRawCount={1}
+        totalRawCount={2}
       />,
     )
 
     const portalRow = screen.getByTestId('portal-quick-filter-chips')
+    const allBtn = within(portalRow).getByRole('button', { name: /Összes/i })
     const dhBtn = within(portalRow).getByRole('button', { name: /Duna House/i })
     const ocBtn = within(portalRow).getByRole('button', { name: /Otthon Centrum/i })
-    expect(dhBtn.textContent).toContain('1')
+    const kbBtn = within(portalRow).getByRole('button', { name: /Költözzbe/i })
+    const jfBtn = within(portalRow).getByRole('button', { name: /Jófogás/i })
+    expect(allBtn.textContent).toContain('2')
     expect(ocBtn.textContent).toContain('1')
+    expect(kbBtn.textContent).toContain('1')
+    expect(dhBtn.textContent).toContain('0')
+    expect(jfBtn.textContent).toContain('0')
   })
 })

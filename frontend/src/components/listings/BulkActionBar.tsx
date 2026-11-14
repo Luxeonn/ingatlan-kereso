@@ -11,7 +11,7 @@ import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
 import { useFilterStore, SORT_OPTIONS, isSortOption } from '../../store/useFilterStore'
 import { isItemBargain } from '../../hooks/useSearch'
-import { PORTAL_CHIPS, getItemPortalKeys, getTotalSourceListingsCount } from '../../utils/formatters'
+import { PORTAL_CHIPS, getPrimaryPortalKey, getTotalSourceListingsCount } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
 
@@ -28,15 +28,11 @@ interface BulkActionBarProps {
 }
 
 function formatResultCount(
-  visibleCount: number | undefined,
   itemsLength: number,
   totalRawCount: number,
   totalSourceListingsCount: number,
 ): string {
   const sourceSuffix = totalSourceListingsCount > itemsLength ? ` (${totalSourceListingsCount} hirdetés)` : ''
-  if (visibleCount !== null && visibleCount !== undefined && visibleCount < itemsLength) {
-    return `Megjelenítve: ${visibleCount} / ${itemsLength} db${sourceSuffix}`
-  }
   if (itemsLength !== totalRawCount) {
     return `${itemsLength} / ${totalRawCount} db${sourceSuffix}`
   }
@@ -52,7 +48,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   totalRawCount,
   onClearHistory,
   isClearingHistory = false,
-  visibleCount,
   hiddenCount = 0,
 }) => {
   const { viewMode, setViewMode } = useUiStore()
@@ -91,9 +86,10 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
       if (chip.id !== 'all') counts[chip.id] = 0
     })
     sourceItems.forEach((item) => {
-      getItemPortalKeys(item).forEach((key) => {
-        counts[key] = (counts[key] || 0) + 1
-      })
+      const primaryKey = getPrimaryPortalKey(item)
+      if (primaryKey) {
+        counts[primaryKey] = (counts[primaryKey] || 0) + 1
+      }
     })
     return counts
   }, [sourceItems])
@@ -102,8 +98,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
-          <span>{formatResultCount(visibleCount, items.length, totalRawCount, totalSourceListingsCount)}</span>
-          {items.length !== totalRawCount && (visibleCount === null || visibleCount === undefined) && (
+          <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
+          {items.length !== totalRawCount && (
             <span className="text-[11px] font-normal text-[var(--text-secondary)]">
               (szűrve)
             </span>

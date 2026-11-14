@@ -464,7 +464,7 @@ class PropertyBusinessRulesRegressionTest {
       counts.put("Duna House", 0);
       counts.put("Otthon Centrum", 0);
       sync.recalculateRelevantPortalCounts(counts, List.of(ocPrimary));
-      assertEquals(1, counts.get("Duna House"), "A másodlagos forrásként beolvadt DH találatot is számolni kell");
+      assertEquals(0, counts.get("Duna House"), "A másodlagos forrás nem duplázhatja a nettó portál-számlálót (#432)");
       assertEquals(1, counts.get("Otthon Centrum"));
 
       List<PortalScrapeResult> rawResults = List.of(
