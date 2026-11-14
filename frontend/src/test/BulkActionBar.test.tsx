@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { BulkActionBar } from '../components/listings/BulkActionBar'
 import { useFilterStore } from '../store/useFilterStore'
-import { useUiStore, DEFAULT_PINNED_QUICK_FILTERS } from '../store/useUiStore'
+import { useUiStore, DEFAULT_PINNED_QUICK_FILTERS, ALL_QUICK_FILTER_IDS } from '../store/useUiStore'
 import { createMockIngatlanItem } from './testFixtures'
 import type { IngatlanItem } from '../types/property'
 
@@ -356,5 +356,74 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     expect(kbBtn.textContent).toContain('1')
     expect(dhBtn.textContent).toContain('0')
     expect(jfBtn.textContent).toContain('0')
+  })
+
+  it('displays matching item count badges on all quick filter chips when count > 0 and omits them when 0 (#434)', () => {
+    useUiStore.setState({ pinnedQuickFilters: [...ALL_QUICK_FILTER_IDS] })
+
+    const itemsWithVariedFlags: IngatlanItem[] = [
+      createMockIngatlanItem({
+        id: 'q-1',
+        isNew: true,
+        viewed: false,
+        isBargain: true,
+        newConstruction: true,
+        sourcesCount: 1,
+      }),
+      createMockIngatlanItem({
+        id: 'q-2',
+        isNew: true,
+        viewed: false,
+        isBargain: false,
+        newConstruction: false,
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/q2a' },
+          { portal: 'oc', url: 'https://oc.hu/q2b' },
+        ],
+      }),
+      createMockIngatlanItem({
+        id: 'q-3',
+        isNew: false,
+        viewed: true,
+        isBargain: true,
+        newConstruction: false,
+        sourcesCount: 1,
+      }),
+    ]
+
+    const { rerender } = render(
+      <BulkActionBar
+        items={itemsWithVariedFlags}
+        rawItems={itemsWithVariedFlags}
+        totalRawCount={3}
+        hiddenCount={4}
+      />,
+    )
+
+    expect(screen.getByTestId('bargain-filter-count').textContent).toBe('2')
+    expect(screen.getByTestId('only-new-filter-count').textContent).toBe('2')
+    expect(screen.getByTestId('hidden-filter-count').textContent).toBe('4')
+    expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('2')
+    expect(screen.getByTestId('only-new-construction-filter-count').textContent).toBe('1')
+    expect(screen.getByTestId('exclude-multi-source-filter-count').textContent).toBe('2')
+    expect(screen.getByTestId('only-multi-source-filter-count').textContent).toBe('1')
+
+    rerender(
+      <BulkActionBar
+        items={[]}
+        rawItems={[]}
+        totalRawCount={0}
+        hiddenCount={0}
+      />,
+    )
+
+    expect(screen.queryByTestId('bargain-filter-count')).toBeNull()
+    expect(screen.queryByTestId('only-new-filter-count')).toBeNull()
+    expect(screen.queryByTestId('hidden-filter-count')).toBeNull()
+    expect(screen.queryByTestId('exclude-viewed-filter-count')).toBeNull()
+    expect(screen.queryByTestId('only-new-construction-filter-count')).toBeNull()
+    expect(screen.queryByTestId('exclude-multi-source-filter-count')).toBeNull()
+    expect(screen.queryByTestId('only-multi-source-filter-count')).toBeNull()
   })
 })

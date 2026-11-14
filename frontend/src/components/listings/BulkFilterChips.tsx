@@ -99,17 +99,22 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
 export interface QuickFilterChipsRowProps {
   onlyNew: boolean
   setOnlyNew: (val: boolean) => void
+  onlyNewCount?: number
   onlyNewConstruction?: boolean
   setOnlyNewConstruction: (val: boolean) => void
+  onlyNewConstructionCount?: number
   onlyBargain: boolean
   setOnlyBargain: (val: boolean) => void
   bargainCount: number
   excludeViewed?: boolean
   setExcludeViewed: (val: boolean) => void
+  excludeViewedCount?: number
   excludeMultiSource?: boolean
   setExcludeMultiSource?: (val: boolean) => void
+  excludeMultiSourceCount?: number
   onlyMultiSource?: boolean
   setOnlyMultiSource?: (val: boolean) => void
+  onlyMultiSourceCount?: number
   showHidden?: boolean
   setShowHidden?: (val: boolean) => void
   hiddenCount?: number
@@ -118,20 +123,25 @@ export interface QuickFilterChipsRowProps {
 export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
   onlyNew,
   setOnlyNew,
+  onlyNewCount,
   onlyNewConstruction,
   setOnlyNewConstruction,
+  onlyNewConstructionCount,
   onlyBargain,
   setOnlyBargain,
   bargainCount,
   excludeViewed,
   setExcludeViewed,
+  excludeViewedCount,
   excludeMultiSource,
   setExcludeMultiSource,
+  excludeMultiSourceCount,
   onlyMultiSource,
   setOnlyMultiSource,
+  onlyMultiSourceCount,
   showHidden,
   setShowHidden,
-  hiddenCount = 0,
+  hiddenCount,
 }) => {
   const { pinnedQuickFilters, togglePinnedQuickFilter } = useUiStore()
   const isPinned = (id: QuickFilterId) => pinnedQuickFilters.includes(id)
@@ -166,6 +176,9 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             activeClassName="border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm"
             icon={<Sparkles className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
             label="Csak új találatok"
+            count={onlyNewCount}
+            countTestId="only-new-filter-count"
+            activeBadgeClass="bg-emerald-500/20 text-emerald-300"
           />
         )}
 
@@ -193,6 +206,9 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             activeClassName="border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm"
             icon={<EyeOff className="h-3.5 w-3.5 text-blue-400 shrink-0" />}
             label="Megtekintettek rejtése"
+            count={excludeViewedCount}
+            countTestId="exclude-viewed-filter-count"
+            activeBadgeClass="bg-blue-500/20 text-blue-300"
           />
         )}
 
@@ -204,6 +220,9 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             activeClassName="border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm"
             icon={<Building2 className="h-3.5 w-3.5 text-cyan-400 shrink-0" />}
             label="Csak új építésű"
+            count={onlyNewConstructionCount}
+            countTestId="only-new-construction-filter-count"
+            activeBadgeClass="bg-cyan-500/20 text-cyan-300"
           />
         )}
 
@@ -216,6 +235,9 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             activeClassName="border border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm"
             icon={<Layers className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
             label="Több forrásosak rejtése"
+            count={excludeMultiSourceCount}
+            countTestId="exclude-multi-source-filter-count"
+            activeBadgeClass="bg-amber-500/20 text-amber-300"
           />
         )}
 
@@ -229,6 +251,9 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             inactiveClassName="border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-indigo-400 hover:border-indigo-500/30"
             icon={<Layers className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
             label="Csak több forrásosak"
+            count={onlyMultiSourceCount}
+            countTestId="only-multi-source-filter-count"
+            activeBadgeClass="bg-indigo-500/20 text-indigo-300"
           />
         )}
       </div>
