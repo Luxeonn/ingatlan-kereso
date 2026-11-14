@@ -41,10 +41,11 @@ public class DunaHouseUrlBuilder implements PortalUrlBuilder {
 
   @Override
   public String buildPageUrl(String baseSearchUrl, int page) {
-    if (page <= 1) {
+    if (baseSearchUrl == null || page <= 1) {
       return baseSearchUrl;
     }
-    return baseSearchUrl + "/oldal-" + page;
+    String separator = baseSearchUrl.contains("?") ? "&" : "?";
+    return baseSearchUrl + separator + "page=" + page;
   }
 
   private String buildPriceSlug(SearchCriteria criteria) {

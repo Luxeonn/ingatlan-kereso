@@ -79,7 +79,7 @@ class PortalAdaptersModularTest {
         "https://dh.hu/elado-ingatlan/lakas/hajdu-bihar-megye/debrecen/-/40-60-mFt/50-120-m2",
         url);
     assertEquals(url, urlBuilder.buildPageUrl(url, 1));
-    assertEquals(url + "/oldal-2", urlBuilder.buildPageUrl(url, 2));
+    assertEquals(url + "?page=2", urlBuilder.buildPageUrl(url, 2));
 
     String html =
         "<html><body>"

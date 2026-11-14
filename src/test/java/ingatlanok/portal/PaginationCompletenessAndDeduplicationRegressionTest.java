@@ -61,17 +61,17 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
   class MultiPagePaginationTests {
 
     @Test
-    @DisplayName("Duna House: 3 oldalas lapozás (/oldal-N) hiánytalan rekordkészlettel és pontos URL-sorrenddel")
+    @DisplayName("Duna House: 3 oldalas lapozás (?page=N) hiánytalan rekordkészlettel és pontos URL-sorrenddel")
     void dunaHouseThreePagePagination() {
       DunaHousePortalEngine engine = new DunaHousePortalEngine();
       List<String> requestedUrls = new ArrayList<>();
 
       PortalScrapeResult result = engine.scrape(criteria, url -> {
         requestedUrls.add(url);
-        if (url.endsWith("/oldal-2")) {
+        if (url.endsWith("?page=2")) {
           return Jsoup.parse(dhPageHtml("LK000201", 49, 55, "LK000202", 52, 60), url);
         }
-        if (url.endsWith("/oldal-3")) {
+        if (url.endsWith("?page=3")) {
           return Jsoup.parse(dhPageHtml("LK000301", 58, 66), url);
         }
         return Jsoup.parse(dhPageHtml("LK000101", 42, 48, "LK000102", 45, 51), url);
@@ -79,9 +79,9 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
 
       assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
       assertEquals(3, requestedUrls.size());
-      assertFalse(requestedUrls.get(0).contains("/oldal-"));
-      assertTrue(requestedUrls.get(1).endsWith("/oldal-2"));
-      assertTrue(requestedUrls.get(2).endsWith("/oldal-3"));
+      assertFalse(requestedUrls.get(0).contains("?page="));
+      assertTrue(requestedUrls.get(1).endsWith("?page=2"));
+      assertTrue(requestedUrls.get(2).endsWith("?page=3"));
       assertEquals(5, result.getItems().size());
       assertNotNull(result.getTechnicalDetails());
       assertTrue(result.getTechnicalDetails().contains("pages=3"));
@@ -277,7 +277,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       List<String> dhUrls = new ArrayList<>();
       PortalScrapeResult dhRes = new DunaHousePortalEngine().scrape(criteria, url -> {
         dhUrls.add(url);
-        if (url.endsWith("/oldal-2")) {
+        if (url.endsWith("?page=2")) {
           return Jsoup.parse("<html><body><div>Üres oldal</div></body></html>", url);
         }
         return Jsoup.parse(dhPageHtml("LK000101", 45, 52), url);
@@ -476,7 +476,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       DunaHousePortalEngine dhEngine = new DunaHousePortalEngine();
 
       PortalScrapeResult partialOnNull = dhEngine.scrape(criteria, url -> {
-        if (url.endsWith("/oldal-2")) {
+        if (url.endsWith("?page=2")) {
           return null;
         }
         return Jsoup.parse(dhPageHtml("LK000101", 45, 52, "LK000102", 49, 58), url);
@@ -489,7 +489,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertTrue(partialOnNull.getTechnicalDetails().contains("stopReason=INTERMEDIATE_PAGE_FETCH_FAILED"));
 
       PortalScrapeResult partialOnException = dhEngine.scrape(criteria, url -> {
-        if (url.endsWith("/oldal-2")) {
+        if (url.endsWith("?page=2")) {
           throw new RuntimeException("HTTP 429 Too Many Requests / SocketTimeoutException");
         }
         return Jsoup.parse(dhPageHtml("LK000101", 45, 52), url);
@@ -555,7 +555,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
             new DunaHouseUrlBuilder(),
             new DunaHouseRawParser(),
             url -> {
-              if (url.endsWith("/oldal-2")) {
+              if (url.endsWith("?page=2")) {
                 return Jsoup.parse("<html><body><!-- " + secretRawHtmlMarker + " --></body></html>", url);
               }
               return Jsoup.parse(
