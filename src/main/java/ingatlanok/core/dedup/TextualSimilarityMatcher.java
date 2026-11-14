@@ -7,6 +7,7 @@ import java.util.Set;
 
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.PropertyType;
 
 /**
  * Textual tokenization, multi-generation detection, and semantic similarity evaluation.
@@ -171,7 +172,21 @@ public final class TextualSimilarityMatcher {
     if (slugA.isBlank() || !slugA.equals(slugB)) {
       return false;
     }
-    return extractDistinctiveTokens(a).size() >= 2;
+    int distinctiveCount = extractDistinctiveTokens(a).size();
+    if (distinctiveCount >= 2) {
+      return true;
+    }
+    if (distinctiveCount >= 1 && !slugA.contains("kisterseg")) {
+      return true;
+    }
+    return isGenericTemplateFlatSlug(a, slugA);
+  }
+
+  private static boolean isGenericTemplateFlatSlug(IngatlanItem item, String slug) {
+    if (item == null || item.getPropertyType() != PropertyType.LAKAS) {
+      return false;
+    }
+    return slug.split("-").length >= 4 && !slug.contains("kisterseg");
   }
 
   private static boolean isSlugSimilar(String titleA, String titleB) {

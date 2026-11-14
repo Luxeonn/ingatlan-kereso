@@ -1,5 +1,6 @@
 package ingatlanok.core.dedup;
 
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,6 +13,14 @@ import ingatlanok.model.PropertyType;
  * Detects semantic, architectural, and physical condition conflicts between two listings.
  */
 public final class SemanticConflictDetector {
+
+  private static final int MAX_SUPPORTED_FLOOR = 30;
+
+  private static final Pattern FLOOR_NUMBER_PATTERN =
+      Pattern.compile("(?iuU)(?<!\\d)(\\d{1,2})\\s*\\.?\\s*(?:emelet(?:en|i)?\\b|em\\.(?!\\w)|em\\b)");
+
+  private static final Pattern GROUND_FLOOR_PATTERN =
+      Pattern.compile("(?iuU)\\b(?:foldszint(?:en|i)?|fszt\\.?)(?!\\w)");
 
   private static final Set<String> NEW_CONSTRUCTION_KEYWORDS = Set.of(
       "uj-epites", "ujepites", "epites-alatt", "kulcsrakes", "most-epulo"
@@ -68,11 +77,53 @@ public final class SemanticConflictDetector {
     if ((panelA && brickB) || (panelB && brickA)) {
       return true;
     }
+    if (hasExplicitFloorConflict(a, b)) {
+      return true;
+    }
     boolean groundA = isGroundFloor(slugA);
     boolean groundB = isGroundFloor(slugB);
     boolean topA = isTopFloor(slugA);
     boolean topB = isTopFloor(slugB);
     return (groundA && topB) || (groundB && topA);
+  }
+
+  private static boolean hasExplicitFloorConflict(IngatlanItem a, IngatlanItem b) {
+    Integer floorA = extractFloorNumber(a);
+    Integer floorB = extractFloorNumber(b);
+    return floorA != null && floorB != null && !floorA.equals(floorB);
+  }
+
+  /**
+   * Extracts an explicit apartment floor number (0 for ground floor, 1..30 for upper floors)
+   * while ignoring building story counts such as "4 emeletes".
+   */
+  public static Integer extractFloorNumber(IngatlanItem item) {
+    if (item == null) {
+      return null;
+    }
+    String rawDetails = item.getDetailsInfo() != null && item.getDetailsInfo().getRawText() != null
+        ? item.getDetailsInfo().getRawText()
+        : "";
+    String combined = getCombinedText(item) + " " + rawDetails;
+    String normalized = SlugUtils.stripAccents(combined.toLowerCase(Locale.ROOT));
+
+    Matcher matcher = FLOOR_NUMBER_PATTERN.matcher(normalized);
+    if (matcher.find()) {
+      return parseBoundedFloor(matcher.group(1));
+    }
+    if (GROUND_FLOOR_PATTERN.matcher(normalized).find()) {
+      return 0;
+    }
+    return null;
+  }
+
+  private static Integer parseBoundedFloor(String rawNumber) {
+    try {
+      int floor = Integer.parseInt(rawNumber);
+      return (floor >= 1 && floor <= MAX_SUPPORTED_FLOOR) ? floor : null;
+    } catch (NumberFormatException ignored) {
+      return null;
+    }
   }
 
   private static boolean hasHouseConflict(
@@ -150,8 +201,9 @@ public final class SemanticConflictDetector {
 
   private static String getCombinedText(IngatlanItem item) {
     String title = item.getTitle() != null ? item.getTitle() : "";
+    String location = item.getLocation() != null ? item.getLocation() : "";
     String details = item.getDetails() != null ? item.getDetails() : "";
-    return title + " " + details;
+    return title + " " + location + " " + details;
   }
 
   private static boolean isNewConstruction(IngatlanItem item, String slug) {

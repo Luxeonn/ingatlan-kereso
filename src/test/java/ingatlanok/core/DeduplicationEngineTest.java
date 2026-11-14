@@ -412,6 +412,112 @@ class DeduplicationEngineTest {
         "Azonos portálon belüli sabloncímű eltérő ingatlanok nem olvaszthatók össze");
   }
 
+  @Test
+  @DisplayName("#437: Sabloncímű és eltérő fotójú intraportál duplikátumok összevonása Miskolcon")
+  void testIssue437MiskolcTemplateTitledIntraPortalAndCrossPortalClustering() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    // 2. emeleti 1.5 szobás panellakás: több Költözzbe + 1 Ingatlan.com eltérő CDN képekkel
+    IngatlanItem k2FloorA = createItem("k2a", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10880350",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    k2FloorA.setLocation("Miskolc, 2. emelet");
+    k2FloorA.setImageUrl("https://cdn.koltozzbe.hu/img/photo-a.jpg");
+
+    IngatlanItem k2FloorB = createItem("k2b", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10882116",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    k2FloorB.setLocation("Miskolc, 2. emelet");
+    k2FloorB.setImageUrl("https://cdn.koltozzbe.hu/img/photo-b.jpg");
+
+    IngatlanItem k2FloorC = createItem("k2c", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10955540",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    k2FloorC.setLocation("Miskolc, 2. emelet");
+    k2FloorC.setImageUrl("https://cdn.koltozzbe.hu/img/photo-c.jpg");
+
+    IngatlanItem ic2Floor = createItem("ic2", "Ingatlan.com", "https://ingatlan.com/35129856",
+        "Eladó 35 nm-es panellakás Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    ic2Floor.setLocation("Miskolc");
+    ic2Floor.setImageUrl("https://cdn.ingatlan.com/img/photo-ic.jpg");
+
+    // 10. emeleti 1.0 szobás panellakás: több Költözzbe + több Jófogás eltérő fotókkal
+    IngatlanItem k10FloorA = createItem("k10a", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10910001",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    k10FloorA.setLocation("Miskolc, 10. emelet");
+    k10FloorA.setImageUrl("https://cdn.koltozzbe.hu/img/photo-10a.jpg");
+
+    IngatlanItem k10FloorB = createItem("k10b", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10910002",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    k10FloorB.setLocation("Miskolc, 10. emelet");
+    k10FloorB.setImageUrl("https://cdn.koltozzbe.hu/img/photo-10b.jpg");
+
+    IngatlanItem jf10FloorA = createItem("jf10a", "Jófogás", "https://ingatlan.jofogas.hu/1111111.htm",
+        "35 nm-es lakás eladó Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    jf10FloorA.setLocation("Miskolc");
+    jf10FloorA.setImageUrl("https://img.jofogas.hu/photo-jf1.jpg");
+
+    IngatlanItem jf10FloorB = createItem("jf10b", "Jófogás", "https://ingatlan.jofogas.hu/2222222.htm",
+        "35 nm-es lakás eladó Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    jf10FloorB.setLocation("Miskolc");
+    jf10FloorB.setImageUrl("https://img.jofogas.hu/photo-jf2.jpg");
+
+    List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(
+        k2FloorA, k10FloorA, jf10FloorA, k2FloorB, ic2Floor, jf10FloorB, k10FloorB, k2FloorC));
+
+    assertEquals(2, clustered.size(),
+        "A 2. emeleti (1.5 szobás) és a 10. emeleti (1.0 szobás) lakásnak pontosan 2 klaszterbe kell összeolvadnia");
+    for (IngatlanItem cluster : clustered) {
+      assertEquals(4, cluster.getSourcesCount(),
+          "Mindkét klaszternek mind a 4 hirdetési forrást tartalmaznia kell");
+    }
+  }
+
+  @Test
+  @DisplayName("#437: Explicit emeletszám-konfliktus megakadályozza eltérő emeleti lakások hamis összevonását")
+  void testIssue437ExplicitFloorConflictPreventsFalseMerge() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem flat2ndFloor = createItem("f2", "Költözzbe", "https://koltozzbe.hu/h2",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flat2ndFloor.setLocation("Miskolc, 2. emelet");
+
+    IngatlanItem flat3rdFloor = createItem("f3", "Költözzbe", "https://koltozzbe.hu/h3",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flat3rdFloor.setLocation("Miskolc, 3. emelet");
+
+    IngatlanItem flat10thFloor = createItem("f10", "Otthon Centrum", "https://oc.hu/h10",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flat10thFloor.setLocation("Miskolc, 10. emelet");
+
+    IngatlanItem flatGroundFloor = createItem("f0", "Duna House", "https://dh.hu/h0",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flatGroundFloor.setLocation("Miskolc, földszint");
+
+    assertFalse(engine.isMatch(flat2ndFloor, flat3rdFloor), "2. emelet és 3. emelet nem vonható össze");
+    assertFalse(engine.isMatch(flat2ndFloor, flat10thFloor), "2. emelet és 10. emelet nem vonható össze");
+    assertFalse(engine.isMatch(flat2ndFloor, flatGroundFloor), "2. emelet és földszint nem vonható össze");
+    assertEquals(4, engine.deduplicateMultiSignal(
+        List.of(flat2ndFloor, flat3rdFloor, flat10thFloor, flatGroundFloor)).size());
+
+    IngatlanItem fourStoryBuilding2ndFloor = createItem("f2-stories", "Jófogás", "https://ingatlan.jofogas.hu/f2.htm",
+        "4 emeletes társasházban, 2. emeleten eladó panellakás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    fourStoryBuilding2ndFloor.setLocation("Miskolc, Avas");
+
+    assertTrue(engine.isMatch(flat2ndFloor, fourStoryBuilding2ndFloor),
+        "A '4 emeletes' épületszint-szám és '2. emelet' vs 'Avas' nem generálhat álkonfliktust");
+  }
+
   private IngatlanItem createItem(
       String id,
       String portal,
