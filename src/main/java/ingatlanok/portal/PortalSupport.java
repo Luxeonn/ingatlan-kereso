@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.common.PropertyParser;
@@ -229,5 +230,27 @@ public final class PortalSupport {
     }
     int statusCode = (lastStatus != null && lastStatus >= 400) ? lastStatus : 500;
     return RawExtractionResult.failure(method, fallbackUrl, defaultErrorMessage, statusCode);
+  }
+
+  public static boolean hasPaginationWithoutNextPage(
+      Document document, String pageParamName, int nextPage) {
+    if (document == null || pageParamName == null || pageParamName.isBlank()) {
+      return false;
+    }
+    Elements pageLinks = document.select("a[href*=" + pageParamName + "=]");
+    if (pageLinks.isEmpty()) {
+      return false;
+    }
+    String nextToken = pageParamName + "=" + nextPage;
+    for (Element link : pageLinks) {
+      String href = link.attr("href");
+      if (href.contains("?" + nextToken + "&")
+          || href.contains("&" + nextToken + "&")
+          || href.endsWith("?" + nextToken)
+          || href.endsWith("&" + nextToken)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

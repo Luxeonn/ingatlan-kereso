@@ -17,8 +17,9 @@ import ingatlanok.portal.PortalSupport;
 
 public class IngatlanBazarApiStrategy implements ExtractionStrategy {
 
+  public static final int DEFAULT_MAX_PAGES = 20;
+
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarApiStrategy.class);
-  private static final int DEFAULT_MAX_PAGES = 2;
 
   private final IngatlanBazarQueryBuilder queryBuilder;
   private final IngatlanBazarRawParser rawParser;
