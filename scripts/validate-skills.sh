@@ -499,9 +499,6 @@ else
   PR_SECTIONS=(
     "Miért készült"
     "Mit módosít"
-    "Acceptance Criteria Traceability"
-    "Tesztelés és Ellenőrzés"
-    "Thematic Agent Approval Gate"
   )
   for sec in "${PR_SECTIONS[@]}"; do
     if ! grep -qiE "^##.*${sec}" "$PR_TEMPLATE"; then
@@ -536,7 +533,7 @@ done < <(grep -rnI 'Spring Boot 4\.1\.1' README.md AGENTS.md GEMINI.md gemini.md
 # 7.4 Execute PR compliance unit tests
 if command -v node >/dev/null 2>&1; then
   if node --test scripts/test-verify-pr-compliance.mjs >/dev/null 2>&1; then
-    log_pass "PR compliance test suite passed (19 unit tests)"
+    log_pass "PR compliance test suite passed"
   else
     log_fail "PR compliance test suite failed (scripts/test-verify-pr-compliance.mjs)" "scripts/test-verify-pr-compliance.mjs"
   fi

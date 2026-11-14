@@ -36,7 +36,7 @@ Add JUnit 5 tests under the matching `src/test/java` package (reusing `ingatlano
 
 Request GitHub Copilot as reviewer on every PR you create (`gh pr edit <id> --add-reviewer "@copilot"`). Agents must always set Copilot as a reviewer.
 
-Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, or `docs/`; target `develop` by default. PRs must use concise, high-signal Hungarian descriptions adhering strictly to the template's 5 core sections (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`, `📋 Acceptance Criteria Traceability`, `🧪 Tesztelés és Ellenőrzés`, and `🛡️ Thematic Agent Approval Gate` with standard decision tokens `[NO_FINDING]`, `[NOT_APPLICABLE]`, rejecting `[NOT_VERIFIED]`, `[FINDING]`, and legacy `[OK]`, accompanied by 1-sentence rationales per the Review Risk Matrix in `docs/pr-compliance.md`), link related issues with closing keywords (`Closes #<id>`), and strictly enforce clean UTF-8 encoding (`gh pr create --body-file ...`) without BOM to prevent mojibake. All required CI checks must pass before merge.
+Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, or `docs/`; target `develop` by default. PRs must use concise, high-signal Hungarian descriptions adhering strictly to the template's 2 core sections (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`), link related issues with closing keywords (`Closes #<id>`), and strictly enforce clean UTF-8 encoding (`gh pr create --body-file ...`) without BOM to prevent mojibake. All required CI checks must pass before merge.
 
 ## Issue Creation & Tracking Guidelines
 
@@ -60,7 +60,7 @@ When creating GitHub issues (manually or via `gh issue create`), always use the 
 - The scope of modifications must strictly correlate with the goal and acceptance criteria of the target issue. Every modified file and diff segment must be directly traceable to the issue requirements.
 - Unrequested refactoring, technology version upgrades, unsolicited reformatting, package restructuring, or API/DB contract alterations are strictly forbidden unless explicitly requested in the issue.
 - If an agent discovers a necessary or beneficial change outside the issue scope, the agent must document the motivation, risk, and recommend a dedicated tracking issue instead of applying it automatically.
-- Small supportive modifications are permitted only when indispensable to satisfy an acceptance criterion, and must be explicitly justified in the PR body under `🛠️ Mit módosít / Mit javít?` and `📋 Acceptance Criteria Traceability`.
+- Small supportive modifications are permitted only when indispensable to satisfy an acceptance criterion, and must be explicitly justified in the PR body under `🛠️ Mit módosít / Mit javít?`.
 
 ## Mandatory Adversarial Self-Review Protocol (Anti-Tunnel-Vision & Confirmation-Bias Gate)
 
@@ -68,7 +68,7 @@ Before submitting any PR or finalizing code changes, every AI agent must execute
 
 1. **Multi-Source Domain Invariant (Frontend):** Listings are deduplicated clusters (`IngatlanItem`) with secondary source data in `sourceListings`. Never access `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` directly for filtering, sorting, badges, or analytics; always use the canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` from `src/utils/formatters.ts` (enforced mechanically via ESLint AST `no-restricted-syntax`).
 2. **Multi-City & Partial Failure Invariant:** Verify that search orchestration, portal statuses, and presentation DTOs behave correctly when queries return mixed portal/city results (`SUCCESS`, `PARTIAL_SUCCESS`, `TOTAL_FAILURE`, `BOT_PROTECTED`) without throwing unhandled exceptions or presenting false-empty views.
-3. **End-to-End Contract & Traceability Invariant:** Every backend model/DTO addition or modification must propagate synchronously across `openapi/api-spec.yaml` -> `PresentationMapper` -> `frontend/src/types/generated-api.ts` -> UI components (enforced by `OpenApiSpecIntegrityTest.java` and `scripts/verify-pr-compliance.mjs`). All test files referenced in the PR `Acceptance Criteria Traceability` table must physically exist in the repository.
+3. **End-to-End Contract & Traceability Invariant:** Every backend model/DTO addition or modification must propagate synchronously across `openapi/api-spec.yaml` -> `PresentationMapper` -> `frontend/src/types/generated-api.ts` -> UI components (enforced by `OpenApiSpecIntegrityTest.java` and `scripts/verify-pr-compliance.mjs`).
 4. **Hermetic Test Isolation & No Production Test Branching:** Tests must be completely deterministic, network-free, and order-independent. Injecting test-mode branching (`app.test-mode` / `Boolean.getBoolean`) into production code is strictly forbidden outside `HttpFetcher.java` (enforced by `scripts/validate-skills.sh`). Zero `synchronized` methods or blocks are permitted in production code to prevent Java 25 virtual thread carrier pinning (enforced by Checkstyle and ArchUnit).
 
 ## Configuration & Security

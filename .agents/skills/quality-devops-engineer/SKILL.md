@@ -143,7 +143,7 @@ For every review, the specialist must follow this four-phase workflow:
 - [ ] The PR build workflow blocks titles that do not follow Conventional Commits.
 - [ ] Docker publishing is gated on successful CI results.
 - [ ] PR changes map directly to issue acceptance criteria: no unsolicited refactoring or out-of-scope diffs.
-- [ ] Adversarial Self-Review Protocol executed across all 4 invariant pillars; PR Acceptance Criteria Traceability references only real, existing test files on the filesystem verified by `verify-pr-compliance.mjs`.
+- [ ] Adversarial Self-Review Protocol executed across all 4 invariant pillars.
 - [ ] Automated architecture regression gates (ArchUnit and negative tests) pass locally and in CI.
 
 ---
@@ -155,16 +155,6 @@ The specialist must record the following concrete evidence during review:
 - **Test evidence**: Relevant `./gradlew check` and frontend test results.
 - **Coverage evidence**: JaCoCo report and the result of `calculate-jacoco.sh` / `jacocoTestCoverageVerification`.
 - **CI/CD and container evidence**: Workflow status, path-filter behavior, health checks, and Docker runtime user.
-
-### Thematic Agent Approval Gate Output
-
-Use the following text in the Pull Request's Thematic Gate block:
-
-```markdown
-- [x] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING / NOT_APPLICABLE] - [One concise sentence summarizing testing, coverage, Checkstyle, and CI/CD integrity]
-```
-
-*Note: For `FINDING`, leave the checkbox unchecked (`[ ]`), set the status to `[FINDING]`, and attach a detailed report in the PR description or a comment.*
 
 ---
 

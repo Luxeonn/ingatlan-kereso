@@ -67,5 +67,4 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 1. **Conventional Commits:** PR titles and commits must follow `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `chore: ...`.
 2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop`. Branch naming follows `feature/<name>`, `fix/<name>`, `refactor/<name>`.
-3. **Acceptance Criteria Traceability:** Every PR must include an explicit mapping of issue acceptance criteria to modified files and verification evidence in `📋 Acceptance Criteria Traceability`.
-4. **Thematic Agent Approval Gate:** Every PR requires formal sign-off from designated specialist personas (`fullstack-architect`, `scraper-security-engineer`, `quality-devops-engineer`) adhering to the Review Risk Matrix (`docs/pr-compliance.md`) using standardized decision semantics (`[NO_FINDING]`, `[FINDING]`, `[NOT_APPLICABLE]`, `[NOT_VERIFIED]`) and a mandatory 1-sentence rationale. Alternative tokens like `[OK]` are strictly forbidden. See `docs/pr-compliance.md` and `docs/architecture.md` for authoritative governance specifications.
+3. **Concise PR Description:** Every PR must follow `.github/pull_request_template.md` (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`, and `Closes #<id>` / `Fixes #<id>`). See `docs/pr-compliance.md` for details.
