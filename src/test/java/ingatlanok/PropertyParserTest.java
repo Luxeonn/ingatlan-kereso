@@ -91,6 +91,20 @@ class PropertyParserTest {
     PropertyDetails dNegyzetmeter = PropertyParser.parseDetails("100 négyzetméter", p20M);
     assertNotNull(dNegyzetmeter);
     assertEquals(100.0, dNegyzetmeter.getAreaSquareMeters());
+
+    PropertyDetails halfRoomDetails = PropertyParser.parseDetails("132 m² 4 + 1 szoba", p20M);
+    assertEquals(132.0, halfRoomDetails.getAreaSquareMeters());
+    assertEquals(4.5, halfRoomDetails.getRoomCount());
+
+    PropertyDetails plusRoomDetails = PropertyParser.parseDetails("5+ szoba • 90 m²", p20M);
+    assertEquals(90.0, plusRoomDetails.getAreaSquareMeters());
+    assertEquals(5.0, plusRoomDetails.getRoomCount());
+
+    PriceInfo rangePrice = PropertyParser.parsePrice("105-125 M Ft");
+    assertEquals(105_000_000L, rangePrice.getAmountHuf());
+    PropertyDetails rangeDetails = PropertyParser.parseDetails("95-117 m² 3-4 szoba", rangePrice);
+    assertEquals(95.0, rangeDetails.getAreaSquareMeters());
+    assertEquals(3.0, rangeDetails.getRoomCount());
   }
 
   @Test

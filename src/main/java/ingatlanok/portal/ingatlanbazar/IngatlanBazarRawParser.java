@@ -49,25 +49,29 @@ public class IngatlanBazarRawParser {
   }
 
   private RawPropertyListing parseSingleHit(JsonNode hit) {
-    String seoUrl = hit.has("seoUrl") && !hit.get("seoUrl").isNull()
-        ? hit.get("seoUrl").asString().trim()
-        : "";
+    String seoUrl = extractString(hit, "seoUrl");
     if (seoUrl.isBlank()) {
       return null;
     }
 
-    String propertyId = hit.has("propertyId") && !hit.get("propertyId").isNull()
-        ? hit.get("propertyId").asString().trim()
-        : null;
+    String propertyId = extractString(hit, "propertyId");
+    if (propertyId.isEmpty()) {
+      propertyId = null;
+    }
 
     String rawUrl = seoUrl.startsWith("http")
         ? seoUrl
         : IngatlanBazarQueryBuilder.BASE_URL + (seoUrl.startsWith("/") ? "" : "/") + seoUrl;
     String fullUrl = PortalSupport.canonicalListingUrl(rawUrl);
 
-    String title = hit.has("title") && !hit.get("title").isNull()
-        ? hit.get("title").asString().trim()
-        : "Ingatlanbazár hirdetés";
+    String title = extractString(hit, "title");
+    if (title.isEmpty()) {
+      title = "Ingatlanbazár hirdetés";
+    }
+    String userTitle = extractString(hit, "userTitle");
+    if (!userTitle.isBlank() && !title.contains(userTitle)) {
+      title = title + " - " + userTitle;
+    }
 
     return RawPropertyListing.builder()
         .portalId("ingatlanbazar")
@@ -82,6 +86,12 @@ public class IngatlanBazarRawParser {
         .descriptionText(resolveDescription(hit))
         .method(ExtractionMethod.API)
         .build();
+  }
+
+  private String extractString(JsonNode hit, String field) {
+    return hit.has(field) && !hit.get(field).isNull()
+        ? hit.get(field).asString().trim()
+        : "";
   }
 
   private Long extractLong(JsonNode hit, String field) {
@@ -109,14 +119,14 @@ public class IngatlanBazarRawParser {
   }
 
   private String resolveLocation(JsonNode hit) {
-    String settlement = hit.has("settlement") && !hit.get("settlement").isNull()
-        ? hit.get("settlement").asString().trim()
-        : "";
-    String quarter = hit.has("quarter") && !hit.get("quarter").isNull()
-        ? hit.get("quarter").asString().trim()
-        : "";
+    String settlement = extractString(hit, "settlement");
+    String quarter = extractString(hit, "quarter");
+    String street = extractString(hit, "street");
     if (!quarter.isBlank() && !settlement.equalsIgnoreCase(quarter)) {
       return settlement.isBlank() ? quarter : settlement + ", " + quarter;
+    }
+    if (!street.isBlank() && !settlement.equalsIgnoreCase(street)) {
+      return settlement.isBlank() ? street : settlement + ", " + street;
     }
     return settlement;
   }

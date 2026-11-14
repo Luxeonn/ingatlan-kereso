@@ -199,4 +199,29 @@ class HttpFetcherTest {
     assertNull(HttpFetcher.fetchJson(getBaseUrl() + "/status-404"));
     assertNull(HttpFetcher.fetchJson(getBaseUrl() + "/status-403"));
   }
+
+  @Test
+  @DisplayName("postJsonDocument posts JSON body and parses returned HTML chunk")
+  void testPostJsonDocumentSuccess() throws IOException {
+    testServer.createContext(
+        "/test-post-chunk",
+        exchange -> {
+          String method = exchange.getRequestMethod();
+          byte[] reqBytes = exchange.getRequestBody().readAllBytes();
+          String reqBody = new String(reqBytes, StandardCharsets.UTF_8);
+          byte[] response = ("<html><body><p id='method'>" + method
+              + "</p><p id='body'>" + reqBody + "</p></body></html>")
+              .getBytes(StandardCharsets.UTF_8);
+          exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+          exchange.sendResponseHeaders(200, response.length);
+          try (OutputStream os = exchange.getResponseBody()) {
+            os.write(response);
+          }
+        });
+
+    Document doc = HttpFetcher.postJsonDocument(getBaseUrl() + "/test-post-chunk", "{\"page\":2}");
+    assertNotNull(doc);
+    assertEquals("POST", doc.select("#method").text());
+    assertEquals("{\"page\":2}", doc.select("#body").text());
+  }
 }

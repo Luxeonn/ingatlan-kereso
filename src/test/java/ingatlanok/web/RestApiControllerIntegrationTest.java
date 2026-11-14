@@ -169,6 +169,7 @@ class RestApiControllerIntegrationTest {
   void testSearchExecution() throws Exception {
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCity("Debrecen");
+    criteria.setPortals(List.of("ingatlancom"));
 
     mockMvc
         .perform(

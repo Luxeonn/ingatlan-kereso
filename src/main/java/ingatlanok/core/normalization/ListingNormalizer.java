@@ -118,7 +118,7 @@ public class ListingNormalizer implements RawListingNormalizer {
         .title(resolveTitle(raw, city, id))
         .priceInfo(priceInfo)
         .city(city)
-        .location(city)
+        .location(resolveLocation(raw, city))
         .detailsInfo(resolveDetailsInfo(raw, priceInfo))
         .discoveredAt(resolveTime(executionTime))
         .propertyType(resolvePropertyType(raw))
@@ -229,13 +229,47 @@ public class ListingNormalizer implements RawListingNormalizer {
 
   private String resolveCity(RawPropertyListing raw, SearchCriteria criteria) {
     if (raw.locationText() != null && !raw.locationText().isBlank()) {
-      String extracted = PropertyParser.extractCityFromPostalAddress(raw.locationText());
+      String rawLocation = raw.locationText().trim();
+      String targetCity = criteria != null && criteria.getCity() != null
+          ? criteria.getCity().trim()
+          : "";
+      if (rawLocation.contains(",")) {
+        return extractCityFromCommaLocation(rawLocation, targetCity);
+      }
+      String extracted = PropertyParser.extractCityFromPostalAddress(rawLocation);
       if (extracted != null && !extracted.isBlank()) {
         return extracted;
       }
-      return raw.locationText().trim();
+      return rawLocation;
     }
     return PortalSupport.resolveDefaultCity(criteria);
+  }
+
+  private String extractCityFromCommaLocation(String rawLocation, String targetCity) {
+    String[] parts = rawLocation.split(",");
+    String firstCandidate = "";
+    for (String part : parts) {
+      String trimmed = part != null ? part.trim() : "";
+      if (trimmed.isBlank()) {
+        continue;
+      }
+      String postalCity = PropertyParser.extractCityFromPostalAddress(trimmed);
+      String candidate = postalCity != null && !postalCity.isBlank() ? postalCity : trimmed;
+      if (firstCandidate.isBlank()) {
+        firstCandidate = candidate;
+      }
+      if (!targetCity.isBlank() && candidate.equalsIgnoreCase(targetCity)) {
+        return candidate;
+      }
+    }
+    return firstCandidate.isBlank() ? rawLocation : firstCandidate;
+  }
+
+  private String resolveLocation(RawPropertyListing raw, String city) {
+    if (raw != null && raw.locationText() != null && !raw.locationText().isBlank()) {
+      return raw.locationText().trim();
+    }
+    return city;
   }
 
   public PropertyType resolvePropertyType(RawPropertyListing raw) {

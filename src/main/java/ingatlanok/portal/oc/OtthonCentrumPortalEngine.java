@@ -52,8 +52,17 @@ public class OtthonCentrumPortalEngine implements PortalEngine {
       SearchCriteria criteria,
       java.util.function.Function<String, Document> documentFetcher,
       int maxPages) {
+    return scrape(criteria, documentFetcher, HttpFetcher::postJsonDocument, maxPages);
+  }
+
+  public PortalScrapeResult scrape(
+      SearchCriteria criteria,
+      java.util.function.Function<String, Document> documentFetcher,
+      java.util.function.BiFunction<String, String, Document> chunkDocumentFetcher,
+      int maxPages) {
     AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new OtthonCentrumPortalAdapter(urlBuilder,
-        List.of(new OtthonCentrumHtmlStrategy(urlBuilder, new OtthonCentrumRawParser(), documentFetcher, maxPages))),
+        List.of(new OtthonCentrumHtmlStrategy(
+            urlBuilder, new OtthonCentrumRawParser(), documentFetcher, chunkDocumentFetcher, maxPages))),
         adapterEngine.getNormalizer());
     return dynamicEngine.scrape(criteria);
   }

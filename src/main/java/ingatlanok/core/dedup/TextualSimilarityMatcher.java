@@ -20,7 +20,9 @@ public final class TextualSimilarityMatcher {
           "hirdetes", "forint", "alatt", "egy", "ket", "harom", "szoba", "szobas",
           "nagyon", "kivalo", "szep", "minden", "ahol", "ami", "itt", "van",
           "meg", "csak", "mar", "vagy", "hogy", "mert", "akarmilyen",
-          "fedezze", "fel", "almai", "otthonat", "varja", "ont", "sziveben");
+          "fedezze", "fel", "almai", "otthonat", "varja", "ont", "sziveben",
+          "csaladi", "ikerhaz", "sorhaz", "tegla", "panel",
+          "kisterseg", "kistersegben", "jaras", "megye", "megyeben");
 
   private static final Set<String> MULTI_GEN_MARKERS =
       Set.of(
@@ -166,7 +168,10 @@ public final class TextualSimilarityMatcher {
   public static boolean hasIdenticalTitleSlug(IngatlanItem a, IngatlanItem b) {
     String slugA = SlugUtils.toSlug(a != null ? a.getTitle() : "");
     String slugB = SlugUtils.toSlug(b != null ? b.getTitle() : "");
-    return !slugA.isBlank() && slugA.equals(slugB);
+    if (slugA.isBlank() || !slugA.equals(slugB)) {
+      return false;
+    }
+    return extractDistinctiveTokens(a).size() >= 2;
   }
 
   private static boolean isSlugSimilar(String titleA, String titleB) {
