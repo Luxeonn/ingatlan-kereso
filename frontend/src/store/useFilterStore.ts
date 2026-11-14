@@ -58,6 +58,10 @@ function getStoredExcludeMultiSource(): boolean {
   return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_multi_source'))
 }
 
+function getStoredOnlyMultiSource(): boolean {
+  return safeParseStorageBoolean(safeGetStorageItem('preferred_only_multi_source'))
+}
+
 const DEFAULT_CRITERIA: SearchCriteria = {
   cities: ['Hajdúszoboszló'],
   city: 'Hajdúszoboszló',
@@ -80,6 +84,7 @@ interface FilterState {
   onlyNew: boolean
   onlyBargain: boolean
   excludeMultiSource: boolean
+  onlyMultiSource: boolean
   minQualityScore: number
   quickSearchQuery: string
   selectedPortalFilter: PortalFilterOption | string
@@ -103,6 +108,7 @@ interface FilterState {
   setOnlyNew: (onlyNew: boolean) => void
   setOnlyBargain: (onlyBargain: boolean) => void
   setExcludeMultiSource: (excludeMultiSource: boolean) => void
+  setOnlyMultiSource: (onlyMultiSource: boolean) => void
   setMinQualityScore: (score: number) => void
   setQuickSearchQuery: (query: string) => void
   setSelectedPortalFilter: (portal: PortalFilterOption | string) => void
@@ -157,12 +163,18 @@ export const useFilterStore = create<FilterState>((set, get) => {
     get().syncToUrl()
   }
 
+  const initialOnlyMulti = initial.onlyMultiSource ?? getStoredOnlyMultiSource()
+  const initialExcludeMulti = initialOnlyMulti
+    ? false
+    : (initial.excludeMultiSource ?? getStoredExcludeMultiSource())
+
   return {
     criteria: initialCriteria,
     sortOption: initial.sort || getStoredSortOption(),
     onlyNew: initial.onlyNew || false,
     onlyBargain: initial.onlyBargain || false,
-    excludeMultiSource: initial.excludeMultiSource ?? getStoredExcludeMultiSource(),
+    excludeMultiSource: initialExcludeMulti,
+    onlyMultiSource: initialOnlyMulti,
     minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
     selectedPortalFilter: resolvePortalFilterForPortals(initialCriteria.portals, 'all'),
@@ -233,7 +245,23 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     setExcludeMultiSource: (excludeMultiSource) => {
       safeSetStorageItem('preferred_exclude_multi_source', String(excludeMultiSource))
-      set({ excludeMultiSource })
+      if (excludeMultiSource) {
+        safeSetStorageItem('preferred_only_multi_source', 'false')
+        set({ excludeMultiSource: true, onlyMultiSource: false })
+      } else {
+        set({ excludeMultiSource: false })
+      }
+      get().syncToUrl()
+    },
+
+    setOnlyMultiSource: (onlyMultiSource) => {
+      safeSetStorageItem('preferred_only_multi_source', String(onlyMultiSource))
+      if (onlyMultiSource) {
+        safeSetStorageItem('preferred_exclude_multi_source', 'false')
+        set({ onlyMultiSource: true, excludeMultiSource: false })
+      } else {
+        set({ onlyMultiSource: false })
+      }
       get().syncToUrl()
     },
 
@@ -250,12 +278,14 @@ export const useFilterStore = create<FilterState>((set, get) => {
       safeSetStorageItem('preferred_sort_option', 'price_asc')
       safeSetStorageItem('preferred_exclude_viewed', 'false')
       safeSetStorageItem('preferred_exclude_multi_source', 'false')
+      safeSetStorageItem('preferred_only_multi_source', 'false')
       set({
         criteria: { ...DEFAULT_CRITERIA, excludeViewed: false },
         sortOption: 'price_asc',
         onlyNew: false,
         onlyBargain: false,
         excludeMultiSource: false,
+        onlyMultiSource: false,
         minQualityScore: 0,
         quickSearchQuery: '',
         selectedPortalFilter: 'all',
@@ -269,12 +299,17 @@ export const useFilterStore = create<FilterState>((set, get) => {
     syncFromUrl: () => {
       const parsed = parseUrlParams()
       const nextCriteria = { ...DEFAULT_CRITERIA, ...(parsed.criteria || {}) }
+      const nextOnlyMulti = parsed.onlyMultiSource ?? getStoredOnlyMultiSource()
+      const nextExcludeMulti = nextOnlyMulti
+        ? false
+        : (parsed.excludeMultiSource ?? getStoredExcludeMultiSource())
       set((state) => ({
         criteria: nextCriteria,
         sortOption: parsed.sort || getStoredSortOption(),
         onlyNew: parsed.onlyNew ?? false,
         onlyBargain: parsed.onlyBargain ?? false,
-        excludeMultiSource: parsed.excludeMultiSource ?? getStoredExcludeMultiSource(),
+        excludeMultiSource: nextExcludeMulti,
+        onlyMultiSource: nextOnlyMulti,
         minQualityScore: parsed.minQualityScore ?? 0,
         selectedPortalFilter: resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter),
       }))
@@ -282,7 +317,15 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     syncToUrl: () => {
       if (typeof window === 'undefined') return
-      const { criteria, sortOption, onlyNew, onlyBargain, excludeMultiSource, minQualityScore } = get()
+      const {
+        criteria,
+        sortOption,
+        onlyNew,
+        onlyBargain,
+        excludeMultiSource,
+        onlyMultiSource,
+        minQualityScore,
+      } = get()
       const params = new URLSearchParams()
       appendCriteriaParams(params, criteria)
       appendUiFilterParams(params, {
@@ -290,6 +333,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         onlyNew,
         onlyBargain,
         excludeMultiSource,
+        onlyMultiSource,
         minQualityScore,
       })
 

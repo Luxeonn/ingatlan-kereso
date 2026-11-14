@@ -124,6 +124,12 @@ describe('listingFilters utility', () => {
       expect(filtered[0]!.id).toBe('1')
     })
 
+    it('filters by onlyMultiSource flag retaining only merged multi-source listings (#436)', () => {
+      const filtered = applyItemFilters(items, { onlyMultiSource: true })
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0]!.id).toBe('2')
+    })
+
     it('filters by minQualityScore', () => {
       const highQuality = applyItemFilters(items, { minQualityScore: 80 })
       expect(highQuality).toHaveLength(1)

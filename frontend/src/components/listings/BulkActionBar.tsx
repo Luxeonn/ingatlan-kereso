@@ -63,6 +63,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setOnlyBargain,
     excludeMultiSource,
     setExcludeMultiSource,
+    onlyMultiSource,
+    setOnlyMultiSource,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -231,6 +233,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         setExcludeViewed={setExcludeViewed}
         excludeMultiSource={excludeMultiSource}
         setExcludeMultiSource={setExcludeMultiSource}
+        onlyMultiSource={onlyMultiSource}
+        setOnlyMultiSource={setOnlyMultiSource}
         showHidden={showHidden}
         setShowHidden={setShowHidden}
         hiddenCount={hiddenCount}

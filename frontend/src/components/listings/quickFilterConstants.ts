@@ -12,4 +12,5 @@ export const QUICK_FILTER_OPTIONS: readonly QuickFilterOptionMeta[] = [
   { id: 'excludeViewed', label: 'Megtekintettek rejtése' },
   { id: 'onlyNewConstruction', label: 'Csak új építésű' },
   { id: 'excludeMultiSource', label: 'Több forrásosak rejtése' },
+  { id: 'onlyMultiSource', label: 'Csak több forrásosak' },
 ]
