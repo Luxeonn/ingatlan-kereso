@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
@@ -19,8 +21,9 @@ import ingatlanok.portal.PortalSupport;
 
 public class DunaHouseHtmlStrategy implements ExtractionStrategy {
 
+  public static final int DEFAULT_MAX_PAGES = 20;
+
   private static final AppLogger LOGGER = AppLogger.getLogger(DunaHouseHtmlStrategy.class);
-  private static final int DEFAULT_MAX_PAGES = 2;
 
   private final DunaHouseUrlBuilder urlBuilder;
   private final DunaHouseRawParser rawParser;
@@ -146,7 +149,27 @@ public class DunaHouseHtmlStrategy implements ExtractionStrategy {
         addedOnPage++;
       }
     }
-    return addedOnPage == 0 ? "REPEATED_PAGE_CONTENT" : null;
+    if (addedOnPage == 0) {
+      return "REPEATED_PAGE_CONTENT";
+    }
+    return pageIndex < maxPages && hasPaginationWithoutNextPage(document, pageIndex + 1)
+        ? "NO_MORE_PAGES"
+        : null;
+  }
+
+  private boolean hasPaginationWithoutNextPage(Document document, int nextPage) {
+    Elements pageLinks = document.select("a[href*=page=]");
+    if (pageLinks.isEmpty()) {
+      return false;
+    }
+    String nextToken = "page=" + nextPage;
+    for (Element link : pageLinks) {
+      String href = link.attr("href");
+      if (href.contains(nextToken + "&") || href.endsWith(nextToken)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private record PageFetchOutcome(
