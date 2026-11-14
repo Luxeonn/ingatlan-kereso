@@ -7,8 +7,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
@@ -152,24 +150,10 @@ public class DunaHouseHtmlStrategy implements ExtractionStrategy {
     if (addedOnPage == 0) {
       return "REPEATED_PAGE_CONTENT";
     }
-    return pageIndex < maxPages && hasPaginationWithoutNextPage(document, pageIndex + 1)
+    return pageIndex < maxPages
+        && PortalSupport.hasPaginationWithoutNextPage(document, "page", pageIndex + 1)
         ? "NO_MORE_PAGES"
         : null;
-  }
-
-  private boolean hasPaginationWithoutNextPage(Document document, int nextPage) {
-    Elements pageLinks = document.select("a[href*=page=]");
-    if (pageLinks.isEmpty()) {
-      return false;
-    }
-    String nextToken = "page=" + nextPage;
-    for (Element link : pageLinks) {
-      String href = link.attr("href");
-      if (href.contains(nextToken + "&") || href.endsWith(nextToken)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private record PageFetchOutcome(

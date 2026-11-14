@@ -33,10 +33,11 @@ public class JofogasUrlBuilder implements PortalUrlBuilder {
   }
 
   public String buildPageUrl(String searchUrl, int page) {
-    if (page <= 1) {
+    if (searchUrl == null || page <= 1) {
       return searchUrl;
     }
-    return searchUrl + "&o=" + page;
+    String separator = searchUrl.contains("?") ? "&" : "?";
+    return searchUrl + separator + "o=" + page;
   }
 
   private String resolveLocationSegment(String city) {

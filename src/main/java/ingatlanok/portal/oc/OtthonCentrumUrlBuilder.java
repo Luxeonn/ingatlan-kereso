@@ -37,10 +37,11 @@ public class OtthonCentrumUrlBuilder implements PortalUrlBuilder {
   }
 
   public String buildPageUrl(String searchUrl, int page) {
-    if (page <= 1) {
+    if (searchUrl == null || page <= 1) {
       return searchUrl;
     }
-    return searchUrl + "?page=" + page;
+    String separator = searchUrl.contains("?") ? "&" : "?";
+    return searchUrl + separator + "page=" + page;
   }
 
   private String buildRangeSegment(String key, Integer min, Integer max) {

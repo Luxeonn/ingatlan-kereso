@@ -14,7 +14,7 @@ import ingatlanok.portal.RawListingNormalizer;
 
 public class KoltozzbePortalEngine implements PortalEngine {
 
-  public static final int DEFAULT_MAX_PAGES = 5;
+  public static final int DEFAULT_MAX_PAGES = 20;
 
   private final KoltozzbeUrlBuilder urlBuilder;
   private final int maxPages;
