@@ -347,6 +347,37 @@ class DeduplicationEngineTest {
     assertEquals(0, engine.deduplicate(List.of()).size());
   }
 
+  @Test
+  @DisplayName("#426: Legjobb egyezés alapú klaszterezés megakadályozza a 24.49M vs 28.9M keresztbe párosítást")
+  void testIssue426BestMatchClusteringPreventsCrossPricePairing() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem k28 = createItem("k28", "Költözzbe", "https://koltozzbe.hu/h10978033",
+        "Eladó panellakás, Miskolcon 28.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 28_900_000L, "ACTIVE");
+    IngatlanItem k24 = createItem("k24", "Költözzbe", "https://koltozzbe.hu/h10946115",
+        "Eladó panellakás, Miskolcon, Szentgyörgy úton 24.49 M Ft",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+    IngatlanItem j24 = createItem("j24", "Jófogás Ingatlan", "https://ingatlan.jofogas.hu/161990027.htm",
+        "Eladó panel lakás Miskolc, Avas Szentgyörgy utcában!",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+    IngatlanItem j28 = createItem("j28", "Jófogás Ingatlan", "https://ingatlan.jofogas.hu/162625428.htm",
+        "Eladó Lakás, Miskolc 28.900.000 Ft",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 28_900_000L, "ACTIVE");
+
+    // Kedvezőtlen bejárási sorrendben is az azonos árú/utcájú pároknak kell összeállniuk
+    List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(k28, j24, k24, j28));
+
+    assertEquals(2, clustered.size(), "Két külön 2-forrásos klaszternek kell létrejönnie");
+    for (IngatlanItem cluster : clustered) {
+      assertEquals(2, cluster.getSourcesCount());
+      long firstPrice = cluster.getSourceListings().get(0).getPriceHuf();
+      long secondPrice = cluster.getSourceListings().get(1).getPriceHuf();
+      assertEquals(firstPrice, secondPrice,
+          "Azonos árú és utcájú pár helyett nem köthető össze 24.49M és 28.9M");
+    }
+  }
+
   private IngatlanItem createItem(
       String id,
       String portal,

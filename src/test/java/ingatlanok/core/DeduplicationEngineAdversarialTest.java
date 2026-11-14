@@ -277,16 +277,15 @@ class DeduplicationEngineAdversarialTest {
     List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(inactive40M, active50M, active52M));
     assertEquals(2, clustered.size(), "40M and 52M conflict (23.08% > 20%), splitting into 2 clusters");
 
-    // In the first cluster [40M, 50M], lowest ACTIVE price is STILL 50M (not 40M inactive)
+    // 40M inactive is isolated (20% away from 50M), while 50M + 52M active (3.85% diff) cluster together
     IngatlanItem cluster1 = clustered.get(0);
-    assertEquals(2, cluster1.getSourcesCount());
-    assertEquals(50_000_000L, cluster1.getPriceInfo().getAmountHuf());
-    assertEquals("http://oc/50m", cluster1.getUrl());
+    assertEquals(1, cluster1.getSourcesCount());
+    assertEquals(40_000_000L, cluster1.getPriceInfo().getAmountHuf());
 
-    // In the second cluster [52M]
     IngatlanItem cluster2 = clustered.get(1);
-    assertEquals(1, cluster2.getSourcesCount());
-    assertEquals(52_000_000L, cluster2.getPriceInfo().getAmountHuf());
+    assertEquals(2, cluster2.getSourcesCount());
+    assertEquals(50_000_000L, cluster2.getPriceInfo().getAmountHuf());
+    assertEquals("http://oc/50m", cluster2.getUrl());
   }
 
   @Test
