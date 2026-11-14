@@ -166,16 +166,6 @@ The specialist must record the following concrete evidence during review:
 - **Compilation and type-check output**: Record the results of `./gradlew compileJava` and `npm run typecheck`.
 - **REST contract verification**: Document unchanged or updated DTO structures.
 
-### Thematic Agent Approval Gate Output
-
-Use the following text in the Pull Request's Thematic Gate block:
-
-```markdown
-- [x] Fullstack Architecture & UI (`fullstack-architect`): [NO_FINDING / NOT_APPLICABLE] - [One concise sentence summarizing architecture integrity and UI type safety]
-```
-
-*Note: For `FINDING`, leave the checkbox unchecked (`[ ]`), set the status to `[FINDING]`, and attach a detailed report in the PR description or a comment.*
-
 ---
 
 ## 6. Standard Decision Semantics

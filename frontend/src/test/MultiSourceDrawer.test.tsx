@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PropertyDetailsDrawer as MultiSourceDrawer } from '../components/listings/PropertyDetailsDrawer'
+import { createMockIngatlanItem } from './testFixtures'
 import type { IngatlanItem } from '../types/property'
 
 describe('MultiSourceDrawer component (#260, #261)', () => {
@@ -308,5 +309,111 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
     // 3. Redundant single-source portal and price row is removed
     expect(screen.queryByTestId('sources-list-section')).toBeNull()
     expect(screen.queryByTestId('source-item')).toBeNull()
+  })
+
+  it('shows thumbnail preview on hover and focus with lazy loading and no-referrer (#439)', () => {
+    const itemWithImages = createMockIngatlanItem({
+      id: 'thumb-1',
+      sourcesCount: 2,
+      sourceListings: [
+        {
+          portal: 'Költözzbe',
+          url: 'https://koltozzbe.hu/h1',
+          title: 'Panellakás 1',
+          imageUrl: 'https://cdn.koltozzbe.hu/img/flat-1.jpg',
+          priceHuf: 25_000_000,
+          status: 'ACTIVE',
+        },
+        {
+          portal: 'Jófogás',
+          url: 'https://jofogas.hu/h2',
+          title: 'Panellakás 2',
+          imageUrl: 'https://img.jofogas.hu/flat-2.jpg',
+          priceHuf: 25_900_000,
+          status: 'ACTIVE',
+        },
+      ],
+    })
+
+    render(<MultiSourceDrawer item={itemWithImages} />)
+
+    const [firstRow, secondRow] = screen.getAllByTestId('source-item')
+    if (!firstRow || !secondRow) {
+      throw new Error('Expected 2 source rows')
+    }
+    expect(screen.queryByTestId('source-thumbnail-preview')).toBeNull()
+
+    // Hover first row
+    fireEvent.mouseEnter(firstRow)
+    const preview = screen.getByTestId('source-thumbnail-preview')
+    const img = preview.querySelector('img')
+    expect(img).toBeTruthy()
+    expect(img?.getAttribute('src')).toBe('https://cdn.koltozzbe.hu/img/flat-1.jpg')
+    expect(img?.getAttribute('loading')).toBe('lazy')
+    expect(img?.getAttribute('referrerpolicy')).toBe('no-referrer')
+
+    // Leave first row -> preview disappears
+    fireEvent.mouseLeave(firstRow)
+    expect(screen.queryByTestId('source-thumbnail-preview')).toBeNull()
+
+    // Focus external link button inside second row -> preview appears
+    const [, secondButton] = screen.getAllByTestId('source-external-link')
+    if (!secondButton) {
+      throw new Error('Expected 2 external link buttons')
+    }
+    fireEvent.focus(secondButton)
+    const secondPreviewImg = screen.getByTestId('source-thumbnail-preview').querySelector('img')
+    expect(secondPreviewImg?.getAttribute('src')).toBe('https://img.jofogas.hu/flat-2.jpg')
+  })
+
+  it('does not render thumbnail preview when imageUrl is missing or image fails to load (#439)', () => {
+    const itemMixedImages = createMockIngatlanItem({
+      id: 'thumb-2',
+      sourcesCount: 2,
+      sourceListings: [
+        {
+          portal: 'Költözzbe',
+          url: 'https://koltozzbe.hu/no-img',
+          title: 'Kép nélküli forrás',
+          imageUrl: null,
+          priceHuf: 25_000_000,
+          status: 'ACTIVE',
+        },
+        {
+          portal: 'Duna House',
+          url: 'https://dh.hu/broken-img',
+          title: 'Hibás képű forrás',
+          imageUrl: 'https://cdn.dh.hu/broken.jpg',
+          priceHuf: 25_500_000,
+          status: 'ACTIVE',
+        },
+      ],
+    })
+
+    render(<MultiSourceDrawer item={itemMixedImages} />)
+
+    const [missingImgRow, brokenImgRow] = screen.getAllByTestId('source-item')
+    const [, brokenImgButton] = screen.getAllByTestId('source-external-link')
+    if (!missingImgRow || !brokenImgRow || !brokenImgButton) {
+      throw new Error('Expected 2 source rows and external link buttons')
+    }
+
+    // Missing imageUrl -> no preview on hover
+    fireEvent.mouseEnter(missingImgRow)
+    expect(screen.queryByTestId('source-thumbnail-preview')).toBeNull()
+    fireEvent.mouseLeave(missingImgRow)
+
+    // Broken imageUrl -> preview hides on onError (no broken image icon)
+    fireEvent.mouseEnter(brokenImgRow)
+    const img = screen.getByTestId('source-thumbnail-preview').querySelector('img')
+    if (!img) {
+      throw new Error('Expected preview img element')
+    }
+    fireEvent.error(img)
+    expect(screen.queryByTestId('source-thumbnail-preview')).toBeNull()
+
+    // Existing external link button remains clickable
+    fireEvent.click(brokenImgButton)
+    expect(window.open).toHaveBeenCalledWith('https://dh.hu/broken-img', '_blank', 'noopener,noreferrer')
   })
 })

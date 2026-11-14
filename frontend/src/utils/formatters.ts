@@ -330,9 +330,19 @@ export function isPortalId(key: string): key is PortalId {
   return (PORTAL_IDS as readonly string[]).includes(key)
 }
 
+export function getPrimaryPortalKey(item: IngatlanItem): NormalizedPortalKey {
+  const primary = normalizePortalKey(item.source?.portalId || item.source?.portalName || item.portal)
+  if (primary && primary !== 'egyeb') return primary
+  if (item.url) {
+    const detected = normalizePortalKey(detectPortalFromUrl(item.url).portalId)
+    if (detected) return detected
+  }
+  return primary
+}
+
 export function getItemPortalKeys(item: IngatlanItem): Set<string> {
   const keys = new Set<string>()
-  const primary = normalizePortalKey(item.source?.portalId || item.portal)
+  const primary = getPrimaryPortalKey(item)
   if (primary) keys.add(primary)
   if (Array.isArray(item.sourceListings)) {
     for (const sl of item.sourceListings) {

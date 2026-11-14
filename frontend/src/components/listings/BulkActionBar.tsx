@@ -10,10 +10,36 @@ import {
 import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
 import { useFilterStore, SORT_OPTIONS, isSortOption } from '../../store/useFilterStore'
-import { isItemBargain } from '../../hooks/useSearch'
-import { PORTAL_CHIPS, getItemPortalKeys, getTotalSourceListingsCount } from '../../utils/formatters'
+import { isItemBargain, isListingNew } from '../../utils/listingFilters'
+import {
+  PORTAL_CHIPS,
+  getItemSourceListingsCount,
+  getPrimaryPortalKey,
+  getTotalSourceListingsCount,
+} from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
+
+function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
+  const counts = {
+    bargain: 0,
+    onlyNew: 0,
+    excludeViewed: 0,
+    onlyNewConstruction: 0,
+    excludeMultiSource: 0,
+    onlyMultiSource: 0,
+  }
+  for (const item of sourceItems) {
+    if (isItemBargain(item)) counts.bargain += 1
+    if (isListingNew(item)) counts.onlyNew += 1
+    if (!item.viewed) counts.excludeViewed += 1
+    if (item.newConstruction) counts.onlyNewConstruction += 1
+    const sourceCount = getItemSourceListingsCount(item)
+    if (sourceCount === 1) counts.excludeMultiSource += 1
+    if (sourceCount > 1) counts.onlyMultiSource += 1
+  }
+  return counts
+}
 
 interface BulkActionBarProps {
   items: IngatlanItem[]
@@ -28,15 +54,11 @@ interface BulkActionBarProps {
 }
 
 function formatResultCount(
-  visibleCount: number | undefined,
   itemsLength: number,
   totalRawCount: number,
   totalSourceListingsCount: number,
 ): string {
   const sourceSuffix = totalSourceListingsCount > itemsLength ? ` (${totalSourceListingsCount} hirdetés)` : ''
-  if (visibleCount !== null && visibleCount !== undefined && visibleCount < itemsLength) {
-    return `Megjelenítve: ${visibleCount} / ${itemsLength} db${sourceSuffix}`
-  }
   if (itemsLength !== totalRawCount) {
     return `${itemsLength} / ${totalRawCount} db${sourceSuffix}`
   }
@@ -52,7 +74,6 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   totalRawCount,
   onClearHistory,
   isClearingHistory = false,
-  visibleCount,
   hiddenCount = 0,
 }) => {
   const { viewMode, setViewMode } = useUiStore()
@@ -68,6 +89,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setOnlyBargain,
     excludeMultiSource,
     setExcludeMultiSource,
+    onlyMultiSource,
+    setOnlyMultiSource,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -80,8 +103,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   const totalSourceListingsCount = useMemo(() => getTotalSourceListingsCount(items), [items])
   const sourceItems = rawItems ?? items
 
-  const bargainCount = useMemo(
-    () => sourceItems.filter((it) => isItemBargain(it)).length,
+  const quickFilterCounts = useMemo(
+    () => computeQuickFilterCounts(sourceItems),
     [sourceItems],
   )
 
@@ -91,9 +114,10 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
       if (chip.id !== 'all') counts[chip.id] = 0
     })
     sourceItems.forEach((item) => {
-      getItemPortalKeys(item).forEach((key) => {
-        counts[key] = (counts[key] || 0) + 1
-      })
+      const primaryKey = getPrimaryPortalKey(item)
+      if (primaryKey) {
+        counts[primaryKey] = (counts[primaryKey] || 0) + 1
+      }
     })
     return counts
   }, [sourceItems])
@@ -102,8 +126,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
-          <span>{formatResultCount(visibleCount, items.length, totalRawCount, totalSourceListingsCount)}</span>
-          {items.length !== totalRawCount && (visibleCount === null || visibleCount === undefined) && (
+          <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
+          {items.length !== totalRawCount && (
             <span className="text-[11px] font-normal text-[var(--text-secondary)]">
               (szűrve)
             </span>
@@ -226,15 +250,22 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
       <QuickFilterChipsRow
         onlyNew={onlyNew}
         setOnlyNew={setOnlyNew}
+        onlyNewCount={quickFilterCounts.onlyNew}
         onlyNewConstruction={criteria.onlyNewConstruction}
         setOnlyNewConstruction={setOnlyNewConstruction}
+        onlyNewConstructionCount={quickFilterCounts.onlyNewConstruction}
         onlyBargain={onlyBargain}
         setOnlyBargain={setOnlyBargain}
-        bargainCount={bargainCount}
+        bargainCount={quickFilterCounts.bargain}
         excludeViewed={criteria.excludeViewed}
         setExcludeViewed={setExcludeViewed}
+        excludeViewedCount={quickFilterCounts.excludeViewed}
         excludeMultiSource={excludeMultiSource}
         setExcludeMultiSource={setExcludeMultiSource}
+        excludeMultiSourceCount={quickFilterCounts.excludeMultiSource}
+        onlyMultiSource={onlyMultiSource}
+        setOnlyMultiSource={setOnlyMultiSource}
+        onlyMultiSourceCount={quickFilterCounts.onlyMultiSource}
         showHidden={showHidden}
         setShowHidden={setShowHidden}
         hiddenCount={hiddenCount}

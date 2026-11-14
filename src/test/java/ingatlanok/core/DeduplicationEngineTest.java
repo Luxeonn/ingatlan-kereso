@@ -156,10 +156,13 @@ class DeduplicationEngineTest {
 
     IngatlanItem dh = createItem("dh-1", "Duna House", "http://dh/1", "DH Családi Lakás",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 80_000_000L, "ACTIVE");
+    dh.setLocation("Debrecen, Belváros");
     IngatlanItem oc = createItem("oc-2", "Otthon Centrum", "http://oc/2", "OC Belvárosi Lakás",
         "Debrecen", PropertyType.LAKAS, 104.0, 3.0, 75_000_000L, "ACTIVE");
+    oc.setLocation("Debrecen, Belváros");
     IngatlanItem jf = createItem("jf-3", "Jófogás", "http://jf/3", "Jófogás 3 szobás",
         "Debrecen", PropertyType.LAKAS, 102.0, 3.5, 78_000_000L, "ACTIVE");
+    jf.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(dh, oc, jf));
 
@@ -185,8 +188,10 @@ class DeduplicationEngineTest {
     // 100m2 és 105m2: diff 5, max 105 -> 5/105 = 0.0476 <= 0.05 -> klaszterezve
     IngatlanItem itemA = createItem("1", "dh", "http://1", "Lakás A",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 80_000_000L, "ACTIVE");
+    itemA.setLocation("Debrecen, Belváros");
     IngatlanItem itemB = createItem("2", "oc", "http://2", "Lakás B",
         "Debrecen", PropertyType.LAKAS, 105.0, 3.0, 80_000_000L, "ACTIVE");
+    itemB.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> resultWithin5 = engine.deduplicateMultiSignal(List.of(itemA, itemB));
     assertEquals(1, resultWithin5.size());
@@ -195,6 +200,7 @@ class DeduplicationEngineTest {
     // 100m2 és 106m2: diff 6, max 106 -> 6/106 = 0.0566 > 0.05 -> konfliktus védelem
     IngatlanItem itemC = createItem("3", "oc", "http://3", "Lakás C",
         "Debrecen", PropertyType.LAKAS, 106.0, 3.0, 80_000_000L, "ACTIVE");
+    itemC.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> resultOver5 = engine.deduplicateMultiSignal(List.of(itemA, itemC));
     assertEquals(2, resultOver5.size());
@@ -208,8 +214,10 @@ class DeduplicationEngineTest {
     // 3 szoba vs 4 szoba -> diff >= 1.0 -> elutasítva
     IngatlanItem item3 = createItem("1", "dh", "http://1", "3 szobás",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 80_000_000L, "ACTIVE");
+    item3.setLocation("Debrecen, Belváros");
     IngatlanItem item4 = createItem("2", "oc", "http://2", "4 szobás",
         "Debrecen", PropertyType.LAKAS, 100.0, 4.0, 80_000_000L, "ACTIVE");
+    item4.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> resultDiff1 = engine.deduplicateMultiSignal(List.of(item3, item4));
     assertEquals(2, resultDiff1.size());
@@ -217,6 +225,7 @@ class DeduplicationEngineTest {
     // 3 szoba vs 3.5 szoba -> diff 0.5 <= 0.5 -> engedélyezve
     IngatlanItem item35 = createItem("3", "jf", "http://3", "3 és fél szobás",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.5, 80_000_000L, "ACTIVE");
+    item35.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> resultDiffHalf = engine.deduplicateMultiSignal(List.of(item3, item35));
     assertEquals(1, resultDiffHalf.size());
@@ -230,8 +239,10 @@ class DeduplicationEngineTest {
     // 100M vs 82M: diff 18M / 100M = 0.18 <= 0.20 -> csoportosítva
     IngatlanItem item100 = createItem("1", "dh", "http://1", "Lakás 100M",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 100_000_000L, "ACTIVE");
+    item100.setLocation("Debrecen, Belváros");
     IngatlanItem item82 = createItem("2", "oc", "http://2", "Lakás 82M",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 82_000_000L, "ACTIVE");
+    item82.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> resultWithin20 = engine.deduplicateMultiSignal(List.of(item100, item82));
     assertEquals(1, resultWithin20.size());
@@ -239,6 +250,7 @@ class DeduplicationEngineTest {
     // 100M vs 75M: diff 25M / 100M = 0.25 > 0.20 -> külön marad
     IngatlanItem item75 = createItem("3", "jf", "http://3", "Lakás 75M",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 75_000_000L, "ACTIVE");
+    item75.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> resultOver20 = engine.deduplicateMultiSignal(List.of(item100, item75));
     assertEquals(2, resultOver20.size());
@@ -274,8 +286,10 @@ class DeduplicationEngineTest {
 
     IngatlanItem telek1 = createItem("1", "dh", "http://t1", "Építési telek",
         "Debrecen", PropertyType.TELEK, 800.0, 0.0, 25_000_000L, "ACTIVE");
+    telek1.setLocation("Debrecen, Kertváros");
     IngatlanItem telek2 = createItem("2", "oc", "http://t2", "Kiváló telek",
         "Debrecen", PropertyType.TELEK, 820.0, 0.0, 24_000_000L, "ACTIVE");
+    telek2.setLocation("Debrecen, Kertváros");
 
     List<IngatlanItem> clusteredTelek = engine.deduplicateMultiSignal(List.of(telek1, telek2));
     assertEquals(1, clusteredTelek.size());
@@ -311,10 +325,13 @@ class DeduplicationEngineTest {
 
     IngatlanItem dhInactive = createItem("1", "dh", "http://dh/inactive", "DH Inaktív Olcsó",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 65_000_000L, "INACTIVE");
+    dhInactive.setLocation("Debrecen, Belváros");
     IngatlanItem ocActive = createItem("2", "oc", "http://oc/active", "OC Aktív Reális",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 75_000_000L, "ACTIVE");
+    ocActive.setLocation("Debrecen, Belváros");
     IngatlanItem jfActive = createItem("3", "jf", "http://jf/active", "JF Aktív Drágább",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 80_000_000L, "ACTIVE");
+    jfActive.setLocation("Debrecen, Belváros");
 
     List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(dhInactive, ocActive, jfActive));
     assertEquals(1, clustered.size());
@@ -345,6 +362,249 @@ class DeduplicationEngineTest {
     assertTrue(engine.deduplicateMultiSignal(null).isEmpty());
     assertTrue(engine.deduplicateMultiSignal(List.of()).isEmpty());
     assertEquals(0, engine.deduplicate(List.of()).size());
+  }
+
+  @Test
+  @DisplayName("#426: Legjobb egyezés alapú klaszterezés megakadályozza a 24.49M vs 28.9M keresztbe párosítást")
+  void testIssue426BestMatchClusteringPreventsCrossPricePairing() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem k28 = createItem("k28", "Költözzbe", "https://koltozzbe.hu/h10978033",
+        "Eladó panellakás, Miskolcon 28.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 28_900_000L, "ACTIVE");
+    IngatlanItem k24 = createItem("k24", "Költözzbe", "https://koltozzbe.hu/h10946115",
+        "Eladó panellakás, Miskolcon, Szentgyörgy úton 24.49 M Ft",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+    IngatlanItem j24 = createItem("j24", "Jófogás Ingatlan", "https://ingatlan.jofogas.hu/161990027.htm",
+        "Eladó panel lakás Miskolc, Avas Szentgyörgy utcában!",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+    IngatlanItem j28 = createItem("j28", "Jófogás Ingatlan", "https://ingatlan.jofogas.hu/162625428.htm",
+        "Eladó Lakás, Miskolc 28.900.000 Ft",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 28_900_000L, "ACTIVE");
+
+    // Kedvezőtlen bejárási sorrendben is az azonos árú/utcájú pároknak kell összeállniuk
+    List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(k28, j24, k24, j28));
+
+    assertEquals(2, clustered.size(), "Két külön 2-forrásos klaszternek kell létrejönnie");
+    for (IngatlanItem cluster : clustered) {
+      assertEquals(2, cluster.getSourcesCount());
+      long firstPrice = cluster.getSourceListings().get(0).getPriceHuf();
+      long secondPrice = cluster.getSourceListings().get(1).getPriceHuf();
+      assertEquals(firstPrice, secondPrice,
+          "Azonos árú és utcájú pár helyett nem köthető össze 24.49M és 28.9M");
+    }
+  }
+
+  @Test
+  @DisplayName("Ragozott utcanév egyezés, prózazaj elutasítása és intraportál sabloncím védelem")
+  void testInflectedStreetsAndIntraPortalGenericTitleGuard() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem miskolcA = createItem("ma", "Költözzbe", "https://koltozzbe.hu/h1",
+        "Eladó panellakás, Miskolcon, Szentgyörgy úton 24.49 M Ft",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+    IngatlanItem miskolcB = createItem("mb", "Jófogás", "https://ingatlan.jofogas.hu/1.htm",
+        "Eladó panel lakás Miskolc, Avas Szentgyörgy utcában!",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+
+    var locA = ingatlanok.core.dedup.LocationConflictDetector.extractLocation(miskolcA, "miskolc");
+    var locB = ingatlanok.core.dedup.LocationConflictDetector.extractLocation(miskolcB, "miskolc");
+    assertTrue(ingatlanok.core.dedup.LocationConflictDetector.hasSameStreet(locA, locB),
+        "Ragozott 'úton' és 'utcában' utcanevek azonosnak minősülnek");
+    assertFalse(ingatlanok.core.dedup.LocationConflictDetector.hasConflict(locA, locB, "miskolc"));
+
+    IngatlanItem proseNoise = createItem("pn", "Otthon Centrum", "https://oc.hu/1",
+        "Eladó családi ház egyirányú utcában, az út jelenleg föld út",
+        "Debrecen", PropertyType.HAZ, 120.0, 4.0, 95_000_000L, "ACTIVE");
+    var proseLoc = ingatlanok.core.dedup.LocationConflictDetector.extractLocation(proseNoise, "debrecen");
+    assertFalse(proseLoc.hasStreet(), "Prózában lévő 'egyirányú utcában' / 'föld út' nem utcanév");
+
+    IngatlanItem ibGeneric1 = createItem("ib1", "ingatlanbazar", "https://ingatlanbazar.hu/1",
+        "Debrecen, Debreceni kistérség, ingatlan, eladó, ház, 100 m2",
+        "Debrecen", PropertyType.HAZ, 100.0, 3.0, 95_000_000L, "ACTIVE");
+    IngatlanItem ibGeneric2 = createItem("ib2", "ingatlanbazar", "https://ingatlanbazar.hu/2",
+        "Debrecen, Debreceni kistérség, ingatlan, eladó, ház, 100 m2",
+        "Debrecen", PropertyType.HAZ, 100.0, 3.0, 95_000_000L, "ACTIVE");
+    assertFalse(engine.isMatch(ibGeneric1, ibGeneric2),
+        "Azonos portálon belüli sabloncímű eltérő ingatlanok nem olvaszthatók össze");
+  }
+
+  @Test
+  @DisplayName("#437: Sabloncímű és eltérő fotójú intraportál duplikátumok összevonása Miskolcon")
+  void testIssue437MiskolcTemplateTitledIntraPortalAndCrossPortalClustering() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    // 2. emeleti 1.5 szobás panellakás: több Költözzbe + 1 Ingatlan.com eltérő CDN képekkel
+    IngatlanItem k2FloorA = createItem("k2a", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10880350",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    k2FloorA.setLocation("Miskolc, 2. emelet");
+    k2FloorA.setImageUrl("https://cdn.koltozzbe.hu/img/photo-a.jpg");
+
+    IngatlanItem k2FloorB = createItem("k2b", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10882116",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    k2FloorB.setLocation("Miskolc, 2. emelet");
+    k2FloorB.setImageUrl("https://cdn.koltozzbe.hu/img/photo-b.jpg");
+
+    IngatlanItem k2FloorC = createItem("k2c", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10955540",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    k2FloorC.setLocation("Miskolc, 2. emelet");
+    k2FloorC.setImageUrl("https://cdn.koltozzbe.hu/img/photo-c.jpg");
+
+    IngatlanItem ic2Floor = createItem("ic2", "Ingatlan.com", "https://ingatlan.com/35129856",
+        "Eladó 35 nm-es panellakás Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    ic2Floor.setLocation("Miskolc");
+    ic2Floor.setImageUrl("https://cdn.ingatlan.com/img/photo-ic.jpg");
+
+    // 10. emeleti 1.0 szobás panellakás: több Költözzbe + több Jófogás eltérő fotókkal
+    IngatlanItem k10FloorA = createItem("k10a", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10910001",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    k10FloorA.setLocation("Miskolc, 10. emelet");
+    k10FloorA.setImageUrl("https://cdn.koltozzbe.hu/img/photo-10a.jpg");
+
+    IngatlanItem k10FloorB = createItem("k10b", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10910002",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    k10FloorB.setLocation("Miskolc, 10. emelet");
+    k10FloorB.setImageUrl("https://cdn.koltozzbe.hu/img/photo-10b.jpg");
+
+    IngatlanItem jf10FloorA = createItem("jf10a", "Jófogás", "https://ingatlan.jofogas.hu/1111111.htm",
+        "35 nm-es lakás eladó Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    jf10FloorA.setLocation("Miskolc");
+    jf10FloorA.setImageUrl("https://img.jofogas.hu/photo-jf1.jpg");
+
+    IngatlanItem jf10FloorB = createItem("jf10b", "Jófogás", "https://ingatlan.jofogas.hu/2222222.htm",
+        "35 nm-es lakás eladó Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    jf10FloorB.setLocation("Miskolc");
+    jf10FloorB.setImageUrl("https://img.jofogas.hu/photo-jf2.jpg");
+
+    List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(
+        k2FloorA, k10FloorA, jf10FloorA, k2FloorB, ic2Floor, jf10FloorB, k10FloorB, k2FloorC));
+
+    assertEquals(2, clustered.size(),
+        "A 2. emeleti (1.5 szobás) és a 10. emeleti (1.0 szobás) lakásnak pontosan 2 klaszterbe kell összeolvadnia");
+    for (IngatlanItem cluster : clustered) {
+      assertEquals(4, cluster.getSourcesCount(),
+          "Mindkét klaszternek mind a 4 hirdetési forrást tartalmaznia kell");
+    }
+  }
+
+  @Test
+  @DisplayName("#437: Explicit emeletszám-konfliktus megakadályozza eltérő emeleti lakások hamis összevonását")
+  void testIssue437ExplicitFloorConflictPreventsFalseMerge() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem flat2ndFloor = createItem("f2", "Költözzbe", "https://koltozzbe.hu/h2",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flat2ndFloor.setLocation("Miskolc, 2. emelet");
+
+    IngatlanItem flat3rdFloor = createItem("f3", "Költözzbe", "https://koltozzbe.hu/h3",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flat3rdFloor.setLocation("Miskolc, 3. emelet");
+
+    IngatlanItem flat10thFloor = createItem("f10", "Otthon Centrum", "https://oc.hu/h10",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flat10thFloor.setLocation("Miskolc, 10. emelet");
+
+    IngatlanItem flatGroundFloor = createItem("f0", "Duna House", "https://dh.hu/h0",
+        "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    flatGroundFloor.setLocation("Miskolc, földszint");
+
+    assertFalse(engine.isMatch(flat2ndFloor, flat3rdFloor), "2. emelet és 3. emelet nem vonható össze");
+    assertFalse(engine.isMatch(flat2ndFloor, flat10thFloor), "2. emelet és 10. emelet nem vonható össze");
+    assertFalse(engine.isMatch(flat2ndFloor, flatGroundFloor), "2. emelet és földszint nem vonható össze");
+    assertEquals(4, engine.deduplicateMultiSignal(
+        List.of(flat2ndFloor, flat3rdFloor, flat10thFloor, flatGroundFloor)).size());
+
+    IngatlanItem fourStoryBuilding2ndFloor = createItem("f2-stories", "Jófogás", "https://ingatlan.jofogas.hu/f2.htm",
+        "4 emeletes társasházban, 2. emeleten eladó panellakás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_900_000L, "ACTIVE");
+    fourStoryBuilding2ndFloor.setLocation("Miskolc, Avas");
+
+    assertTrue(engine.isMatch(flat2ndFloor, fourStoryBuilding2ndFloor),
+        "A '4 emeletes' épületszint-szám és '2. emelet' vs 'Avas' nem generálhat álkonfliktust");
+  }
+
+  @Test
+  @DisplayName("#440: Pozitív bizonyíték nélküli kereszt-portál párosítás elutasítása Miskolc 35 m2 panellakásoknál")
+  void testIssue440PreventsFalseCrossPortalClusteringWithoutPositiveEvidence() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem ic = createItem("ic-35573255", "Ingatlan.com", "https://ingatlan.com/35573255",
+        "Miskolc, Győri kapu", "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_000_000L, "ACTIVE");
+    ic.setLocation("Miskolc, Győri kapu");
+
+    IngatlanItem koltozzbe = createItem("k-10627044", "Költözzbe",
+        "https://koltozzbe.hu/elado-panellakas-miskolc/h10627044",
+        "Eladó panellakás, Miskolcon 25 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_000_000L, "ACTIVE");
+
+    IngatlanItem jofogas = createItem("jf-161634453", "Jófogás Ingatlan",
+        "https://ingatlan.jofogas.hu/borsod_abauj_zemplen/Elado_1_1_felszobas_lakas___Miskolc__Gyori_kapu_161634453.htm",
+        "Eladó 1+1 félszobás lakás - Miskolc, Győri kapu",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.0, 25_900_000L, "ACTIVE");
+    jofogas.setLocation("Miskolc, Győri kapu");
+
+    assertFalse(engine.isMatch(koltozzbe, jofogas),
+        "Generikus lokáció nélküli 25 M Ft-os és eltérő szobaszámú 25.9 M Ft-os hirdetés nem olvadhat össze");
+
+    List<IngatlanItem> trioResult = engine.deduplicateMultiSignal(List.of(ic, koltozzbe, jofogas));
+    assertTrue(trioResult.size() >= 2,
+        "A 3 miskolci hirdetés nem olvadhat össze egyetlen hamis klaszterbe");
+
+    // Eltérő árú (25M, 26.2M, 27.5M), pozitív lokáció/kép nélküli 35 m2-es panellakások külön maradnak
+    IngatlanItem panel25 = createItem("p1", "Költözzbe", "https://koltozzbe.hu/p1",
+        "Eladó panellakás, Miskolcon 25 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_000_000L, "ACTIVE");
+    IngatlanItem panel262 = createItem("p2", "Jófogás Ingatlan", "https://ingatlan.jofogas.hu/p2.htm",
+        "Eladó panellakás Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 26_200_000L, "ACTIVE");
+    IngatlanItem panel275 = createItem("p3", "Duna House", "https://dh.hu/p3",
+        "Miskolc eladó lakás 35 nm",
+        "Miskolc", PropertyType.LAKAS, 36.0, 1.5, 27_500_000L, "ACTIVE");
+
+    assertFalse(engine.isMatch(panel25, panel262), "4.6% áreltérés pozitív bizonyíték nélkül nem vonható össze");
+    assertFalse(engine.isMatch(panel25, panel275), "9.1% áreltérés pozitív bizonyíték nélkül nem vonható össze");
+    assertFalse(engine.isMatch(panel262, panel275), "4.7% áreltérés pozitív bizonyíték nélkül nem vonható össze");
+    assertEquals(3, engine.deduplicateMultiSignal(List.of(panel25, panel262, panel275)).size());
+  }
+
+  @Test
+  @DisplayName("#440: Pozitív utca- vagy képegyezéssel a ±20% ársávon belüli kereszt-portál klaszterezés megmarad")
+  void testIssue440AllowsCrossPortalMergeWithPositiveEvidenceWithinPriceBand() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem streetA = createItem("s1", "Duna House", "https://dh.hu/s1",
+        "Miskolc, Szentgyörgy utca felújított lakás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_000_000L, "ACTIVE");
+    IngatlanItem streetB = createItem("s2", "Otthon Centrum", "https://oc.hu/s2",
+        "Szentgyörgy utcában eladó 1.5 szobás panellakás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 27_500_000L, "ACTIVE");
+
+    assertTrue(engine.isMatch(streetA, streetB),
+        "Azonos utcanévvel a 10% áreltérés továbbra is összevonható");
+
+    IngatlanItem imgA = createItem("i1", "Költözzbe", "https://koltozzbe.hu/i1",
+        "Eladó panellakás, Miskolcon 25 M Ft, 1+1 szobás",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_000_000L, "ACTIVE");
+    imgA.setImageUrl("https://cdn.example.com/flat-42.jpg");
+    IngatlanItem imgB = createItem("i2", "Jófogás Ingatlan", "https://ingatlan.jofogas.hu/i2.htm",
+        "Eladó lakás Miskolc",
+        "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 27_500_000L, "ACTIVE");
+    imgB.setImageUrl("https://cdn.example.com/flat-42.jpg");
+
+    assertTrue(engine.isMatch(imgA, imgB),
+        "Azonos képpel a 10% áreltérés továbbra is összevonható");
   }
 
   private IngatlanItem createItem(

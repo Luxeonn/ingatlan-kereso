@@ -1,23 +1,22 @@
 # Pull Request Compliance & AI-Agent Governance Guide
 
-This document defines the quality assurance, acceptance criteria traceability, and governance requirements for Pull Requests submitted by AI agents and developers in the **ingatlan-kereso** project.
+This document defines the Pull Request description requirements and automated compliance gates for the **ingatlan-kereso** project.
 
 ---
 
 ## 1. Objectives & Core Principles
 
-To ensure that changes authored by AI agents (e.g., Google Antigravity, GitHub Copilot) remain reliable, traceable, and strictly aligned with repository quality standards, automated CI compliance gates enforce the following core principles:
+To keep Pull Requests concise, high-signal, and strictly aligned with repository quality standards, automated CI compliance gates enforce:
 
-1. **Evidence-Based Verification:** Statements in PR descriptions are insufficient on their own; every claim must be backed by executed test commands, code references, and diff analysis.
-2. **Risk-Driven Review Obligation:** Review requirements are determined by the modified files and their risk profile per the Review Risk Matrix.
-3. **Fail-Closed Operation:** Any missing mandatory section, unverified status (`[NOT_VERIFIED]`), or unresolved issue (`[FINDING]`) immediately causes the compliance gate to fail.
-4. **Traceability & Scope Containment:** Every modified file and diff segment must directly trace back to the target issue's acceptance criteria. Unsolicited refactoring or out-of-scope modifications are rejected.
+1. **Concise High-Signal Summaries:** Every PR focuses on the essentials: why the change was made, what changed, and which issue it closes.
+2. **Fail-Closed Operation:** Any missing mandatory section, missing issue link, or unsynchronized presentation DTO / OpenAPI contract change causes the compliance gate to fail.
+3. **Scope Containment:** Every modified file and diff segment must directly serve the target issue. Unsolicited refactoring or out-of-scope modifications are rejected.
 
 ---
 
-## 2. Mandatory PR Description Structure (5 Sections)
+## 2. Mandatory PR Description Structure (2 Sections)
 
-Every Pull Request description must be written in **Hungarian** (clean UTF-8 without BOM) adhering strictly to the 5 mandatory sections from the [pull request template](../.github/pull_request_template.md):
+Every Pull Request description must be written in **Hungarian** (clean UTF-8 without BOM) adhering strictly to the 2 mandatory sections from the [pull request template](../.github/pull_request_template.md):
 
 ### 2.1. 🎯 Miért készült? (Why was it created?)
 A concise, 1–2 sentence summary explaining the business or technical motivation and context for the change.
@@ -25,69 +24,13 @@ A concise, 1–2 sentence summary explaining the business or technical motivatio
 ### 2.2. 🛠️ Mit módosít / Mit javít? (What changes / What is fixed?)
 A structured bulleted list highlighting key architectural, functional, and contractual modifications.
 
-### 2.3. 📋 Acceptance Criteria Traceability
-Every issue acceptance criterion must be mapped to implementation file paths and concrete validation evidence. If a criterion is not applicable, explicit justification is required.
-
-Format (Markdown table or structured list):
-```markdown
-| Issue Acceptance Criterion | Implementation (Files / Components) | Test / Validation Evidence |
-| :--- | :--- | :--- |
-| Criterion 1 description | `src/.../MyService.java` | `MyServiceTest#testFeature` (JaCoCo: 88%) |
-| Criterion 2 description | `frontend/src/.../MyView.tsx` | `npm run test` (Vitest PASS) |
-```
-
-The Traceability table must account for all modified files in the diff. Unsolicited refactoring, unrequested version bumps, or unapproved contract changes will cause the compliance gate to reject the PR. Small supportive edits are permitted only with explicit justification in the table. Test references in the Traceability table (`*Test.java`, `*.test.ts`, `*.test.tsx`, `*.spec.ts`) are mechanically verified against the repository filesystem by `verify-pr-compliance.mjs`. Referencing non-existent or misspelled test files triggers immediate failure.
-
-### 2.4. 🧪 Tesztelés és Ellenőrzés (Testing & Verification)
-The exact verification commands executed locally and their outcomes (e.g., `./gradlew check`, `npm run lint`, `bash scripts/validate-skills.sh -v`).
-
-### 2.5. 🛡️ Thematic Agent Approval Gate
-Formal sign-off from designated specialist personas using standardized decision tokens:
-```markdown
-- [x] **fullstack-architect**: [NO_FINDING] - Architectural integrity and type safety verified.
-- [x] **scraper-security-engineer**: [NOT_APPLICABLE] - Does not touch portal scraper or network logic.
-- [x] **quality-devops-engineer**: [NO_FINDING] - Test coverage (>=80%), Checkstyle, and CI/CD gates satisfied.
-```
-
 The PR description must conclude with an issue linking keyword: `Closes #<id>` or `Fixes #<id>`.
 
 ---
 
-## 3. Standard Decision Status Tokens
+## 3. Automated Verification Tools & Workflows
 
-The Thematic Gate block exclusively permits the following four standardized decision tokens:
-
-| Token | Meaning | CI Gate Effect | Required Content |
-| :--- | :--- | :--- | :--- |
-| **`[NO_FINDING]`** | Review passed with no defects found | **PASS** | Exactly 1 concise sentence summarizing verified invariants |
-| **`[NOT_APPLICABLE]`** | Change does not touch specialist's domain | **PASS** (if diff confirms) | Mandatory 1-sentence rationale explaining why not relevant |
-| **`[FINDING]`** | Violation or defect identified | **FAIL (Blocking)** | Defect description and proposed remediation |
-| **`[NOT_VERIFIED]`** | Unverified or unable to run checks | **FAIL (Blocking)** | Not acceptable as completed work |
-
-> [!CAUTION]
-> Legacy or informal status markers (such as `[OK]`, `[NOK]`, `[PASS]`, `[N/A]`) are **strictly forbidden**; using them triggers immediate CI failure.
-
----
-
-## 4. Review Risk Matrix (Scope Verification)
-
-Based on the paths of modified files in the PR diff, the CI compliance engine automatically verifies whether the required specialist sign-offs are present. If a domain's files are modified, the corresponding specialist **cannot** be marked as `[NOT_APPLICABLE]`:
-
-| Change Type | Affected File Path Patterns | Mandatory Specialist | Expected Validation |
-| :--- | :--- | :--- | :--- |
-| **Backend business logic & models** | `src/main/java/ingatlanok/core/**`<br>`src/main/java/ingatlanok/model/**` | `fullstack-architect`<br>`quality-devops-engineer` | Unit & integration tests, JaCoCo $\ge 80\%$, Checkstyle Clean Code |
-| **API & OpenAPI contract** | `openapi/**`<br>`src/main/java/ingatlanok/web/**`<br>`src/main/java/ingatlanok/presentation/**`<br>`frontend/src/types/generated-api.ts` | `fullstack-architect` | OpenAPI drift check (`npm run generate-api`), DTO immutability |
-| **DB & Persistence** | `src/main/java/ingatlanok/persistence/**` | `fullstack-architect` | Spring Data JPA tests, storage boundary isolation (no direct SQL in core) |
-| **Scraper, parser & network I/O** | `src/main/java/ingatlanok/portal/**`<br>`src/main/java/ingatlanok/common/HttpFetcher.java`<br>`src/main/java/ingatlanok/common/PropertyParser.java`<br>`tools/scrapers/**`<br>`tools/sidecar*` | `scraper-security-engineer` | 0-crash guarantee, ReDoS prevention, SSRF isolation (`HttpFetcher`), 15s timeout |
-| **Frontend UI, state & client** | `frontend/**` (except `generated-api.ts`) | `fullstack-architect` | Strict TypeScript check (`noImplicitReturns`), ESLint (`--max-warnings 0`), Vitest, Playwright |
-| **CI/CD, DevOps, Governance** | `.github/**`<br>`.agents/**`<br>`scripts/**`<br>`AGENTS.md`<br>`GEMINI.md`<br>`gemini.md`<br>`CONTRIBUTING.md`<br>`docs/**`<br>`Dockerfile*`<br>`docker-compose.yml`<br>`config/checkstyle/**` | `quality-devops-engineer` | `validate-skills.sh`, PR compliance unit tests, container security, fail-closed CI gate |
-| **Architecture & module boundaries** | `package-info.java`<br>`build.gradle.kts` dependencies | `fullstack-architect` | ArchUnit tests (`ArchitectureRulesTest.java`), fail-closed javac (`-Werror`) |
-
----
-
-## 5. Automated Verification Tools & Workflows
-
-### 5.1. Local & CI Compliance Validator (`verify-pr-compliance.mjs`)
+### 3.1. Local & CI Compliance Validator (`verify-pr-compliance.mjs`)
 The repository contains a standalone, zero-dependency compliance validator:
 ```bash
 # Validate PR description and diff
@@ -96,41 +39,40 @@ node scripts/verify-pr-compliance.mjs --body-file pr_body.md --diff-base origin/
 # Or via bash wrapper:
 bash scripts/verify-pr-compliance.sh --body-file pr_body.md --diff-base origin/develop
 
-# Run validator self-test suite (19 unit tests):
+# Run validator self-test suite:
 node --test scripts/test-verify-pr-compliance.mjs
 ```
 
 Key automated checks performed by `verify-pr-compliance.mjs`:
-- Traceability test file existence check: every referenced test file must physically exist in the repository.
-- Cross-Layer presentation DTO & OpenAPI contract drift check: modifying `presentation/*Dto.java` requires `openapi/api-spec.yaml` and `frontend/src/types/generated-api.ts` synchronization or explicit justification.
-- Review Risk Matrix alignment: specialists cannot claim `[NOT_APPLICABLE]` when their domain files are modified.
+- Presence and non-empty content of the 2 mandatory sections (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`).
+- Issue closing reference (`Closes #<id>`, `Fixes #<id>`, or `Resolves #<id>`).
+- Cross-Layer presentation DTO & OpenAPI contract drift check: modifying `presentation/*Dto.java` requires `openapi/api-spec.yaml` and `frontend/src/types/generated-api.ts` synchronization or explicit justification in the PR description.
 
-### 5.2. Governance & Specialist Skill Validator (`validate-skills.sh`)
+### 3.2. Governance & Specialist Skill Validator (`validate-skills.sh`)
 Deterministic offline validator enforcing 7 sequential phases:
 ```bash
 bash scripts/validate-skills.sh -v
 ```
 
-### 5.3. GitHub Actions PR Compliance Workflow (`.github/workflows/pr-compliance.yml`)
+### 3.3. GitHub Actions PR Compliance Workflow (`.github/workflows/pr-compliance.yml`)
 Runs automatically on PR open, edit (`edited`), or commit push:
-- Validates the 5 mandatory sections and the Traceability table.
-- Analyzes modified files against the Review Risk Matrix.
+- Validates the 2 mandatory sections, issue linking, and OpenAPI contract drift.
 - Runs validator unit tests.
 - Executes `validate-skills.sh` if governance or documentation files changed.
 
 ---
 
-## 6. GitHub Merge Gate & Enforcement Hierarchy
+## 4. GitHub Merge Gate & Enforcement Hierarchy
 
 Protection operates across two complementary levels:
 
-### 6.1. Repository Versioned Workflow Gates (Always Active)
+### 4.1. Repository Versioned Workflow Gates (Always Active)
 - **`CI Build`** (`.github/workflows/ci.yml`): Central fail-closed pipeline requiring backend tests (JaCoCo $\ge 80\%$), frontend lint/test steps, OpenAPI drift checks, Gitleaks secret scanning, and governance validation.
 - **`PR Compliance & Agent Governance`** (`.github/workflows/pr-compliance.yml`): Description and governance compliance gate.
 - **`Branch up-to-date with develop`** (`.github/workflows/pr-guards.yml`): Ensures branch is not out of date.
 - **`PR title`** (`.github/workflows/pr-build.yml`): Enforces Conventional Commit PR titles.
 
-### 6.2. GitHub Repository Settings (Administrator Scope)
+### 4.2. GitHub Repository Settings (Administrator Scope)
 Active rulesets protect default and integration branches:
 1. `develop-1` (ID: 25079337): Protects `refs/heads/develop` against deletion and non-fast-forward pushes, activating automated Copilot reviews.
 2. `Copilot review for default branch` (ID: 25079396): Protects the default branch.
@@ -144,11 +86,11 @@ Recommended Required Status Checks on GitHub Branch Protection / Rulesets:
 
 ---
 
-## 7. Mandatory Adversarial Self-Review Protocol
+## 5. Mandatory Adversarial Self-Review Protocol
 
 Before opening any Pull Request or marking an implementation task complete, every AI agent must execute a two-phase workflow: first as an **Implementer**, then as an **Adversarial Reviewer** auditing their own diff against four mandatory invariant pillars:
 
 1. **Multi-Source Domain Invariant:** Verify that deduplicated clusters (`IngatlanItem`) with multiple source listings are handled canonically. No UI component, hook, or filter may access `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` directly; canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` (`src/utils/formatters.ts`) must be used (enforced by ESLint AST rule `no-restricted-syntax`).
 2. **Multi-City & Partial Failure Invariant:** Verify that search aggregation and portal cards properly support mixed statuses (`SUCCESS`, `PARTIAL_SUCCESS`, `TOTAL_FAILURE`, `BOT_PROTECTED`) across multiple queried cities without throwing unhandled exceptions or showing empty states.
-3. **End-to-End Contract Traceability:** Verify that every backend DTO change propagates across `openapi/api-spec.yaml` -> `PresentationMapper` -> `generated-api.ts` -> UI components. Every test file referenced in the PR description must physically exist in the repository (enforced by `OpenApiSpecIntegrityTest.java` and `verify-pr-compliance.mjs`).
+3. **End-to-End Contract Traceability:** Verify that every backend DTO change propagates across `openapi/api-spec.yaml` -> `PresentationMapper` -> `generated-api.ts` -> UI components (enforced by `OpenApiSpecIntegrityTest.java` and `verify-pr-compliance.mjs`).
 4. **Hermetic Test Isolation & Virtual Thread Concurrency:** Verify that tests run completely offline and order-independently without `app.test-mode` flags leaking into production code (`src/main/java`). Production code must contain zero `synchronized` methods or blocks to eliminate Java 25 virtual thread carrier pinning (enforced by Checkstyle `noSynchronized`, ArchUnit, and `validate-skills.sh`).

@@ -226,9 +226,6 @@ public class PropertyFilterEngine {
       if (item == null) {
         continue;
       }
-      if (item.isHidden()) {
-        continue;
-      }
       if (isExcludedViewed(item, criteria)) {
         filteredViewed++;
         continue;

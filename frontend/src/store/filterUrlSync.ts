@@ -23,6 +23,8 @@ export const urlSchema = z.object({
   onlyBargain: z.enum(['true', 'false']).optional().catch(undefined),
   hideMulti: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
   excludeMulti: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
+  onlyMulti: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
+  onlyMultiSource: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
   minQuality: z.coerce.number().finite().min(0).max(100).optional().catch(undefined),
 })
 
@@ -34,6 +36,7 @@ export interface ParsedUrlFilterResult {
   onlyNew?: boolean
   onlyBargain?: boolean
   excludeMultiSource?: boolean
+  onlyMultiSource?: boolean
   minQualityScore?: number
 }
 
@@ -87,6 +90,8 @@ function hasAnyParsedFilter(result: Partial<SearchCriteria>, params: ParsedUrlPa
     params.onlyBargain !== undefined ||
     params.hideMulti !== undefined ||
     params.excludeMulti !== undefined ||
+    params.onlyMulti !== undefined ||
+    params.onlyMultiSource !== undefined ||
     params.minQuality !== undefined
   )
 }
@@ -117,12 +122,17 @@ export function parseUrlParams(): ParsedUrlFilterResult {
   parseBooleanFlags(params, result)
   if (!hasAnyParsedFilter(result, params)) return {}
 
+  const parsedOnlyMulti = parseOptionalBoolean(params.onlyMulti ?? params.onlyMultiSource)
+  const rawExcludeMulti = parseOptionalBoolean(params.hideMulti ?? params.excludeMulti)
+  const parsedExcludeMulti = parsedOnlyMulti === true ? false : rawExcludeMulti
+
   return {
     criteria: result,
     sort: params.sort,
     onlyNew: parseOptionalBoolean(params.onlyNew),
     onlyBargain: parseOptionalBoolean(params.onlyBargain),
-    excludeMultiSource: parseOptionalBoolean(params.hideMulti ?? params.excludeMulti),
+    excludeMultiSource: parsedExcludeMulti,
+    onlyMultiSource: parsedOnlyMulti,
     minQualityScore: params.minQuality,
   }
 }
@@ -164,6 +174,7 @@ export interface UiFilterParamsOptions {
   onlyNew: boolean
   onlyBargain: boolean
   excludeMultiSource: boolean
+  onlyMultiSource?: boolean
   minQualityScore: number
 }
 
@@ -171,6 +182,10 @@ export function appendUiFilterParams(params: URLSearchParams, options: UiFilterP
   if (options.sortOption !== 'price_asc') params.set('sort', options.sortOption)
   if (options.onlyNew) params.set('onlyNew', 'true')
   if (options.onlyBargain) params.set('onlyBargain', 'true')
-  if (options.excludeMultiSource) params.set('hideMulti', '1')
+  if (options.onlyMultiSource) {
+    params.set('onlyMulti', '1')
+  } else if (options.excludeMultiSource) {
+    params.set('hideMulti', '1')
+  }
   if (options.minQualityScore > 0) params.set('minQuality', String(options.minQualityScore))
 }

@@ -15,6 +15,7 @@ import {
   normalizePropertyType,
   getPropertyTypeConfig,
   normalizePortalKey,
+  getPrimaryPortalKey,
   getPortalStyle,
   detectPortalFromUrl,
   openExternalUrl,
@@ -268,6 +269,25 @@ describe('formatters utility', () => {
       expect(normalizePortalKey('Költözzbe')).toBe('koltozzbe')
       expect(normalizePortalKey('Ingatlan.com')).toBe('ingatlancom')
       expect(normalizePortalKey(null)).toBe('')
+    })
+
+    it('resolves primary portal key from source, portal name, or URL (#432)', () => {
+      const fromSource = {
+        source: { portalId: 'oc', portalName: 'Otthon Centrum' },
+        portal: 'Duna House',
+      } as unknown as IngatlanItem
+      expect(getPrimaryPortalKey(fromSource)).toBe('oc')
+
+      const fromPortalName = {
+        portal: 'Költözzbe',
+      } as unknown as IngatlanItem
+      expect(getPrimaryPortalKey(fromPortalName)).toBe('koltozzbe')
+
+      const fromUrlFallback = {
+        portal: 'Hirdetés',
+        url: 'https://ingatlan.jofogas.hu/miskolc/lakas-123',
+      } as unknown as IngatlanItem
+      expect(getPrimaryPortalKey(fromUrlFallback)).toBe('jofogas')
     })
 
     it('returns theme styles for portals with fallback', () => {

@@ -4,7 +4,7 @@ import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
 import type { ListingSubView } from '../../store/useUiStore'
 import { useUiStore } from '../../store/useUiStore'
-import { getItemSourceListingsCount, getTotalSourceListingsCount } from '../../utils/formatters'
+import { getTotalSourceListingsCount } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 export interface ListingsPanelProps {
@@ -32,25 +32,20 @@ export interface ListingsPanelProps {
   batchSize?: number
 }
 
-function isMultiSourceItem(it: IngatlanItem): boolean {
-  return getItemSourceListingsCount(it) > 1
-}
-
 interface MultiSourceNoticeProps {
   itemsCount: number
   totalSourceListingsCount: number
   serverFilteredCount?: number
-  multiSourceCount: number
 }
 
 const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
   itemsCount,
   totalSourceListingsCount,
   serverFilteredCount,
-  multiSourceCount,
 }) => {
+  const mergedDuplicatesCount = Math.max(0, totalSourceListingsCount - itemsCount)
   const hasFiltered = serverFilteredCount !== undefined && serverFilteredCount > 0
-  if (multiSourceCount === 0 && !hasFiltered) return null
+  if (mergedDuplicatesCount === 0 && !hasFiltered) return null
 
   return (
     <div
@@ -58,12 +53,12 @@ const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
       className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300"
     >
       <span>
-        <strong className="font-bold text-indigo-200">{itemsCount} / {totalSourceListingsCount}</strong>
+        <strong className="font-bold text-indigo-200">{itemsCount} egyedi ingatlan</strong>
+        {mergedDuplicatesCount > 0 && (
+          <> ({totalSourceListingsCount} hirdetésből · {mergedDuplicatesCount} összevonva)</>
+        )}
         {hasFiltered && (
           <> · <strong className="font-bold text-indigo-200">{serverFilteredCount} szűrt</strong></>
-        )}
-        {multiSourceCount > 0 && (
-          <> ({multiSourceCount} összevonva)</>
         )}
       </span>
     </div>
@@ -161,8 +156,7 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   const activeFavoritesCount = favoritesCount ?? (activeMode === 'favorites' ? totalRawCount : 0)
   const activeArchiveCount = archiveCount ?? (activeMode === 'archive' ? totalRawCount : 0)
 
-  // Multi-source grouped count calculation (#260, #261, #358)
-  const multiSourceCount = items.filter(isMultiSourceItem).length
+  // Multi-source grouped count calculation (#260, #261, #358, #432)
   const totalSourceListingsCount = getTotalSourceListingsCount(items)
 
   return (
@@ -182,7 +176,6 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
           itemsCount={items.length}
           totalSourceListingsCount={totalSourceListingsCount}
           serverFilteredCount={serverFilteredCount}
-          multiSourceCount={multiSourceCount}
         />
       )}
 

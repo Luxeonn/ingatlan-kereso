@@ -43,14 +43,7 @@ Follow these steps to conduct a thorough review:
 
 5. **Generate Findings**:
    * If any domain criteria fail, list the issues in detail and output them to `review_findings.md`.
-   * If all criteria pass, generate the formal Thematic Agent Approval Gate block in the PR with standard decision tokens ([NO_FINDING] / [FINDING] / [NOT_APPLICABLE] / [NOT_VERIFIED]) accompanied by a mandatory 1-sentence rationale for every thematic domain:
-     ```markdown
-     ### 🛡️ Thematic Agent Approval Gate
-     - [x] Fullstack Architecture & UI (`fullstack-architect`): [NO_FINDING] – A Clean Architecture réteghatárok, a Spring Data JPA perzisztencia és a React 19 UI integritás maradéktalanul érvényesül.
-     - [x] Scraper & Security (`scraper-security-engineer`): [NO_FINDING] – A portálmotorok 0-crash robusztussága és az alkalmazásszintű védelem (AppSec) biztosított.
-     - [x] Quality & DevOps (`quality-devops-engineer`): [NO_FINDING] – A determinista tesztek lefedettsége megfelelő, a CI/CD pipeline-ok és konténerizáció sértetlenek.
-     ```
-   * Advance to Phase 2.
+   * If all criteria pass, report the review summary directly to the user and advance to Phase 2.
 
 ================================================================================
 Phase 2: Fix Loop & Verification
@@ -71,6 +64,6 @@ If actionable findings exist in `review_findings.md`:
    `cd frontend && npm run typecheck && npm test` (frontend TypeScript and Vitest)
    Ensure 100% build success and zero test regressions.
 
-3. **Update PR Sign-off**:
-   Once verified, append the Thematic Agent Approval Gate checklist to the PR description using `gh pr edit {{args}} --body "..."` so that the CI PR Guard passes.
+3. **Confirm Verification**:
+   Confirm that all checks and PR compliance (`node scripts/verify-pr-compliance.mjs --pr {{args}}`) pass.
 """

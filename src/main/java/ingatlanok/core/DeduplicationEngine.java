@@ -12,6 +12,7 @@ import java.util.Set;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.core.dedup.ClusterConsolidationHelper;
+import ingatlanok.core.dedup.ClusterMatchScorer;
 import ingatlanok.core.dedup.LocationConflictDetector;
 import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
 import ingatlanok.core.dedup.SemanticConflictDetector;
@@ -28,6 +29,9 @@ public class DeduplicationEngine {
   private static final double MAX_ROOM_DIFFERENCE = 0.5; // within ±0.5 rooms
   private static final double MAX_PRICE_BAND_RATIO = 0.20; // within ±20%
   private static final double MISSING_AREA_MAX_PRICE_DIFF_RATIO = 0.01; // ±1%
+  private static final double UNLOCATED_MAX_AREA_DIFF_RATIO = 0.02; // ±2% without location/image
+  private static final double UNLOCATED_MAX_PRICE_DIFF_RATIO = 0.01; // ±1% without location/image
+  private static final double INTRA_PORTAL_SPAM_MAX_AREA_DIFF_RATIO = 0.01; // ±1%
 
   private final ListingStorage listingStorage;
 
@@ -65,23 +69,9 @@ public class DeduplicationEngine {
       return Collections.emptyList();
     }
 
-    // Stage 2: Cross-portal multi-signal clustering
-    List<List<IngatlanItem>> clusters = new ArrayList<>();
-    for (IngatlanItem candidate : stage1Items) {
-      boolean addedToCluster = false;
-      for (List<IngatlanItem> cluster : clusters) {
-        if (matchesCluster(candidate, cluster)) {
-          cluster.add(candidate);
-          addedToCluster = true;
-          break;
-        }
-      }
-      if (!addedToCluster) {
-        List<IngatlanItem> newCluster = new ArrayList<>();
-        newCluster.add(candidate);
-        clusters.add(newCluster);
-      }
-    }
+    // Stage 2: Score-ordered cross-portal multi-signal clustering (order-independent best match)
+    List<List<IngatlanItem>> clusters =
+        ClusterMatchScorer.buildBestMatchClusters(stage1Items, this::isMatch);
 
     // Stage 3: Consolidation into grouped IngatlanItem
     List<IngatlanItem> consolidatedItems = new ArrayList<>(clusters.size());
@@ -94,18 +84,6 @@ public class DeduplicationEngine {
 
   public List<IngatlanItem> deduplicate(Collection<IngatlanItem> items) {
     return deduplicateMultiSignal(items);
-  }
-
-  private boolean matchesCluster(IngatlanItem candidate, List<IngatlanItem> cluster) {
-    if (cluster == null || cluster.isEmpty() || candidate == null) {
-      return false;
-    }
-    for (IngatlanItem member : cluster) {
-      if (!isMatch(candidate, member)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public boolean isMatch(IngatlanItem a, IngatlanItem b) {
@@ -139,8 +117,13 @@ public class DeduplicationEngine {
       return false;
     }
 
-    return bothAreasKnown
-        || hasCorroboratingMissingAreaEvidence(a, b, tokensA, tokensB, hasAffirmativeLocation);
+    if (!bothAreasKnown) {
+      return hasCorroboratingMissingAreaEvidence(a, b, tokensA, tokensB, hasAffirmativeLocation);
+    }
+    if (ClusterConsolidationHelper.hasMatchingImage(a, b) || hasAffirmativeLocation) {
+      return true;
+    }
+    return hasUnlocatedMatchEvidence(a, b, tokensA, tokensB);
   }
 
   private boolean isBaseCompatible(IngatlanItem a, IngatlanItem b) {
@@ -153,11 +136,23 @@ public class DeduplicationEngine {
   }
 
   private boolean isIntraPortalDuplicateSpam(IngatlanItem a, IngatlanItem b) {
-    if (a.isNewConstruction() != b.isNewConstruction() || !isWithinMissingAreaPriceBand(a, b)) {
+    if (a.isNewConstruction() != b.isNewConstruction()
+        || !isWithinMissingAreaPriceBand(a, b)
+        || hasIntraPortalAreaConflict(a, b)) {
       return false;
     }
     return ClusterConsolidationHelper.hasMatchingImage(a, b)
         || TextualSimilarityMatcher.hasIdenticalTitleSlug(a, b);
+  }
+
+  private boolean hasIntraPortalAreaConflict(IngatlanItem a, IngatlanItem b) {
+    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
+    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
+    if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
+      return false;
+    }
+    double maxArea = Math.max(areaA, areaB);
+    return (Math.abs(areaA - areaB) / maxArea) > INTRA_PORTAL_SPAM_MAX_AREA_DIFF_RATIO;
   }
 
   private boolean isAreaAndPriceCompatible(IngatlanItem a, IngatlanItem b, boolean bothAreasKnown) {
@@ -207,33 +202,57 @@ public class DeduplicationEngine {
   }
 
   private boolean isWithinAreaTolerance(IngatlanItem a, IngatlanItem b) {
+    return isWithinAreaRatio(a, b, MAX_AREA_TOLERANCE_RATIO);
+  }
+
+  private boolean isWithinAreaRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
     Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
     Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
     if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
       return false;
     }
     double maxArea = Math.max(areaA, areaB);
-    return (Math.abs(areaA - areaB) / maxArea) <= MAX_AREA_TOLERANCE_RATIO;
+    return (Math.abs(areaA - areaB) / maxArea) <= maxRatio;
   }
 
   private boolean isWithinPriceBand(IngatlanItem a, IngatlanItem b) {
-    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
-    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
-    if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
-      return false;
-    }
-    long maxPrice = Math.max(priceA, priceB);
-    return ((double) Math.abs(priceA - priceB) / (double) maxPrice) <= MAX_PRICE_BAND_RATIO;
+    return isWithinPriceRatio(a, b, MAX_PRICE_BAND_RATIO);
   }
 
   private boolean isWithinMissingAreaPriceBand(IngatlanItem a, IngatlanItem b) {
+    return isWithinPriceRatio(a, b, MISSING_AREA_MAX_PRICE_DIFF_RATIO);
+  }
+
+  private boolean isWithinPriceRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
     Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
     Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
     if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
       return false;
     }
     long maxPrice = Math.max(priceA, priceB);
-    return ((double) Math.abs(priceA - priceB) / (double) maxPrice) <= MISSING_AREA_MAX_PRICE_DIFF_RATIO;
+    return ((double) Math.abs(priceA - priceB) / (double) maxPrice) <= maxRatio;
+  }
+
+  private boolean hasUnlocatedMatchEvidence(
+      IngatlanItem a,
+      IngatlanItem b,
+      Set<String> tokensA,
+      Set<String> tokensB) {
+    if (TextualSimilarityMatcher.hasStrongTitleSimilarity(a, b, tokensA, tokensB, false)) {
+      return true;
+    }
+    return isWithinPriceRatio(a, b, UNLOCATED_MAX_PRICE_DIFF_RATIO)
+        && isWithinAreaRatio(a, b, UNLOCATED_MAX_AREA_DIFF_RATIO)
+        && hasExactOrMissingRoomCount(a, b);
+  }
+
+  private boolean hasExactOrMissingRoomCount(IngatlanItem a, IngatlanItem b) {
+    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
+    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
+    if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
+      return true;
+    }
+    return Math.abs(roomsA - roomsB) < 0.01;
   }
 
   private boolean isRoomCountCompatible(

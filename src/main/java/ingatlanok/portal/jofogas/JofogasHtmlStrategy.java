@@ -19,8 +19,9 @@ import ingatlanok.portal.PortalSupport;
 
 public class JofogasHtmlStrategy implements ExtractionStrategy {
 
+  public static final int DEFAULT_MAX_PAGES = 20;
+
   private static final AppLogger LOGGER = AppLogger.getLogger(JofogasHtmlStrategy.class);
-  private static final int DEFAULT_MAX_PAGES = 2;
 
   private final JofogasUrlBuilder urlBuilder;
   private final JofogasRawParser rawParser;
@@ -156,7 +157,13 @@ public class JofogasHtmlStrategy implements ExtractionStrategy {
     }
     int addedOnPage = collectPageListings(
         pageListings, processedUrls, processedNativeIds, allListings);
-    return addedOnPage == 0 ? "REPEATED_PAGE_CONTENT" : null;
+    if (addedOnPage == 0) {
+      return "REPEATED_PAGE_CONTENT";
+    }
+    return pageIndex < maxPages
+        && PortalSupport.hasPaginationWithoutNextPage(document, "o", pageIndex + 1)
+        ? "NO_MORE_PAGES"
+        : null;
   }
 
   private int collectPageListings(

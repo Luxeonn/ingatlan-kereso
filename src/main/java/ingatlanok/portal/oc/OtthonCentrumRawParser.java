@@ -1,7 +1,9 @@
 package ingatlanok.portal.oc;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.jsoup.nodes.Document;
@@ -17,7 +19,20 @@ import ingatlanok.portal.PortalSupport;
 
 public class OtthonCentrumRawParser {
 
-  private static final Pattern ID_PATTERN = Pattern.compile("/ingatlanok/([A-Za-z0-9]+)");
+  private static final Pattern ID_PATTERN =
+      Pattern.compile("/(?:ingatlanok|uj-lakas)/([A-Za-z0-9]+)(?:\\?|$|/|#)");
+
+  public String extractChunkFilterJson(Document document) {
+    if (document == null) {
+      return null;
+    }
+    Element container = document.selectFirst("[data-oc-filter]");
+    if (container == null) {
+      return null;
+    }
+    String json = container.attr("data-oc-filter");
+    return json != null && !json.isBlank() ? json.trim() : null;
+  }
 
   public List<RawPropertyListing> parseRawListings(Document document) {
     List<RawPropertyListing> items = new ArrayList<>();
@@ -25,17 +40,13 @@ public class OtthonCentrumRawParser {
       return items;
     }
 
-    Elements cards = document.select(
-        "div.js-list-item[data-controller='seo'], div.real-estate-card,"
-            + " div[data-controller='seo'], div.js-list-item");
-    if (cards.isEmpty()) {
-      cards = document.select("a[href*=/ingatlanok/]");
-    }
+    Elements cards = selectCardElements(document);
+    Set<String> seenUrls = new HashSet<>();
 
     for (Element card : cards) {
       try {
         RawPropertyListing raw = parseCard(card);
-        if (raw != null) {
+        if (raw != null && seenUrls.add(raw.url())) {
           items.add(raw);
         }
       } catch (Exception ignored) {
@@ -46,6 +57,16 @@ public class OtthonCentrumRawParser {
     return items;
   }
 
+  private Elements selectCardElements(Document document) {
+    Elements cards = document.select(
+        "div.js-list-item[data-controller='seo'], div.real-estate-card,"
+            + " div[data-controller='seo'], div.js-list-item");
+    if (cards.isEmpty()) {
+      cards = document.select("a[href*=/ingatlanok/], a[href*=/uj-lakas/]");
+    }
+    return cards;
+  }
+
   private RawPropertyListing parseCard(Element card) {
     String href = extractHref(card);
     if (href == null || href.isBlank()) {
@@ -54,7 +75,7 @@ public class OtthonCentrumRawParser {
 
     String fullLink = PortalSupport.canonicalListingUrl(
         PortalSupport.resolveUrl(OtthonCentrumUrlBuilder.BASE_URL, href));
-    if (!fullLink.matches(".*/ingatlanok/[A-Za-z0-9]+$")) {
+    if (!fullLink.matches(".*/(?:ingatlanok|uj-lakas)/[A-Za-z0-9]+$")) {
       return null;
     }
     String id = PropertyParser.extractFirstGroup(fullLink, ID_PATTERN, null);
@@ -62,9 +83,12 @@ public class OtthonCentrumRawParser {
       return null;
     }
     String cardText = card.text().replaceAll("\\s+", " ").trim();
+    String footerText = extractFooterText(card);
+    String structuredText = footerText != null ? footerText : cardText;
 
     String seoAttr = extractSeoAttr(card);
     SeoMetadata seo = parseSeoMetadata(seoAttr);
+    String locationText = resolveLocationText(seo, card);
     String title = resolveTitle(card, cardText, seo.locationCity(), id);
     String imageUrl = PortalSupport.extractImageWithFallback(card, OtthonCentrumUrlBuilder.BASE_URL);
 
@@ -74,9 +98,9 @@ public class OtthonCentrumRawParser {
         .url(fullLink)
         .title(title)
         .priceHuf(seo.priceHuf())
-        .priceText(cardText)
-        .detailsText(cardText)
-        .locationText(seo.locationCity())
+        .priceText(structuredText)
+        .detailsText(structuredText)
+        .locationText(locationText)
         .imageUrl(imageUrl)
         .descriptionText(cardText + " " + seoAttr)
         .method(ExtractionMethod.HTML)
@@ -86,12 +110,50 @@ public class OtthonCentrumRawParser {
   private String extractHref(Element card) {
     String href = card.is("a") ? card.attr("href") : "";
     if (href.isBlank()) {
-      Element a = card.selectFirst("a[href*=/ingatlanok/]");
+      Element a = card.selectFirst("a[href*=/ingatlanok/], a[href*=/uj-lakas/]");
       if (a != null) {
         href = a.attr("href");
       }
     }
     return href;
+  }
+
+  private String extractFooterText(Element card) {
+    Elements rows = card.select(".card-footer .info-row");
+    if (rows.isEmpty()) {
+      return null;
+    }
+    String joined = rows.text().replaceAll("\\s+", " ").trim();
+    return joined.isBlank() ? null : joined;
+  }
+
+  private String resolveLocationText(SeoMetadata seo, Element card) {
+    Elements leftRows = card.select(".card-footer .info-row .text-left");
+    String city = firstNonBlank(seo.locationCity(), rowText(leftRows, 0));
+    String fallbackDistrict = leftRows.size() >= 3 ? rowText(leftRows, 1) : null;
+    String district = firstNonBlank(seo.locationDistrict(), fallbackDistrict);
+    if (city == null) {
+      return null;
+    }
+    if (district != null && !district.equalsIgnoreCase(city)) {
+      return city + ", " + district;
+    }
+    return city;
+  }
+
+  private String rowText(Elements rows, int index) {
+    if (rows == null || index < 0 || index >= rows.size()) {
+      return null;
+    }
+    String text = rows.get(index).text().trim();
+    return text.isBlank() ? null : text;
+  }
+
+  private String firstNonBlank(String primary, String secondary) {
+    if (primary != null && !primary.isBlank()) {
+      return primary.trim();
+    }
+    return secondary != null && !secondary.isBlank() ? secondary.trim() : null;
   }
 
   private String extractSeoAttr(Element card) {
@@ -107,26 +169,35 @@ public class OtthonCentrumRawParser {
 
   private SeoMetadata parseSeoMetadata(String seoAttr) {
     if (seoAttr == null || seoAttr.isBlank()) {
-      return new SeoMetadata(null, null);
+      return new SeoMetadata(null, null, null);
     }
     try {
       JsonNode seoObj = JsonSupport.parse(seoAttr);
       JsonNode items = seoObj.path("ecommerce").path("items");
       if (!items.isArray() || items.isEmpty()) {
-        return new SeoMetadata(null, null);
+        return new SeoMetadata(null, null, null);
       }
       JsonNode first = items.get(0);
-      String city = first.has("location_city") ? first.get("location_city").asString() : null;
+      String city = readTextField(first, "location_city");
+      String district = readTextField(first, "location_district");
       Long price = first.has("price") && !first.get("price").isNull()
           ? first.get("price").asLong()
           : null;
       if (price != null && price <= 0) {
         price = null;
       }
-      return new SeoMetadata(city, price);
+      return new SeoMetadata(city, district, price);
     } catch (Exception ignored) {
-      return new SeoMetadata(null, null);
+      return new SeoMetadata(null, null, null);
     }
+  }
+
+  private String readTextField(JsonNode node, String fieldName) {
+    if (!node.has(fieldName) || node.get(fieldName).isNull()) {
+      return null;
+    }
+    String value = node.get(fieldName).asString().trim();
+    return value.isBlank() ? null : value;
   }
 
   private String resolveTitle(Element card, String cardText, String locationCity, String id) {
@@ -137,7 +208,7 @@ public class OtthonCentrumRawParser {
     return cleanTitle(cardText, locationCity, id);
   }
 
-  private record SeoMetadata(String locationCity, Long priceHuf) {}
+  private record SeoMetadata(String locationCity, String locationDistrict, Long priceHuf) {}
 
   public String cleanTitle(String text, String defaultCity, String id) {
     if (text != null && text.contains("szoba")) {

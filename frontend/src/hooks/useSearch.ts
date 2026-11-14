@@ -8,7 +8,6 @@ import {
   clearHistory as apiClearHistory,
   hideProperty as apiHideProperty,
   restoreProperty as apiRestoreProperty,
-  getHiddenProperties as apiGetHiddenProperties,
 } from '../api/propertyApi'
 import type { DashboardResponseDto, SearchCriteria } from '../types/api'
 import type { IngatlanItem } from '../types/property'
@@ -84,6 +83,7 @@ export function useSearch() {
     onlyNew,
     onlyBargain,
     excludeMultiSource,
+    onlyMultiSource,
     minQualityScore,
     quickSearchQuery,
     selectedPortalFilter,
@@ -104,12 +104,6 @@ export function useSearch() {
     staleTime: 30_000,
   })
 
-  const hiddenQuery = useQuery({
-    queryKey: ['hidden-properties'],
-    queryFn: () => apiGetHiddenProperties(),
-    staleTime: 10_000,
-  })
-
   useEffect(() => {
     if (dashboardTab === 'listings' && listingSubView === 'archive') {
       historyQuery.refetch()
@@ -120,7 +114,6 @@ export function useSearch() {
     queryClient.invalidateQueries({ queryKey: ['portals'] })
     queryClient.invalidateQueries({ queryKey: ['cities'] })
     queryClient.invalidateQueries({ queryKey: ['history'] })
-    queryClient.invalidateQueries({ queryKey: ['hidden-properties'] })
   }
 
   const searchMutation = useMutation<DashboardResponseDto, Error, SearchMutationVariables>({
@@ -257,6 +250,7 @@ export function useSearch() {
       onlyNewConstruction: criteria.onlyNewConstruction,
       onlyBargain,
       excludeMultiSource,
+      onlyMultiSource,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
@@ -267,6 +261,7 @@ export function useSearch() {
       criteria.onlyNewConstruction,
       onlyBargain,
       excludeMultiSource,
+      onlyMultiSource,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
@@ -279,10 +274,15 @@ export function useSearch() {
     [data?.items],
   )
 
-  const hiddenItems = useMemo(() => {
-    const list = Array.isArray(hiddenQuery.data) ? hiddenQuery.data : []
-    return filterAndSortItems(list, { ...sharedFilterOptions, onlyNew: false })
-  }, [hiddenQuery.data, sharedFilterOptions])
+  const hiddenSearchItems = useMemo(
+    () => (data?.items ? data.items.filter((it) => Boolean(it.hidden)) : []),
+    [data?.items],
+  )
+
+  const hiddenItems = useMemo(
+    () => filterAndSortItems(hiddenSearchItems, { ...sharedFilterOptions, onlyNew: false }),
+    [hiddenSearchItems, sharedFilterOptions],
+  )
 
   const processedItems = useMemo(() => {
     if (showHidden) {
@@ -315,8 +315,8 @@ export function useSearch() {
   return {
     data,
     items: processedItems,
-    rawItems: showHidden ? (hiddenQuery.data ?? []) : activeSearchItems,
-    rawCount: showHidden ? (hiddenQuery.data?.length ?? 0) : activeSearchItems.length,
+    rawItems: showHidden ? hiddenSearchItems : activeSearchItems,
+    rawCount: showHidden ? hiddenSearchItems.length : activeSearchItems.length,
     filteredCount: processedItems.length,
     archiveItems,
     rawArchiveItems: historyQuery.data ?? [],
@@ -325,7 +325,7 @@ export function useSearch() {
     rawFavoriteItems,
     favoritesCount: rawFavoriteItems.length,
     hiddenItems,
-    hiddenCount: hiddenQuery.data?.length ?? 0,
+    hiddenCount: hiddenSearchItems.length,
     toastMessage,
     toastUndoItem,
     clearToast: () => {

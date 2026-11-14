@@ -34,7 +34,7 @@ jobs:
       - name: Run compliance test suite
         run: node --test scripts/test-verify-pr-compliance.mjs
 
-      - name: Verify PR description & Review-Risk Matrix
+      - name: Verify PR description & OpenAPI contract sync
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}

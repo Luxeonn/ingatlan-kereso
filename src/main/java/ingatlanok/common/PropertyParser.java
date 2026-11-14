@@ -11,7 +11,8 @@ public final class PropertyParser {
 
   private static final Pattern PRICE_PATTERN =
       Pattern.compile(
-          "(\\d+[,.]?\\d*\\s*M\\s*Ft"
+          "(\\d+[,.]?\\d*\\s*[-–]\\s*\\d+[,.]?\\d*\\s*M\\s*Ft"
+              + "|\\d+[,.]?\\d*\\s*M\\s*Ft"
               + "|\\d{1,3}(?:[.\\s\u00A0]\\d{3})+\\s*Ft"
               + "|\\d[\\d\\s\u00A0]*\\s*Ft)",
           Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
@@ -20,20 +21,26 @@ public final class PropertyParser {
           "(\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter)[^\\n•|]*\\d+\\s*szoba[a-záéíóöőúüű]*"
               + "|\\d+\\s*szoba[a-záéíóöőúüű]*[^\\d•|]*[•|]?"
               + "\\s*\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter)"
-              + "|\\d+[,.]?\\d*\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter))",
+              + "|\\d+[,.]?\\d*(?:\\s*[-–]\\s*\\d+[,.]?\\d*)?\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter))",
           Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
   private static final Pattern MILLION_PRICE_PATTERN =
-      Pattern.compile("(\\d+[,.]?\\d*)\\s*M\\s*Ft", Pattern.CASE_INSENSITIVE);
+      Pattern.compile("(\\d+[,.]?\\d*)(?:\\s*[-–]\\s*\\d+[,.]?\\d*)?\\s*M\\s*Ft", Pattern.CASE_INSENSITIVE);
   private static final Pattern HUF_PRICE_PATTERN =
       Pattern.compile("([\\d\\s.\u00A0]+)\\s*Ft", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
   private static final Pattern AREA_PATTERN =
       Pattern.compile(
-          "(\\d+[,.]?\\d*)\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter\\b)",
+          "(\\d+[,.]?\\d*)(?:\\s*[-–]\\s*\\d+[,.]?\\d*)?\\s*(?:m²|m2|nm(?:-es)?|n[ée]gyzetm[ée]ter\\b)",
+          Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
+  private static final Pattern HALF_ROOM_PATTERN =
+      Pattern.compile(
+          "(\\d+)\\s*\\+\\s*(\\d+)\\s*(?:f[ée]l\\s*)?szob[aá]",
           Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern ROOM_PATTERN =
-      Pattern.compile("(\\d+[,.]?\\d*)\\s*szoba", Pattern.CASE_INSENSITIVE);
+      Pattern.compile(
+          "(\\d+[,.]?\\d*)(?:\\s*[-–]\\s*\\d+[,.]?\\d*)?\\s*\\+?\\s*szoba",
+          Pattern.CASE_INSENSITIVE);
 
   private static final Pattern POSTAL_CITY_PATTERN =
       Pattern.compile("\\b(\\d{4})\\s+([A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüűA-ZÁÉÍÓÖŐÚÜŰ\\-]+)");
@@ -140,6 +147,19 @@ public final class PropertyParser {
   private static Double extractRooms(String text) {
     if (text == null) {
       return null;
+    }
+    Matcher mHalf = HALF_ROOM_PATTERN.matcher(text);
+    if (mHalf.find()) {
+      try {
+        double full = Double.parseDouble(mHalf.group(1));
+        double half = Double.parseDouble(mHalf.group(2));
+        double total = full + (half * 0.5);
+        if (total > 0) {
+          return total;
+        }
+      } catch (NumberFormatException ignored) {
+        // Fall through to standard room pattern.
+      }
     }
     Matcher mRooms = ROOM_PATTERN.matcher(text);
     if (mRooms.find()) {

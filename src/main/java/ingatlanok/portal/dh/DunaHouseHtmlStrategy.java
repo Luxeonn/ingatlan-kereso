@@ -19,8 +19,9 @@ import ingatlanok.portal.PortalSupport;
 
 public class DunaHouseHtmlStrategy implements ExtractionStrategy {
 
+  public static final int DEFAULT_MAX_PAGES = 20;
+
   private static final AppLogger LOGGER = AppLogger.getLogger(DunaHouseHtmlStrategy.class);
-  private static final int DEFAULT_MAX_PAGES = 2;
 
   private final DunaHouseUrlBuilder urlBuilder;
   private final DunaHouseRawParser rawParser;
@@ -146,7 +147,13 @@ public class DunaHouseHtmlStrategy implements ExtractionStrategy {
         addedOnPage++;
       }
     }
-    return addedOnPage == 0 ? "REPEATED_PAGE_CONTENT" : null;
+    if (addedOnPage == 0) {
+      return "REPEATED_PAGE_CONTENT";
+    }
+    return pageIndex < maxPages
+        && PortalSupport.hasPaginationWithoutNextPage(document, "page", pageIndex + 1)
+        ? "NO_MORE_PAGES"
+        : null;
   }
 
   private record PageFetchOutcome(

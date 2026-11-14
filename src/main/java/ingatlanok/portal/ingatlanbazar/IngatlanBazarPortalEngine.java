@@ -43,7 +43,7 @@ public class IngatlanBazarPortalEngine implements PortalEngine {
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, java.util.function.Function<String, String> jsonFetcher) {
-    return scrape(criteria, jsonFetcher, 2);
+    return scrape(criteria, jsonFetcher, IngatlanBazarApiStrategy.DEFAULT_MAX_PAGES);
   }
 
   public PortalScrapeResult scrape(
