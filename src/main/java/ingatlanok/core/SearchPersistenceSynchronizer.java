@@ -2,13 +2,11 @@ package ingatlanok.core;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
@@ -85,18 +83,8 @@ public class SearchPersistenceSynchronizer {
       if (item == null) {
         continue;
       }
-      Set<String> countedKeys = new LinkedHashSet<>();
-      countedKeys.add(resolvePortalCountKey(item));
-      if (item.getSourceListings() != null) {
-        for (SourceListing sl : item.getSourceListings()) {
-          if (sl != null && sl.getPortal() != null && !sl.getPortal().isBlank()) {
-            countedKeys.add(resolvePortalCountKeyByName(sl.getPortal().trim()));
-          }
-        }
-      }
-      for (String key : countedKeys) {
-        portalCounts.merge(key, 1, Integer::sum);
-      }
+      String key = resolvePortalCountKey(item);
+      portalCounts.merge(key, 1, Integer::sum);
     }
   }
 

@@ -1,6 +1,6 @@
 import type { SortOption } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
-import { getEffectivePrice, getItemPortalKeys, getItemSourceListingsCount } from './formatters'
+import { getEffectivePrice, getPrimaryPortalKey, getItemSourceListingsCount } from './formatters'
 
 export function normalizeSearchText(str?: string | null): string {
   return (str || '')
@@ -156,7 +156,7 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
   }
   const selectedPortal = options.selectedPortalFilter
   if (selectedPortal && selectedPortal !== 'all') {
-    items = items.filter((item) => getItemPortalKeys(item).has(selectedPortal))
+    items = items.filter((item) => getPrimaryPortalKey(item) === selectedPortal)
   }
 
   const q = normalizeSearchText(options.quickSearchQuery).trim()

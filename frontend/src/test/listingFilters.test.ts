@@ -133,18 +133,17 @@ describe('listingFilters utility', () => {
       expect(all).toHaveLength(2)
     })
 
-    it('filters by selectedPortalFilter including secondary portals in sourceListings', () => {
+    it('filters by selectedPortalFilter matching only the primary winning portal (#432)', () => {
       const dhItems = applyItemFilters(items, { selectedPortalFilter: 'dh' })
-      expect(dhItems).toHaveLength(2)
-      expect(dhItems.map((i) => i.id)).toEqual(['1', '2'])
+      expect(dhItems).toHaveLength(1)
+      expect(dhItems.map((i) => i.id)).toEqual(['1'])
 
       const ocItems = applyItemFilters(items, { selectedPortalFilter: 'oc' })
       expect(ocItems).toHaveLength(1)
       expect(ocItems[0]!.id).toBe('2')
 
       const jfItems = applyItemFilters(items, { selectedPortalFilter: 'jofogas' })
-      expect(jfItems).toHaveLength(1)
-      expect(jfItems[0]!.id).toBe('2')
+      expect(jfItems).toHaveLength(0)
 
       const allItems = applyItemFilters(items, { selectedPortalFilter: 'all' })
       expect(allItems).toHaveLength(2)

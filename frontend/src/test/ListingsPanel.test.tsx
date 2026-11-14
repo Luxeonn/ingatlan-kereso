@@ -69,13 +69,13 @@ describe('ListingsPanel component (#264)', () => {
 
     expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-    // Multi-source summary notice: 2 unique items (1x2 sources + 1x1 source = 3 total source listings, 1 multi-source item)
+    // Multi-source summary notice: 2 unique items (3 total source listings, 3 - 2 = 1 merged duplicate)
     const notice = screen.getByTestId('multi-source-summary-notice')
     expect(notice).toBeTruthy()
-    expect(notice.textContent).toBe('2 / 3 (1 összevonva)')
+    expect(notice.textContent).toBe('2 egyedi ingatlan (3 hirdetésből · 1 összevonva)')
   })
 
-  it('accurately calculates 6 unique properties and 9 total source listings for 4x1 + 1x2 + 1x3 source items (#358)', () => {
+  it('accurately calculates 6 unique properties, 9 total source listings, and 3 merged duplicates for 4x1 + 1x2 + 1x3 source items (#358, #432)', () => {
     const sixItemsNineSources: IngatlanItem[] = [
       { id: 'dh-1', portal: 'Duna House', url: 'https://dh.hu/1', title: 'Ház 1', price: '50 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
       { id: 'dh-2', portal: 'Duna House', url: 'https://dh.hu/2', title: 'Ház 2', price: '55 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
@@ -127,7 +127,7 @@ describe('ListingsPanel component (#264)', () => {
     )
 
     const notice = screen.getByTestId('multi-source-summary-notice')
-    expect(notice.textContent).toBe('6 / 9 · 1 szűrt (2 összevonva)')
+    expect(notice.textContent).toBe('6 egyedi ingatlan (9 hirdetésből · 3 összevonva) · 1 szűrt')
   })
 
   it('renders live status announcement for screen readers', () => {
@@ -295,8 +295,9 @@ describe('ListingsPanel component (#264)', () => {
       />
     )
 
-    // Initially displays visibleCount / items.length
-    expect(screen.getByText(/Megjelenítve: 10 \/ 50 db/i)).toBeTruthy()
+    // Header counter shows net total without DOM batch prefix, while sentinel tracks batch progress (#432)
+    expect(screen.getByText('50 db')).toBeTruthy()
+    expect(screen.queryByText(/Megjelenítve:/i)).toBeNull()
     expect(observeMock).toHaveBeenCalled()
 
     const sentinel = screen.getByTestId('infinite-scroll-sentinel')
@@ -313,8 +314,7 @@ describe('ListingsPanel component (#264)', () => {
       ])
     })
 
-    // Should batch-append next 10 items => 20 / 50 db
-    expect(screen.getByText(/Megjelenítve: 20 \/ 50 db/i)).toBeTruthy()
+    // Should batch-append next 10 items on sentinel => 20 / 50 db
     expect(sentinel.textContent).toContain('További ingatlanok betöltése... (20 / 50 db)')
 
     vi.unstubAllGlobals()
