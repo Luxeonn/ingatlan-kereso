@@ -75,6 +75,68 @@ class DunaHousePaginationTest {
     assertTrue(requestedUrls.contains(baseUrl + "?page=3"));
   }
 
+  @Test
+  @DisplayName("DH Engine: ha a HTML lapozóban nincs következő oldal, azonnal megáll (NO_MORE_PAGES)")
+  void testStopsImmediatelyWhenPaginationHasNoNextPage() {
+    String baseUrl = "https://dh.hu/elado-ingatlan/haz/hajdu-bihar-megye/debrecen/-/70-120-mFt/90-200-m2";
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType(PropertyType.HAZ);
+    criteria.setMinPriceMillion(70);
+    criteria.setMaxPriceMillion(120);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
+
+    List<String> requestedUrls = new ArrayList<>();
+    DunaHousePortalEngine engine = new DunaHousePortalEngine();
+
+    PortalScrapeResult result = engine.scrape(criteria, url -> {
+      requestedUrls.add(url);
+      if (baseUrl.equals(url)) {
+        return buildDhPage(
+            listingHtml("DH101", "85 M Ft", "110 m2"),
+            "<a href=\"/elado-ingatlan/haz/hajdu-bihar-megye/debrecen/-/70-120-mFt/90-200-m2?page=2\">2</a>");
+      }
+      if ((baseUrl + "?page=2").equals(url)) {
+        return buildDhPage(
+            listingHtml("DH201", "95 M Ft", "130 m2"),
+            "<a href=\"/elado-ingatlan/haz/hajdu-bihar-megye/debrecen/-/70-120-mFt/90-200-m2?page=2\">2</a>");
+      }
+      throw new AssertionError("Nem szabadott volna lekérni a következő oldalt: " + url);
+    });
+
+    assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
+    assertEquals(2, requestedUrls.size());
+    assertEquals(2, result.getItems().size());
+    assertTrue(result.getTechnicalDetails().contains("stopReason=NO_MORE_PAGES"));
+  }
+
+  @Test
+  @DisplayName("DH Engine: egyoldalas találatnál a 2. oldal ismétlésekor leáll, nem próbálkozik tovább")
+  void testSinglePageResultStopsAtPageTwoWithoutFurtherRequests() {
+    String baseUrl = "https://dh.hu/elado-ingatlan/haz/hajdu-bihar-megye/debrecen/-/70-120-mFt/90-200-m2";
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType(PropertyType.HAZ);
+    criteria.setMinPriceMillion(70);
+    criteria.setMaxPriceMillion(120);
+    criteria.setMinArea(90);
+    criteria.setMaxArea(200);
+
+    List<String> requestedUrls = new ArrayList<>();
+    DunaHousePortalEngine engine = new DunaHousePortalEngine();
+
+    PortalScrapeResult result = engine.scrape(criteria, url -> {
+      requestedUrls.add(url);
+      return buildDhPage(listingHtml("DH101", "85 M Ft", "110 m2"));
+    });
+
+    assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
+    assertEquals(2, requestedUrls.size(), "Csak az 1. és 2. oldalt kérheti le, utána le kell állnia");
+    assertEquals(1, result.getItems().size());
+    assertTrue(result.getTechnicalDetails().contains("stopReason=REPEATED_PAGE_CONTENT"));
+  }
+
   private static Document buildDhPage(String... cards) {
     String body = String.join("\n", cards);
     return Jsoup.parse("<html><body>" + body + "</body></html>", DunaHouseUrlBuilder.BASE_URL);
