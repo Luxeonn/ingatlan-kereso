@@ -378,6 +378,40 @@ class DeduplicationEngineTest {
     }
   }
 
+  @Test
+  @DisplayName("Ragozott utcanév egyezés, prózazaj elutasítása és intraportál sabloncím védelem")
+  void testInflectedStreetsAndIntraPortalGenericTitleGuard() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem miskolcA = createItem("ma", "Költözzbe", "https://koltozzbe.hu/h1",
+        "Eladó panellakás, Miskolcon, Szentgyörgy úton 24.49 M Ft",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+    IngatlanItem miskolcB = createItem("mb", "Jófogás", "https://ingatlan.jofogas.hu/1.htm",
+        "Eladó panel lakás Miskolc, Avas Szentgyörgy utcában!",
+        "Miskolc", PropertyType.LAKAS, 37.0, 1.0, 24_490_000L, "ACTIVE");
+
+    var locA = ingatlanok.core.dedup.LocationConflictDetector.extractLocation(miskolcA, "miskolc");
+    var locB = ingatlanok.core.dedup.LocationConflictDetector.extractLocation(miskolcB, "miskolc");
+    assertTrue(ingatlanok.core.dedup.LocationConflictDetector.hasSameStreet(locA, locB),
+        "Ragozott 'úton' és 'utcában' utcanevek azonosnak minősülnek");
+    assertFalse(ingatlanok.core.dedup.LocationConflictDetector.hasConflict(locA, locB, "miskolc"));
+
+    IngatlanItem proseNoise = createItem("pn", "Otthon Centrum", "https://oc.hu/1",
+        "Eladó családi ház egyirányú utcában, az út jelenleg föld út",
+        "Debrecen", PropertyType.HAZ, 120.0, 4.0, 95_000_000L, "ACTIVE");
+    var proseLoc = ingatlanok.core.dedup.LocationConflictDetector.extractLocation(proseNoise, "debrecen");
+    assertFalse(proseLoc.hasStreet(), "Prózában lévő 'egyirányú utcában' / 'föld út' nem utcanév");
+
+    IngatlanItem ibGeneric1 = createItem("ib1", "ingatlanbazar", "https://ingatlanbazar.hu/1",
+        "Debrecen, Debreceni kistérség, ingatlan, eladó, ház, 100 m2",
+        "Debrecen", PropertyType.HAZ, 100.0, 3.0, 95_000_000L, "ACTIVE");
+    IngatlanItem ibGeneric2 = createItem("ib2", "ingatlanbazar", "https://ingatlanbazar.hu/2",
+        "Debrecen, Debreceni kistérség, ingatlan, eladó, ház, 100 m2",
+        "Debrecen", PropertyType.HAZ, 100.0, 3.0, 95_000_000L, "ACTIVE");
+    assertFalse(engine.isMatch(ibGeneric1, ibGeneric2),
+        "Azonos portálon belüli sabloncímű eltérő ingatlanok nem olvaszthatók össze");
+  }
+
   private IngatlanItem createItem(
       String id,
       String portal,

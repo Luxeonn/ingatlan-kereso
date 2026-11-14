@@ -45,6 +45,9 @@ public final class ClusterMatchScorer {
    */
   public static List<List<IngatlanItem>> buildBestMatchClusters(
       List<IngatlanItem> items, BiPredicate<IngatlanItem, IngatlanItem> matcher) {
+    if (items == null || items.isEmpty()) {
+      return List.of();
+    }
     int count = items.size();
     List<List<Integer>> clusterIndices = new ArrayList<>(count);
     int[] clusterOf = new int[count];
@@ -73,13 +76,24 @@ public final class ClusterMatchScorer {
       }
     }
 
+    return collectNonEmptyClusters(items, clusterIndices);
+  }
+
+  private static List<List<IngatlanItem>> collectNonEmptyClusters(
+      List<IngatlanItem> items, List<List<Integer>> clusterIndices) {
     List<List<IngatlanItem>> result = new ArrayList<>();
     for (List<Integer> group : clusterIndices) {
-      if (!group.isEmpty()) {
-        List<IngatlanItem> cluster = new ArrayList<>(group.size());
-        for (int idx : group) {
-          cluster.add(items.get(idx));
+      if (group.isEmpty()) {
+        continue;
+      }
+      List<IngatlanItem> cluster = new ArrayList<>(group.size());
+      for (int idx : group) {
+        IngatlanItem item = items.get(idx);
+        if (item != null) {
+          cluster.add(item);
         }
+      }
+      if (!cluster.isEmpty()) {
         result.add(cluster);
       }
     }
@@ -208,13 +222,14 @@ public final class ClusterMatchScorer {
     String normCity = CityUtils.normalizeCityKey(a.getCity());
     ExtractedLocation locA = LocationConflictDetector.extractLocation(a, normCity);
     ExtractedLocation locB = LocationConflictDetector.extractLocation(b, normCity);
-    if (locA.hasStreet() && locB.hasStreet() && locA.street().equals(locB.street())) {
-      return WEIGHT_STREET;
+    double score = 0.0;
+    if (LocationConflictDetector.hasSameStreet(locA, locB)) {
+      score += WEIGHT_STREET;
     }
-    if (LocationConflictDetector.hasAffirmativeMatch(locA, locB)) {
-      return WEIGHT_LOCATION;
+    if (LocationConflictDetector.hasSameSubArea(locA, locB)) {
+      score += WEIGHT_LOCATION;
     }
-    return 0.0;
+    return score;
   }
 
   private static double scoreMediaAndTitle(IngatlanItem a, IngatlanItem b) {

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
@@ -22,10 +23,13 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
   public static final int DEFAULT_MAX_PAGES = 20;
 
   private static final AppLogger LOGGER = AppLogger.getLogger(OtthonCentrumHtmlStrategy.class);
+  private static final String CHUNK_URL_PREFIX =
+      OtthonCentrumUrlBuilder.BASE_URL + "/ingatlanok/kereses/chunk?page=";
 
   private final OtthonCentrumUrlBuilder urlBuilder;
   private final OtthonCentrumRawParser rawParser;
   private final Function<String, Document> documentFetcher;
+  private final BiFunction<String, String, Document> chunkDocumentFetcher;
   private final int maxPages;
 
   public OtthonCentrumHtmlStrategy() {
@@ -36,7 +40,12 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
       OtthonCentrumUrlBuilder urlBuilder,
       OtthonCentrumRawParser rawParser,
       Function<String, Document> documentFetcher) {
-    this(urlBuilder, rawParser, documentFetcher, DEFAULT_MAX_PAGES);
+    this(
+        urlBuilder,
+        rawParser,
+        documentFetcher,
+        HttpFetcher::postJsonDocument,
+        DEFAULT_MAX_PAGES);
   }
 
   public OtthonCentrumHtmlStrategy(
@@ -44,9 +53,20 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
       OtthonCentrumRawParser rawParser,
       Function<String, Document> documentFetcher,
       int maxPages) {
+    this(urlBuilder, rawParser, documentFetcher, HttpFetcher::postJsonDocument, maxPages);
+  }
+
+  public OtthonCentrumHtmlStrategy(
+      OtthonCentrumUrlBuilder urlBuilder,
+      OtthonCentrumRawParser rawParser,
+      Function<String, Document> documentFetcher,
+      BiFunction<String, String, Document> chunkDocumentFetcher,
+      int maxPages) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new OtthonCentrumUrlBuilder();
     this.rawParser = rawParser != null ? rawParser : new OtthonCentrumRawParser();
     this.documentFetcher = documentFetcher != null ? documentFetcher : HttpFetcher::fetchDocument;
+    this.chunkDocumentFetcher =
+        chunkDocumentFetcher != null ? chunkDocumentFetcher : HttpFetcher::postJsonDocument;
     this.maxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
   }
 
@@ -66,15 +86,11 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
     Set<String> visitedPageUrls = new HashSet<>();
     int pagesProcessed = 0;
     String stopReason = "MAX_PAGES_REACHED";
+    String chunkFilterJson = null;
 
     for (int i = 1; i <= maxPages; i++) {
-      String pageUrl = urlBuilder.buildPageUrl(searchUrl, i);
-      if (pageUrl == null || !visitedPageUrls.add(pageUrl)) {
-        stopReason = "DUPLICATE_PAGE_URL";
-        break;
-      }
-
-      PageFetchOutcome fetchOutcome = fetchPageDocument(pageUrl, i);
+      PageFetchOutcome fetchOutcome =
+          fetchPageOrChunkOutcome(searchUrl, i, chunkFilterJson, visitedPageUrls);
       if (fetchOutcome.botProtected()) {
         if (allListings.isEmpty()) {
           return RawExtractionResult.botProtected(method(), searchUrl, "Bot-védelem detektálva");
@@ -91,9 +107,14 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
         break;
       }
 
+      if (i == 1) {
+        chunkFilterJson = rawParser.extractChunkFilterJson(fetchOutcome.document());
+      }
       pagesProcessed++;
+      boolean usingChunkPagination = chunkFilterJson != null && !chunkFilterJson.isBlank();
       String pageStopReason = processPageDocument(
-          fetchOutcome.document(), i, processedUrls, processedNativeIds, allListings);
+          fetchOutcome.document(), i, usingChunkPagination,
+          processedUrls, processedNativeIds, allListings);
       if (pageStopReason != null) {
         stopReason = pageStopReason;
         break;
@@ -110,11 +131,21 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
     return RawExtractionResult.success(allListings, method(), details);
   }
 
-  private PageFetchOutcome fetchPageDocument(String pageUrl, int pageIndex) {
+  private PageFetchOutcome fetchPageOrChunkOutcome(
+      String searchUrl, int pageIndex, String chunkFilterJson, Set<String> visitedPageUrls) {
+    boolean useChunk = pageIndex >= 2 && chunkFilterJson != null && !chunkFilterJson.isBlank();
+    String targetUrl = useChunk
+        ? CHUNK_URL_PREFIX + pageIndex
+        : urlBuilder.buildPageUrl(searchUrl, pageIndex);
+    if (targetUrl == null || !visitedPageUrls.add(targetUrl)) {
+      return new PageFetchOutcome(null, false, "DUPLICATE_PAGE_URL", "Ismétlődő oldal URL");
+    }
     try {
-      Document document = documentFetcher.apply(pageUrl);
+      Document document = useChunk
+          ? chunkDocumentFetcher.apply(targetUrl, chunkFilterJson)
+          : documentFetcher.apply(targetUrl);
       if (document == null) {
-        LOGGER.warn("Nem sikerült letölteni az Otthon Centrum {}. oldalt: {}", pageIndex, pageUrl);
+        LOGGER.warn("Nem sikerült letölteni az Otthon Centrum {}. oldalt: {}", pageIndex, targetUrl);
         return new PageFetchOutcome(
             null, false, "INTERMEDIATE_PAGE_FETCH_FAILED", "Nem sikerült letölteni az oldalt");
       }
@@ -132,6 +163,7 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
   private String processPageDocument(
       Document document,
       int pageIndex,
+      boolean usingChunkPagination,
       Set<String> processedUrls,
       Set<String> processedNativeIds,
       List<RawPropertyListing> allListings) {
@@ -150,10 +182,12 @@ public class OtthonCentrumHtmlStrategy implements ExtractionStrategy {
     if (addedOnPage == 0) {
       return "REPEATED_PAGE_CONTENT";
     }
-    return pageIndex < maxPages
-        && PortalSupport.hasPaginationWithoutNextPage(document, "page", pageIndex + 1)
-        ? "NO_MORE_PAGES"
-        : null;
+    if (!usingChunkPagination
+        && pageIndex < maxPages
+        && PortalSupport.hasPaginationWithoutNextPage(document, "page", pageIndex + 1)) {
+      return "NO_MORE_PAGES";
+    }
+    return null;
   }
 
   private record PageFetchOutcome(

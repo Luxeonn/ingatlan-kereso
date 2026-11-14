@@ -98,7 +98,26 @@ public final class HttpFetcher {
     }
     long startTime = System.currentTimeMillis();
     LOGGER.debug("HTTP GET Document indítása: {}", targetUrl);
-    Connection.Response response = executeWithRetry(targetUrl, timeoutMs, false);
+    Connection.Response response = executeWithRetry(targetUrl, timeoutMs, false, null);
+    return parseDocumentResponse(response, startTime, targetUrl, "GET");
+  }
+
+  public static Document postJsonDocument(String targetUrl, String jsonBody) {
+    return postJsonDocument(targetUrl, jsonBody, DEFAULT_TIMEOUT_MS);
+  }
+
+  public static Document postJsonDocument(String targetUrl, String jsonBody, int timeoutMs) {
+    if (!isApproved(targetUrl, timeoutMs)) {
+      return null;
+    }
+    long startTime = System.currentTimeMillis();
+    LOGGER.debug("HTTP POST JSON Document indítása: {}", targetUrl);
+    Connection.Response response = executeWithRetry(targetUrl, timeoutMs, false, jsonBody);
+    return parseDocumentResponse(response, startTime, targetUrl, "POST");
+  }
+
+  private static Document parseDocumentResponse(
+      Connection.Response response, long startTime, String targetUrl, String method) {
     if (response == null) {
       return null;
     }
@@ -106,7 +125,8 @@ public final class HttpFetcher {
       Document document = response.parse();
       long elapsed = System.currentTimeMillis() - startTime;
       LOGGER.info(
-          "HTTP GET Document sikeres [{} ms] (cím: '{}'): {}",
+          "HTTP {} Document sikeres [{} ms] (cím: '{}'): {}",
+          method,
           elapsed,
           document.title(),
           targetUrl);
@@ -130,7 +150,7 @@ public final class HttpFetcher {
     }
     long startTime = System.currentTimeMillis();
     LOGGER.debug("HTTP GET JSON indítása: {}", targetUrl);
-    Connection.Response response = executeWithRetry(targetUrl, timeoutMs, true);
+    Connection.Response response = executeWithRetry(targetUrl, timeoutMs, true, null);
     if (response == null) {
       return null;
     }
@@ -142,7 +162,7 @@ public final class HttpFetcher {
   }
 
   private static Connection.Response executeWithRetry(
-      String targetUrl, int timeoutMs, boolean isJson) {
+      String targetUrl, int timeoutMs, boolean isJson, String postBody) {
     LAST_STATUS_CODE.remove();
     String circuitKey = resolveCircuitKey(targetUrl);
     if (!CIRCUIT_BREAKER.allowRequest(circuitKey)) {
@@ -161,7 +181,8 @@ public final class HttpFetcher {
           return null;
         }
         try {
-          Connection.Response response = buildConnection(targetUrl, timeoutMs, isJson).execute();
+          Connection.Response response =
+              buildConnection(targetUrl, timeoutMs, isJson, postBody).execute();
           Action action =
               processResponse(response, attempt, maxRetries, retryDelayMs, targetUrl, circuitKey);
           if (action == Action.RETURN_RESPONSE) {
@@ -268,14 +289,24 @@ public final class HttpFetcher {
     return false;
   }
 
-  private static Connection buildConnection(String targetUrl, int timeoutMs, boolean isJson) {
+  private static Connection buildConnection(
+      String targetUrl, int timeoutMs, boolean isJson, String postBody) {
     Connection connection = Jsoup.connect(targetUrl)
         .userAgent(DEFAULT_USER_AGENT)
         .followRedirects(true)
         .ignoreHttpErrors(true)
         .timeout(timeoutMs);
 
-    if (isJson) {
+    if (postBody != null) {
+      connection
+          .method(Connection.Method.POST)
+          .requestBody(postBody)
+          .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+          .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")
+          .header("Content-Type", "application/json; charset=UTF-8")
+          .header("X-Requested-With", "XMLHttpRequest")
+          .ignoreContentType(true);
+    } else if (isJson) {
       connection
           .header("Accept", "application/json, text/plain, */*")
           .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")

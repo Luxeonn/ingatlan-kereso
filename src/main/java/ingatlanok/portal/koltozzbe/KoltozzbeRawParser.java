@@ -65,6 +65,7 @@ public class KoltozzbeRawParser {
         String title = extractTitle(card, linkElem);
         String priceText = extractPriceText(card);
         String detailsText = extractDetailsText(card);
+        String locationText = extractLocationText(card);
         String imageUrl = PortalSupport.extractImageWithFallback(card, KoltozzbeUrlBuilder.BASE_URL);
 
         RawPropertyListing raw = RawPropertyListing.builder()
@@ -74,6 +75,7 @@ public class KoltozzbeRawParser {
             .title(title)
             .priceText(priceText)
             .detailsText(detailsText)
+            .locationText(locationText)
             .imageUrl(imageUrl)
             .descriptionText(card.text())
             .method(ExtractionMethod.HTML)
@@ -176,24 +178,59 @@ public class KoltozzbeRawParser {
   private String extractPriceText(Element card) {
     Elements dedicatedPrice = card.select(".item-price, .price, .listing-price");
     for (Element candidate : dedicatedPrice) {
-      if (!candidate.text().isBlank()) {
-        return candidate.text();
-      }
-    }
-    Element typeCandidate = card.selectFirst(".item-type.h2");
-    if (typeCandidate != null && !typeCandidate.text().isBlank()) {
-      String txt = typeCandidate.text();
-      if (txt.contains("Ft") || txt.matches(".*\\d.*")) {
+      String txt = candidate.text().trim();
+      if (!txt.isBlank() && hasExtractablePrice(txt)) {
         return txt;
       }
     }
-    return card.text();
+    Elements typeCandidates = card.select(".item-type.h2, .item-type");
+    for (Element candidate : typeCandidates) {
+      Element cleanType = candidate.clone();
+      cleanType.select(".item-meanprice").remove();
+      String txt = cleanType.text().trim();
+      if (!txt.isBlank() && hasExtractablePrice(txt)) {
+        return txt;
+      }
+    }
+    Element cleanCard = card.clone();
+    cleanCard.select(".item-meanprice").remove();
+    return cleanCard.text();
+  }
+
+  private boolean hasExtractablePrice(String text) {
+    return !"Ár a hirdetésben".equals(PropertyParser.extractPrice(text));
+  }
+
+  private String extractLocationText(Element card) {
+    Element itemPrice = card.selectFirst(".item-price");
+    if (itemPrice == null) {
+      return null;
+    }
+    String raw = itemPrice.text().trim();
+    if (raw.isBlank() || hasExtractablePrice(raw)) {
+      return null;
+    }
+    int separatorIdx = raw.indexOf(" - ");
+    String candidate = (separatorIdx > 0 ? raw.substring(0, separatorIdx) : raw).trim();
+    return candidate.isBlank() ? null : candidate;
   }
 
   private String extractDetailsText(Element card) {
+    Elements primaryParams = card.select(".listing-size, .listing-rooms");
+    if (!primaryParams.isEmpty()) {
+      String joined = primaryParams.text().trim();
+      if (!joined.isBlank()) {
+        return joined;
+      }
+    }
     Element paramsElem = card.selectFirst(".listing-parameters, .property-parameters, .item-parameters");
     if (paramsElem != null && !paramsElem.text().isBlank()) {
-      return paramsElem.text();
+      Element cleanParams = paramsElem.clone();
+      cleanParams.select(".listing-plot, .icon-plot-size, .listing-year").remove();
+      String cleaned = cleanParams.text().trim();
+      if (!cleaned.isBlank()) {
+        return cleaned;
+      }
     }
     return card.text();
   }
