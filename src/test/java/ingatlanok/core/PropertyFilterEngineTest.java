@@ -357,4 +357,40 @@ class PropertyFilterEngineTest {
     assertEquals(1, viewOnly.matchingItems().size());
     assertEquals(1, viewOnly.filteredByNewConstructionCount());
   }
+
+  @Test
+  @DisplayName("#442: filterView megőrzi az elrejtett találatokat, hogy a gyors-szűrő a keresésre korlátozódjon")
+  void testFilterViewPreservesHiddenItemsForScopedQuickFiltering() {
+    PropertyFilterEngine filterEngine = new PropertyFilterEngine();
+    IngatlanItem visibleItem =
+        new IngatlanItem(
+            "1",
+            "dh",
+            "http://visible",
+            "Hajdúszoboszlói ház",
+            "90 M Ft",
+            "Hajdúszoboszló",
+            "120 m²",
+            "2026-11-14",
+            false);
+    IngatlanItem hiddenItem =
+        new IngatlanItem(
+            "2",
+            "oc",
+            "http://hidden",
+            "Hajdúszoboszlói elrejtett ház",
+            "95 M Ft",
+            "Hajdúszoboszló",
+            "130 m²",
+            "2026-11-14",
+            false);
+    hiddenItem.setHidden(true);
+
+    SearchCriteria criteria = new SearchCriteria();
+    PropertyFilterEngine.FilterResult result =
+        filterEngine.filterView(List.of(visibleItem, hiddenItem), criteria);
+
+    assertEquals(2, result.matchingItems().size());
+    assertTrue(result.matchingItems().stream().anyMatch(i -> "http://hidden".equals(i.getUrl()) && i.isHidden()));
+  }
 }

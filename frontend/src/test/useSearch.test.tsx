@@ -394,4 +394,67 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     expect(result.current.items).toHaveLength(1)
     expect(result.current.items[0]?.id).toBe('item-2')
   })
+
+  it('scopes showHidden and hiddenCount strictly to current search results (#442)', async () => {
+    const miskolcHiddenFlat = createMockIngatlanItem({
+      id: 'miskolc-hidden',
+      url: 'https://koltozzbe.hu/miskolc-1',
+      title: 'Miskolci elrejtett panellakás',
+      city: 'Miskolc',
+      propertyType: 'LAKAS',
+      hidden: true,
+      priceInfo: { amountHuf: 25_000_000, amountMillion: 25 },
+    })
+    vi.mocked(propertyApi.getHiddenProperties).mockResolvedValue([miskolcHiddenFlat])
+
+    const hajduActiveHouse = createMockIngatlanItem({
+      id: 'hajdu-active',
+      url: 'https://dh.hu/hajdu-1',
+      title: 'Hajdúszoboszlói aktív ház',
+      city: 'Hajdúszoboszló',
+      propertyType: 'HAZ',
+      hidden: false,
+      priceInfo: { amountHuf: 90_000_000, amountMillion: 90 },
+    })
+    const hajduHiddenHouse = createMockIngatlanItem({
+      id: 'hajdu-hidden',
+      url: 'https://oc.hu/hajdu-2',
+      title: 'Hajdúszoboszlói elrejtett ház',
+      city: 'Hajdúszoboszló',
+      propertyType: 'HAZ',
+      hidden: true,
+      priceInfo: { amountHuf: 95_000_000, amountMillion: 95 },
+    })
+
+    vi.mocked(searchApi.executeSearch).mockResolvedValueOnce({
+      items: [hajduActiveHouse, hajduHiddenHouse],
+      newCount: 1,
+      totalFound: 2,
+    })
+
+    const { result } = renderHook(() => useSearch(), { wrapper })
+
+    act(() => {
+      result.current.search({ city: 'Hajdúszoboszló', propertyType: 'HAZ' })
+    })
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(1)
+    })
+
+    // Normal view: only active item shown, hiddenCount strictly reflects current search (1, not global)
+    expect(result.current.items[0]?.id).toBe('hajdu-active')
+    expect(result.current.hiddenCount).toBe(1)
+
+    // Toggle showHidden -> only current search's hidden item appears, never Miskolc flat
+    act(() => {
+      useFilterStore.getState().setShowHidden(true)
+    })
+
+    expect(result.current.items).toHaveLength(1)
+    expect(result.current.items[0]?.id).toBe('hajdu-hidden')
+    expect(result.current.rawItems).toHaveLength(1)
+    expect(result.current.rawCount).toBe(1)
+    expect(result.current.items.some((i) => i.id === 'miskolc-hidden')).toBe(false)
+  })
 })
