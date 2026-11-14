@@ -12,6 +12,7 @@ import java.util.Set;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.core.dedup.ClusterConsolidationHelper;
+import ingatlanok.core.dedup.ClusterMatchScorer;
 import ingatlanok.core.dedup.LocationConflictDetector;
 import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
 import ingatlanok.core.dedup.SemanticConflictDetector;
@@ -65,23 +66,9 @@ public class DeduplicationEngine {
       return Collections.emptyList();
     }
 
-    // Stage 2: Cross-portal multi-signal clustering
-    List<List<IngatlanItem>> clusters = new ArrayList<>();
-    for (IngatlanItem candidate : stage1Items) {
-      boolean addedToCluster = false;
-      for (List<IngatlanItem> cluster : clusters) {
-        if (matchesCluster(candidate, cluster)) {
-          cluster.add(candidate);
-          addedToCluster = true;
-          break;
-        }
-      }
-      if (!addedToCluster) {
-        List<IngatlanItem> newCluster = new ArrayList<>();
-        newCluster.add(candidate);
-        clusters.add(newCluster);
-      }
-    }
+    // Stage 2: Score-ordered cross-portal multi-signal clustering (order-independent best match)
+    List<List<IngatlanItem>> clusters =
+        ClusterMatchScorer.buildBestMatchClusters(stage1Items, this::isMatch);
 
     // Stage 3: Consolidation into grouped IngatlanItem
     List<IngatlanItem> consolidatedItems = new ArrayList<>(clusters.size());
@@ -94,18 +81,6 @@ public class DeduplicationEngine {
 
   public List<IngatlanItem> deduplicate(Collection<IngatlanItem> items) {
     return deduplicateMultiSignal(items);
-  }
-
-  private boolean matchesCluster(IngatlanItem candidate, List<IngatlanItem> cluster) {
-    if (cluster == null || cluster.isEmpty() || candidate == null) {
-      return false;
-    }
-    for (IngatlanItem member : cluster) {
-      if (!isMatch(candidate, member)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public boolean isMatch(IngatlanItem a, IngatlanItem b) {
