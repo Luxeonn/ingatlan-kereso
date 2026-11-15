@@ -16,6 +16,7 @@ import { buildIngatlanComSearchUrl } from '../../utils/ingatlanComUrl'
 import { normalizePropertyType, openExternalUrl } from '../../utils/formatters'
 
 interface IngatlanComImportModalProps {
+  fetchedPages?: number | null
   onImportSuccess?: () => void
 }
 
@@ -28,15 +29,19 @@ interface ImportStatsSummary {
 }
 
 const CONSOLE_COPY_SNIPPET = 'copy(document.documentElement.outerHTML)'
-const PAGE_LINKS = [2, 3, 4] as const
 
-export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({ onImportSuccess }) => {
+export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
+  fetchedPages = null,
+  onImportSuccess,
+}) => {
   const { isIngatlanComImportModalOpen, setIngatlanComImportModalOpen } = useUiStore()
   const { criteria } = useFilterStore()
 
   const activeCity = criteria.cities?.[0] ?? criteria.city ?? 'Debrecen'
   const activeType = normalizePropertyType(criteria.propertyType)
-  const defaultPage2Url = buildIngatlanComSearchUrl(
+  const startPage = typeof fetchedPages === 'number' && fetchedPages >= 1 ? Math.max(2, fetchedPages + 1) : 2
+  const pageLinks = [startPage, startPage + 1, startPage + 2]
+  const defaultPageUrl = buildIngatlanComSearchUrl(
     {
       city: activeCity,
       propertyType: activeType,
@@ -45,7 +50,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({ onImpo
       minArea: criteria.minArea,
       maxArea: criteria.maxArea,
     },
-    2,
+    startPage,
   )
 
   const [htmlInput, setHtmlInput] = useState('')
@@ -57,7 +62,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({ onImpo
 
   if (!isIngatlanComImportModalOpen) return null
 
-  const effectiveSourceUrl = sourceUrl.trim() || defaultPage2Url
+  const effectiveSourceUrl = sourceUrl.trim() || defaultPageUrl
 
   const handleCopySnippet = () => {
     void navigator.clipboard.writeText(CONSOLE_COPY_SNIPPET)
@@ -141,7 +146,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({ onImpo
             </div>
             <div>
               <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                Ingatlan.com oldalak (2., 3., ...) közvetlen importálása
+                Ingatlan.com oldalak ({startPage}., {startPage + 1}., ...) közvetlen importálása
               </h3>
               <p className="text-xs text-[var(--text-secondary)]">
                 A saját böngésződből lementett vagy kimásolt HTML oldalakat tartósan beolvasod az adatbázisba
@@ -165,7 +170,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({ onImpo
               1. Nyisd meg a következő oldalakat a böngésződben ({activeCity}):
             </p>
             <div className="flex flex-wrap gap-2">
-              {PAGE_LINKS.map((pageNum) => {
+              {pageLinks.map((pageNum) => {
                 const pageUrl = buildIngatlanComSearchUrl(
                   {
                     city: activeCity,
@@ -244,7 +249,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({ onImpo
               type="url"
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder={`Forrás URL (alapértelmezett: ${defaultPage2Url})`}
+              placeholder={`Forrás URL (alapértelmezett: ${defaultPageUrl})`}
               className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-[11px] text-[var(--text-secondary)] focus:border-sky-500 focus:outline-none"
             />
           </div>

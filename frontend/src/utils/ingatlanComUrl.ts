@@ -1,4 +1,5 @@
 import type { CanonicalPropertyType } from '../types/property'
+import type { PortalStatusDto } from '../types/portal'
 
 const TYPE_SLUG_MAP: Record<CanonicalPropertyType, string> = {
   HAZ: 'haz',
@@ -52,4 +53,30 @@ export function buildIngatlanComSearchUrl(
   segments.push(citySlug)
   const baseUrl = `https://ingatlan.com/lista/${segments.join('+')}`
   return page > 1 ? `${baseUrl}?page=${page}` : baseUrl
+}
+
+export function findPartialIngatlanComStatus(
+  statuses?: PortalStatusDto[] | null,
+): PortalStatusDto | undefined {
+  return statuses?.find(
+    (p) =>
+      p.portalId === 'ingatlancom' &&
+      (p.status === 'BOT_PROTECTED' ||
+        p.status === 'FAILED' ||
+        Boolean(p.message?.toLowerCase().includes('részleges'))),
+  )
+}
+
+export function extractIngatlanComFetchedPages(status?: PortalStatusDto | null): number | null {
+  const detailsPages = status?.technicalDetails?.match(/pages=(\d+)/i)?.[1]
+  if (detailsPages) {
+    const parsed = Number.parseInt(detailsPages, 10)
+    return parsed > 0 ? parsed : null
+  }
+  const msgPages = status?.message?.match(/\((\d+)\s*oldal\)/i)?.[1]
+  if (msgPages) {
+    const parsed = Number.parseInt(msgPages, 10)
+    return parsed > 0 ? parsed : null
+  }
+  return null
 }

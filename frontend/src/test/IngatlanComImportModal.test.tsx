@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IngatlanComImportModal } from '../components/modals/IngatlanComImportModal'
 import { PartialPortalWarningBanner } from '../components/layout/StatusBanners'
-import { buildIngatlanComSearchUrl } from '../utils/ingatlanComUrl'
+import {
+  buildIngatlanComSearchUrl,
+  extractIngatlanComFetchedPages,
+  findPartialIngatlanComStatus,
+} from '../utils/ingatlanComUrl'
 import { useUiStore } from '../store/useUiStore'
 import { useFilterStore, DEFAULT_PORTALS } from '../store/useFilterStore'
 import * as portalApi from '../api/portalApi'
@@ -118,5 +122,38 @@ describe('Ingatlan.com HTML import & URL builder (#455)', () => {
       />,
     )
     expect(screen.getAllByTestId('open-ingatlancom-import-btn').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('suggests next pages (6, 7, 8) and shows accurate partial message when 5 pages succeeded', () => {
+    const partialStatus = createMockPortalStatus({
+      portalId: 'ingatlancom',
+      portalName: 'Ingatlan.com',
+      status: 'SUCCESS',
+      message: 'Részleges találati lista (5 oldal): a Cloudflare WAF korlátozta a további oldalakat',
+      technicalDetails: 'Strategy: SIDECAR | pages=5, stopReason=INTERMEDIATE_PAGE_RATE_LIMITED',
+    })
+
+    const found = findPartialIngatlanComStatus([partialStatus])
+    expect(found?.portalId).toBe('ingatlancom')
+    const fetchedPages = extractIngatlanComFetchedPages(found)
+    expect(fetchedPages).toBe(5)
+
+    render(
+      <>
+        <PartialPortalWarningBanner
+          failures={[]}
+          hasIngatlanComPartial={true}
+          ingatlanComMessage={found?.message}
+          onOpenDiagnostics={vi.fn()}
+          onOpenImportModal={vi.fn()}
+        />
+        <IngatlanComImportModal fetchedPages={fetchedPages} />
+      </>,
+    )
+
+    expect(screen.getByTestId('partial-portal-warning-banner').textContent).toContain('Részleges találati lista (5 oldal)')
+    expect(screen.getByTestId('open-ingatlancom-page-6')).toBeTruthy()
+    expect(screen.getByTestId('open-ingatlancom-page-7')).toBeTruthy()
+    expect(screen.getByTestId('open-ingatlancom-page-8')).toBeTruthy()
   })
 })

@@ -36,6 +36,7 @@ interface PartialPortalWarningBannerProps {
   failures: PortalStatusDto[]
   isTotalFailure?: boolean
   hasIngatlanComPartial?: boolean
+  ingatlanComMessage?: string | null
   showEnableAllPortals?: boolean
   onOpenDiagnostics: () => void
   onOpenImportModal?: () => void
@@ -46,6 +47,7 @@ export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = (
   failures,
   isTotalFailure = false,
   hasIngatlanComPartial = false,
+  ingatlanComMessage = null,
   showEnableAllPortals = false,
   onOpenDiagnostics,
   onOpenImportModal,
@@ -72,7 +74,10 @@ export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = (
           </>
         ) : (
           <>
-            <strong>Részleges Ingatlan.com korlátozás:</strong> a Cloudflare WAF csak az 1. oldalt engedte át automatikusan. Több oldalhoz importáld a 2., 3., ... oldalakat a böngésződből, vagy kapcsold be az összes portált!
+            <strong>Részleges Ingatlan.com korlátozás:</strong>{' '}
+            {ingatlanComMessage ||
+              'a Cloudflare WAF korlátozta a további oldalakat.'}{' '}
+            Több oldalhoz importáld a következő oldalakat a böngésződből, vagy kapcsold be az összes portált!
           </>
         )}
       </span>

@@ -77,6 +77,19 @@ public class PropertyFilterEngine {
 
   public FilterResult filterRelevance(
       List<IngatlanItem> items, SearchCriteria criteria, String targetCity) {
+    return filterRelevanceInternal(items, criteria, targetCity, true);
+  }
+
+  public FilterResult filterRelevanceSilently(
+      List<IngatlanItem> items, SearchCriteria criteria, String targetCity) {
+    return filterRelevanceInternal(items, criteria, targetCity, false);
+  }
+
+  private FilterResult filterRelevanceInternal(
+      List<IngatlanItem> items,
+      SearchCriteria criteria,
+      String targetCity,
+      boolean logWarnings) {
     List<IngatlanItem> matching = new ArrayList<>();
     if (items == null || items.isEmpty()) {
       return new FilterResult(matching, 0, 0, 0, 0, 0, 0, 0);
@@ -93,15 +106,15 @@ public class PropertyFilterEngine {
       populateMissingCity(item, targetCity);
       PriceInfo priceInfo = resolvePriceInfo(item);
       Double area = resolveArea(item, priceInfo);
-      if (isExcludedByPrice(item, priceInfo, area, criteria)) {
+      if (isExcludedByPrice(item, priceInfo, area, criteria, logWarnings)) {
         filteredPrice++;
         continue;
       }
-      if (isExcludedByArea(item, area, criteria)) {
+      if (isExcludedByArea(item, area, criteria, logWarnings)) {
         filteredArea++;
         continue;
       }
-      if (isExcludedByCity(item, area, targetCity)) {
+      if (isExcludedByCity(item, area, targetCity, logWarnings)) {
         filteredCity++;
         continue;
       }
@@ -142,58 +155,70 @@ public class PropertyFilterEngine {
   }
 
   private boolean isExcludedByPrice(
-      IngatlanItem item, PriceInfo priceInfo, Double area, SearchCriteria criteria) {
+      IngatlanItem item,
+      PriceInfo priceInfo,
+      Double area,
+      SearchCriteria criteria,
+      boolean logWarnings) {
     if (matchesPrice(priceInfo, criteria)) {
       return false;
     }
-    LOGGER.warn(
-        "Kiszűrt hirdetés (Ár: {} kívül esik a {}-{} M Ft sávon): portál='{}', cím='{}', link='{}', "
-            + "ár='{}', méret='{}' m², település='{}'",
-        priceInfo != null ? priceInfo.getAmountMillion() : "N/A",
-        criteria != null ? criteria.getMinPriceMillion() : "N/A",
-        criteria != null ? criteria.getMaxPriceMillion() : "N/A",
-        item.getPortal(),
-        item.getTitle(),
-        item.getUrl(),
-        item.getPrice(),
-        area != null ? area : "N/A",
-        item.getCity());
+    if (logWarnings) {
+      LOGGER.warn(
+          "Kiszűrt hirdetés (Ár: {} kívül esik a {}-{} M Ft sávon): portál='{}', cím='{}', "
+              + "link='{}', ár='{}', méret='{}' m², település='{}'",
+          priceInfo != null ? priceInfo.getAmountMillion() : "N/A",
+          criteria != null ? criteria.getMinPriceMillion() : "N/A",
+          criteria != null ? criteria.getMaxPriceMillion() : "N/A",
+          item.getPortal(),
+          item.getTitle(),
+          item.getUrl(),
+          item.getPrice(),
+          area != null ? area : "N/A",
+          item.getCity());
+    }
     return true;
   }
 
-  private boolean isExcludedByArea(IngatlanItem item, Double area, SearchCriteria criteria) {
+  private boolean isExcludedByArea(
+      IngatlanItem item, Double area, SearchCriteria criteria, boolean logWarnings) {
     if (matchesArea(area, criteria)) {
       return false;
     }
-    LOGGER.warn(
-        "Kiszűrt hirdetés (Alapterület: {} m² kívül esik a {}-{} m² sávon): portál='{}', cím='{}', link='{}', "
-            + "ár='{}', méret='{}' m², település='{}'",
-        area != null ? area : "N/A",
-        criteria != null ? criteria.getMinArea() : "N/A",
-        criteria != null ? criteria.getMaxArea() : "N/A",
-        item.getPortal(),
-        item.getTitle(),
-        item.getUrl(),
-        item.getPrice(),
-        area != null ? area : "N/A",
-        item.getCity());
+    if (logWarnings) {
+      LOGGER.warn(
+          "Kiszűrt hirdetés (Alapterület: {} m² kívül esik a {}-{} m² sávon): portál='{}', "
+              + "cím='{}', link='{}', ár='{}', méret='{}' m², település='{}'",
+          area != null ? area : "N/A",
+          criteria != null ? criteria.getMinArea() : "N/A",
+          criteria != null ? criteria.getMaxArea() : "N/A",
+          item.getPortal(),
+          item.getTitle(),
+          item.getUrl(),
+          item.getPrice(),
+          area != null ? area : "N/A",
+          item.getCity());
+    }
     return true;
   }
 
-  private boolean isExcludedByCity(IngatlanItem item, Double area, String targetCity) {
+  private boolean isExcludedByCity(
+      IngatlanItem item, Double area, String targetCity, boolean logWarnings) {
     if (targetCity == null || SearchCriteria.matchesCity(item, targetCity)) {
       return false;
     }
-    LOGGER.warn(
-        "Kiszűrt hirdetés (Település eltérés: várt='{}', valós='{}'): portál='{}', cím='{}', link='{}', "
-            + "ár='{}', méret='{}' m²",
-        targetCity,
-        item.getCity(),
-        item.getPortal(),
-        item.getTitle(),
-        item.getUrl(),
-        item.getPrice(),
-        area != null ? area : "N/A");
+    if (logWarnings) {
+      LOGGER.warn(
+          "Kiszűrt hirdetés (Település eltérés: várt='{}', valós='{}'): portál='{}', cím='{}', "
+              + "link='{}', ár='{}', méret='{}' m²",
+          targetCity,
+          item.getCity(),
+          item.getPortal(),
+          item.getTitle(),
+          item.getUrl(),
+          item.getPrice(),
+          area != null ? area : "N/A");
+    }
     return true;
   }
 
