@@ -43,16 +43,19 @@ public class ListingNormalizer implements RawListingNormalizer {
 
   private static final Pattern HOUSE_COMPOUND_PATTERN =
       Pattern.compile(
-          "(?iuU)\\b(családi\\s*ház|csaladi\\s*haz|ikerház|ikerhaz|sorház|sorhaz"
-              + "|házrész|hazresz|kertes\\s*ház|kertes\\s*haz|parasztház|paraszthaz|nyaraló|nyaralo"
-              + "|üdülő|udulo|üdülőház|udulohaz"
-              + "|tanya|villa|hétvégi\\s*ház|hetvegi\\s*haz)\\b");
+          "(?iuU)\\b(családi\\s*h(?:áz|á)?|csaladi\\s*h(?:az|a)?|ikerh(?:áz|az|á|a)?"
+              + "|sorh(?:áz|az|á|a)?|házrész|hazresz|kertes\\s*h(?:áz|á)?|kertes\\s*h(?:az|a)?"
+              + "|paraszth(?:áz|az|á|a)?|nyaraló|nyaralo|üdülő|udulo"
+              + "|üdülőh(?:áz|á)?|uduloh(?:az|a)?"
+              + "|tanya|villa|hétvégi\\s*h(?:áz|á)?|hetvegi\\s*h(?:az|a)?)\\b");
 
   private static final Pattern FLAT_COMPOUND_PATTERN =
       Pattern.compile(
-          "(?iuU)\\b(társasházi\\s*lakás|tarsashazi\\s*lakas|tégla\\s*lakás|tegla\\s*lakas"
-              + "|téglalakás|teglalakas|panellakás|panellakas|garzonlakás|garzon"
-              + "|penthouse|öröklakás|oroklakas|tetőtéri\\s*lakás|tetoteri\\s*lakas|duplex\\s*lakás)\\b");
+          "(?iuU)\\b(társasházi\\s*lak(?:ás|á)?|tarsashazi\\s*lak(?:as|a)?"
+              + "|tégla\\s*lak(?:ás|á)?|tegla\\s*lak(?:as|a)?|téglalak(?:ás|á)?|teglalak(?:as|a)?"
+              + "|panellak(?:ás|as|á|a)?|panel\\s*lak(?:ás|as|á|a)?|garzonlak(?:ás|as|á|a)?|garzon"
+              + "|penthouse|öröklak(?:ás|á)?|oroklak(?:as|a)?"
+              + "|tetőtéri\\s*lak(?:ás|á)?|tetoteri\\s*lak(?:as|a)?|duplex\\s*lak(?:ás|as|á|a)?)\\b");
 
   private static final Pattern FLAT_WORD_PATTERN =
       Pattern.compile("(?iuU)\\b(lakás|lakas|lakások|lakasok|garzon|penthouse|loft)\\b");

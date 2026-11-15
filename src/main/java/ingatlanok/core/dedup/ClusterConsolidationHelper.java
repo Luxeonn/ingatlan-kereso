@@ -212,12 +212,50 @@ public final class ClusterConsolidationHelper {
     if (lower.contains("koltozzbe.hu")) {
       return "koltozzbe";
     }
-    if (lower.contains("ingatlanbazar.hu")) {
+    if (lower.contains("ingatlanbazar.hu") || lower.contains("ingatlanbazar.com")) {
       return "ingatlanbazar";
     }
     if (lower.contains("ingatlan.com")) {
       return "ingatlancom";
     }
     return "";
+  }
+
+  /**
+   * Checks whether two items' areas are both positive and within the allowed difference ratio.
+   */
+  public static boolean isWithinAreaRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
+    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
+    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
+    if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
+      return false;
+    }
+    double maxArea = Math.max(areaA, areaB);
+    return (Math.abs(areaA - areaB) / maxArea) <= maxRatio;
+  }
+
+  /**
+   * Checks whether two items' prices are both positive and within the allowed difference ratio.
+   */
+  public static boolean isWithinPriceRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
+    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
+    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
+    if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
+      return false;
+    }
+    long maxPrice = Math.max(priceA, priceB);
+    return ((double) Math.abs(priceA - priceB) / (double) maxPrice) <= maxRatio;
+  }
+
+  /**
+   * Checks whether two items have room counts compatible within {@code maxDiff} (or one is missing).
+   */
+  public static boolean hasCompatibleRoomCount(IngatlanItem a, IngatlanItem b, double maxDiff) {
+    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
+    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
+    if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
+      return true;
+    }
+    return Math.abs(roomsA - roomsB) <= maxDiff;
   }
 }
