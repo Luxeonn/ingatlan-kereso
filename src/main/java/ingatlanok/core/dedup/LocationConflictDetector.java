@@ -1,12 +1,12 @@
 package ingatlanok.core.dedup;
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
 
@@ -29,93 +29,15 @@ public final class LocationConflictDetector {
   private static final Pattern STREET_NAME_PATTERN =
       Pattern.compile(
           "(?iuU)([A-ZÁÉÍÓÖŐÚÜŰa-záéíóöőúüű0-9.\\- ]{2,40}?)\\s+"
-              + "(utcájában|utcában|utcán|utcája|utcai|utca|u\\.|u\\b"
-              + "|útban|úton|útja|úti|út"
-              + "|téren|téri|tere|tér"
+              + "(utcájában|utcában|utcán|utcája|utcai(?!\\s+kert\\b)|utca|u\\.|u\\b"
+              + "|útban|úton|útja|úti|út|ut"
+              + "|téren|téri|tere|tér|ter"
               + "|körúton|körúti|korut|körút"
               + "|fasoron|fasori|fasor"
               + "|sétányon|sétányi|setany|sétány"
               + "|soron|sori|sora|sor"
-              + "|dűlőben|dűlőn|dűlői|dűlő"
-              + "|közben|közi|köz)\\b");
-
-  private static final Set<String> STREET_LEADING_PREFIXES = Set.of(
-      "miskolc", "miskolcon", "debrecen", "debreceni", "debrecenben",
-      "budapest", "szeged", "pecs", "gyor", "avas", "avason",
-      "jozsa", "jozsan", "alsojozsa", "alsojozsan", "felsojozsa", "felsojozsan",
-      "homokkert", "kertvaros", "belvaros", "elado", "ingatlan",
-      "lakas", "haz", "csaladi", "panel", "tegla", "csendes",
-      "nyugodt", "napfenyes", "uj", "felujitott", "kis", "nagy");
-
-  private static final Set<String> INVALID_STREET_STEMS = Set.of(
-      "az", "egy", "ez", "fo", "fold", "zsak", "csendes", "egyiranyu",
-      "aszfaltozott", "aszfalt", "sajat", "magan", "kertes", "szeles",
-      "mellek", "kozponti", "elado", "ingatlan", "lakas", "haz",
-      "panel", "tegla", "csaladi", "sarok", "kivalo", "szep");
-
-  private static final List<Map.Entry<String, String>> QUARTER_SYNONYMS = List.of(
-      Map.entry("varoskozpont", "belvaros"), Map.entry("julia-telep", "juliatelep"),
-      Map.entry("juliatelep", "juliatelep"), Map.entry("juliakert", "juliatelep"),
-      Map.entry("lenc-telep", "lencztelep"), Map.entry("lenctelep", "lencztelep"),
-      Map.entry("lencztelep", "lencztelep"), Map.entry("also-jozsa", "also-jozsa"),
-      Map.entry("alsojozsa", "also-jozsa"), Map.entry("felso-jozsa", "felso-jozsa"),
-      Map.entry("felsojozsa", "felso-jozsa"), Map.entry("veres-peter", "veres-peter"),
-      Map.entry("verespeter", "veres-peter"), Map.entry("boldogfalvi", "boldogfalvikert"),
-      Map.entry("szabadsag-telep", "szabadsagtelep"), Map.entry("szabadsagtelep", "szabadsagtelep"),
-      Map.entry("gereby-telep", "gerebytelep"), Map.entry("gerebytelep", "gerebytelep"),
-      Map.entry("biczo-kert", "biczokert"), Map.entry("biczokert", "biczokert"),
-      Map.entry("kerekes-telep", "kerekestelep"), Map.entry("kerekestelep", "kerekestelep"));
-
-  private static final String[] COMPOUND_QUARTERS = {
-      "julia-telep", "lenc-telep", "also-jozsa", "felso-jozsa", "veres-peter",
-      "szabadsag-telep", "gereby-telep", "biczo-kert", "kerekes-telep"
-  };
-
-  private static final String[] QUARTERS = {
-      "banomkert", "kertvaros", "nagyerd", "nagyerdot", "tocoskert", "csapokert", "jozsa", "venkert",
-      "homokkert", "juliatelep", "juliakert", "lencztelep", "lenctelep", "alsojozsa", "felsojozsa",
-      "verespeter", "boldogfalvi", "szabadsagtelep", "gerebytelep", "halap", "kondoros", "biczokert",
-      "kerekestelep", "vargakert", "epreskert", "dobozikert", "kismacs", "nagymacs", "pallag",
-      "ujszeged", "felsovaros", "tarjan", "rokus", "moravaros", "szentmihaly", "marosto",
-      "avas", "diosgyor", "szirma", "goromboly", "tapolca", "komlosteto",
-      "uranvaros", "mecsekoldal", "meszes", "patacs", "gyarvaros", "nadorvaros", "szabadhegy",
-      "marcalvaros", "revfalu", "furdovezet", "belvaros", "varoskozpont"
-  };
-
-  private static final Map<String, Integer> BP_DISTRICT_NAMES =
-      Map.ofEntries(
-          Map.entry("varkerulet", 1), Map.entry("krisztinavaros", 1), Map.entry("taban", 1),
-          Map.entry("rozsadomb", 2), Map.entry("pasaret", 2), Map.entry("pesthidegkut", 2),
-          Map.entry("obuda", 3), Map.entry("bekasmegyer", 3), Map.entry("csillaghegy", 3),
-          Map.entry("ujpest", 4), Map.entry("kaposztasmegyer", 4),
-          Map.entry("belvaros", 5), Map.entry("lipotvaros", 5),
-          Map.entry("terezvaros", 6),
-          Map.entry("erzsebetvaros", 7),
-          Map.entry("jozsefvaros", 8), Map.entry("corvin", 8), Map.entry("palotanegyed", 8),
-          Map.entry("ferencvaros", 9),
-          Map.entry("kobanya", 10), Map.entry("ohegy", 10), Map.entry("ujhegy", 10),
-          Map.entry("ujbuda", 11), Map.entry("gazdagret", 11), Map.entry("kelenfold", 11),
-          Map.entry("gellerthegy", 11), Map.entry("sasad", 11), Map.entry("madarhegy", 11),
-          Map.entry("hegyvidek", 12), Map.entry("zugliget", 12), Map.entry("farkasret", 12),
-          Map.entry("angyalfold", 13), Map.entry("ujlipotvaros", 13), Map.entry("vizafogo", 13),
-          Map.entry("zuglo", 14), Map.entry("alsorakos", 14), Map.entry("herminamezo", 14),
-          Map.entry("rakospalota", 15), Map.entry("pestujhely", 15), Map.entry("ujpalota", 15),
-          Map.entry("matyasfold", 16), Map.entry("sashalom", 16), Map.entry("cinkota", 16),
-          Map.entry("rakosmente", 17), Map.entry("rakoskeresztur", 17), Map.entry("rakoscsaba", 17),
-          Map.entry("pestszentlorinc", 18), Map.entry("pestszentimre", 18), Map.entry("havanna", 18),
-          Map.entry("kispest", 19), Map.entry("wekerle", 19),
-          Map.entry("pesterzsebet", 20),
-          Map.entry("csepel", 21),
-          Map.entry("budafok", 22), Map.entry("nagyteteny", 22), Map.entry("budateteny", 22),
-          Map.entry("soroksar", 23));
-
-  private static final List<String> ROMAN_DISTRICTS = List.of(
-      "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
-      "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
-      "XXI", "XXII", "XXIII");
-
-  private static final List<String> FLOOR_QUARTER_NOISE_TOKENS = List.of(
-      "emelet", "foldszint", "fszt", "tetoter", "zaroszint");
+              + "|dűlőben|dűlőn|dűlői|dűlő|dulo"
+              + "|közben|közi|köz|koz)\\b");
 
   private LocationConflictDetector() {}
 
@@ -160,8 +82,8 @@ public final class LocationConflictDetector {
       district = extractBudapestDistrict(combined);
     }
 
-    String quarter = extractQuarter(location, title, details, normalizedCity, isBudapest);
-    String street = extractStreet(title, location, details);
+    String quarter = extractQuarter(location, title, details, url, normalizedCity, isBudapest);
+    String street = extractStreet(title, location, details, url, normalizedCity);
 
     return new ExtractedLocation(district, quarter, street);
   }
@@ -280,7 +202,7 @@ public final class LocationConflictDetector {
 
   private static Integer findNamedDistrict(String text) {
     String slug = SlugUtils.toSlug(text);
-    for (Map.Entry<String, Integer> entry : BP_DISTRICT_NAMES.entrySet()) {
+    for (Map.Entry<String, Integer> entry : LocationDictionaries.BP_DISTRICT_NAMES.entrySet()) {
       if (slug.contains(entry.getKey())) {
         return entry.getValue();
       }
@@ -289,64 +211,83 @@ public final class LocationConflictDetector {
   }
 
   private static String extractQuarter(
-      String location, String title, String details, String normalizedCity, boolean isBudapest) {
+      String location, String title, String details, String url,
+      String normalizedCity, boolean isBudapest) {
     if (isBudapest) {
-      return null; // For Budapest, districts are primary
+      return null;
     }
-
-    // 1. If location is formatted as "City, Quarter" (ignore comma suffixes representing streets)
-    String commaQuarter = extractCommaQuarter(location, normalizedCity);
+    String commaQuarter = extractCommaQuarter(location, normalizedCity, false);
     if (commaQuarter != null) {
       return commaQuarter;
     }
-
-    // 2. Common quarters in provincial cities (compound multi-token quarters first, then single tokens)
-    String textSlug = SlugUtils.toSlug((details + " " + location + " " + title).trim());
-    for (String compound : COMPOUND_QUARTERS) {
+    String titleQuarter = extractCommaQuarter(title, normalizedCity, true);
+    if (titleQuarter != null) {
+      return titleQuarter;
+    }
+    String textSlug = SlugUtils.toSlug(
+        (details + " " + location + " " + title + " " + extractUrlPathText(url)).trim());
+    for (String compound : LocationDictionaries.COMPOUND_QUARTERS) {
       if (textSlug.equals(compound)
           || textSlug.startsWith(compound + "-")
           || textSlug.contains("-" + compound)) {
         return normalizeQuarterSynonym(compound);
       }
     }
-    for (String q : QUARTERS) {
+    for (String q : LocationDictionaries.QUARTERS) {
       if (matchesSlugWordPrefix(textSlug, q)) {
         return normalizeQuarterSynonym(q);
       }
     }
-
     return null;
   }
 
-  private static String extractCommaQuarter(String location, String normalizedCity) {
-    if (location == null || !location.contains(",")) {
+  private static String extractCommaQuarter(
+      String source, String normalizedCity, boolean requireCityPrefix) {
+    if (source == null || !source.contains(",")) {
       return null;
     }
-    String[] parts = location.split(",", 2);
+    String[] parts = source.split(",", 2);
     if (parts.length <= 1) {
       return null;
     }
-    String suffix = parts[1].trim();
-    if (extractStreet("", suffix, "") != null) {
+    if (requireCityPrefix && !CityUtils.normalizeCityKey(parts[0].trim()).equals(normalizedCity)) {
+      return null;
+    }
+    String suffix = requireCityPrefix
+        ? parts[1].trim().split("\\s+[-|]\\s+|,", 2)[0].trim()
+        : parts[1].trim();
+    if (extractStreet("", suffix, "", "", normalizedCity) != null) {
       return null;
     }
     String q = normalizeQuarterSynonym(SlugUtils.toSlug(suffix));
-    if (isFloorDescriptor(q)) {
+    if (isQuarterNoise(q, requireCityPrefix) || q.isBlank() || q.equals(normalizedCity)) {
       return null;
     }
-    return !q.isBlank() && !q.equals(normalizedCity) ? q : null;
+    return q;
   }
 
-  private static boolean isFloorDescriptor(String slug) {
-    if (slug == null || slug.isBlank()) {
-      return false;
+  private static boolean isQuarterNoise(String slug, boolean strictTitleCheck) {
+    if (slug == null || slug.isBlank() || slug.equals("em") || slug.endsWith("-em")) {
+      return true;
     }
-    for (String token : FLOOR_QUARTER_NOISE_TOKENS) {
+    for (String token : LocationDictionaries.QUARTER_NOISE_TOKENS) {
       if (slug.contains(token)) {
         return true;
       }
     }
-    return slug.equals("em") || slug.endsWith("-em");
+    return strictTitleCheck && hasTitleNonQuarterToken(slug);
+  }
+
+  private static boolean hasTitleNonQuarterToken(String slug) {
+    if (slug.matches(".*\\d.*")) {
+      return true;
+    }
+    for (String part : slug.split("-")) {
+      if (LocationDictionaries.TITLE_COMMA_NON_QUARTER_TOKENS.contains(part)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static boolean matchesSlugWordPrefix(String slug, String prefix) {
@@ -385,7 +326,7 @@ public final class LocationConflictDetector {
     if (quarter == null) {
       return null;
     }
-    for (Map.Entry<String, String> entry : QUARTER_SYNONYMS) {
+    for (Map.Entry<String, String> entry : LocationDictionaries.QUARTER_SYNONYMS) {
       if (quarter.startsWith(entry.getKey())) {
         return entry.getValue();
       }
@@ -393,11 +334,23 @@ public final class LocationConflictDetector {
     return quarter;
   }
 
-  private static String extractStreet(String title, String location, String details) {
+  private static String extractStreet(
+      String title, String location, String details, String url, String normalizedCity) {
     String combined = (title + " " + location + " " + details).trim();
-    Matcher m = STREET_NAME_PATTERN.matcher(combined);
+    String found = findStreetInText(combined, normalizedCity);
+    if (found != null) {
+      return found;
+    }
+    return findStreetInText(extractUrlPathText(url), normalizedCity);
+  }
+
+  private static String findStreetInText(String text, String normalizedCity) {
+    if (text == null || text.isBlank()) {
+      return null;
+    }
+    Matcher m = STREET_NAME_PATTERN.matcher(text);
     while (m.find()) {
-      String cleaned = cleanStreetStem(m.group(1));
+      String cleaned = cleanStreetStem(m.group(1), normalizedCity);
       if (cleaned != null) {
         return cleaned;
       }
@@ -405,38 +358,57 @@ public final class LocationConflictDetector {
     return null;
   }
 
-  private static String cleanStreetStem(String rawPrefix) {
+  private static String extractUrlPathText(String url) {
+    if (url == null || url.isBlank()) {
+      return "";
+    }
+    int schemeIdx = url.indexOf("://");
+    int pathStart = url.indexOf('/', schemeIdx >= 0 ? schemeIdx + 3 : 0);
+    if (pathStart < 0) {
+      return "";
+    }
+    return url.substring(pathStart).split("[?#]", 2)[0]
+        .replace('/', ' ').replace('-', ' ').replace('_', ' ').trim();
+  }
+
+  private static String cleanStreetStem(String rawPrefix, String normalizedCity) {
     String slug = SlugUtils.toSlug(rawPrefix != null ? rawPrefix.trim() : "");
     if (slug.isBlank()) {
       return null;
     }
     String[] tokens = slug.split("-");
     int start = 0;
-    while (start < tokens.length - 1 && STREET_LEADING_PREFIXES.contains(tokens[start])) {
+    while (start < tokens.length - 1 && isLeadingStreetNoise(tokens[start], normalizedCity)) {
       start++;
     }
-    String lastToken = tokens[tokens.length - 1];
-    if (INVALID_STREET_STEMS.contains(lastToken)) {
+    if (LocationDictionaries.INVALID_STREET_STEMS.contains(tokens[tokens.length - 1])) {
       return null;
     }
-    StringBuilder sb = new StringBuilder();
-    for (int i = start; i < tokens.length; i++) {
-      if (!tokens[i].isBlank()) {
-        if (!sb.isEmpty()) {
-          sb.append('-');
-        }
-        sb.append(tokens[i]);
+    String stem = String.join("-", Arrays.copyOfRange(tokens, start, tokens.length));
+    return stem.length() >= 3 && !LocationDictionaries.INVALID_STREET_STEMS.contains(stem) ? stem : null;
+  }
+
+  private static boolean isLeadingStreetNoise(String token, String normalizedCity) {
+    if (LocationDictionaries.STREET_LEADING_PREFIXES.contains(token)
+        || LocationDictionaries.BP_DISTRICT_NAMES.containsKey(token)) {
+      return true;
+    }
+    if (normalizedCity != null && !normalizedCity.isBlank() && token.startsWith(normalizedCity)) {
+      return true;
+    }
+    for (String q : LocationDictionaries.QUARTERS) {
+      if (isQuarterTokenMatch(token, q)) {
+        return true;
       }
     }
-    String stem = sb.toString();
-    return stem.length() >= 3 && !INVALID_STREET_STEMS.contains(stem) ? stem : null;
+    return false;
   }
 
   private static Integer romanToNumber(String roman) {
     if (roman == null) {
       return null;
     }
-    int index = ROMAN_DISTRICTS.indexOf(roman.toUpperCase(Locale.ROOT));
+    int index = LocationDictionaries.ROMAN_DISTRICTS.indexOf(roman.toUpperCase(Locale.ROOT));
     return index >= 0 ? index + 1 : null;
   }
 }

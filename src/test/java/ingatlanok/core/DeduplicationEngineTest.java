@@ -607,6 +607,110 @@ class DeduplicationEngineTest {
         "Azonos képpel a 10% áreltérés továbbra is összevonható");
   }
 
+  @Test
+  @DisplayName("#450: Hajdúszoboszló 11 hirdetésből álló multi-portál és intra-portál ikerház/családi ház klaszter")
+  void testIssue450HajduszoboszloKoltozzbeAndMultiPortalHouseConsolidation() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+    IngatlanItem k140a = createHouseWithImg("k1", "Költözzbe", "https://koltozzbe.hu/ingatlan/k1",
+        "Eladó ikerház, Hajdúszoboszlón 109 M Ft, 3+1 szobás",
+        140.0, 3.5, 109_000_000L, "https://cdn.koltozzbe.hu/img-k1.jpg");
+    IngatlanItem k140b = createHouseWithImg("k2", "Költözzbe", "https://koltozzbe.hu/ingatlan/k2",
+        "Eladó ikerház, Hajdúszoboszlón 109 M Ft, 3+1 szobás",
+        140.0, 3.5, 109_000_000L, "https://cdn.koltozzbe.hu/img-k2.jpg");
+    IngatlanItem k140c = createHouseWithImg("k3", "Költözzbe", "https://koltozzbe.hu/ingatlan/k3",
+        "Eladó ikerház, Hajdúszoboszlón 109 M Ft, 3+1 szobás",
+        140.0, 3.5, 109_000_000L, "https://cdn.koltozzbe.hu/img-k3.jpg");
+    IngatlanItem k140d = createHouseWithImg("k4", "Költözzbe", "https://koltozzbe.hu/ingatlan/k4",
+        "Eladó ikerház, Hajdúszoboszlón 109 M Ft, 3+1 szobás",
+        140.0, 3.5, 109_000_000L, "https://cdn.koltozzbe.hu/img-k4.jpg");
+    IngatlanItem k140e = createHouseWithImg("k5", "Költözzbe", "https://koltozzbe.hu/ingatlan/k5",
+        "Eladó ikerház, Hajdúszoboszlón 109 M Ft, 3+1 szobás",
+        140.0, 3.5, 109_000_000L, "https://cdn.koltozzbe.hu/img-k5.jpg");
+    IngatlanItem k132a = createHouseWithImg("k6", "Költözzbe", "https://koltozzbe.hu/ingatlan/k6",
+        "Eladó családi ház, Hajdúszoboszlón 109 M Ft, 4 szobás",
+        132.0, 4.0, 109_000_000L, "https://cdn.koltozzbe.hu/img-k6.jpg");
+    IngatlanItem k132b = createHouseWithImg("k7", "Költözzbe", "https://koltozzbe.hu/ingatlan/k7",
+        "Eladó családi ház, Hajdúszoboszlón 109 M Ft, 4 szobás",
+        132.0, 4.0, 109_000_000L, "https://cdn.koltozzbe.hu/img-k7.jpg");
+    IngatlanItem k132c = createHouseWithImg("k8", "Költözzbe", "https://koltozzbe.hu/ingatlan/k8",
+        "Eladó családi ház, Hajdúszoboszlón 109 M Ft, 4 szobás",
+        132.0, 4.0, 109_000_000L, "https://cdn.koltozzbe.hu/img-k8.jpg");
+    IngatlanItem k132d = createHouseWithImg("k9", "Költözzbe", "https://koltozzbe.hu/ingatlan/k9",
+        "Eladó családi ház, Hajdúszoboszlón 109 M Ft, 4 szobás",
+        132.0, 4.0, 109_000_000L, "https://cdn.koltozzbe.hu/img-k9.jpg");
+    IngatlanItem dh = createHouseWithImg("dh1", "Duna House", "https://dh.hu/ingatlan/HZ080885",
+        "4200 Hajdúszoboszló Ikerház a fürdőtől 300 méterre HZ080885",
+        132.0, 4.0, 109_000_000L, "https://cdn.dh.hu/dh-1.jpg");
+    IngatlanItem ib = createHouseWithImg("ib1", "Ingatlanbazár",
+        "https://www.ingatlanbazar.com/ingatlan-Elado-haz-Hajduszoboszlo-Furdonegyed-Hoforras-utca/user-id-9/1",
+        "Hajdúszoboszló, Fürdőnegyed - Ikerház a fürdőtől 300 méterre",
+        132.0, 4.0, 109_000_000L, "https://cdn.ib.hu/ib-1.jpg");
+
+    assertTrue(engine.isMatch(k140a, k132a), "Intra-portál 140m2 ikerház és 132m2 családi ház összevonandó");
+    assertTrue(engine.isMatch(k140a, dh), "Költözzbe 140m2/3.5 és DH 132m2/4.0 azonos áron összevonandó");
+    assertTrue(engine.isMatch(dh, ib), "DH és Ingatlanbazár 132m2 ikerház összevonandó");
+
+    List<IngatlanItem> clusters = engine.deduplicateMultiSignal(
+        List.of(k140a, k140b, k140c, k140d, k140e, k132a, k132b, k132c, k132d, dh, ib));
+    assertEquals(1, clusters.size(), "A 11 azonos ingatlan 1etlen közös klaszterbe kell olvadjon");
+    assertEquals(11, clusters.get(0).getSourceListings().size());
+
+    IngatlanItem differentPrice = createHouseWithImg("k10", "Költözzbe", "https://koltozzbe.hu/ingatlan/k10",
+        "Eladó ikerház, Hajdúszoboszlón 115 M Ft, 3+1 szobás",
+        140.0, 3.5, 115_000_000L, "https://cdn.koltozzbe.hu/img-k10.jpg");
+    assertFalse(engine.isMatch(k140a, differentPrice),
+        "Eltérő árú intra-portál sablonhirdetés nem olvadhat össze");
+  }
+
+  @Test
+  @DisplayName("#450: Intra-portál TELEK, azonos utca variáns és kisterseg user-id védelem")
+  void testIssue450IntraPortalTelekAndSameStreetAndKistersegUserIdRules() {
+    DeduplicationEngine engine = new DeduplicationEngine(null);
+
+    IngatlanItem telekA = createItem("t1", "Költözzbe", "https://koltozzbe.hu/t1",
+        "Eladó telek, Hajdúszoboszlón 35 M Ft", "Hajdúszoboszló",
+        PropertyType.TELEK, 800.0, 0.0, 35_000_000L, "ACTIVE");
+    telekA.setImageUrl("https://cdn.koltozzbe.hu/telek-1.jpg");
+    IngatlanItem telekB = createItem("t2", "Költözzbe", "https://koltozzbe.hu/t2",
+        "Eladó telek, Hajdúszoboszlón 35 M Ft", "Hajdúszoboszló",
+        PropertyType.TELEK, 800.0, 0.0, 35_000_000L, "ACTIVE");
+    telekB.setImageUrl("https://cdn.koltozzbe.hu/telek-2.jpg");
+    assertTrue(engine.isMatch(telekA, telekB), "Intra-portál azonos sabloncímű TELEK összevonandó");
+
+    IngatlanItem sameStreetA = createHouseWithImg("hs1", "Duna House", "https://dh.hu/hs1",
+        "Hajdúszoboszló Hőforrás utca ikerház", 132.0, 4.0, 109_000_000L, "https://cdn.dh.hu/a.jpg");
+    IngatlanItem sameStreetB = createHouseWithImg("hs2", "Duna House", "https://dh.hu/hs2",
+        "Eladó modern otthon a Hőforrás utca közelében", 136.0, 4.0, 109_000_000L, "https://cdn.dh.hu/b.jpg");
+    assertTrue(engine.isMatch(sameStreetA, sameStreetB),
+        "Intra-portál azonos utcanév + 0.5% ár + 6% m2 variáns összevonandó");
+
+    IngatlanItem ibUser1a = createItem("u1", "Ingatlanbazár",
+        "https://www.ingatlanbazar.com/elado-haz-debreceni-kisterseg/user-id-111/aaa",
+        "Debreceni kistérség eladó családi ház", "Debrecen", PropertyType.HAZ, 110.0, 3.0, 65_000_000L, "ACTIVE");
+    IngatlanItem ibUser1b = createItem("u2", "Ingatlanbazár",
+        "https://www.ingatlanbazar.com/elado-haz-debreceni-kisterseg/user-id-111/bbb",
+        "Debreceni kistérség eladó családi ház", "Debrecen", PropertyType.HAZ, 110.0, 3.0, 65_000_000L, "ACTIVE");
+    IngatlanItem ibUser2 = createItem("u3", "Ingatlanbazár",
+        "https://www.ingatlanbazar.com/elado-haz-debreceni-kisterseg/user-id-222/ccc",
+        "Debreceni kistérség eladó családi ház", "Debrecen", PropertyType.HAZ, 110.0, 3.0, 65_000_000L, "ACTIVE");
+    assertTrue(engine.isMatch(ibUser1a, ibUser1b), "Azonos user-id esetén a kistérség sablonhirdetés összevonandó");
+    assertFalse(engine.isMatch(ibUser1a, ibUser2), "Eltérő user-id esetén a kistérség sablonhirdetés védett marad");
+
+    IngatlanItem detached = createHouseWithImg("d1", "Duna House", "https://dh.hu/d1",
+        "Önálló családi ház Debrecenben", 132.0, 4.0, 109_000_000L, "https://cdn.dh.hu/shared.jpg");
+    IngatlanItem twin = createHouseWithImg("d2", "Otthon Centrum", "https://oc.hu/d2",
+        "Ikerház fél Debrecenben", 132.0, 4.0, 109_000_000L, "https://cdn.dh.hu/shared.jpg");
+    assertFalse(engine.isMatch(detached, twin), "Explicit önálló családi ház és ikerház továbbra sem olvad össze");
+  }
+
+  private IngatlanItem createHouseWithImg(
+      String id, String portal, String url, String title, double area, double rooms, long priceHuf, String imgUrl) {
+    IngatlanItem item = createItem(
+        id, portal, url, title, "Hajdúszoboszló", PropertyType.HAZ, area, rooms, priceHuf, "ACTIVE");
+    item.setImageUrl(imgUrl);
+    return item;
+  }
+
   private IngatlanItem createItem(
       String id,
       String portal,

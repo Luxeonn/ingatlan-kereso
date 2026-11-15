@@ -23,6 +23,7 @@ public final class ClusterMatchScorer {
 
   private static final double MAX_PRICE_BAND_RATIO = 0.20;
   private static final double MAX_AREA_TOLERANCE_RATIO = 0.05;
+  private static final double HOUSE_MAX_AREA_TOLERANCE_RATIO = 0.06;
 
   private static final double WEIGHT_PRICE = 40.0;
   private static final double WEIGHT_STREET = 30.0;
@@ -32,6 +33,7 @@ public final class ClusterMatchScorer {
   private static final double WEIGHT_ROOMS = 10.0;
   private static final double WEIGHT_TITLE = 10.0;
   private static final double WEIGHT_BOTH_ACTIVE = 5.0;
+  private static final double WEIGHT_INTRA_PORTAL_PRIORITY = 15.0;
 
   private ClusterMatchScorer() {}
 
@@ -177,6 +179,9 @@ public final class ClusterMatchScorer {
     if (isActive(a) && isActive(b)) {
       score += WEIGHT_BOTH_ACTIVE;
     }
+    if (ClusterConsolidationHelper.isSamePortalDifferentUrl(a, b)) {
+      score += WEIGHT_INTRA_PORTAL_PRIORITY;
+    }
     return score;
   }
 
@@ -198,7 +203,9 @@ public final class ClusterMatchScorer {
       return 0.0;
     }
     double diffRatio = Math.abs(areaA - areaB) / Math.max(areaA, areaB);
-    double closeness = Math.max(0.0, 1.0 - (diffRatio / MAX_AREA_TOLERANCE_RATIO));
+    double tolerance = a.getPropertyType() == PropertyType.HAZ
+        ? HOUSE_MAX_AREA_TOLERANCE_RATIO : MAX_AREA_TOLERANCE_RATIO;
+    double closeness = Math.max(0.0, 1.0 - (diffRatio / tolerance));
     return WEIGHT_AREA * closeness;
   }
 
@@ -239,7 +246,10 @@ public final class ClusterMatchScorer {
     }
     Set<String> tokensA = TextualSimilarityMatcher.extractDistinctiveTokens(a);
     Set<String> tokensB = TextualSimilarityMatcher.extractDistinctiveTokens(b);
-    score += WEIGHT_TITLE * TextualSimilarityMatcher.calculateJaccardSimilarity(tokensA, tokensB);
+    double titleSimilarity = TextualSimilarityMatcher.hasIdenticalTitleSlug(a, b)
+        ? 1.0
+        : TextualSimilarityMatcher.calculateJaccardSimilarity(tokensA, tokensB);
+    score += WEIGHT_TITLE * titleSimilarity;
     return score;
   }
 

@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
@@ -13,6 +15,9 @@ import ingatlanok.model.PropertyType;
  * Textual tokenization, multi-generation detection, and semantic similarity evaluation.
  */
 public final class TextualSimilarityMatcher {
+
+  private static final Pattern USER_ID_URL_PATTERN =
+      Pattern.compile("(?i)/user-id-(\\d+)(?=/|$)");
 
   private static final Set<String> STOPWORDS =
       Set.of(
@@ -200,17 +205,62 @@ public final class TextualSimilarityMatcher {
     if (distinctiveCount >= 2) {
       return true;
     }
-    if (distinctiveCount >= 1 && !slugA.contains("kisterseg")) {
-      return true;
-    }
-    return isGenericTemplateFlatSlug(a, slugA);
-  }
-
-  private static boolean isGenericTemplateFlatSlug(IngatlanItem item, String slug) {
-    if (item == null || item.getPropertyType() != PropertyType.LAKAS) {
+    if (slugA.contains("kisterseg") && !hasSameUserIdInUrl(a, b)) {
       return false;
     }
-    return slug.split("-").length >= 4 && !slug.contains("kisterseg");
+    if (distinctiveCount >= 1) {
+      return true;
+    }
+    return isGenericTemplateSlug(a, slugA);
+  }
+
+  /**
+   * Checks whether an item title represents a multi-token generic template slug (LAKAS/HAZ/TELEK).
+   */
+  public static boolean isGenericTemplateSlug(IngatlanItem item, String slug) {
+    if (item == null || slug == null || slug.isBlank()) {
+      return false;
+    }
+    PropertyType type = item.getPropertyType();
+    if (type != PropertyType.LAKAS && type != PropertyType.HAZ && type != PropertyType.TELEK) {
+      return false;
+    }
+    return slug.split("-").length >= 4;
+  }
+
+  /**
+   * Checks whether two items both have portal-generated generic template titles without distinctive words.
+   */
+  public static boolean areBothGenericTemplateTitles(IngatlanItem a, IngatlanItem b) {
+    if (a == null || b == null) {
+      return false;
+    }
+    String slugA = SlugUtils.toSlug(a.getTitle());
+    String slugB = SlugUtils.toSlug(b.getTitle());
+    if (slugA.isBlank() || slugB.isBlank()) {
+      return false;
+    }
+    if ((slugA.contains("kisterseg") || slugB.contains("kisterseg")) && !hasSameUserIdInUrl(a, b)) {
+      return false;
+    }
+    return isGenericTemplateSlug(a, slugA)
+        && isGenericTemplateSlug(b, slugB)
+        && extractDistinctiveTokens(a).isEmpty()
+        && extractDistinctiveTokens(b).isEmpty();
+  }
+
+  private static boolean hasSameUserIdInUrl(IngatlanItem a, IngatlanItem b) {
+    String userIdA = extractUserIdFromUrl(a != null ? a.getUrl() : null);
+    String userIdB = extractUserIdFromUrl(b != null ? b.getUrl() : null);
+    return userIdA != null && userIdA.equals(userIdB);
+  }
+
+  private static String extractUserIdFromUrl(String url) {
+    if (url == null || url.isBlank()) {
+      return null;
+    }
+    Matcher matcher = USER_ID_URL_PATTERN.matcher(url);
+    return matcher.find() ? matcher.group(1) : null;
   }
 
   private static boolean isSlugSimilar(String titleA, String titleB) {

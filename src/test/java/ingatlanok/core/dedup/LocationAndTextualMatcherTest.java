@@ -286,4 +286,42 @@ class LocationAndTextualMatcherTest {
     assertFalse(tokensA.contains("hajduszoboszlon"));
     assertFalse(tokensB.contains("hajduszoboszlo"));
   }
+
+  @Test
+  @DisplayName("#450: Utca kinyerése URL-ből, városrész a címből és családi ház vs ikerház szemantika")
+  void testIssue450StreetFromUrlQuarterFromTitleAndHouseSubtypeRules() {
+    IngatlanItem ibWithStreetUrl = new IngatlanItem();
+    ibWithStreetUrl.setCity("Hajdúszoboszló");
+    ibWithStreetUrl.setLocation("Hajdúszoboszló");
+    ibWithStreetUrl.setTitle("Hajdúszoboszló, Fürdőnegyed - Ikerház a fürdőtől 300 méterre");
+    ibWithStreetUrl.setUrl(
+        "https://www.ingatlanbazar.com/ingatlan-Elado-haz-Hajduszoboszlo-Furdonegyed-Hoforras-utca/user-id-383308/abc");
+
+    ExtractedLocation ibLoc = LocationConflictDetector.extractLocation(ibWithStreetUrl, "hajduszoboszlo");
+    assertEquals("furdonegyed", ibLoc.quarter(), "Városrész kinyerése vesszős címből");
+    assertEquals("hoforras", ibLoc.street(), "Utcanév kinyerése az Ingatlanbazár SEO URL-ből");
+
+    IngatlanItem bartokItem = new IngatlanItem();
+    bartokItem.setCity("Hajdúszoboszló");
+    bartokItem.setLocation("Hajdúszoboszló, Bartók-telep");
+    bartokItem.setTitle("Eladó ház");
+    assertEquals("bartoktelep",
+        LocationConflictDetector.extractLocation(bartokItem, "hajduszoboszlo").quarter());
+
+    IngatlanItem noiseItem = new IngatlanItem();
+    noiseItem.setCity("Hajdúszoboszló");
+    noiseItem.setLocation("Hajdúszoboszló, Lakóövezet");
+    noiseItem.setTitle("Hajdúszoboszló, Kistérség");
+    assertNull(LocationConflictDetector.extractLocation(noiseItem, "hajduszoboszlo").quarter(),
+        "A Lakóövezet/Kistérség zaj nem lehet városrész");
+
+    IngatlanItem genericHouse = new IngatlanItem();
+    genericHouse.setPropertyType(PropertyType.HAZ);
+    genericHouse.setTitle("Eladó családi ház, Hajdúszoboszlón 109 M Ft, 4 szobás");
+    IngatlanItem twinHouse = new IngatlanItem();
+    twinHouse.setPropertyType(PropertyType.HAZ);
+    twinHouse.setTitle("Eladó ikerház, Hajdúszoboszlón 109 M Ft, 3+1 szobás");
+    assertFalse(SemanticConflictDetector.hasConflict(genericHouse, twinHouse),
+        "Általános családi ház kategória nem ütközhet ikerházzal");
+  }
 }
