@@ -6,6 +6,7 @@ import {
   buildSearchUrl,
   hasPaginationWithoutNextPage,
   parseArgs,
+  resolveChromiumExecutablePath,
   scrapePages,
 } from './sidecar-playwright.mjs'
 
@@ -31,6 +32,9 @@ test('parseArgs uses unified defaults and parses pagination flags', () => {
   assert.equal(defaults.maxPages, DEFAULT_MAX_PAGES)
   assert.equal(defaults.maxPages, 20)
   assert.equal(defaults.timeoutMs, DEFAULT_TIMEOUT_MS)
+  assert.equal(defaults.timeoutMs, 125000)
+  const exePath = resolveChromiumExecutablePath()
+  assert.ok(exePath === undefined || typeof exePath === 'string')
 
   const custom = parseArgs([
     'node',

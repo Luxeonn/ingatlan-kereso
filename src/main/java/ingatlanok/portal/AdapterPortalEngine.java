@@ -136,6 +136,9 @@ public class AdapterPortalEngine implements PortalEngine {
     );
     scrapeResult.setFallbackUrl(
         result.fallbackUrl() != null ? result.fallbackUrl() : defaultSearchUrl);
+    if (result.message() != null && !result.message().isBlank()) {
+      scrapeResult.setMessage(result.message());
+    }
     if (result.technicalDetails() != null && !result.technicalDetails().isBlank()) {
       String methodPrefix = result.usedMethod() != null
           ? "Strategy: " + result.usedMethod().name() + " | "

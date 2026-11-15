@@ -165,6 +165,7 @@ temp_*.md
 # Modern Decoupled Frontend (frontend/)
 # ==============================================================================
 frontend/node_modules/
+tools/node_modules/
 frontend/dist/
 frontend/.eslintcache
 frontend/coverage/
