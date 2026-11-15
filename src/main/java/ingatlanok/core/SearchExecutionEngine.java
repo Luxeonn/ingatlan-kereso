@@ -264,6 +264,8 @@ public class SearchExecutionEngine {
         uniqueCityItems.size());
     listingStorage.saveCityItems(currentCity, uniqueCityItems);
     persistenceSynchronizer.enrichWithPersistedState(uniqueCityItems);
+    PersistedFallbackMerger.mergeIfIncomplete(
+        listingStorage, filterEngine, currentCity, cityCriteria, scrapeOutput.results(), uniqueCityItems);
     qualityEngine.evaluateAll(uniqueCityItems);
 
     PropertyFilterEngine.FilterResult viewResult =

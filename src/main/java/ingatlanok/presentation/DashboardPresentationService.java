@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import ingatlanok.core.IngatlanComHtmlImportService;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
@@ -15,11 +16,40 @@ public class DashboardPresentationService {
 
   private final SearchExecutionEngine searchEngine;
   private final MarketAnalyticsEngine analyticsEngine;
+  private final IngatlanComHtmlImportService htmlImportService;
 
   public DashboardPresentationService(
       SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
+    this(searchEngine, analyticsEngine, null);
+  }
+
+  public DashboardPresentationService(
+      SearchExecutionEngine searchEngine,
+      MarketAnalyticsEngine analyticsEngine,
+      IngatlanComHtmlImportService htmlImportService) {
     this.searchEngine = Objects.requireNonNull(searchEngine);
     this.analyticsEngine = Objects.requireNonNull(analyticsEngine);
+    this.htmlImportService = htmlImportService;
+  }
+
+  public IngatlanComHtmlImportResponseDto importIngatlanComHtml(
+      IngatlanComHtmlImportRequestDto request) {
+    if (htmlImportService == null) {
+      throw new IllegalStateException("HTML import szolgáltatás nem érhető el");
+    }
+    String html = request != null ? request.html() : null;
+    String sourceUrl = request != null ? request.sourceUrl() : null;
+    String city = request != null ? request.city() : null;
+    var summary =
+        htmlImportService.importHtml(
+            html, sourceUrl, city, request != null ? request.propertyType() : null);
+    return new IngatlanComHtmlImportResponseDto(
+        summary.parsedCount(),
+        summary.savedCount(),
+        summary.newlyAddedCount(),
+        summary.duplicateCount(),
+        summary.city(),
+        summary.items());
   }
 
   public DashboardResponseDto executeSearch(SearchCriteria criteria) {

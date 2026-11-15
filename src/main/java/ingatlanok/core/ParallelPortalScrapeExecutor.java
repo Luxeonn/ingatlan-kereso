@@ -19,14 +19,30 @@ import ingatlanok.portal.PortalEngine;
 public class ParallelPortalScrapeExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(ParallelPortalScrapeExecutor.class);
+  private static final long DEFAULT_TIMEOUT_SECONDS = 15;
+  private static final long DEFAULT_SIDECAR_TIMEOUT_SECONDS = 45;
+
   private final long timeoutSeconds;
+  private final long sidecarTimeoutSeconds;
 
   public ParallelPortalScrapeExecutor() {
-    this(15);
+    this(DEFAULT_TIMEOUT_SECONDS, DEFAULT_SIDECAR_TIMEOUT_SECONDS);
   }
 
   public ParallelPortalScrapeExecutor(long timeoutSeconds) {
-    this.timeoutSeconds = timeoutSeconds > 0 ? timeoutSeconds : 15;
+    long effective = timeoutSeconds > 0 ? timeoutSeconds : DEFAULT_TIMEOUT_SECONDS;
+    this.timeoutSeconds = effective;
+    this.sidecarTimeoutSeconds = effective;
+  }
+
+  public ParallelPortalScrapeExecutor(long timeoutSeconds, long sidecarTimeoutSeconds) {
+    this.timeoutSeconds = timeoutSeconds > 0 ? timeoutSeconds : DEFAULT_TIMEOUT_SECONDS;
+    this.sidecarTimeoutSeconds =
+        sidecarTimeoutSeconds > 0 ? sidecarTimeoutSeconds : DEFAULT_SIDECAR_TIMEOUT_SECONDS;
+  }
+
+  long resolveTimeoutSeconds(String portalId) {
+    return "ingatlancom".equalsIgnoreCase(portalId) ? sidecarTimeoutSeconds : timeoutSeconds;
   }
 
   public record CityScrapeOutput(
@@ -58,8 +74,9 @@ public class ParallelPortalScrapeExecutor {
       for (Map.Entry<PortalEngine, Future<PortalScrapeResult>> entry : futures.entrySet()) {
         PortalEngine engine = entry.getKey();
         Future<PortalScrapeResult> future = entry.getValue();
+        long engineTimeoutSeconds = resolveTimeoutSeconds(engine.getId());
         try {
-          PortalScrapeResult scrapeResult = future.get(timeoutSeconds, TimeUnit.SECONDS);
+          PortalScrapeResult scrapeResult = future.get(engineTimeoutSeconds, TimeUnit.SECONDS);
           scrapeResults.add(scrapeResult);
           List<IngatlanItem> items = scrapeResult.getItems();
           if (items != null) {
@@ -77,15 +94,15 @@ public class ParallelPortalScrapeExecutor {
           future.cancel(true);
           LOGGER.warn(
               "Időtúllépés ({} mp) a(z) {} keresésekor ({})",
-              timeoutSeconds,
+              engineTimeoutSeconds,
               engine.getName(),
               currentCity);
           PortalScrapeResult timeoutResult =
               PortalScrapeResult.failure(
                   engine.getId(),
                   engine.getName(),
-                  "Időtúllépés (" + timeoutSeconds + " mp)",
-                  timeoutSeconds * 1000);
+                  "Időtúllépés (" + engineTimeoutSeconds + " mp)",
+                  engineTimeoutSeconds * 1000);
           scrapeResults.add(timeoutResult);
         } catch (Exception e) {
           LOGGER.error(

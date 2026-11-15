@@ -80,8 +80,14 @@ public class SidecarCliExecutor {
     SidecarResponse bestSuccess = null;
     SidecarResponse lastFailure = null;
     for (int idx = 0; idx < candidates.size(); idx++) {
+      if (Thread.currentThread().isInterrupted()) {
+        break;
+      }
       Optional<SidecarResponse> current = executeCommand(portalId, candidates.get(idx), timeoutSeconds);
       if (current.isEmpty()) {
+        if (Thread.currentThread().isInterrupted()) {
+          break;
+        }
         continue;
       }
       SidecarResponse resp = current.get();
@@ -138,10 +144,11 @@ public class SidecarCliExecutor {
   private static Optional<SidecarResponse> executeCommand(
       String portalId, List<String> fullCommand, int timeoutSeconds) {
     LOGGER.info("Sidecar futtatása: {}", String.join(" ", fullCommand));
+    Process process = null;
     try {
       ProcessBuilder pb = new ProcessBuilder(fullCommand);
       pb.redirectErrorStream(false);
-      Process process = pb.start();
+      process = pb.start();
 
       StringBuilder stdout = new StringBuilder();
       StringBuilder stderr = new StringBuilder();
@@ -162,6 +169,13 @@ public class SidecarCliExecutor {
       }
 
       return parseResponseIfPresent(stdoutJson);
+    } catch (InterruptedException e) {
+      if (process != null && process.isAlive()) {
+        process.destroyForcibly();
+      }
+      Thread.currentThread().interrupt();
+      LOGGER.warn("A sidecar futtatása megszakadt ({})", portalId);
+      return Optional.empty();
     } catch (tools.jackson.core.JacksonException e) {
       LOGGER.error("JSON szintaxis hiba a sidecar kimenetében: {}", e.getMessage(), e);
       return Optional.empty();

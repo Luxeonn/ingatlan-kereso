@@ -36,6 +36,8 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
+import ingatlanok.presentation.IngatlanComHtmlImportRequestDto;
+import ingatlanok.presentation.IngatlanComHtmlImportResponseDto;
 
 @RestController
 @RequestMapping("/api")
@@ -373,6 +375,12 @@ public class RestApiController {
       @RequestParam(value = "city", required = false) String city) {
     List<IngatlanItem> discounted = listingStorage.getDiscountedProperties(city);
     return ResponseEntity.ok(discounted);
+  }
+
+  @PostMapping("/portals/ingatlancom/import-html")
+  public ResponseEntity<IngatlanComHtmlImportResponseDto> importIngatlanComHtml(
+      @RequestBody(required = false) IngatlanComHtmlImportRequestDto body) {
+    return ResponseEntity.ok(dashboardPresentationService.importIngatlanComHtml(body));
   }
 
   @PostMapping("/search")
