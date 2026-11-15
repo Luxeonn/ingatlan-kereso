@@ -315,6 +315,19 @@ class LocationAndTextualMatcherTest {
     assertNull(LocationConflictDetector.extractLocation(noiseItem, "hajduszoboszlo").quarter(),
         "A Lakóövezet/Kistérség zaj nem lehet városrész");
 
+    IngatlanItem digitTitle = new IngatlanItem();
+    digitTitle.setCity("Hajdúszoboszló");
+    digitTitle.setLocation("Hajdúszoboszló");
+    digitTitle.setTitle("Hajdúszoboszló, 3 szobás - eladó ikerház");
+    assertNull(LocationConflictDetector.extractLocation(digitTitle, "hajduszoboszlo").quarter(),
+        "Számjegyet vagy hirdetési kulcsszót tartalmazó vesszős cím nem lehet városrész");
+
+    IngatlanItem adTokenTitle = new IngatlanItem();
+    adTokenTitle.setCity("Debrecen");
+    adTokenTitle.setLocation("Debrecen");
+    adTokenTitle.setTitle("Debrecen, felújított lakás");
+    assertNull(LocationConflictDetector.extractLocation(adTokenTitle, "debrecen").quarter());
+
     IngatlanItem genericHouse = new IngatlanItem();
     genericHouse.setPropertyType(PropertyType.HAZ);
     genericHouse.setTitle("Eladó családi ház, Hajdúszoboszlón 109 M Ft, 4 szobás");

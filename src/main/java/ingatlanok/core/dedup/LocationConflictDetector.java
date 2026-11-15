@@ -279,7 +279,7 @@ public final class LocationConflictDetector {
   }
 
   private static boolean hasTitleNonQuarterToken(String slug) {
-    if (slug.matches(".*\\d.*")) {
+    if (slug.chars().anyMatch(Character::isDigit)) {
       return true;
     }
     for (String part : slug.split("-")) {
