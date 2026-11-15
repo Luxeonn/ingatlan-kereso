@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 import ingatlanok.core.DataQualityEngine;
 import ingatlanok.core.DeduplicationEngine;
+import ingatlanok.core.IngatlanComHtmlImportService;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
@@ -117,8 +118,21 @@ public class CoreEngineConfig {
   }
 
   @Bean
+  public IngatlanComHtmlImportService ingatlanComHtmlImportService(
+      PortalEngineRegistry portalRegistry,
+      ListingNormalizer listingNormalizer,
+      DeduplicationEngine dedupEngine,
+      DataQualityEngine qualityEngine,
+      ListingStorage listingStorage) {
+    return new IngatlanComHtmlImportService(
+        portalRegistry, listingNormalizer, dedupEngine, qualityEngine, listingStorage);
+  }
+
+  @Bean
   public DashboardPresentationService dashboardPresentationService(
-      SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
-    return new DashboardPresentationService(searchEngine, analyticsEngine);
+      SearchExecutionEngine searchEngine,
+      MarketAnalyticsEngine analyticsEngine,
+      IngatlanComHtmlImportService htmlImportService) {
+    return new DashboardPresentationService(searchEngine, analyticsEngine, htmlImportService);
   }
 }

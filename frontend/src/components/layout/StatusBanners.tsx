@@ -35,13 +35,21 @@ export const SearchErrorBanner: FC<SearchErrorBannerProps> = ({ error, onRetry }
 interface PartialPortalWarningBannerProps {
   failures: PortalStatusDto[]
   isTotalFailure?: boolean
+  hasIngatlanComPartial?: boolean
+  showEnableAllPortals?: boolean
   onOpenDiagnostics: () => void
+  onOpenImportModal?: () => void
+  onEnableAllPortals?: () => void
 }
 
 export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = ({
   failures,
   isTotalFailure = false,
+  hasIngatlanComPartial = false,
+  showEnableAllPortals = false,
   onOpenDiagnostics,
+  onOpenImportModal,
+  onEnableAllPortals,
 }) => (
   <div
     role="status"
@@ -57,20 +65,46 @@ export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = (
             <strong>Minden kiválasztott portál hibát jelzett:</strong>{' '}
             {failures.map((p) => p.portalName).join(', ')} nem válaszolt vagy bot-védelmet jelzett. Kérjük, nyisd meg a közvetlen keresőlinkeket a Diagnosztika ablakban!
           </>
-        ) : (
+        ) : failures.length > 0 ? (
           <>
             <strong>Részleges portálhiba:</strong>{' '}
             {failures.map((p) => p.portalName).join(', ')} nem válaszolt vagy bot-védelmet jelzett. A sikeres források találatai alább láthatók.
           </>
+        ) : (
+          <>
+            <strong>Részleges Ingatlan.com korlátozás:</strong> a Cloudflare WAF csak az 1. oldalt engedte át automatikusan. Több oldalhoz importáld a 2., 3., ... oldalakat a böngésződből, vagy kapcsold be az összes portált!
+          </>
         )}
       </span>
     </div>
-    <button
-      type="button"
-      onClick={onOpenDiagnostics}
-      className="underline font-bold text-amber-300 hover:text-amber-100 shrink-0 text-left sm:text-right cursor-pointer"
-    >
-      Diagnosztika megtekintése
-    </button>
+    <div className="flex flex-wrap items-center gap-2 shrink-0">
+      {hasIngatlanComPartial && onOpenImportModal && (
+        <button
+          type="button"
+          data-testid="open-ingatlancom-import-btn"
+          onClick={onOpenImportModal}
+          className="rounded-lg border border-sky-400/40 bg-sky-500/20 px-2.5 py-1 font-bold text-sky-200 hover:bg-sky-500/30 transition-colors cursor-pointer"
+        >
+          Ingatlan.com oldalak importálása
+        </button>
+      )}
+      {showEnableAllPortals && onEnableAllPortals && (
+        <button
+          type="button"
+          data-testid="enable-all-portals-rerun-btn"
+          onClick={onEnableAllPortals}
+          className="rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-2.5 py-1 font-bold text-emerald-200 hover:bg-emerald-500/30 transition-colors cursor-pointer"
+        >
+          Összes portál bekapcsolása
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onOpenDiagnostics}
+        className="underline font-bold text-amber-300 hover:text-amber-100 text-left sm:text-right cursor-pointer"
+      >
+        Diagnosztika megtekintése
+      </button>
+    </div>
   </div>
 )

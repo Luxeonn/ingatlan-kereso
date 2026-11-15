@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -274,6 +276,75 @@ class SidecarCliExecutorUnitTest {
     assertEquals(20, result.listings().size());
     assertNotNull(result.message());
     assertTrue(result.message().contains("Cloudflare"));
+  }
+
+  @Test
+  @DisplayName("IngatlanComSidecarStrategy gyorsítótár megőrzi a partial warning és details mezőket")
+  void testSidecarStrategyCachePreservesDetailsAndWarning(@TempDir Path tempDir) throws Exception {
+    IngatlanComSidecarStrategy.clearCache();
+    Path primaryScript = createMockSidecarScript(
+        tempDir,
+        "partial-cache",
+        buildMockPayloadJson(20, 1, "INTERMEDIATE_PAGE_BOT_PROTECTED", "SUCCESS", null));
+    SidecarCliExecutor.setCustomExecutables(List.of(primaryScript.toAbsolutePath().toString()));
+    IngatlanComSidecarStrategy strategy = new IngatlanComSidecarStrategy();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+
+    RawExtractionResult first = strategy.extract(criteria);
+    assertEquals(20, first.listings().size());
+    assertNotNull(first.technicalDetails());
+    assertNotNull(first.message());
+
+    SidecarCliExecutor.setCustomExecutables(List.of("non-existent-sidecar"));
+    RawExtractionResult cached = strategy.extract(criteria);
+    assertEquals(20, cached.listings().size());
+    assertNotNull(cached.technicalDetails(), "A cache találatnak meg kell őriznie a details mezőt");
+    assertTrue(cached.technicalDetails().contains("pages=1"));
+    assertNotNull(cached.message(), "A cache találatnak meg kell őriznie a warningMessage mezőt");
+    assertTrue(cached.message().contains("Cloudflare"));
+  }
+
+  @Test
+  @DisplayName("SidecarCliExecutor megszakításkor visszaállítja a szál interrupt jelzőjét")
+  void testSidecarCliExecutorRestoresInterruptFlagOnInterruption(@TempDir Path tempDir)
+      throws Exception {
+    IngatlanComSidecarStrategy.clearCache();
+    boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+    Path slowScript = tempDir.resolve(isWindows ? "slow-sidecar.cmd" : "slow-sidecar.sh");
+    String scriptContent = isWindows
+        ? "@echo off\r\nping -n 6 127.0.0.1 >nul\r\n"
+        : "#!/bin/sh\nsleep 5\n";
+    Files.writeString(slowScript, scriptContent, StandardCharsets.UTF_8);
+    if (!isWindows) {
+      slowScript.toFile().setExecutable(true);
+    }
+
+    SidecarCliExecutor.setCustomExecutables(List.of(slowScript.toAbsolutePath().toString()));
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Debrecen");
+    criteria.setPropertyType("haz");
+
+    AtomicBoolean interruptFlagPreserved = new AtomicBoolean(false);
+    AtomicReference<Optional<SidecarResponse>> resultRef = new AtomicReference<>();
+    Thread worker =
+        new Thread(
+            () -> {
+              resultRef.set(SidecarCliExecutor.execute("ingatlancom", criteria));
+              interruptFlagPreserved.set(Thread.currentThread().isInterrupted());
+            });
+    worker.start();
+    Thread.sleep(250);
+    worker.interrupt();
+    worker.join(3000);
+
+    assertTrue(!worker.isAlive(), "A megszakított sidecar hívásnak azonnal le kell állnia");
+    assertNotNull(resultRef.get());
+    assertTrue(resultRef.get().isEmpty());
+    assertTrue(
+        interruptFlagPreserved.get(),
+        "InterruptedException után a szál interrupt állapotát vissza kell állítani");
   }
 
   private static String buildMockPayloadJson(

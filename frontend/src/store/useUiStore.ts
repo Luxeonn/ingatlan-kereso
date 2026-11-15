@@ -36,6 +36,7 @@ interface UiState {
   dashboardTab: DashboardTab
   listingSubView: ListingSubView
   isDiagnosticsModalOpen: boolean
+  isIngatlanComImportModalOpen: boolean
   isFiltersCollapsed: boolean
   starredUrls: string[]
   starredItemsCache: Record<string, IngatlanItem>
@@ -45,6 +46,7 @@ interface UiState {
   setDashboardTab: (tab: DashboardTab) => void
   setListingSubView: (subView: ListingSubView) => void
   setDiagnosticsModalOpen: (open: boolean) => void
+  setIngatlanComImportModalOpen: (open: boolean) => void
   setFiltersCollapsed: (collapsed: boolean) => void
   toggleStarred: (itemOrUrl: IngatlanItem | string) => void
   isStarred: (url: string) => boolean
@@ -129,6 +131,7 @@ export const useUiStore = create<UiState>((set, get) => {
     dashboardTab: 'listings',
     listingSubView: 'listings',
     isDiagnosticsModalOpen: false,
+    isIngatlanComImportModalOpen: false,
     isFiltersCollapsed: false,
     starredUrls: getInitialStarredUrls(),
     starredItemsCache: getInitialStarredItemsCache(),
@@ -156,6 +159,7 @@ export const useUiStore = create<UiState>((set, get) => {
           : { listingSubView: subView, dashboardTab: 'listings' },
       ),
     setDiagnosticsModalOpen: (open) => set({ isDiagnosticsModalOpen: open }),
+    setIngatlanComImportModalOpen: (open) => set({ isIngatlanComImportModalOpen: open }),
     setFiltersCollapsed: (collapsed) => set({ isFiltersCollapsed: collapsed }),
     toggleStarred: (itemOrUrl) =>
       set((state) => {

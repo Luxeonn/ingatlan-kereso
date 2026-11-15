@@ -313,6 +313,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portals/ingatlancom/import-html": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Felhasználó által megnyitott ingatlan.com HTML találati oldal közvetlen importálása */
+        post: operations["importIngatlanComHtml"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/search": {
         parameters: {
             query?: never;
@@ -819,6 +836,23 @@ export interface components {
             imageUrl?: string;
             /** Format: date-time */
             lastPriceChangeAt?: string;
+        };
+        IngatlanComHtmlImportRequest: {
+            /** @description A böngészőből másolt vagy mentett ingatlan.com találati oldal HTML forrása */
+            html: string;
+            /** @description Opcionális ingatlan.com keresési URL a város és típus felismeréséhez */
+            sourceUrl?: string | null;
+            /** @description Opcionális településnév felülbírálás */
+            city?: string | null;
+            propertyType?: components["schemas"]["PropertyType"];
+        };
+        IngatlanComHtmlImportResponse: {
+            parsedCount: number;
+            savedCount: number;
+            newlyAddedCount: number;
+            duplicateCount: number;
+            city: string;
+            items: components["schemas"]["IngatlanItem"][];
         };
     };
     responses: never;
@@ -1429,6 +1463,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IngatlanItem"][];
+                };
+            };
+        };
+    };
+    importIngatlanComHtml: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IngatlanComHtmlImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Az importált és elmentett ingatlanok összefoglalója */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngatlanComHtmlImportResponse"];
+                };
+            };
+            /** @description Érvénytelen HTML tartalom vagy nem engedélyezett forrás URL */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };

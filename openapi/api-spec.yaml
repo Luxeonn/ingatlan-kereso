@@ -562,6 +562,30 @@ paths:
                 items:
                   $ref: '#/components/schemas/IngatlanItem'
 
+  /api/portals/ingatlancom/import-html:
+    post:
+      summary: Felhasználó által megnyitott ingatlan.com HTML találati oldal közvetlen importálása
+      operationId: importIngatlanComHtml
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngatlanComHtmlImportRequest'
+      responses:
+        '200':
+          description: Az importált és elmentett ingatlanok összefoglalója
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngatlanComHtmlImportResponse'
+        '400':
+          description: Érvénytelen HTML tartalom vagy nem engedélyezett forrás URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+
   /api/search:
     post:
       summary: Élő párhuzamos keresés futtatása a portálokon
@@ -1549,3 +1573,48 @@ components:
         lastPriceChangeAt:
           type: string
           format: date-time
+
+    IngatlanComHtmlImportRequest:
+      type: object
+      required:
+        - html
+      properties:
+        html:
+          type: string
+          description: A böngészőből másolt vagy mentett ingatlan.com találati oldal HTML forrása
+        sourceUrl:
+          type: string
+          nullable: true
+          description: Opcionális ingatlan.com keresési URL a város és típus felismeréséhez
+        city:
+          type: string
+          nullable: true
+          description: Opcionális településnév felülbírálás
+        propertyType:
+          $ref: '#/components/schemas/PropertyType'
+          nullable: true
+
+    IngatlanComHtmlImportResponse:
+      type: object
+      required:
+        - parsedCount
+        - savedCount
+        - newlyAddedCount
+        - duplicateCount
+        - city
+        - items
+      properties:
+        parsedCount:
+          type: integer
+        savedCount:
+          type: integer
+        newlyAddedCount:
+          type: integer
+        duplicateCount:
+          type: integer
+        city:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngatlanItem'

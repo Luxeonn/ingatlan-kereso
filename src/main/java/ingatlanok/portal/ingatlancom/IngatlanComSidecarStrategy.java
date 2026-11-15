@@ -63,7 +63,8 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
           "Ingatlan.com: Sidecar gyorsítótár találat ({} db hirdetés) -> {}",
           cached.listings().size(),
           searchUrl);
-      return RawExtractionResult.success(cached.listings(), method());
+      return RawExtractionResult.success(
+          cached.listings(), method(), cached.details(), cached.warningMessage());
     }
 
     if (!SidecarCliExecutor.isAvailable()) {
@@ -79,9 +80,11 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
         if (resp.isSuccess()) {
           List<RawPropertyListing> rawListings = mapSidecarItems(resp.getItems(), safeCriteria);
           if (!rawListings.isEmpty()) {
-            RESPONSE_CACHE.put(searchUrl, new CachedResult(List.copyOf(rawListings), now));
             String details = buildPaginationDetails(resp);
             String warningMessage = buildPartialWarningMessage(resp);
+            RESPONSE_CACHE.put(
+                searchUrl,
+                new CachedResult(List.copyOf(rawListings), details, warningMessage, now));
             LOGGER.info(
                 "Ingatlan.com: Sidecar sikeresen kinyert {} db hirdetést ({})",
                 rawListings.size(),
@@ -93,7 +96,8 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
               "Ingatlan.com: Sidecar hiba ({}), korábbi gyorsítótárazott találatok ({} db) visszaadása",
               resp.getErrorMessage(),
               cached.listings().size());
-          return RawExtractionResult.success(cached.listings(), method());
+          return RawExtractionResult.success(
+              cached.listings(), method(), cached.details(), cached.warningMessage());
         } else {
           String err =
               resp.getErrorMessage() != null ? resp.getErrorMessage() : "Cloudflare WAF / 429";
@@ -173,5 +177,9 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
     return "Részleges találati lista (" + pages + " oldal): a Cloudflare WAF korlátozta a további oldalakat";
   }
 
-  private record CachedResult(List<RawPropertyListing> listings, long timestampMs) {}
+  private record CachedResult(
+      List<RawPropertyListing> listings,
+      String details,
+      String warningMessage,
+      long timestampMs) {}
 }

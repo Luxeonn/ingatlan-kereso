@@ -57,6 +57,7 @@ class OpenApiSpecIntegrityTest {
             "/api/properties/observations:",
             "/api/properties/{id}/observations:",
             "/api/properties/discounted:",
+            "/api/portals/ingatlancom/import-html:",
             "/api/search:",
             "/api/open-urls:",
             "/api/items/viewed:",
@@ -95,6 +96,8 @@ class OpenApiSpecIntegrityTest {
             "PropertyBatchActionRequest:",
             "MarkViewedRequest:",
             "ClearHistoryRequest:",
+            "IngatlanComHtmlImportRequest:",
+            "IngatlanComHtmlImportResponse:",
             "ActionSuccessResponseDto:",
             "ApiErrorResponse:");
 
