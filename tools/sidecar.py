@@ -74,8 +74,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-pages",
         type=int,
-        default=1,
-        help="Maximálisan letöltendő oldalak száma (default: 1)",
+        default=20,
+        help="Maximálisan letöltendő oldalak száma (default: 20)",
+    )
+    parser.add_argument(
+        "--timeout-ms",
+        type=int,
+        default=85000,
+        help="Puha időkeret ezredmásodpercben a részleges eredmény megőrzéséhez (default: 85000)",
     )
     return parser.parse_args()
 
@@ -96,6 +102,7 @@ def main() -> None:
             min_area=args.min_area,
             max_area=args.max_area,
             max_pages=args.max_pages,
+            timeout_ms=args.timeout_ms,
         )
     except ImportError as e:
         response = SidecarResponse(

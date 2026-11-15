@@ -17,8 +17,11 @@ import ingatlanok.model.SearchCriteria;
 
 public class SidecarCliExecutor {
 
+  public static final int DEFAULT_MAX_PAGES = 20;
+
   private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
-  private static final int DEFAULT_TIMEOUT_SECONDS = 25;
+  private static final int MIN_TIMEOUT_SECONDS = 25;
+  private static final int MAX_TIMEOUT_SECONDS = 120;
   private static final ReentrantLock RUNTIME_DETECT_LOCK = new ReentrantLock();
 
   private static String customExecutable = null;
@@ -41,12 +44,29 @@ public class SidecarCliExecutor {
     return resolveCommand(List.of("--help")) != null;
   }
 
+  public static int calculateTimeoutSeconds(int maxPages) {
+    int safePages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
+    return Math.max(MIN_TIMEOUT_SECONDS, Math.min(MAX_TIMEOUT_SECONDS, 15 + safePages * 4));
+  }
+
+  public static int calculateSoftTimeoutMs(int maxPages) {
+    int timeoutSeconds = calculateTimeoutSeconds(maxPages);
+    return Math.max(10_000, (timeoutSeconds - 10) * 1000);
+  }
+
   public static Optional<SidecarResponse> execute(String portalId, SearchCriteria criteria) {
+    return execute(portalId, criteria, DEFAULT_MAX_PAGES);
+  }
+
+  public static Optional<SidecarResponse> execute(
+      String portalId, SearchCriteria criteria, int maxPages) {
     if (portalId == null || criteria == null) {
       return Optional.empty();
     }
 
-    List<String> cliArgs = buildArguments(portalId, criteria);
+    int safeMaxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
+    int timeoutSeconds = calculateTimeoutSeconds(safeMaxPages);
+    List<String> cliArgs = buildArguments(portalId, criteria, safeMaxPages);
     List<String> fullCommand = resolveCommand(cliArgs);
     if (fullCommand == null || fullCommand.isEmpty()) {
       LOGGER.debug("Sidecar parancs nem érhető el a(z) {} portálhoz", portalId);
@@ -62,9 +82,11 @@ public class SidecarCliExecutor {
       StringBuilder stdout = new StringBuilder();
       StringBuilder stderr = new StringBuilder();
 
-      if (!readProcessStreams(process, stdout, stderr)) {
-        LOGGER.warn("Időtúllépés a sidecar futtatása során ({})", portalId);
-        return Optional.empty();
+      boolean finished = readProcessStreams(process, stdout, stderr, timeoutSeconds);
+      if (!finished) {
+        LOGGER.warn(
+            "Időtúllépés a sidecar futtatása során ({}, limit={}s)", portalId, timeoutSeconds);
+        return parseResponseIfPresent(stdout.toString().trim());
       }
 
       String stdoutJson = stdout.toString().trim();
@@ -75,9 +97,7 @@ public class SidecarCliExecutor {
         return Optional.empty();
       }
 
-      String payload = extractJsonPayload(stdoutJson);
-      SidecarResponse response = JsonSupport.mapper().readValue(payload, SidecarResponse.class);
-      return Optional.ofNullable(response);
+      return parseResponseIfPresent(stdoutJson);
 
     } catch (tools.jackson.core.JacksonException e) {
       LOGGER.error("JSON szintaxis hiba a sidecar kimenetében: {}", e.getMessage(), e);
@@ -88,14 +108,29 @@ public class SidecarCliExecutor {
     }
   }
 
+  private static Optional<SidecarResponse> parseResponseIfPresent(String stdoutJson) {
+    if (stdoutJson == null || stdoutJson.isEmpty()) {
+      return Optional.empty();
+    }
+    String payload = extractJsonPayload(stdoutJson);
+    if (!payload.startsWith("{") || !payload.endsWith("}")) {
+      return Optional.empty();
+    }
+    SidecarResponse response = JsonSupport.mapper().readValue(payload, SidecarResponse.class);
+    return Optional.ofNullable(response);
+  }
+
   private static boolean readProcessStreams(
-      Process process, StringBuilder stdout, StringBuilder stderr) throws InterruptedException {
+      Process process, StringBuilder stdout, StringBuilder stderr, int timeoutSeconds)
+      throws InterruptedException {
     Thread outThread = Thread.ofVirtual().start(() -> readStream(process.getInputStream(), stdout));
     Thread errThread = Thread.ofVirtual().start(() -> readStream(process.getErrorStream(), stderr));
 
-    boolean finished = process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
     if (!finished) {
       process.destroyForcibly();
+      outThread.join(500);
+      errThread.join(500);
       return false;
     }
 
@@ -126,6 +161,12 @@ public class SidecarCliExecutor {
   }
 
   public static List<String> buildArguments(String portalId, SearchCriteria criteria) {
+    return buildArguments(portalId, criteria, DEFAULT_MAX_PAGES);
+  }
+
+  public static List<String> buildArguments(
+      String portalId, SearchCriteria criteria, int maxPages) {
+    int safeMaxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
     List<String> args = new ArrayList<>();
     args.add("--portal");
     args.add(portalId);
@@ -145,6 +186,11 @@ public class SidecarCliExecutor {
     appendMaxBound(args, "--max-price", criteria.getMaxPriceMillion());
     appendPositiveBound(args, "--min-area", criteria.getMinArea());
     appendMaxBound(args, "--max-area", criteria.getMaxArea());
+
+    args.add("--max-pages");
+    args.add(String.valueOf(safeMaxPages));
+    args.add("--timeout-ms");
+    args.add(String.valueOf(calculateSoftTimeoutMs(safeMaxPages)));
 
     return args;
   }
