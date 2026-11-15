@@ -81,11 +81,12 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
           if (!rawListings.isEmpty()) {
             RESPONSE_CACHE.put(searchUrl, new CachedResult(List.copyOf(rawListings), now));
             String details = buildPaginationDetails(resp);
+            String warningMessage = buildPartialWarningMessage(resp);
             LOGGER.info(
                 "Ingatlan.com: Sidecar sikeresen kinyert {} db hirdetést ({})",
                 rawListings.size(),
                 details);
-            return RawExtractionResult.success(rawListings, method(), details);
+            return RawExtractionResult.success(rawListings, method(), details, warningMessage);
           }
         } else if (cached != null && !cached.listings().isEmpty()) {
           LOGGER.warn(
@@ -158,6 +159,18 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
         ? resp.getStopReason()
         : "COMPLETED";
     return String.format("pages=%d, stopReason=%s", pages, stopReason);
+  }
+
+  private String buildPartialWarningMessage(SidecarResponse resp) {
+    String stopReason = resp.getStopReason();
+    if (!"INTERMEDIATE_PAGE_BOT_PROTECTED".equals(stopReason)
+        && !"INTERMEDIATE_PAGE_RATE_LIMITED".equals(stopReason)) {
+      return null;
+    }
+    int pages = resp.getPagesProcessed() != null && resp.getPagesProcessed() > 0
+        ? resp.getPagesProcessed()
+        : 1;
+    return "Részleges találati lista (" + pages + " oldal): a Cloudflare WAF korlátozta a további oldalakat";
   }
 
   private record CachedResult(List<RawPropertyListing> listings, long timestampMs) {}

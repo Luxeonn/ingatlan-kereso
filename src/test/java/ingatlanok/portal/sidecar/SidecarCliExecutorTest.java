@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -218,5 +219,99 @@ class SidecarCliExecutorUnitTest {
     assertNotNull(result.technicalDetails());
     assertTrue(result.technicalDetails().contains("pages=6"));
     assertTrue(result.technicalDetails().contains("stopReason=NO_MORE_PAGES"));
+  }
+
+  @Test
+  @DisplayName("SidecarCliExecutor falls back to secondary sidecar on partial bot-protected stop")
+  void testSidecarFallbackRecoversMoreListings(@TempDir Path tempDir) throws Exception {
+    IngatlanComSidecarStrategy.clearCache();
+    Path primaryScript = createMockSidecarScript(
+        tempDir,
+        "primary",
+        buildMockPayloadJson(20, 1, "INTERMEDIATE_PAGE_BOT_PROTECTED", "SUCCESS", null));
+    Path fallbackScript = createMockSidecarScript(
+        tempDir,
+        "fallback",
+        buildMockPayloadJson(62, 4, "NO_MORE_PAGES", "SUCCESS", null));
+
+    SidecarCliExecutor.setCustomExecutables(
+        List.of(primaryScript.toAbsolutePath().toString(), fallbackScript.toAbsolutePath().toString()));
+    IngatlanComSidecarStrategy strategy = new IngatlanComSidecarStrategy();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+
+    RawExtractionResult result = strategy.extract(criteria);
+    assertEquals(62, result.listings().size());
+    assertNotNull(result.technicalDetails());
+    assertTrue(result.technicalDetails().contains("pages=4"));
+    assertTrue(result.technicalDetails().contains("stopReason=NO_MORE_PAGES"));
+  }
+
+  @Test
+  @DisplayName("SidecarCliExecutor keeps primary partial listings when fallback also fails")
+  void testSidecarFallbackPreservesPrimaryOnFailure(@TempDir Path tempDir) throws Exception {
+    IngatlanComSidecarStrategy.clearCache();
+    Path primaryScript = createMockSidecarScript(
+        tempDir,
+        "primary-only",
+        buildMockPayloadJson(20, 1, "INTERMEDIATE_PAGE_BOT_PROTECTED", "SUCCESS", null));
+    Path failedFallbackScript = createMockSidecarScript(
+        tempDir,
+        "fallback-fail",
+        buildMockPayloadJson(0, 0, "FIRST_PAGE_BOT_PROTECTED", "FAILED", "HTTP 429"));
+
+    SidecarCliExecutor.setCustomExecutables(
+        List.of(
+            primaryScript.toAbsolutePath().toString(),
+            failedFallbackScript.toAbsolutePath().toString()));
+    IngatlanComSidecarStrategy strategy = new IngatlanComSidecarStrategy();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+
+    RawExtractionResult result = strategy.extract(criteria);
+    assertEquals(20, result.listings().size());
+    assertNotNull(result.message());
+    assertTrue(result.message().contains("Cloudflare"));
+  }
+
+  private static String buildMockPayloadJson(
+      int itemCount, int pagesProcessed, String stopReason, String status, String errorMessage) {
+    StringBuilder itemsJson = new StringBuilder();
+    for (int i = 1; i <= itemCount; i++) {
+      if (i > 1) {
+        itemsJson.append(",");
+      }
+      int id = 4000000 + i;
+      itemsJson.append(
+          String.format(
+              "{\"id\":\"%d\",\"url\":\"https://ingatlan.com/%d\","
+                  + "\"title\":\"Hajduszoboszlo haz %d\",\"priceMillion\":85.0,"
+                  + "\"priceRaw\":\"85 M Ft\",\"areaSquareMeters\":120.0,\"roomCount\":4.0}",
+              id, id, i));
+    }
+    String errJson = errorMessage == null ? "null" : "\"" + errorMessage + "\"";
+    return String.format(
+        "{\"portalId\":\"ingatlancom\",\"status\":\"%s\",\"items\":[%s],"
+            + "\"errorMessage\":%s,\"elapsedMs\":500,\"pagesProcessed\":%d,\"stopReason\":\"%s\"}",
+        status, itemsJson, errJson, pagesProcessed, stopReason);
+  }
+
+  private static Path createMockSidecarScript(Path tempDir, String name, String payloadJson)
+      throws Exception {
+    Path payloadFile = tempDir.resolve(name + ".json");
+    Files.writeString(payloadFile, payloadJson, StandardCharsets.UTF_8);
+
+    boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+    Path scriptFile = tempDir.resolve(name + (isWindows ? ".cmd" : ".sh"));
+    String scriptContent = isWindows
+        ? "@echo off\r\ntype \"" + payloadFile.toAbsolutePath() + "\"\r\n"
+        : "#!/bin/sh\ncat \"" + payloadFile.toAbsolutePath() + "\"\n";
+    Files.writeString(scriptFile, scriptContent, StandardCharsets.UTF_8);
+    if (!isWindows) {
+      scriptFile.toFile().setExecutable(true);
+    }
+    return scriptFile;
   }
 }

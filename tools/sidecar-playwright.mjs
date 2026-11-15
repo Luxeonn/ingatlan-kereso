@@ -4,13 +4,14 @@
  * Used automatically by SidecarCliExecutor when Python + curl_cffi is not installed locally.
  */
 
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const BASE_URL = 'https://ingatlan.com'
 export const DEFAULT_MAX_PAGES = 20
-export const DEFAULT_TIMEOUT_MS = 85000
+export const DEFAULT_TIMEOUT_MS = 125000
 
 export function parseArgs(argv) {
   const args = {
@@ -114,7 +115,7 @@ export function hasPaginationWithoutNextPage(pageLinks, currentPage, addedCount)
 export async function scrapePages(
   args,
   fetchPage,
-  { nowFn = () => Date.now(), sleepFn = (ms) => new Promise((r) => setTimeout(r, ms)), delayMs = 200 } = {}
+  { nowFn = () => Date.now(), sleepFn = (ms) => new Promise((r) => setTimeout(r, ms)), delayMs = 1100 } = {}
 ) {
   const startMs = nowFn()
   const allItems = []
@@ -134,7 +135,8 @@ export async function scrapePages(
       break
     }
     if (pageNum > 1 && delayMs > 0) {
-      await sleepFn(delayMs)
+      const jitter = Math.floor(Math.random() * 400)
+      await sleepFn(delayMs + jitter)
     }
 
     const targetUrl = buildSearchUrl(args, pageNum)
@@ -211,8 +213,53 @@ export async function scrapePages(
 }
 
 async function loadPlaywright() {
-  const playwrightPath = path.resolve(__dirname, '..', 'frontend', 'node_modules', 'playwright', 'index.mjs')
-  return import(pathToFileURL(playwrightPath).href)
+  const candidates = [
+    path.resolve(__dirname, 'node_modules', 'playwright-core', 'index.mjs'),
+    path.resolve(__dirname, 'node_modules', 'playwright', 'index.mjs'),
+    path.resolve(__dirname, '..', 'frontend', 'node_modules', 'playwright', 'index.mjs'),
+    path.resolve(__dirname, '..', 'frontend', 'node_modules', 'playwright-core', 'index.mjs'),
+  ]
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return import(pathToFileURL(candidate).href)
+    }
+  }
+  try {
+    return await import('playwright-core')
+  } catch {
+    return import('playwright')
+  }
+}
+
+export function resolveChromiumExecutablePath() {
+  const envPath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+  if (envPath && fs.existsSync(envPath)) {
+    return envPath
+  }
+  const systemPaths = ['/usr/bin/chromium-browser', '/usr/bin/chromium', '/usr/bin/google-chrome']
+  return systemPaths.find((candidate) => fs.existsSync(candidate))
+}
+
+async function navigateToPage(page, targetUrl, pageNum) {
+  if (pageNum > 1) {
+    const nextLink = page.locator(`a[href*="page=${pageNum}"]`).first()
+    if ((await nextLink.count()) > 0) {
+      try {
+        const [navResponse] = await Promise.all([
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }),
+          nextLink.click({ timeout: 5000 }),
+        ])
+        if (navResponse) {
+          return navResponse
+        }
+      } catch {
+        // Fallback to direct navigation with Referer if click-navigation timed out
+      }
+    }
+  }
+  const currentUrl = page.url()
+  const referer = currentUrl && currentUrl.startsWith('http') ? currentUrl : `${BASE_URL}/`
+  return page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000, referer })
 }
 
 async function main() {
@@ -226,22 +273,31 @@ async function main() {
   let browser = null
   try {
     const { chromium } = await loadPlaywright()
+    const executablePath = resolveChromiumExecutablePath()
     browser = await chromium.launch({
-      headless: false,
-      args: ['--disable-blink-features=AutomationControlled', '--headless=new'],
+      headless: true,
+      ...(executablePath ? { executablePath } : {}),
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--headless=new',
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
     })
     const context = await browser.newContext({
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
       locale: 'hu-HU',
+      viewport: { width: 1366, height: 900 },
     })
     const page = await context.newPage()
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined })
     })
 
-    const result = await scrapePages(args, async (targetUrl) => {
-      const response = await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 })
+    const result = await scrapePages(args, async (targetUrl, pageNum) => {
+      const response = await navigateToPage(page, targetUrl, pageNum)
       if (!response || response.status() !== 200) {
         return { status: response ? response.status() : 0, items: [], pageLinks: [] }
       }

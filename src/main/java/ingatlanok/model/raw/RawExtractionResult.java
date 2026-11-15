@@ -23,12 +23,20 @@ public record RawExtractionResult(
       List<RawPropertyListing> listings,
       ExtractionMethod usedMethod,
       String technicalDetails) {
+    return success(listings, usedMethod, technicalDetails, null);
+  }
+
+  public static RawExtractionResult success(
+      List<RawPropertyListing> listings,
+      ExtractionMethod usedMethod,
+      String technicalDetails,
+      String message) {
     return new RawExtractionResult(
         PortalScrapeStatus.SUCCESS,
         listings != null ? List.copyOf(listings) : List.of(),
         usedMethod,
         null,
-        null,
+        message,
         200,
         technicalDetails
     );
