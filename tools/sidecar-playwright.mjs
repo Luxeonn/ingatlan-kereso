@@ -9,8 +9,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const BASE_URL = 'https://ingatlan.com'
+export const DEFAULT_MAX_PAGES = 20
+export const DEFAULT_TIMEOUT_MS = 85000
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = {
     portal: 'ingatlancom',
     city: 'debrecen',
@@ -19,7 +21,8 @@ function parseArgs(argv) {
     maxPrice: null,
     minArea: null,
     maxArea: null,
-    maxPages: 1,
+    maxPages: DEFAULT_MAX_PAGES,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
     help: false,
   }
   for (let i = 2; i < argv.length; i++) {
@@ -33,6 +36,7 @@ function parseArgs(argv) {
     else if (arg === '--min-area' && argv[i + 1]) args.minArea = Number.parseInt(argv[++i], 10)
     else if (arg === '--max-area' && argv[i + 1]) args.maxArea = Number.parseInt(argv[++i], 10)
     else if (arg === '--max-pages' && argv[i + 1]) args.maxPages = Number.parseInt(argv[++i], 10)
+    else if (arg === '--timeout-ms' && argv[i + 1]) args.timeoutMs = Number.parseInt(argv[++i], 10)
   }
   return args
 }
@@ -56,7 +60,7 @@ function buildRangeSlug(minVal, maxVal, unit) {
   return ''
 }
 
-function buildSearchUrl(args, page = 1) {
+export function buildSearchUrl(args, page = 1) {
   const citySlug = toSlug(args.city) || 'debrecen'
   const typeMap = {
     haz: 'haz',
@@ -76,9 +80,134 @@ function buildSearchUrl(args, page = 1) {
   if (priceSlug) segments.push(priceSlug)
 
   segments.push(citySlug)
-  if (page === 2) segments.push('ar-szerint')
-  else if (page >= 3) segments.push('m2-ar-szerint')
-  return `${BASE_URL}/lista/${segments.join('+')}`
+  const baseUrl = `${BASE_URL}/lista/${segments.join('+')}`
+  if (page > 1) {
+    const separator = baseUrl.includes('?') ? '&' : '?'
+    return `${baseUrl}${separator}page=${page}`
+  }
+  return baseUrl
+}
+
+export function hasPaginationWithoutNextPage(pageLinks, currentPage, addedCount) {
+  let hasAnyPageLink = false
+  let hasNextPage = false
+  const nextPage = currentPage + 1
+  const pageRegex = /(?:^|[?&])page=(\d+)(?:&|$)/
+
+  for (const href of pageLinks || []) {
+    if (typeof href !== 'string') continue
+    const match = href.match(pageRegex)
+    if (!match) continue
+    hasAnyPageLink = true
+    if (Number.parseInt(match[1], 10) === nextPage) {
+      hasNextPage = true
+      break
+    }
+  }
+
+  if (hasAnyPageLink) {
+    return !hasNextPage
+  }
+  return currentPage === 1 && addedCount < 20
+}
+
+export async function scrapePages(
+  args,
+  fetchPage,
+  { nowFn = () => Date.now(), sleepFn = (ms) => new Promise((r) => setTimeout(r, ms)), delayMs = 200 } = {}
+) {
+  const startMs = nowFn()
+  const allItems = []
+  const seenUrls = new Set()
+  const requestedPages = Number.isFinite(args.maxPages) && args.maxPages > 0 ? args.maxPages : DEFAULT_MAX_PAGES
+  const maxPages = Math.max(1, Math.min(requestedPages, DEFAULT_MAX_PAGES))
+  const effectiveTimeoutMs = Math.max(
+    5000,
+    Number.isFinite(args.timeoutMs) && args.timeoutMs > 0 ? args.timeoutMs : DEFAULT_TIMEOUT_MS
+  )
+  let pagesProcessed = 0
+  let stopReason = 'MAX_PAGES_REACHED'
+
+  for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+    if (pageNum > 1 && nowFn() - startMs >= effectiveTimeoutMs) {
+      stopReason = 'TIME_BUDGET_REACHED'
+      break
+    }
+    if (pageNum > 1 && delayMs > 0) {
+      await sleepFn(delayMs)
+    }
+
+    const targetUrl = buildSearchUrl(args, pageNum)
+    const pageResult = await fetchPage(targetUrl, pageNum)
+    const status = pageResult?.status ?? 0
+
+    if (status === 403 || status === 429) {
+      if (pageNum === 1) {
+        return {
+          portalId: args.portal,
+          status: 'FAILED',
+          items: [],
+          errorMessage: `HTTP ${status} hiba`,
+          elapsedMs: nowFn() - startMs,
+          pagesProcessed: 0,
+          stopReason: 'FIRST_PAGE_BOT_PROTECTED',
+        }
+      }
+      stopReason = status === 429 ? 'INTERMEDIATE_PAGE_RATE_LIMITED' : 'INTERMEDIATE_PAGE_BOT_PROTECTED'
+      break
+    }
+
+    if (status !== 200) {
+      if (pageNum === 1) {
+        return {
+          portalId: args.portal,
+          status: 'FAILED',
+          items: [],
+          errorMessage: `HTTP ${status} hiba`,
+          elapsedMs: nowFn() - startMs,
+          pagesProcessed: 0,
+          stopReason: 'FIRST_PAGE_HTTP_ERROR',
+        }
+      }
+      stopReason = `INTERMEDIATE_PAGE_HTTP_${status}`
+      break
+    }
+
+    pagesProcessed += 1
+    const rawItems = pageResult?.items || []
+    if (!rawItems.length) {
+      stopReason = pageNum === 1 ? 'FIRST_PAGE_EMPTY' : 'EMPTY_PAGE'
+      break
+    }
+
+    let addedOnPage = 0
+    for (const item of rawItems) {
+      if (item && item.url && !seenUrls.has(item.url)) {
+        seenUrls.add(item.url)
+        allItems.push(item)
+        addedOnPage += 1
+      }
+    }
+    if (addedOnPage === 0) {
+      stopReason = 'REPEATED_PAGE_CONTENT'
+      break
+    }
+
+    if (pageNum < maxPages && hasPaginationWithoutNextPage(pageResult?.pageLinks, pageNum, addedOnPage)) {
+      stopReason = 'NO_MORE_PAGES'
+      break
+    }
+  }
+
+  return {
+    portalId: args.portal,
+    status: 'SUCCESS',
+    items: allItems,
+    errorMessage: null,
+    elapsedMs: nowFn() - startMs,
+    pagesProcessed,
+    stopReason,
+  }
 }
 
 async function loadPlaywright() {
@@ -111,36 +240,18 @@ async function main() {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined })
     })
 
-    const allItems = []
-    const seenUrls = new Set()
-    const maxPages = Math.max(1, Math.min(args.maxPages || 2, 5))
-
-    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      const targetUrl = buildSearchUrl(args, pageNum)
+    const result = await scrapePages(args, async (targetUrl) => {
       const response = await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 })
       if (!response || response.status() !== 200) {
-        if (pageNum === 1) {
-          const status = response ? response.status() : 0
-          console.log(
-            JSON.stringify({
-              portalId: args.portal,
-              status: 'FAILED',
-              items: [],
-              errorMessage: `HTTP ${status} hiba`,
-              elapsedMs: Date.now() - startMs,
-            })
-          )
-          return
-        }
-        break
+        return { status: response ? response.status() : 0, items: [], pageLinks: [] }
       }
 
-      const pageItems = await page.evaluate(
+      const extracted = await page.evaluate(
         ({ baseUrl, defaultCity }) => {
           const cards = Array.from(
             document.querySelectorAll("a.listing-card, a[data-listing-id], div.listing-card, a[href*='/ingatlan/']")
           )
-          return cards
+          const items = cards
             .map((card) => {
               const href =
                 card.tagName === 'A'
@@ -215,29 +326,20 @@ async function main() {
               }
             })
             .filter(Boolean)
+
+          const pageLinks = Array.from(document.querySelectorAll('a[href]'))
+            .map((a) => a.getAttribute('href'))
+            .filter((href) => typeof href === 'string' && href.includes('page='))
+
+          return { items, pageLinks }
         },
         { baseUrl: BASE_URL, defaultCity: args.city }
       )
 
-      if (!pageItems.length) break
-      for (const item of pageItems) {
-        if (!seenUrls.has(item.url)) {
-          seenUrls.add(item.url)
-          allItems.push(item)
-        }
-      }
-      if (pageItems.length < 5 && pageNum === 1) break
-    }
+      return { status: 200, items: extracted.items, pageLinks: extracted.pageLinks }
+    })
 
-    console.log(
-      JSON.stringify({
-        portalId: args.portal,
-        status: 'SUCCESS',
-        items: allItems,
-        errorMessage: null,
-        elapsedMs: Date.now() - startMs,
-      })
-    )
+    console.log(JSON.stringify(result))
   } catch (err) {
     console.log(
       JSON.stringify({
@@ -246,6 +348,8 @@ async function main() {
         items: [],
         errorMessage: err instanceof Error ? err.message : String(err),
         elapsedMs: Date.now() - startMs,
+        pagesProcessed: 0,
+        stopReason: 'EXCEPTION',
       })
     )
   } finally {
@@ -255,4 +359,8 @@ async function main() {
   }
 }
 
-main()
+const isDirectExecution =
+  Boolean(process.argv[1]) && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+if (isDirectExecution) {
+  main()
+}

@@ -20,18 +20,26 @@ import ingatlanok.portal.sidecar.SidecarResponse;
 
 public class IngatlanComSidecarStrategy implements ExtractionStrategy {
 
+  public static final int DEFAULT_MAX_PAGES = 20;
+
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComSidecarStrategy.class);
   private static final long CACHE_TTL_MS = 180_000L; // 3 minutes TTL to avoid Cloudflare 429 burst limit
   private static final Map<String, CachedResult> RESPONSE_CACHE = new ConcurrentHashMap<>();
 
   private final IngatlanComUrlBuilder urlBuilder;
+  private final int maxPages;
 
   public IngatlanComSidecarStrategy() {
-    this(new IngatlanComUrlBuilder());
+    this(new IngatlanComUrlBuilder(), DEFAULT_MAX_PAGES);
   }
 
   public IngatlanComSidecarStrategy(IngatlanComUrlBuilder urlBuilder) {
+    this(urlBuilder, DEFAULT_MAX_PAGES);
+  }
+
+  public IngatlanComSidecarStrategy(IngatlanComUrlBuilder urlBuilder, int maxPages) {
     this.urlBuilder = urlBuilder != null ? urlBuilder : new IngatlanComUrlBuilder();
+    this.maxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
   }
 
   public static void clearCache() {
@@ -62,19 +70,22 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
       return RawExtractionResult.empty(method(), searchUrl);
     }
 
-    LOGGER.info("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása...");
+    LOGGER.info("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása (maxPages={})...", maxPages);
     try {
       Optional<SidecarResponse> sidecarResp =
-          SidecarCliExecutor.execute("ingatlancom", safeCriteria);
+          SidecarCliExecutor.execute("ingatlancom", safeCriteria, maxPages);
       if (sidecarResp.isPresent()) {
         SidecarResponse resp = sidecarResp.get();
         if (resp.isSuccess()) {
           List<RawPropertyListing> rawListings = mapSidecarItems(resp.getItems(), safeCriteria);
           if (!rawListings.isEmpty()) {
             RESPONSE_CACHE.put(searchUrl, new CachedResult(List.copyOf(rawListings), now));
+            String details = buildPaginationDetails(resp);
             LOGGER.info(
-                "Ingatlan.com: Sidecar sikeresen kinyert {} db hirdetést", rawListings.size());
-            return RawExtractionResult.success(rawListings, method());
+                "Ingatlan.com: Sidecar sikeresen kinyert {} db hirdetést ({})",
+                rawListings.size(),
+                details);
+            return RawExtractionResult.success(rawListings, method(), details);
           }
         } else if (cached != null && !cached.listings().isEmpty()) {
           LOGGER.warn(
@@ -137,6 +148,16 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
       rawListings.add(raw);
     }
     return rawListings;
+  }
+
+  private String buildPaginationDetails(SidecarResponse resp) {
+    int pages = resp.getPagesProcessed() != null && resp.getPagesProcessed() > 0
+        ? resp.getPagesProcessed()
+        : 1;
+    String stopReason = resp.getStopReason() != null && !resp.getStopReason().isBlank()
+        ? resp.getStopReason()
+        : "COMPLETED";
+    return String.format("pages=%d, stopReason=%s", pages, stopReason);
   }
 
   private record CachedResult(List<RawPropertyListing> listings, long timestampMs) {}

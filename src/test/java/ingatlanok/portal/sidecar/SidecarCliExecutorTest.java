@@ -4,11 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import ingatlanok.common.JsonSupport;
 import ingatlanok.model.IngatlanItem;
@@ -56,6 +60,17 @@ class SidecarCliExecutorUnitTest {
     assertTrue(builtArgs.contains("80"));
     assertTrue(builtArgs.contains("--max-area"));
     assertTrue(builtArgs.contains("180"));
+    assertTrue(builtArgs.contains("--max-pages"));
+    assertTrue(builtArgs.contains(String.valueOf(SidecarCliExecutor.DEFAULT_MAX_PAGES)));
+    assertEquals(20, SidecarCliExecutor.DEFAULT_MAX_PAGES);
+    assertEquals(20, IngatlanComSidecarStrategy.DEFAULT_MAX_PAGES);
+    assertTrue(SidecarCliExecutor.calculateTimeoutSeconds(20) >= 60);
+
+    var customPageArgs = SidecarCliExecutor.buildArguments("ingatlancom", criteria, 12);
+    assertTrue(customPageArgs.contains("--max-pages"));
+    assertTrue(customPageArgs.contains("12"));
+    assertTrue(customPageArgs.contains("--timeout-ms"));
+    assertTrue(customPageArgs.contains(String.valueOf(SidecarCliExecutor.calculateSoftTimeoutMs(12))));
 
     Optional<SidecarResponse> res = SidecarCliExecutor.execute("ingatlancom", criteria);
     assertTrue(res.isEmpty());
@@ -83,7 +98,9 @@ class SidecarCliExecutorUnitTest {
                     "imageUrl": "https://ingatlan.com/photo.jpg"
                 }
             ],
-            "errorMessage": null
+            "errorMessage": null,
+            "pagesProcessed": 6,
+            "stopReason": "NO_MORE_PAGES"
         }
         """;
 
@@ -92,6 +109,8 @@ class SidecarCliExecutorUnitTest {
     assertTrue(response.isSuccess());
     assertEquals("ingatlancom", response.getPortalId());
     assertEquals(1, response.getItems().size());
+    assertEquals(6, response.getPagesProcessed());
+    assertEquals("NO_MORE_PAGES", response.getStopReason());
 
     SidecarResponse.SidecarItem item = response.getItems().get(0);
     assertEquals("12345", item.getId());
@@ -145,5 +164,59 @@ class SidecarCliExecutorUnitTest {
     RawExtractionResult result = strategy.extract(criteria);
     assertNotNull(result);
     assertTrue(result.listings().isEmpty());
+  }
+
+  @Test
+  @DisplayName("IngatlanComSidecarStrategy ingests 102 multi-page items and pagination metadata")
+  void testSidecarStrategyMultiPage102Items(@TempDir Path tempDir) throws Exception {
+    IngatlanComSidecarStrategy.clearCache();
+    StringBuilder itemsJson = new StringBuilder();
+    for (int i = 1; i <= 102; i++) {
+      if (i > 1) {
+        itemsJson.append(",");
+      }
+      int id = 3000000 + i;
+      itemsJson.append(
+          String.format(
+              "{\"id\":\"%d\",\"url\":\"https://ingatlan.com/%d\","
+                  + "\"title\":\"Hajduszoboszlo haz %d\",\"priceMillion\":85.0,"
+                  + "\"priceRaw\":\"85 M Ft\",\"areaSquareMeters\":120.0,\"roomCount\":4.0}",
+              id, id, i));
+    }
+
+    Path payloadFile = tempDir.resolve("sidecar-102.json");
+    String payload =
+        String.format(
+            "{\"portalId\":\"ingatlancom\",\"status\":\"SUCCESS\",\"items\":[%s],"
+                + "\"errorMessage\":null,\"elapsedMs\":1200,\"pagesProcessed\":6,"
+                + "\"stopReason\":\"NO_MORE_PAGES\"}",
+            itemsJson);
+    Files.writeString(payloadFile, payload, StandardCharsets.UTF_8);
+
+    boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+    Path scriptFile = tempDir.resolve(isWindows ? "mock-sidecar.cmd" : "mock-sidecar.sh");
+    String scriptContent = isWindows
+        ? "@echo off\r\ntype \"" + payloadFile.toAbsolutePath() + "\"\r\n"
+        : "#!/bin/sh\ncat \"" + payloadFile.toAbsolutePath() + "\"\n";
+    Files.writeString(scriptFile, scriptContent, StandardCharsets.UTF_8);
+    if (!isWindows) {
+      scriptFile.toFile().setExecutable(true);
+    }
+
+    SidecarCliExecutor.setCustomExecutable(scriptFile.toAbsolutePath().toString());
+    IngatlanComSidecarStrategy strategy = new IngatlanComSidecarStrategy();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setPropertyType("haz");
+    criteria.setMinPriceMillion(60);
+    criteria.setMaxPriceMillion(130);
+    criteria.setMinArea(95);
+    criteria.setMaxArea(200);
+
+    RawExtractionResult result = strategy.extract(criteria);
+    assertEquals(102, result.listings().size());
+    assertNotNull(result.technicalDetails());
+    assertTrue(result.technicalDetails().contains("pages=6"));
+    assertTrue(result.technicalDetails().contains("stopReason=NO_MORE_PAGES"));
   }
 }
