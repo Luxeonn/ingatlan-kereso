@@ -5,6 +5,7 @@ import {
   DEFAULT_TIMEOUT_MS,
   buildSearchUrl,
   hasPaginationWithoutNextPage,
+  navigateToPage,
   parseArgs,
   resolveChromiumExecutablePath,
   scrapePages,
@@ -192,4 +193,37 @@ test('scrapePages stops on repeated page content and respects time budget', asyn
   assert.equal(timedOut.status, 'SUCCESS')
   assert.equal(timedOut.items.length, 20)
   assert.equal(timedOut.stopReason, 'TIME_BUDGET_REACHED')
+})
+
+test('navigateToPage skips slow click retries after first click failure and preserves referer', async () => {
+  const gotoCalls = []
+  let clickCalls = 0
+  const failingClickPage = {
+    locator: () => ({
+      first: () => ({
+        count: async () => 1,
+        scrollIntoViewIfNeeded: async () => {},
+        click: async () => {
+          clickCalls += 1
+          throw new Error('blocked by overlay')
+        },
+      }),
+    }),
+    waitForNavigation: async () => new Promise(() => {}),
+    url: () => 'https://ingatlan.com/lista/elado+haz+debrecen',
+    goto: async (url, opts) => {
+      gotoCalls.push({ url, opts })
+      return { status: () => 200 }
+    },
+  }
+
+  const navState = { clickFailed: false }
+  await navigateToPage(failingClickPage, 'https://ingatlan.com/lista/elado+haz+debrecen?page=2', 2, navState)
+  assert.equal(navState.clickFailed, true)
+  assert.equal(clickCalls, 1)
+
+  await navigateToPage(failingClickPage, 'https://ingatlan.com/lista/elado+haz+debrecen?page=3', 3, navState)
+  assert.equal(clickCalls, 1)
+  assert.equal(gotoCalls.length, 2)
+  assert.equal(gotoCalls[1].opts.referer, 'https://ingatlan.com/lista/elado+haz+debrecen')
 })

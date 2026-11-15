@@ -240,21 +240,25 @@ export function resolveChromiumExecutablePath() {
   return systemPaths.find((candidate) => fs.existsSync(candidate))
 }
 
-async function navigateToPage(page, targetUrl, pageNum) {
-  if (pageNum > 1) {
+export async function navigateToPage(page, targetUrl, pageNum, navState = { clickFailed: false }) {
+  if (pageNum > 1 && !navState.clickFailed) {
     const nextLink = page.locator(`a[href*="page=${pageNum}"]`).first()
     if ((await nextLink.count()) > 0) {
       try {
+        await nextLink.scrollIntoViewIfNeeded({ timeout: 1000 })
         const [navResponse] = await Promise.all([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }),
-          nextLink.click({ timeout: 5000 }),
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 12000 }),
+          nextLink.click({ timeout: 1500 }),
         ])
         if (navResponse) {
           return navResponse
         }
       } catch {
-        // Fallback to direct navigation with Referer if click-navigation timed out
+        // Skip slow click retries on remaining pages once click-navigation fails (e.g. consent overlay)
+        navState.clickFailed = true
       }
+    } else {
+      navState.clickFailed = true
     }
   }
   const currentUrl = page.url()
@@ -296,8 +300,9 @@ async function main() {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined })
     })
 
+    const navState = { clickFailed: false }
     const result = await scrapePages(args, async (targetUrl, pageNum) => {
-      const response = await navigateToPage(page, targetUrl, pageNum)
+      const response = await navigateToPage(page, targetUrl, pageNum, navState)
       if (!response || response.status() !== 200) {
         return { status: response ? response.status() : 0, items: [], pageLinks: [] }
       }

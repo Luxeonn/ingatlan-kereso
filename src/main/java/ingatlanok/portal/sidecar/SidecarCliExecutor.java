@@ -21,7 +21,8 @@ public class SidecarCliExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
   private static final int MIN_TIMEOUT_SECONDS = 25;
-  private static final int MAX_TIMEOUT_SECONDS = 150;
+  private static final int MAX_TIMEOUT_SECONDS = 105;
+  private static final int MAX_SOFT_TIMEOUT_MS = 90_000;
   private static final ReentrantLock RUNTIME_DETECT_LOCK = new ReentrantLock();
 
   private static volatile List<String> customExecutables = null;
@@ -55,7 +56,7 @@ public class SidecarCliExecutor {
 
   public static int calculateSoftTimeoutMs(int maxPages) {
     int timeoutSeconds = calculateTimeoutSeconds(maxPages);
-    return Math.max(10_000, (timeoutSeconds - 15) * 1000);
+    return Math.min(MAX_SOFT_TIMEOUT_MS, Math.max(10_000, (timeoutSeconds - 15) * 1000));
   }
 
   public static Optional<SidecarResponse> execute(String portalId, SearchCriteria criteria) {
@@ -77,13 +78,24 @@ public class SidecarCliExecutor {
       return Optional.empty();
     }
 
+    long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
+    return executeCandidates(portalId, candidates, timeoutSeconds, deadlineNanos);
+  }
+
+  private static Optional<SidecarResponse> executeCandidates(
+      String portalId, List<List<String>> candidates, int initialBudgetSeconds, long deadlineNanos) {
     SidecarResponse bestSuccess = null;
     SidecarResponse lastFailure = null;
     for (int idx = 0; idx < candidates.size(); idx++) {
       if (Thread.currentThread().isInterrupted()) {
         break;
       }
-      Optional<SidecarResponse> current = executeCommand(portalId, candidates.get(idx), timeoutSeconds);
+      int remainingSeconds = computeRemainingSeconds(deadlineNanos, idx == 0 ? initialBudgetSeconds : 5);
+      if (idx > 0 && remainingSeconds <= 5) {
+        break;
+      }
+      List<String> candidateCmd = adjustCandidateTimeoutFlag(candidates.get(idx), remainingSeconds);
+      Optional<SidecarResponse> current = executeCommand(portalId, candidateCmd, remainingSeconds);
       if (current.isEmpty()) {
         if (Thread.currentThread().isInterrupted()) {
           break;
@@ -91,20 +103,37 @@ public class SidecarCliExecutor {
         continue;
       }
       SidecarResponse resp = current.get();
-      boolean hasNextCandidate = idx + 1 < candidates.size();
+      boolean hasNext = idx + 1 < candidates.size();
       if (isUsableSuccess(resp)) {
         bestSuccess = pickBetterSuccess(bestSuccess, resp);
         if (!isPartialBotOrRateLimitedStop(resp.getStopReason())) {
           return Optional.of(bestSuccess);
         }
-        logPartialFallback(resp, hasNextCandidate);
+        logPartialFallback(resp, hasNext);
       } else {
         lastFailure = resp;
-        logFailureFallback(resp, hasNextCandidate);
+        logFailureFallback(resp, hasNext);
       }
     }
-
     return Optional.ofNullable(bestSuccess != null ? bestSuccess : lastFailure);
+  }
+
+  private static int computeRemainingSeconds(long deadlineNanos, int minSeconds) {
+    long remainingSec = TimeUnit.NANOSECONDS.toSeconds(deadlineNanos - System.nanoTime());
+    return (int) Math.max(minSeconds, Math.min(MAX_TIMEOUT_SECONDS, remainingSec));
+  }
+
+  private static List<String> adjustCandidateTimeoutFlag(
+      List<String> command, int remainingSeconds) {
+    int softBudgetMs = Math.min(MAX_SOFT_TIMEOUT_MS, Math.max(5_000, (remainingSeconds - 10) * 1000));
+    List<String> adjusted = new ArrayList<>(command);
+    for (int i = 0; i < adjusted.size() - 1; i++) {
+      if ("--timeout-ms".equals(adjusted.get(i))) {
+        adjusted.set(i + 1, String.valueOf(softBudgetMs));
+        break;
+      }
+    }
+    return adjusted;
   }
 
   private static boolean isUsableSuccess(SidecarResponse resp) {
@@ -289,55 +318,28 @@ public class SidecarCliExecutor {
   private static List<List<String>> resolveCommandCandidates(List<String> args) {
     List<String> configured = customExecutables;
     if (configured != null && !configured.isEmpty()) {
-      return buildCustomCandidates(configured, args);
+      return configured.stream()
+          .filter(exe -> exe != null && !exe.isBlank())
+          .map(exe -> buildCmd(exe, null, args))
+          .toList();
     }
 
     List<List<String>> candidates = new ArrayList<>();
-    addNativeExecutableCandidate(candidates, args);
-    addPythonSidecarCandidate(candidates, args);
-    addNodePlaywrightCandidate(candidates, args);
-    return candidates;
-  }
-
-  private static List<List<String>> buildCustomCandidates(
-      List<String> configured, List<String> args) {
-    List<List<String>> candidates = new ArrayList<>();
-    for (String executable : configured) {
-      if (executable != null && !executable.isBlank()) {
-        candidates.add(buildCommandList(executable, args));
-      }
-    }
-    return candidates;
-  }
-
-  private static void addNativeExecutableCandidate(
-      List<List<String>> candidates, List<String> args) {
     File exe = new File("tools/scraper-sidecar.exe");
     if (exe.exists() && exe.canExecute()) {
-      candidates.add(buildCommandList(exe.getAbsolutePath(), args));
+      candidates.add(buildCmd(exe.getAbsolutePath(), null, args));
     }
-  }
-
-  private static void addPythonSidecarCandidate(
-      List<List<String>> candidates, List<String> args) {
     File pyScript = new File("tools/sidecar.py");
-    if (pyScript.exists()) {
-      String pythonCmd = detectPythonCommand();
-      if (pythonCmd != null) {
-        candidates.add(buildScriptCommandList(pythonCmd, pyScript.getAbsolutePath(), args));
-      }
+    String pythonCmd = pyScript.exists() ? detectPythonCommand() : null;
+    if (pythonCmd != null) {
+      candidates.add(buildCmd(pythonCmd, pyScript.getAbsolutePath(), args));
     }
-  }
-
-  private static void addNodePlaywrightCandidate(
-      List<List<String>> candidates, List<String> args) {
     File nodeScript = new File("tools/sidecar-playwright.mjs");
-    if (nodeScript.exists() && hasPlaywrightModule()) {
-      String nodeCmd = detectNodeCommand();
-      if (nodeCmd != null) {
-        candidates.add(buildScriptCommandList(nodeCmd, nodeScript.getAbsolutePath(), args));
-      }
+    String nodeCmd = nodeScript.exists() && hasPlaywrightModule() ? detectNodeCommand() : null;
+    if (nodeCmd != null) {
+      candidates.add(buildCmd(nodeCmd, nodeScript.getAbsolutePath(), args));
     }
+    return candidates;
   }
 
   private static boolean hasPlaywrightModule() {
@@ -355,20 +357,14 @@ public class SidecarCliExecutor {
     return false;
   }
 
-  private static List<String> buildCommandList(String executable, List<String> args) {
-    List<String> cmd = new ArrayList<>();
-    cmd.add(executable);
-    cmd.addAll(args);
-    return cmd;
-  }
-
-  private static List<String> buildScriptCommandList(
-      String runtimeCmd, String scriptPath, List<String> args) {
-    List<String> cmd = new ArrayList<>();
-    cmd.add(runtimeCmd);
-    cmd.add(scriptPath);
-    cmd.addAll(args);
-    return cmd;
+  private static List<String> buildCmd(String cmd, String scriptPath, List<String> args) {
+    List<String> fullCmd = new ArrayList<>();
+    fullCmd.add(cmd);
+    if (scriptPath != null) {
+      fullCmd.add(scriptPath);
+    }
+    fullCmd.addAll(args);
+    return fullCmd;
   }
 
   private static String detectPythonCommand() {

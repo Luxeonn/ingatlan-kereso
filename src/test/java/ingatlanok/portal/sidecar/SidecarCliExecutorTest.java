@@ -67,7 +67,14 @@ class SidecarCliExecutorUnitTest {
     assertTrue(builtArgs.contains(String.valueOf(SidecarCliExecutor.DEFAULT_MAX_PAGES)));
     assertEquals(20, SidecarCliExecutor.DEFAULT_MAX_PAGES);
     assertEquals(20, IngatlanComSidecarStrategy.DEFAULT_MAX_PAGES);
-    assertTrue(SidecarCliExecutor.calculateTimeoutSeconds(20) >= 60);
+    int timeoutSec20 = SidecarCliExecutor.calculateTimeoutSeconds(20);
+    int softTimeoutMs20 = SidecarCliExecutor.calculateSoftTimeoutMs(20);
+    assertTrue(
+        timeoutSec20 >= 60 && timeoutSec20 <= 110,
+        "Sidecar timeout legyen 60..110s között: " + timeoutSec20);
+    assertTrue(
+        softTimeoutMs20 >= 45_000 && softTimeoutMs20 <= 95_000,
+        "Playwright soft timeout <= 95s: " + softTimeoutMs20);
 
     var customPageArgs = SidecarCliExecutor.buildArguments("ingatlancom", criteria, 12);
     assertTrue(customPageArgs.contains("--max-pages"));

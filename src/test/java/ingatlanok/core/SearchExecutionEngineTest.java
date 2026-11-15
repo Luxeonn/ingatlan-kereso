@@ -758,10 +758,12 @@ class SearchExecutionEngineTest {
   }
 
   @Test
-  @DisplayName("ParallelPortalScrapeExecutor alapértelmezetten >= 45 mp időkeretet ad az ingatlancom sidecarnak")
+  @DisplayName("ParallelPortalScrapeExecutor elegendő (>= 120 mp) időkeretet ad az ingatlancom sidecarnak")
   void testParallelPortalScrapeExecutorGrantsSidecarTimeoutBudget() {
     ParallelPortalScrapeExecutor defaultExecutor = new ParallelPortalScrapeExecutor();
-    assertTrue(defaultExecutor.resolveTimeoutSeconds("ingatlancom") >= 45L);
+    assertTrue(
+        defaultExecutor.resolveTimeoutSeconds("ingatlancom") >= 120L,
+        "A többoldalas Playwright sidecar futásidő (~45-90s) miatt >= 120 mp külső limit szükséges");
     assertEquals(15L, defaultExecutor.resolveTimeoutSeconds("dh"));
 
     ParallelPortalScrapeExecutor customExecutor = new ParallelPortalScrapeExecutor(5);

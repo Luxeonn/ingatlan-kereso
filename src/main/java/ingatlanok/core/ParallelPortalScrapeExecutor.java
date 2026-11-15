@@ -20,7 +20,7 @@ public class ParallelPortalScrapeExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(ParallelPortalScrapeExecutor.class);
   private static final long DEFAULT_TIMEOUT_SECONDS = 15;
-  private static final long DEFAULT_SIDECAR_TIMEOUT_SECONDS = 45;
+  private static final long DEFAULT_SIDECAR_TIMEOUT_SECONDS = 120;
 
   private final long timeoutSeconds;
   private final long sidecarTimeoutSeconds;

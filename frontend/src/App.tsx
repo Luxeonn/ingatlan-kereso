@@ -12,6 +12,7 @@ import { DEFAULT_PORTALS, useFilterStore } from './store/useFilterStore'
 import { useUiStore, type ListingSubView } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
+import { extractIngatlanComFetchedPages, findPartialIngatlanComStatus } from './utils/ingatlanComUrl'
 import { cn } from './utils/cn'
 import type { IngatlanItem } from './types/property'
 import type { DashboardResponseDto } from './types/api'
@@ -81,17 +82,6 @@ function checkIsTotalPortalFailure(
   return count > 0 && failureCount === count
 }
 
-function hasPartialIngatlanComStatus(statuses?: PortalStatusDto[] | null): boolean {
-  if (!statuses) return false
-  return statuses.some(
-    (p) =>
-      p.portalId === 'ingatlancom' &&
-      (p.status === 'BOT_PROTECTED' ||
-        p.status === 'FAILED' ||
-        Boolean(p.message?.toLowerCase().includes('részleges'))),
-  )
-}
-
 function isNarrowPortalList(portals?: string[] | null): boolean {
   const count = portals?.length ?? 0
   return count > 0 && count <= 2
@@ -152,10 +142,12 @@ export const App: FC = () => {
     () => extractPortalFailures(data?.portalStatuses),
     [data?.portalStatuses],
   )
-  const hasPartialIngatlanCom = useMemo(
-    () => hasPartialIngatlanComStatus(data?.portalStatuses),
+  const partialIngatlanComStatus = useMemo(
+    () => findPartialIngatlanComStatus(data?.portalStatuses),
     [data?.portalStatuses],
   )
+  const hasPartialIngatlanCom = Boolean(partialIngatlanComStatus)
+  const ingatlanComFetchedPages = extractIngatlanComFetchedPages(partialIngatlanComStatus)
   const isNarrowPortalSelection = isNarrowPortalList(criteria.portals)
   const showPortalBanner = canShowPortalBanner(
     partialPortalFailures.length,
@@ -237,6 +229,7 @@ export const App: FC = () => {
             failures={partialPortalFailures}
             isTotalFailure={isTotalPortalFailure}
             hasIngatlanComPartial={hasPartialIngatlanCom}
+            ingatlanComMessage={partialIngatlanComStatus?.message}
             showEnableAllPortals={isNarrowPortalSelection}
             onOpenDiagnostics={() => setDiagnosticsModalOpen(true)}
             onOpenImportModal={() => setIngatlanComImportModalOpen(true)}
@@ -360,7 +353,7 @@ export const App: FC = () => {
 
       {/* Modals */}
       <DiagnosticsModal portalStatuses={data?.portalStatuses} />
-      <IngatlanComImportModal onImportSuccess={handleSearch} />
+      <IngatlanComImportModal fetchedPages={ingatlanComFetchedPages} onImportSuccess={handleSearch} />
     </div>
   )
 }

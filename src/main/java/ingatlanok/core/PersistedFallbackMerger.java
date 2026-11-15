@@ -62,7 +62,7 @@ final class PersistedFallbackMerger {
     }
 
     PropertyFilterEngine.FilterResult filtered =
-        filterEngine.filterRelevance(fallbackCandidates, cityCriteria, currentCity);
+        filterEngine.filterRelevanceSilently(fallbackCandidates, cityCriteria, currentCity);
     if (!filtered.matchingItems().isEmpty()) {
       targetItems.addAll(filtered.matchingItems());
       LOGGER.info(
