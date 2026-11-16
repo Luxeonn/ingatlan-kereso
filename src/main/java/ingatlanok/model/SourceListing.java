@@ -27,6 +27,7 @@ public class SourceListing implements Serializable {
   private String viewedAt;
   private boolean hidden;
   private String hiddenAt;
+  private boolean manuallySplit;
 
   @Builder
   public SourceListing(

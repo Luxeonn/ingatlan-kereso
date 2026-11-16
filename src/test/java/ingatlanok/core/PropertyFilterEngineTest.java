@@ -393,4 +393,58 @@ class PropertyFilterEngineTest {
     assertEquals(2, result.matchingItems().size());
     assertTrue(result.matchingItems().stream().anyMatch(i -> "http://hidden".equals(i.getUrl()) && i.isHidden()));
   }
+
+  @Test
+  @DisplayName("filterRelevanceSilently változatlanul szűr, log-zaj nélkül DB-fallback esetén")
+  void testFilterRelevanceSilentlyMatchesFilterRelevanceCounts() {
+    PropertyFilterEngine filterEngine = new PropertyFilterEngine();
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCity("Hajdúszoboszló");
+    criteria.setMinPriceMillion(60);
+    criteria.setMaxPriceMillion(130);
+    criteria.setMinArea(95);
+    criteria.setMaxArea(200);
+
+    IngatlanItem valid =
+        new IngatlanItem(
+            "1",
+            "ingatlancom",
+            "https://ingatlan.com/1",
+            "Hajdúszoboszló ház",
+            "85 M Ft",
+            "Hajdúszoboszló",
+            "120 m²",
+            "2026-11-15",
+            false);
+    IngatlanItem outOfPrice =
+        new IngatlanItem(
+            "2",
+            "ingatlancom",
+            "https://ingatlan.com/2",
+            "Hajdúszoboszló drága ház",
+            "144.9 M Ft",
+            "Hajdúszoboszló",
+            "147 m²",
+            "2026-11-15",
+            false);
+    IngatlanItem outOfArea =
+        new IngatlanItem(
+            "3",
+            "ingatlancom",
+            "https://ingatlan.com/3",
+            "Hajdúszoboszló kis ház",
+            "79.8 M Ft",
+            "Hajdúszoboszló",
+            "90 m²",
+            "2026-11-15",
+            false);
+
+    PropertyFilterEngine.FilterResult silent =
+        filterEngine.filterRelevanceSilently(
+            List.of(valid, outOfPrice, outOfArea), criteria, "Hajdúszoboszló");
+    assertEquals(1, silent.matchingItems().size());
+    assertEquals("https://ingatlan.com/1", silent.matchingItems().get(0).getUrl());
+    assertEquals(1, silent.filteredByPriceCount());
+    assertEquals(1, silent.filteredByAreaCount());
+  }
 }

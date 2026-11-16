@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC } from 'react'
+import { useEffect, useMemo, useState, type FC } from 'react'
 import {
   LayoutGrid,
   List,
@@ -6,6 +6,7 @@ import {
   X,
   Trash2,
   ArrowUpDown,
+  GitMerge,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
@@ -16,6 +17,7 @@ import {
   getItemSourceListingsCount,
   getPrimaryPortalKey,
   getTotalSourceListingsCount,
+  hasListingImage,
 } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
@@ -28,6 +30,7 @@ function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
     onlyNewConstruction: 0,
     excludeMultiSource: 0,
     onlyMultiSource: 0,
+    excludeNoImage: 0,
   }
   for (const item of sourceItems) {
     if (isItemBargain(item)) counts.bargain += 1
@@ -37,6 +40,7 @@ function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
     const sourceCount = getItemSourceListingsCount(item)
     if (sourceCount === 1) counts.excludeMultiSource += 1
     if (sourceCount > 1) counts.onlyMultiSource += 1
+    if (hasListingImage(item)) counts.excludeNoImage += 1
   }
   return counts
 }
@@ -49,6 +53,8 @@ interface BulkActionBarProps {
   onMarkAllViewed?: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
+  onMergeSelected?: (urls: string[]) => Promise<boolean | void> | void
+  isMerging?: boolean
   visibleCount?: number
   hiddenCount?: number
 }
@@ -74,9 +80,11 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   totalRawCount,
   onClearHistory,
   isClearingHistory = false,
+  onMergeSelected,
+  isMerging = false,
   hiddenCount = 0,
 }) => {
-  const { viewMode, setViewMode } = useUiStore()
+  const { viewMode, setViewMode, selectedCardUrls, clearCardSelection } = useUiStore()
   const {
     criteria,
     onlyNew,
@@ -91,6 +99,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setExcludeMultiSource,
     onlyMultiSource,
     setOnlyMultiSource,
+    excludeNoImage,
+    setExcludeNoImage,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -102,6 +112,34 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
 
   const totalSourceListingsCount = useMemo(() => getTotalSourceListingsCount(items), [items])
   const sourceItems = rawItems ?? items
+
+  const selectedItems = useMemo(
+    () => items.filter((it) => Boolean(it.url && selectedCardUrls.includes(it.url))),
+    [items, selectedCardUrls],
+  )
+
+  useEffect(() => {
+    if (selectedCardUrls.length === 0) return undefined
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        clearCardSelection()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedCardUrls.length, clearCardSelection])
+
+  const handleMergeClick = () => {
+    if (!onMergeSelected || selectedItems.length < 2 || isMerging) return
+    const allUrls = new Set<string>()
+    for (const item of selectedItems) {
+      if (item.url) allUrls.add(item.url)
+      for (const src of item.sourceListings ?? []) {
+        if (src.url) allUrls.add(src.url)
+      }
+    }
+    void onMergeSelected(Array.from(allUrls))
+  }
 
   const quickFilterCounts = useMemo(
     () => computeQuickFilterCounts(sourceItems),
@@ -125,7 +163,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   return (
     <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
           <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
           {items.length !== totalRawCount && (
             <span className="text-[11px] font-normal text-[var(--text-secondary)]">
@@ -266,6 +304,9 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         onlyMultiSource={onlyMultiSource}
         setOnlyMultiSource={setOnlyMultiSource}
         onlyMultiSourceCount={quickFilterCounts.onlyMultiSource}
+        excludeNoImage={excludeNoImage}
+        setExcludeNoImage={setExcludeNoImage}
+        excludeNoImageCount={quickFilterCounts.excludeNoImage}
         showHidden={showHidden}
         setShowHidden={setShowHidden}
         hiddenCount={hiddenCount}
@@ -277,6 +318,37 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         portalCounts={portalCounts}
         searchedPortals={criteria.portals}
       />
+
+      {selectedItems.length > 0 && (
+        <div
+          data-testid="selection-action-bar"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs"
+        >
+          <div className="flex flex-wrap items-center gap-2 font-semibold text-blue-200">
+            <span data-testid="selection-count-label">{selectedItems.length} kijelölve</span>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              data-testid="merge-selected-button"
+              disabled={selectedItems.length < 2 || isMerging || !onMergeSelected}
+              onClick={handleMergeClick}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1 font-bold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <GitMerge className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Összevonás</span>
+            </button>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              data-testid="clear-selection-button"
+              onClick={clearCardSelection}
+              className="rounded-lg border border-blue-400/30 px-2.5 py-1 font-semibold text-blue-200 transition-colors hover:bg-blue-500/20"
+            >
+              Kijelölés törlése
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

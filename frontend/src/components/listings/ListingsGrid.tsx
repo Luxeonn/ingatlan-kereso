@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FC, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FC, type ReactNode } from 'react'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { Inbox, Search, Star, Archive } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
@@ -23,6 +23,10 @@ interface ListingsGridProps {
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
+  onMergeSelected?: (urls: string[]) => Promise<boolean | void> | void
+  isMerging?: boolean
   initialBatchSize?: number
   batchSize?: number
 }
@@ -101,11 +105,47 @@ function renderEmptyState(props: EmptyStateProps): ReactNode {
   return null
 }
 
-function shouldResetBatchToken(
-  prev: { items: IngatlanItem[]; mode?: string; initialBatchSize: number },
-  current: { items: IngatlanItem[]; mode?: string; initialBatchSize: number }
-): boolean {
-  return prev.items !== current.items || prev.mode !== current.mode || prev.initialBatchSize !== current.initialBatchSize
+function buildItemsSignature(items: IngatlanItem[]): string {
+  return `${items.length}:${items.map((item) => item.url || item.id || '').join('\0')}`
+}
+
+function hasSignificantUrlOverlap(prevUrls: string[], currentUrls: string[]): boolean {
+  if (prevUrls.length === 0 || currentUrls.length === 0) return false
+  const prevSet = new Set(prevUrls)
+  let shared = 0
+  for (const url of currentUrls) {
+    if (prevSet.has(url)) shared += 1
+  }
+  return shared / Math.max(prevUrls.length, currentUrls.length) >= 0.5
+}
+
+interface ResetToken {
+  itemsSignature: string
+  itemUrls: string[]
+  mode?: string
+  initialBatchSize: number
+}
+
+function shouldResetBatchToken(prev: ResetToken, current: ResetToken): 'none' | 'preserve' | 'reset' {
+  if (prev.mode !== current.mode || prev.initialBatchSize !== current.initialBatchSize) {
+    return 'reset'
+  }
+  if (prev.itemsSignature === current.itemsSignature) {
+    return 'none'
+  }
+  return hasSignificantUrlOverlap(prev.itemUrls, current.itemUrls) ? 'preserve' : 'reset'
+}
+
+function resolveNextVisibleLimit(
+  action: 'none' | 'preserve' | 'reset',
+  prevLimit: number,
+  initialLimit: number,
+  totalLength: number,
+): number {
+  if (action === 'reset') {
+    return initialLimit
+  }
+  return Math.min(Math.max(prevLimit, initialLimit), totalLength)
 }
 
 export const ListingsGrid: FC<ListingsGridProps> = ({
@@ -123,22 +163,39 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   onTriggerSearch,
   onClearHistory,
   isClearingHistory = false,
+  onSplitSource,
+  onUndoOverride,
+  onMergeSelected,
+  isMerging = false,
   initialBatchSize = DEFAULT_INITIAL_BATCH_SIZE,
   batchSize = DEFAULT_BATCH_STEP,
 }) => {
   const { viewMode } = useUiStore()
+  const itemsSignature = useMemo(() => buildItemsSignature(items), [items])
+  const itemUrls = useMemo(() => items.map((item) => item.url || item.id || ''), [items])
   const initialLimit = items.length <= initialBatchSize + 3 ? items.length : initialBatchSize
   const [columns, setColumns] = useState(1)
   const [scrollMargin, setScrollMargin] = useState(0)
   const [visibleLimit, setVisibleLimit] = useState(initialLimit)
-  const [prevResetToken, setPrevResetToken] = useState(() => ({ items, mode, initialBatchSize }))
+  const [prevResetToken, setPrevResetToken] = useState<ResetToken>(() => ({
+    itemsSignature,
+    itemUrls,
+    mode,
+    initialBatchSize,
+  }))
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLButtonElement>(null)
 
-  // Reset pagination limit during render when items, mode, or batch size changes (#278)
-  if (shouldResetBatchToken(prevResetToken, { items, mode, initialBatchSize })) {
-    setPrevResetToken({ items, mode, initialBatchSize })
-    setVisibleLimit(items.length <= initialBatchSize + 3 ? items.length : initialBatchSize)
+  // Reset pagination limit only on mode/batch change or genuinely new search (#278, #459, #461)
+  const resetAction = shouldResetBatchToken(prevResetToken, {
+    itemsSignature,
+    itemUrls,
+    mode,
+    initialBatchSize,
+  })
+  if (resetAction !== 'none') {
+    setPrevResetToken({ itemsSignature, itemUrls, mode, initialBatchSize })
+    setVisibleLimit((prev) => resolveNextVisibleLimit(resetAction, prev, initialLimit, items.length))
   }
 
   const handleLoadMore = useCallback(() => {
@@ -197,9 +254,10 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   }, [hasSearched, visibleItems.length, mode])
 
   const rowCount = Math.ceil(visibleItems.length / columns)
+  const estimatedRowHeight = viewMode === 'list' ? 160 : 320
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
-    estimateSize: () => 480,
+    estimateSize: () => estimatedRowHeight,
     overscan: 1,
     scrollMargin,
   })
@@ -238,6 +296,8 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
         }}
         onClearHistory={mode === 'archive' ? onClearHistory : undefined}
         isClearingHistory={isClearingHistory}
+        onMergeSelected={onMergeSelected}
+        isMerging={isMerging}
         visibleCount={visibleItems.length}
         hiddenCount={hiddenCount}
       />
@@ -284,6 +344,8 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
                       onMarkViewed={onMarkViewed}
                       onHide={onHide}
                       onRestore={onRestore}
+                      onSplitSource={onSplitSource}
+                      onUndoOverride={onUndoOverride}
                       viewMode={viewMode}
                     />
                   ))}

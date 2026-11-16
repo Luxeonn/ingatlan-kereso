@@ -13,6 +13,7 @@ import java.util.Set;
 import ingatlanok.common.CityUtils;
 import ingatlanok.core.dedup.ClusterConsolidationHelper;
 import ingatlanok.core.dedup.ClusterMatchScorer;
+import ingatlanok.core.dedup.DedupOverrides;
 import ingatlanok.core.dedup.LocationConflictDetector;
 import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
 import ingatlanok.core.dedup.SemanticConflictDetector;
@@ -21,22 +22,32 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
+import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 
 public class DeduplicationEngine {
 
   private static final double MAX_AREA_TOLERANCE_RATIO = 0.05; // ±5%
+  private static final double HOUSE_MAX_AREA_TOLERANCE_RATIO = 0.06; // ±6% for HAZ net/gross
   private static final double MAX_ROOM_DIFFERENCE = 0.5; // within ±0.5 rooms
   private static final double MAX_PRICE_BAND_RATIO = 0.20; // within ±20%
   private static final double MISSING_AREA_MAX_PRICE_DIFF_RATIO = 0.01; // ±1%
   private static final double UNLOCATED_MAX_AREA_DIFF_RATIO = 0.02; // ±2% without location/image
   private static final double UNLOCATED_MAX_PRICE_DIFF_RATIO = 0.01; // ±1% without location/image
   private static final double INTRA_PORTAL_SPAM_MAX_AREA_DIFF_RATIO = 0.01; // ±1%
+  private static final double HOUSE_VARIANT_MAX_PRICE_DIFF_RATIO = 0.005; // ±0.5%
 
   private final ListingStorage listingStorage;
+  private final DedupOverrideStorage dedupOverrideStorage;
 
   public DeduplicationEngine(ListingStorage listingStorage) {
+    this(listingStorage, null);
+  }
+
+  public DeduplicationEngine(
+      ListingStorage listingStorage, DedupOverrideStorage dedupOverrideStorage) {
     this.listingStorage = listingStorage;
+    this.dedupOverrideStorage = dedupOverrideStorage;
   }
 
   /**
@@ -69,17 +80,27 @@ public class DeduplicationEngine {
       return Collections.emptyList();
     }
 
+    DedupOverrides overrides = loadOverrides();
+
     // Stage 2: Score-ordered cross-portal multi-signal clustering (order-independent best match)
     List<List<IngatlanItem>> clusters =
-        ClusterMatchScorer.buildBestMatchClusters(stage1Items, this::isMatch);
+        ClusterMatchScorer.buildBestMatchClusters(
+            stage1Items, (a, b) -> isMatch(a, b, overrides), overrides);
 
     // Stage 3: Consolidation into grouped IngatlanItem
     List<IngatlanItem> consolidatedItems = new ArrayList<>(clusters.size());
     for (List<IngatlanItem> cluster : clusters) {
-      consolidatedItems.add(consolidateCluster(cluster));
+      consolidatedItems.add(consolidateCluster(cluster, overrides));
     }
 
     return consolidatedItems;
+  }
+
+  private DedupOverrides loadOverrides() {
+    if (dedupOverrideStorage == null) {
+      return DedupOverrides.EMPTY;
+    }
+    return DedupOverrides.of(dedupOverrideStorage.getAllOverrides());
   }
 
   public List<IngatlanItem> deduplicate(Collection<IngatlanItem> items) {
@@ -87,33 +108,47 @@ public class DeduplicationEngine {
   }
 
   public boolean isMatch(IngatlanItem a, IngatlanItem b) {
+    return isMatch(a, b, DedupOverrides.EMPTY);
+  }
+
+  public boolean isMatch(IngatlanItem a, IngatlanItem b, DedupOverrides overrides) {
+    if (a == null || b == null) {
+      return false;
+    }
+    DedupOverrides effectiveOverrides = overrides != null ? overrides : DedupOverrides.EMPTY;
+    if (effectiveOverrides.isForceSplit(a.getUrl(), b.getUrl())) {
+      return false;
+    }
+    if (effectiveOverrides.isForceMerge(a.getUrl(), b.getUrl())) {
+      return isMatchingCity(a, b);
+    }
+    return isHeuristicMatch(a, b);
+  }
+
+  private boolean isHeuristicMatch(IngatlanItem a, IngatlanItem b) {
     if (!isBaseCompatible(a, b)) {
       return false;
     }
 
-    boolean bothAreasKnown =
-        ClusterConsolidationHelper.hasPositiveArea(a) && ClusterConsolidationHelper.hasPositiveArea(b);
-    if (!isAreaAndPriceCompatible(a, b, bothAreasKnown) || hasIntraPortalConflict(a, b)) {
+    boolean bothAreasKnown = ClusterConsolidationHelper.hasPositiveArea(a)
+        && ClusterConsolidationHelper.hasPositiveArea(b);
+    if (!isAreaAndPriceCompatible(a, b, bothAreasKnown)) {
       return false;
     }
 
     String normCity = CityUtils.normalizeCityKey(a.getCity());
     ExtractedLocation locA = LocationConflictDetector.extractLocation(a, normCity);
     ExtractedLocation locB = LocationConflictDetector.extractLocation(b, normCity);
-    if (hasStructuralConflict(a, b, normCity, locA, locB)) {
+    if (hasStructuralConflict(a, b, normCity, locA, locB)
+        || hasIntraPortalConflict(a, b, locA, locB, bothAreasKnown)) {
       return false;
     }
     boolean hasAffirmativeLocation = LocationConflictDetector.hasAffirmativeMatch(locA, locB);
 
     Set<String> tokensA = TextualSimilarityMatcher.extractDistinctiveTokens(a);
     Set<String> tokensB = TextualSimilarityMatcher.extractDistinctiveTokens(b);
-    if (TextualSimilarityMatcher.hasDirectTitleConflict(
-        a, b, tokensA, tokensB, hasAffirmativeLocation)) {
-      return false;
-    }
-
-    if (!isRoomCountCompatible(
-        a, b, a.getPropertyType(), tokensA, tokensB, hasAffirmativeLocation)) {
+    if (TextualSimilarityMatcher.hasDirectTitleConflict(a, b, tokensA, tokensB, hasAffirmativeLocation)
+        || !isRoomCountCompatible(a, b, a.getPropertyType(), tokensA, tokensB, hasAffirmativeLocation)) {
       return false;
     }
 
@@ -130,29 +165,45 @@ public class DeduplicationEngine {
     return a != null && b != null && isMatchingCity(a, b) && isSupportedPropertyType(a, b);
   }
 
-  private boolean hasIntraPortalConflict(IngatlanItem a, IngatlanItem b) {
+  private boolean hasIntraPortalConflict(
+      IngatlanItem a, IngatlanItem b, ExtractedLocation locA, ExtractedLocation locB, boolean bothAreasKnown) {
     return ClusterConsolidationHelper.isSamePortalDifferentUrl(a, b)
-        && !isIntraPortalDuplicateSpam(a, b);
+        && !isIntraPortalDuplicate(a, b, locA, locB, bothAreasKnown);
   }
 
-  private boolean isIntraPortalDuplicateSpam(IngatlanItem a, IngatlanItem b) {
-    if (a.isNewConstruction() != b.isNewConstruction()
-        || !isWithinMissingAreaPriceBand(a, b)
-        || hasIntraPortalAreaConflict(a, b)) {
+  private boolean isIntraPortalDuplicate(
+      IngatlanItem a, IngatlanItem b, ExtractedLocation locA, ExtractedLocation locB, boolean bothAreasKnown) {
+    if (a.isNewConstruction() != b.isNewConstruction() || !isWithinMissingAreaPriceBand(a, b)) {
       return false;
     }
-    return ClusterConsolidationHelper.hasMatchingImage(a, b)
-        || TextualSimilarityMatcher.hasIdenticalTitleSlug(a, b);
+    if (!hasIntraPortalAreaConflict(a, b)
+        && (ClusterConsolidationHelper.hasMatchingImage(a, b)
+            || TextualSimilarityMatcher.hasIdenticalTitleSlug(a, b))) {
+      return true;
+    }
+    return isIntraPortalHouseVariant(a, b, locA, locB, bothAreasKnown);
+  }
+
+  private boolean isIntraPortalHouseVariant(
+      IngatlanItem a, IngatlanItem b, ExtractedLocation locA, ExtractedLocation locB, boolean bothAreasKnown) {
+    if (a.getPropertyType() != PropertyType.HAZ || !bothAreasKnown) {
+      return false;
+    }
+    boolean withinNumericTolerance =
+        ClusterConsolidationHelper.isWithinPriceRatio(a, b, HOUSE_VARIANT_MAX_PRICE_DIFF_RATIO)
+            && ClusterConsolidationHelper.isWithinAreaRatio(a, b, HOUSE_MAX_AREA_TOLERANCE_RATIO)
+            && ClusterConsolidationHelper.hasCompatibleRoomCount(a, b, MAX_ROOM_DIFFERENCE);
+    return withinNumericTolerance
+        && (ClusterConsolidationHelper.hasMatchingImage(a, b)
+            || LocationConflictDetector.hasSameStreet(locA, locB)
+            || TextualSimilarityMatcher.areBothGenericTemplateTitles(a, b));
   }
 
   private boolean hasIntraPortalAreaConflict(IngatlanItem a, IngatlanItem b) {
-    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
-    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
-    if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
-      return false;
-    }
-    double maxArea = Math.max(areaA, areaB);
-    return (Math.abs(areaA - areaB) / maxArea) > INTRA_PORTAL_SPAM_MAX_AREA_DIFF_RATIO;
+    return ClusterConsolidationHelper.hasPositiveArea(a)
+        && ClusterConsolidationHelper.hasPositiveArea(b)
+        && !ClusterConsolidationHelper.isWithinAreaRatio(
+            a, b, INTRA_PORTAL_SPAM_MAX_AREA_DIFF_RATIO);
   }
 
   private boolean isAreaAndPriceCompatible(IngatlanItem a, IngatlanItem b, boolean bothAreasKnown) {
@@ -163,21 +214,13 @@ public class DeduplicationEngine {
   }
 
   private boolean hasStructuralConflict(
-      IngatlanItem a,
-      IngatlanItem b,
-      String normCity,
-      ExtractedLocation locA,
-      ExtractedLocation locB) {
+      IngatlanItem a, IngatlanItem b, String normCity, ExtractedLocation locA, ExtractedLocation locB) {
     return LocationConflictDetector.hasConflict(locA, locB, normCity)
         || SemanticConflictDetector.hasConflict(a, b);
   }
 
   private boolean hasCorroboratingMissingAreaEvidence(
-      IngatlanItem a,
-      IngatlanItem b,
-      Set<String> tokensA,
-      Set<String> tokensB,
-      boolean hasAffirmativeLocation) {
+      IngatlanItem a, IngatlanItem b, Set<String> tokensA, Set<String> tokensB, boolean hasAffirmativeLocation) {
     return ClusterConsolidationHelper.hasMatchingImage(a, b)
         || TextualSimilarityMatcher.hasStrongTitleSimilarity(
             a, b, tokensA, tokensB, hasAffirmativeLocation);
@@ -202,57 +245,34 @@ public class DeduplicationEngine {
   }
 
   private boolean isWithinAreaTolerance(IngatlanItem a, IngatlanItem b) {
-    return isWithinAreaRatio(a, b, MAX_AREA_TOLERANCE_RATIO);
-  }
-
-  private boolean isWithinAreaRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
-    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
-    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
-    if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
-      return false;
-    }
-    double maxArea = Math.max(areaA, areaB);
-    return (Math.abs(areaA - areaB) / maxArea) <= maxRatio;
+    double tolerance = a.getPropertyType() == PropertyType.HAZ
+        ? HOUSE_MAX_AREA_TOLERANCE_RATIO : MAX_AREA_TOLERANCE_RATIO;
+    return ClusterConsolidationHelper.isWithinAreaRatio(a, b, tolerance);
   }
 
   private boolean isWithinPriceBand(IngatlanItem a, IngatlanItem b) {
-    return isWithinPriceRatio(a, b, MAX_PRICE_BAND_RATIO);
+    return ClusterConsolidationHelper.isWithinPriceRatio(a, b, MAX_PRICE_BAND_RATIO);
   }
 
   private boolean isWithinMissingAreaPriceBand(IngatlanItem a, IngatlanItem b) {
-    return isWithinPriceRatio(a, b, MISSING_AREA_MAX_PRICE_DIFF_RATIO);
-  }
-
-  private boolean isWithinPriceRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
-    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
-    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
-    if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
-      return false;
-    }
-    long maxPrice = Math.max(priceA, priceB);
-    return ((double) Math.abs(priceA - priceB) / (double) maxPrice) <= maxRatio;
+    return ClusterConsolidationHelper.isWithinPriceRatio(a, b, MISSING_AREA_MAX_PRICE_DIFF_RATIO);
   }
 
   private boolean hasUnlocatedMatchEvidence(
-      IngatlanItem a,
-      IngatlanItem b,
-      Set<String> tokensA,
-      Set<String> tokensB) {
+      IngatlanItem a, IngatlanItem b, Set<String> tokensA, Set<String> tokensB) {
     if (TextualSimilarityMatcher.hasStrongTitleSimilarity(a, b, tokensA, tokensB, false)) {
       return true;
     }
-    return isWithinPriceRatio(a, b, UNLOCATED_MAX_PRICE_DIFF_RATIO)
-        && isWithinAreaRatio(a, b, UNLOCATED_MAX_AREA_DIFF_RATIO)
-        && hasExactOrMissingRoomCount(a, b);
-  }
-
-  private boolean hasExactOrMissingRoomCount(IngatlanItem a, IngatlanItem b) {
-    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
-    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
-    if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
-      return true;
+    if (!ClusterConsolidationHelper.hasCompatibleRoomCount(a, b, MAX_ROOM_DIFFERENCE)) {
+      return false;
     }
-    return Math.abs(roomsA - roomsB) < 0.01;
+    boolean strictMatch =
+        ClusterConsolidationHelper.isWithinPriceRatio(a, b, UNLOCATED_MAX_PRICE_DIFF_RATIO)
+            && ClusterConsolidationHelper.isWithinAreaRatio(a, b, UNLOCATED_MAX_AREA_DIFF_RATIO);
+    boolean houseVariantMatch = a.getPropertyType() == PropertyType.HAZ
+        && ClusterConsolidationHelper.isWithinPriceRatio(a, b, HOUSE_VARIANT_MAX_PRICE_DIFF_RATIO)
+        && ClusterConsolidationHelper.isWithinAreaRatio(a, b, HOUSE_MAX_AREA_TOLERANCE_RATIO);
+    return strictMatch || houseVariantMatch;
   }
 
   private boolean isRoomCountCompatible(
@@ -308,8 +328,8 @@ public class DeduplicationEngine {
     return largeOrHouse && roomDiff <= maxAllowedDiff && areaDiffRatio <= 0.035;
   }
 
-  private IngatlanItem consolidateCluster(List<IngatlanItem> cluster) {
-    IngatlanItem primary = findLowestActivePriceSource(cluster);
+  private IngatlanItem consolidateCluster(List<IngatlanItem> cluster, DedupOverrides overrides) {
+    IngatlanItem primary = ClusterConsolidationHelper.findLowestActivePriceSource(cluster);
 
     ClusterConsolidationHelper.adoptMissingDetailsFromCluster(primary, cluster);
 
@@ -319,7 +339,13 @@ public class DeduplicationEngine {
 
     List<SourceListing> sourceListings = cluster.stream()
         .filter(Objects::nonNull)
-        .map(item -> toSourceListing(item, clusterArea))
+        .map(item -> {
+          SourceListing sl = toSourceListing(item, clusterArea);
+          if (sl != null && overrides.hasAnySplit(item.getUrl())) {
+            sl.setManuallySplit(true);
+          }
+          return sl;
+        })
         .sorted(Comparator.comparing(
             SourceListing::getPriceHuf,
             Comparator.nullsLast(Long::compareTo)))
@@ -327,6 +353,8 @@ public class DeduplicationEngine {
 
     primary.setSourcesCount(cluster.size());
     primary.setSourceListings(sourceListings);
+    primary.setManuallyMerged(overrides.hasAnyForceMergePair(cluster));
+    primary.setManuallySplit(overrides.hasAnySplitMember(cluster));
 
     // If primary has no image, adopt image from any cluster member that has one
     if (primary.getImageUrl() == null || primary.getImageUrl().isBlank()) {
@@ -350,40 +378,6 @@ public class DeduplicationEngine {
     primary.setHidden(anyHidden);
 
     return primary;
-  }
-
-  private IngatlanItem findLowestActivePriceSource(List<IngatlanItem> cluster) {
-    if (cluster == null || cluster.isEmpty()) {
-      return null;
-    }
-    // 1. Minimum active source price
-    List<IngatlanItem> activeWithPrice = cluster.stream()
-        .filter(Objects::nonNull)
-        .filter(i -> i.getStatus() == null || i.getStatus() == ListingStatus.ACTIVE)
-        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
-            && i.getPriceInfo().getAmountHuf() > 0)
-        .toList();
-
-    if (!activeWithPrice.isEmpty()) {
-      return activeWithPrice.stream()
-          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
-          .orElse(cluster.get(0));
-    }
-
-    // 2. Minimum price among all items
-    List<IngatlanItem> anyWithPrice = cluster.stream()
-        .filter(Objects::nonNull)
-        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
-            && i.getPriceInfo().getAmountHuf() > 0)
-        .toList();
-
-    if (!anyWithPrice.isEmpty()) {
-      return anyWithPrice.stream()
-          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
-          .orElse(cluster.get(0));
-    }
-
-    return cluster.get(0);
   }
 
   public SourceListing toSourceListing(IngatlanItem item) {

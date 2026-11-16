@@ -23,7 +23,7 @@ interface DiagnosticsModalProps {
 }
 
 export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [] }) => {
-  const { isDiagnosticsModalOpen, setDiagnosticsModalOpen } = useUiStore()
+  const { isDiagnosticsModalOpen, setDiagnosticsModalOpen, setIngatlanComImportModalOpen } = useUiStore()
   const { data: portals } = usePortals()
   const [copied, setCopied] = useState(false)
 
@@ -185,6 +185,21 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
                       >
                         <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
                         <span>Keresés megnyitása itt: {p.portalName}</span>
+                      </button>
+                    </div>
+                  )}
+                  {p.portalId === 'ingatlancom' && (
+                    <div className="mt-2.5 flex justify-end">
+                      <button
+                        type="button"
+                        data-testid="diagnostics-import-ingatlancom-btn"
+                        onClick={() => {
+                          setDiagnosticsModalOpen(false)
+                          setIngatlanComImportModalOpen(true)
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/35 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-300 hover:bg-sky-500/25 transition-colors cursor-pointer"
+                      >
+                        <span>2., 3., ... oldal importálása böngészőből</span>
                       </button>
                     </div>
                   )}

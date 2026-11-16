@@ -1,8 +1,9 @@
-import { useState, type FC } from 'react'
+import { useState, type FC, type MouseEvent } from 'react'
 import {
   MapPin,
   Ruler,
   BedDouble,
+  Check,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import {
@@ -13,10 +14,12 @@ import {
   getPortalStyle,
   getEffectivePrice,
   getEffectiveSqmPrice,
+  getEffectiveImageUrl,
   openExternalUrl,
 } from '../../utils/formatters'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
-import { PropertyCardBadges, PropertyDetailsModal, PropertyThumbnail } from './PropertyCardParts'
+import { PropertyCardBadges, PropertyThumbnail } from './PropertyCardParts'
+import { PropertyDetailsModal } from './PropertyDetailsModal'
 import { isListingNew } from '../../utils/listingFilters'
 import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
@@ -26,10 +29,20 @@ interface PropertyCardProps {
   onMarkViewed: (url: string) => void
   onHide?: (item: IngatlanItem) => void
   onRestore?: (item: IngatlanItem) => void
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
   viewMode?: 'grid' | 'list'
 }
 
-function getCardBorderClass(isStarred: boolean, isViewed?: boolean, isMultiSource?: boolean): string {
+function getCardBorderClass(
+  isSelected: boolean,
+  isStarred: boolean,
+  isViewed?: boolean,
+  isMultiSource?: boolean,
+): string {
+  if (isSelected) {
+    return 'border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/40 shadow-lg'
+  }
   if (isStarred) {
     return 'border-amber-500/50 bg-[var(--bg-card)] ring-1 ring-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] hover:border-amber-500/70 hover:ring-amber-500/50'
   }
@@ -52,10 +65,6 @@ function getPortalIdentifier(item: IngatlanItem): string {
 
 function getSourcesCount(item: IngatlanItem): number {
   return item.sourcesCount ?? (item.sourceListings?.length || 1)
-}
-
-function hasValidImageUrl(imageUrl: string | undefined, imageError: boolean): boolean {
-  return Boolean(imageUrl && imageUrl.trim().length > 0 && !imageError)
 }
 
 interface PropertyParametersChipsProps {
@@ -98,7 +107,7 @@ interface PropertyTitleAndLocationProps {
   location?: string
   isNew?: boolean
   viewed?: boolean
-  onOpen: () => void
+  onOpen: (e: MouseEvent<HTMLElement>) => void
 }
 
 const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
@@ -164,11 +173,12 @@ interface PropertyCardContentProps {
   sqmPrice?: number
   floorArea?: number
   rooms?: number
+  imageUrl?: string
   hasValidImage: boolean
   isDrawerOpen: boolean
   isStarred: boolean
   viewMode: 'grid' | 'list'
-  onOpen: () => void
+  onOpen: (e: MouseEvent<HTMLElement>) => void
   onImageError: () => void
   onToggleDrawer: () => void
   onToggleStarred: () => void
@@ -184,6 +194,7 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
   sqmPrice,
   floorArea,
   rooms,
+  imageUrl,
   hasValidImage,
   isDrawerOpen,
   isStarred,
@@ -203,6 +214,7 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
   >
     <PropertyThumbnail
       item={item}
+      imageUrl={imageUrl}
       hasValidImage={hasValidImage}
       portalStyle={portalStyle}
       viewMode={viewMode}
@@ -246,28 +258,59 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
   </div>
 )
 
-export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide, onRestore, viewMode = 'grid' }) => {
+function isSelectionModifier(e?: MouseEvent<HTMLElement>): boolean {
+  return Boolean(e && (e.ctrlKey || e.metaKey))
+}
+
+function useCardSelection(url: string | undefined) {
+  const { selectedCardUrls, toggleCardSelection } = useUiStore()
+  const isSelected = Boolean(url && selectedCardUrls.includes(url))
+
+  const toggleFromEvent = (e: MouseEvent<HTMLElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (url) toggleCardSelection(url)
+  }
+
+  return { isSelected, toggleFromEvent }
+}
+
+export const PropertyCard: FC<PropertyCardProps> = ({
+  item,
+  onMarkViewed,
+  onHide,
+  onRestore,
+  onSplitSource,
+  onUndoOverride,
+  viewMode = 'grid',
+}) => {
   const [imageError, setImageError] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const { starredUrls, toggleStarred } = useUiStore()
   const isStarred = starredUrls.includes(item.url)
+  const { isSelected, toggleFromEvent } = useCardSelection(item.url)
   const [isHiding, setIsHiding] = useState(false)
 
   const sourcesCount = getSourcesCount(item)
   const portalStyle = getPortalStyle(getPortalIdentifier(item))
   const { priceMillion } = getEffectivePrice(item)
-
   const sqmPrice = getEffectiveSqmPrice(item) ?? undefined
   const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
+  const effectiveImageUrl = getEffectiveImageUrl(item)
+  const hasValidImage = Boolean(effectiveImageUrl) && !imageError
 
-  const hasValidImage = hasValidImageUrl(item.imageUrl, imageError)
-
-  const handleOpen = () => {
-    openExternalUrl(item.url)
-    if (!item.viewed) {
-      onMarkViewed(item.url)
+  const handleOpen = (e?: MouseEvent<HTMLElement>) => {
+    if (isSelectionModifier(e)) {
+      if (e) toggleFromEvent(e)
+      return
     }
+    openExternalUrl(item.url)
+    if (!item.viewed) onMarkViewed(item.url)
+  }
+
+  const handleCardClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (isSelectionModifier(e)) toggleFromEvent(e)
   }
 
   const handleHide = onHide
@@ -284,12 +327,24 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
       data-testid="property-card"
       data-starred={isStarred ? 'true' : undefined}
       data-multisource={sourcesCount > 1 ? 'true' : undefined}
+      data-selected={isSelected ? 'true' : undefined}
+      aria-pressed={isSelected}
+      onClick={handleCardClick}
       className={cn(
         'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
-        getCardBorderClass(isStarred, item.viewed, sourcesCount > 1),
+        getCardBorderClass(isSelected, isStarred, item.viewed, sourcesCount > 1),
         isHiding ? 'opacity-0 scale-95 transition-all duration-150 pointer-events-none' : '',
       )}
     >
+      {isSelected && (
+        <span
+          data-testid="card-selected-badge"
+          aria-hidden="true"
+          className="absolute top-2.5 right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white shadow-md"
+        >
+          <Check className="h-3.5 w-3.5 stroke-[3]" />
+        </span>
+      )}
       <PropertyCardContent
         item={item}
         sourcesCount={sourcesCount}
@@ -298,6 +353,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
         sqmPrice={sqmPrice}
         floorArea={floorArea}
         rooms={rooms}
+        imageUrl={effectiveImageUrl}
         hasValidImage={hasValidImage}
         isDrawerOpen={isDrawerOpen}
         isStarred={isStarred}
@@ -312,13 +368,9 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
 
       {isDrawerOpen &&
         (viewMode === 'list' ? (
-          <PropertyDetailsDrawer item={item} onMarkViewed={onMarkViewed} />
+          <PropertyDetailsDrawer item={item} onMarkViewed={onMarkViewed} onSplitSource={onSplitSource} onUndoOverride={onUndoOverride} />
         ) : (
-          <PropertyDetailsModal
-            item={item}
-            onClose={() => setIsDrawerOpen(false)}
-            onMarkViewed={onMarkViewed}
-          />
+          <PropertyDetailsModal item={item} onClose={() => setIsDrawerOpen(false)} onMarkViewed={onMarkViewed} onSplitSource={onSplitSource} onUndoOverride={onUndoOverride} />
         ))}
     </div>
   )

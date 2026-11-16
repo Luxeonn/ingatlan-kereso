@@ -138,8 +138,6 @@ public final class SemanticConflictDetector {
   }
 
   private static boolean hasHouseSubtypeConflict(String slugA, String slugB) {
-    boolean tanyaA = isTanya(slugA);
-    boolean tanyaB = isTanya(slugB);
     boolean rowA = isRowHouse(slugA);
     boolean rowB = isRowHouse(slugB);
     boolean twinA = isTwinHouse(slugA);
@@ -149,7 +147,7 @@ public final class SemanticConflictDetector {
     boolean attachedA = rowA || twinA;
     boolean attachedB = rowB || twinB;
 
-    return hasTanyaMismatch(tanyaA, tanyaB, attachedA, attachedB, detachedA, detachedB)
+    return hasTanyaMismatch(slugA, slugB, attachedA, attachedB, detachedA, detachedB)
         || hasAttachedMismatch(rowA, rowB, twinA, twinB)
         || hasDetachedMismatch(attachedA, attachedB, detachedA, detachedB);
   }
@@ -165,14 +163,16 @@ public final class SemanticConflictDetector {
   }
 
   private static boolean hasTanyaMismatch(
-      boolean tanyaA,
-      boolean tanyaB,
+      String slugA,
+      String slugB,
       boolean attachedA,
       boolean attachedB,
       boolean detachedA,
       boolean detachedB) {
-    boolean nonTanyaA = attachedA || detachedA;
-    boolean nonTanyaB = attachedB || detachedB;
+    boolean tanyaA = isTanya(slugA);
+    boolean tanyaB = isTanya(slugB);
+    boolean nonTanyaA = attachedA || detachedA || isGenericFamilyHouse(slugA);
+    boolean nonTanyaB = attachedB || detachedB || isGenericFamilyHouse(slugB);
     return (tanyaA && nonTanyaB) || (tanyaB && nonTanyaA);
   }
 
@@ -255,14 +255,18 @@ public final class SemanticConflictDetector {
     return slug.contains("sorhaz") || slug.contains("sor-haz");
   }
 
+  private static boolean isGenericFamilyHouse(String slug) {
+    return slug.contains("csaladi-haz") || slug.contains("csaladihaz");
+  }
+
   private static boolean isDetachedHouse(String slug) {
     if (isTwinOrRowHouse(slug)) {
       return false;
     }
     return slug.contains("onallo-haz")
         || slug.contains("onallo-csaladi")
-        || slug.contains("csaladi-haz")
-        || slug.contains("csaladihaz");
+        || slug.contains("kulonallo-haz")
+        || slug.contains("kulonallo-csaladi");
   }
 
   private static Double extractLotSize(String text) {

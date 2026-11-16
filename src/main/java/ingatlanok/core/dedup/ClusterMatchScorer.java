@@ -2,6 +2,7 @@ package ingatlanok.core.dedup;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.function.BiPredicate;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
+import ingatlanok.model.DedupOverride.UrlPair;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PropertyType;
@@ -23,6 +25,7 @@ public final class ClusterMatchScorer {
 
   private static final double MAX_PRICE_BAND_RATIO = 0.20;
   private static final double MAX_AREA_TOLERANCE_RATIO = 0.05;
+  private static final double HOUSE_MAX_AREA_TOLERANCE_RATIO = 0.06;
 
   private static final double WEIGHT_PRICE = 40.0;
   private static final double WEIGHT_STREET = 30.0;
@@ -32,6 +35,8 @@ public final class ClusterMatchScorer {
   private static final double WEIGHT_ROOMS = 10.0;
   private static final double WEIGHT_TITLE = 10.0;
   private static final double WEIGHT_BOTH_ACTIVE = 5.0;
+  private static final double WEIGHT_INTRA_PORTAL_PRIORITY = 15.0;
+  private static final double FORCE_MERGE_SCORE = 1_000_000.0;
 
   private ClusterMatchScorer() {}
 
@@ -45,9 +50,17 @@ public final class ClusterMatchScorer {
    */
   public static List<List<IngatlanItem>> buildBestMatchClusters(
       List<IngatlanItem> items, BiPredicate<IngatlanItem, IngatlanItem> matcher) {
+    return buildBestMatchClusters(items, matcher, DedupOverrides.EMPTY);
+  }
+
+  public static List<List<IngatlanItem>> buildBestMatchClusters(
+      List<IngatlanItem> items,
+      BiPredicate<IngatlanItem, IngatlanItem> matcher,
+      DedupOverrides overrides) {
     if (items == null || items.isEmpty()) {
       return List.of();
     }
+    DedupOverrides effectiveOverrides = overrides != null ? overrides : DedupOverrides.EMPTY;
     int count = items.size();
     List<List<Integer>> clusterIndices = new ArrayList<>(count);
     int[] clusterOf = new int[count];
@@ -58,7 +71,7 @@ public final class ClusterMatchScorer {
       clusterOf[i] = i;
     }
 
-    List<MatchEdge> edges = collectScoredMatchEdges(items, matcher);
+    List<MatchEdge> edges = collectScoredMatchEdges(items, matcher, effectiveOverrides);
     for (MatchEdge edge : edges) {
       int cA = clusterOf[edge.indexA()];
       int cB = clusterOf[edge.indexB()];
@@ -101,16 +114,48 @@ public final class ClusterMatchScorer {
   }
 
   private static List<MatchEdge> collectScoredMatchEdges(
-      List<IngatlanItem> items, BiPredicate<IngatlanItem, IngatlanItem> matcher) {
+      List<IngatlanItem> items,
+      BiPredicate<IngatlanItem, IngatlanItem> matcher,
+      DedupOverrides overrides) {
     Map<BucketKey, List<Integer>> buckets = groupByCityAndType(items);
     List<MatchEdge> edges = new ArrayList<>();
+    collectForceMergeEdges(items, matcher, overrides, edges);
     for (List<Integer> bucket : buckets.values()) {
-      collectBucketEdges(items, bucket, matcher, edges);
+      collectBucketEdges(items, bucket, matcher, overrides, edges);
     }
     edges.sort(Comparator.comparingDouble(MatchEdge::score).reversed()
         .thenComparingInt(MatchEdge::indexA)
         .thenComparingInt(MatchEdge::indexB));
     return edges;
+  }
+
+  private static void collectForceMergeEdges(
+      List<IngatlanItem> items,
+      BiPredicate<IngatlanItem, IngatlanItem> matcher,
+      DedupOverrides overrides,
+      List<MatchEdge> edges) {
+    if (overrides.isEmpty()) {
+      return;
+    }
+    Map<String, Integer> urlToIndex = new HashMap<>(items.size());
+    for (int i = 0; i < items.size(); i++) {
+      IngatlanItem item = items.get(i);
+      if (item != null && item.getUrl() != null && !item.getUrl().isBlank()) {
+        urlToIndex.putIfAbsent(item.getUrl().trim(), i);
+      }
+    }
+    for (UrlPair pair : overrides.getForceMergePairs()) {
+      Integer idxA = urlToIndex.get(pair.urlA());
+      Integer idxB = urlToIndex.get(pair.urlB());
+      if (idxA == null || idxB == null || idxA.equals(idxB)) {
+        continue;
+      }
+      int minIdx = Math.min(idxA, idxB);
+      int maxIdx = Math.max(idxA, idxB);
+      if (matcher.test(items.get(minIdx), items.get(maxIdx))) {
+        edges.add(new MatchEdge(minIdx, maxIdx, FORCE_MERGE_SCORE));
+      }
+    }
   }
 
   private static Map<BucketKey, List<Integer>> groupByCityAndType(List<IngatlanItem> items) {
@@ -131,6 +176,7 @@ public final class ClusterMatchScorer {
       List<IngatlanItem> items,
       List<Integer> bucket,
       BiPredicate<IngatlanItem, IngatlanItem> matcher,
+      DedupOverrides overrides,
       List<MatchEdge> edges) {
     for (int i = 0; i < bucket.size(); i++) {
       int idxA = bucket.get(i);
@@ -138,6 +184,9 @@ public final class ClusterMatchScorer {
       for (int j = i + 1; j < bucket.size(); j++) {
         int idxB = bucket.get(j);
         IngatlanItem itemB = items.get(idxB);
+        if (overrides.isForceMerge(itemA.getUrl(), itemB.getUrl())) {
+          continue;
+        }
         if (matcher.test(itemA, itemB)) {
           edges.add(new MatchEdge(idxA, idxB, computeMatchScore(itemA, itemB)));
         }
@@ -177,6 +226,9 @@ public final class ClusterMatchScorer {
     if (isActive(a) && isActive(b)) {
       score += WEIGHT_BOTH_ACTIVE;
     }
+    if (ClusterConsolidationHelper.isSamePortalDifferentUrl(a, b)) {
+      score += WEIGHT_INTRA_PORTAL_PRIORITY;
+    }
     return score;
   }
 
@@ -198,7 +250,9 @@ public final class ClusterMatchScorer {
       return 0.0;
     }
     double diffRatio = Math.abs(areaA - areaB) / Math.max(areaA, areaB);
-    double closeness = Math.max(0.0, 1.0 - (diffRatio / MAX_AREA_TOLERANCE_RATIO));
+    double tolerance = a.getPropertyType() == PropertyType.HAZ
+        ? HOUSE_MAX_AREA_TOLERANCE_RATIO : MAX_AREA_TOLERANCE_RATIO;
+    double closeness = Math.max(0.0, 1.0 - (diffRatio / tolerance));
     return WEIGHT_AREA * closeness;
   }
 
@@ -239,7 +293,10 @@ public final class ClusterMatchScorer {
     }
     Set<String> tokensA = TextualSimilarityMatcher.extractDistinctiveTokens(a);
     Set<String> tokensB = TextualSimilarityMatcher.extractDistinctiveTokens(b);
-    score += WEIGHT_TITLE * TextualSimilarityMatcher.calculateJaccardSimilarity(tokensA, tokensB);
+    double titleSimilarity = TextualSimilarityMatcher.hasIdenticalTitleSlug(a, b)
+        ? 1.0
+        : TextualSimilarityMatcher.calculateJaccardSimilarity(tokensA, tokensB);
+    score += WEIGHT_TITLE * titleSimilarity;
     return score;
   }
 

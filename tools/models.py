@@ -31,5 +31,7 @@ class SidecarResponse(BaseModel):
     items: list[SidecarItem] = []
     error_message: str | None = Field(None, alias="errorMessage")
     elapsed_ms: int = Field(0, alias="elapsedMs")
+    pages_processed: int = Field(0, alias="pagesProcessed")
+    stop_reason: str | None = Field(None, alias="stopReason")
 
     model_config = {"populate_by_name": True}

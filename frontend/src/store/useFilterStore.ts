@@ -62,6 +62,10 @@ function getStoredOnlyMultiSource(): boolean {
   return safeParseStorageBoolean(safeGetStorageItem('preferred_only_multi_source'))
 }
 
+function getStoredExcludeNoImage(): boolean {
+  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_no_image'))
+}
+
 const DEFAULT_CRITERIA: SearchCriteria = {
   cities: ['Hajdúszoboszló'],
   city: 'Hajdúszoboszló',
@@ -85,6 +89,7 @@ interface FilterState {
   onlyBargain: boolean
   excludeMultiSource: boolean
   onlyMultiSource: boolean
+  excludeNoImage: boolean
   minQualityScore: number
   quickSearchQuery: string
   selectedPortalFilter: PortalFilterOption | string
@@ -109,6 +114,7 @@ interface FilterState {
   setOnlyBargain: (onlyBargain: boolean) => void
   setExcludeMultiSource: (excludeMultiSource: boolean) => void
   setOnlyMultiSource: (onlyMultiSource: boolean) => void
+  setExcludeNoImage: (excludeNoImage: boolean) => void
   setMinQualityScore: (score: number) => void
   setQuickSearchQuery: (query: string) => void
   setSelectedPortalFilter: (portal: PortalFilterOption | string) => void
@@ -175,6 +181,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
     onlyBargain: initial.onlyBargain || false,
     excludeMultiSource: initialExcludeMulti,
     onlyMultiSource: initialOnlyMulti,
+    excludeNoImage: initial.excludeNoImage ?? getStoredExcludeNoImage(),
     minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
     selectedPortalFilter: resolvePortalFilterForPortals(initialCriteria.portals, 'all'),
@@ -265,6 +272,12 @@ export const useFilterStore = create<FilterState>((set, get) => {
       get().syncToUrl()
     },
 
+    setExcludeNoImage: (excludeNoImage) => {
+      safeSetStorageItem('preferred_exclude_no_image', String(excludeNoImage))
+      set({ excludeNoImage })
+      get().syncToUrl()
+    },
+
     setMinQualityScore: (minQualityScore) => {
       set({ minQualityScore })
       get().syncToUrl()
@@ -279,6 +292,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
       safeSetStorageItem('preferred_exclude_viewed', 'false')
       safeSetStorageItem('preferred_exclude_multi_source', 'false')
       safeSetStorageItem('preferred_only_multi_source', 'false')
+      safeSetStorageItem('preferred_exclude_no_image', 'false')
       set({
         criteria: { ...DEFAULT_CRITERIA, excludeViewed: false },
         sortOption: 'price_asc',
@@ -286,6 +300,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         onlyBargain: false,
         excludeMultiSource: false,
         onlyMultiSource: false,
+        excludeNoImage: false,
         minQualityScore: 0,
         quickSearchQuery: '',
         selectedPortalFilter: 'all',
@@ -310,6 +325,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         onlyBargain: parsed.onlyBargain ?? false,
         excludeMultiSource: nextExcludeMulti,
         onlyMultiSource: nextOnlyMulti,
+        excludeNoImage: parsed.excludeNoImage ?? getStoredExcludeNoImage(),
         minQualityScore: parsed.minQualityScore ?? 0,
         selectedPortalFilter: resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter),
       }))
@@ -324,6 +340,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         onlyBargain,
         excludeMultiSource,
         onlyMultiSource,
+        excludeNoImage,
         minQualityScore,
       } = get()
       const params = new URLSearchParams()
@@ -334,6 +351,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         onlyBargain,
         excludeMultiSource,
         onlyMultiSource,
+        excludeNoImage,
         minQualityScore,
       })
 

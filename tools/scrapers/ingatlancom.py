@@ -19,7 +19,10 @@ from curl_cffi import requests as curl_requests
 from models import SidecarItem, SidecarResponse
 
 BASE_URL = "https://ingatlan.com"
+DEFAULT_MAX_PAGES = 20
+DEFAULT_TIMEOUT_MS = 85000
 LISTING_ID_URL_PATTERN = re.compile(r"/(?:ingatlan/)?(\d{6,12})(?:[/?#]|$)")
+PAGE_QUERY_PATTERN = re.compile(r"(?:^|[?&])page=(\d+)(?:&|$)")
 
 
 def _to_slug(text: str) -> str:
@@ -78,12 +81,11 @@ def _build_search_url(
         segments.append(price_slug)
 
     segments.append(city_slug)
-    if page == 2:
-        segments.append("ar-szerint")
-    elif page >= 3:
-        segments.append("m2-ar-szerint")
-
-    return f"{BASE_URL}/lista/{'+'.join(segments)}"
+    base_url = f"{BASE_URL}/lista/{'+'.join(segments)}"
+    if page > 1:
+        separator = "&" if "?" in base_url else "?"
+        return f"{base_url}{separator}page={page}"
+    return base_url
 
 
 def _parse_price_million(text: str) -> tuple[Optional[float], str]:
@@ -202,11 +204,38 @@ def _extract_card_fields(card: Tag, city: str, item_id: str) -> tuple[str, Optio
     return title, price_million, price_raw, area, rooms, image_url
 
 
-def _parse_page_cards(html: str, city: str, seen_urls: set[str]) -> list[SidecarItem]:
+def _has_pagination_without_next_page(
+    soup: BeautifulSoup, current_page: int, added_count: int
+) -> bool:
+    has_any_page_link = False
+    has_next_page = False
+    next_page = current_page + 1
+
+    for anchor in soup.select("a[href]"):
+        href = anchor.get("href")
+        if not isinstance(href, str):
+            continue
+        match = PAGE_QUERY_PATTERN.search(href)
+        if not match:
+            continue
+        has_any_page_link = True
+        if int(match.group(1)) == next_page:
+            has_next_page = True
+            break
+
+    if has_any_page_link:
+        return not has_next_page
+    return current_page == 1 and added_count < 20
+
+
+def _parse_page_cards_with_soup(
+    html: str, city: str, seen_urls: set[str]
+) -> tuple[list[SidecarItem], int, BeautifulSoup]:
     soup = BeautifulSoup(html, "html.parser")
     page_items: list[SidecarItem] = []
 
     cards = soup.select("a.listing-card, a[data-listing-id], div.listing-card, a[href*='/ingatlan/']")
+    raw_card_count = len(cards)
     for card in cards:
         href = card.get("href", "") if card.name == "a" else ""
         if not href:
@@ -241,6 +270,11 @@ def _parse_page_cards(html: str, city: str, seen_urls: set[str]) -> list[Sidecar
             )
         )
 
+    return page_items, raw_card_count, soup
+
+
+def _parse_page_cards(html: str, city: str, seen_urls: set[str]) -> list[SidecarItem]:
+    page_items, _, _ = _parse_page_cards_with_soup(html, city, seen_urls)
     return page_items
 
 
@@ -251,42 +285,75 @@ def scrape(
     max_price: Optional[int] = None,
     min_area: Optional[int] = None,
     max_area: Optional[int] = None,
-    max_pages: int = 1,
+    max_pages: int = DEFAULT_MAX_PAGES,
+    timeout_ms: int = DEFAULT_TIMEOUT_MS,
+    delay_ms: int = 200,
+    session_factory=None,
 ) -> SidecarResponse:
     """
-    Letölti az Ingatlan.com találati oldalát curl_cffi Chrome impersonation-nel,
+    Letölti az Ingatlan.com találati oldalait curl_cffi Chrome impersonation-nel,
     és visszaadja a strukturált SidecarResponse-t.
     """
     start_ms = int(time.time() * 1000)
     items: list[SidecarItem] = []
     seen_urls: set[str] = set()
-    pages_to_fetch = max(1, min(max_pages, 5))
+    pages_to_fetch = max(1, min(max_pages, DEFAULT_MAX_PAGES))
+    effective_timeout_ms = max(5000, timeout_ms)
+    pages_processed = 0
+    stop_reason = "MAX_PAGES_REACHED"
 
     try:
-        session = curl_requests.Session(impersonate="chrome")
+        session = (
+            session_factory()
+            if session_factory is not None
+            else curl_requests.Session(impersonate="chrome")
+        )
         for page in range(1, pages_to_fetch + 1):
+            if page > 1 and (int(time.time() * 1000) - start_ms) >= effective_timeout_ms:
+                stop_reason = "TIME_BUDGET_REACHED"
+                break
+
+            if page > 1 and delay_ms > 0:
+                time.sleep(delay_ms / 1000.0)
+
             search_url = _build_search_url(
                 city, property_type, min_price, max_price, min_area, max_area, page=page
+            )
+            referer = (
+                BASE_URL + "/"
+                if page == 1
+                else _build_search_url(
+                    city, property_type, min_price, max_price, min_area, max_area, page=page - 1
+                )
             )
             resp = session.get(
                 search_url,
                 headers={
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                     "Accept-Language": "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7",
-                    "Referer": BASE_URL + "/",
+                    "Referer": referer,
                 },
                 timeout=12,
             )
 
-            if resp.status_code == 403 and page == 1:
-                elapsed = int(time.time() * 1000) - start_ms
-                return SidecarResponse(
-                    portalId="ingatlancom",
-                    status="FAILED",
-                    items=[],
-                    errorMessage=f"Cloudflare 403 Forbidden – TLS impersonation blocked (HTTP {resp.status_code})",
-                    elapsedMs=elapsed,
+            if resp.status_code in (403, 429):
+                if page == 1:
+                    elapsed = int(time.time() * 1000) - start_ms
+                    return SidecarResponse(
+                        portalId="ingatlancom",
+                        status="FAILED",
+                        items=[],
+                        errorMessage=f"Cloudflare HTTP {resp.status_code} – TLS impersonation blocked",
+                        elapsedMs=elapsed,
+                        pagesProcessed=0,
+                        stopReason="FIRST_PAGE_BOT_PROTECTED",
+                    )
+                stop_reason = (
+                    "INTERMEDIATE_PAGE_RATE_LIMITED"
+                    if resp.status_code == 429
+                    else "INTERMEDIATE_PAGE_BOT_PROTECTED"
                 )
+                break
 
             if resp.status_code != 200:
                 if page == 1:
@@ -297,14 +364,28 @@ def scrape(
                         items=[],
                         errorMessage=f"HTTP {resp.status_code} hiba",
                         elapsedMs=elapsed,
+                        pagesProcessed=0,
+                        stopReason="FIRST_PAGE_HTTP_ERROR",
                     )
+                stop_reason = f"INTERMEDIATE_PAGE_HTTP_{resp.status_code}"
                 break
 
-            page_items = _parse_page_cards(resp.text, city, seen_urls)
-            if not page_items:
+            pages_processed += 1
+            page_items, raw_card_count, soup = _parse_page_cards_with_soup(
+                resp.text, city, seen_urls
+            )
+            if raw_card_count == 0:
+                stop_reason = "FIRST_PAGE_EMPTY" if page == 1 else "EMPTY_PAGE"
                 break
+            if not page_items:
+                stop_reason = "REPEATED_PAGE_CONTENT"
+                break
+
             items.extend(page_items)
-            if len(page_items) < 5 and page == 1:
+            if page < pages_to_fetch and _has_pagination_without_next_page(
+                soup, page, len(page_items)
+            ):
+                stop_reason = "NO_MORE_PAGES"
                 break
 
         elapsed = int(time.time() * 1000) - start_ms
@@ -314,14 +395,28 @@ def scrape(
             items=items,
             errorMessage=None,
             elapsedMs=elapsed,
+            pagesProcessed=pages_processed,
+            stopReason=stop_reason,
         )
 
     except Exception as e:
         elapsed = int(time.time() * 1000) - start_ms
+        if items:
+            return SidecarResponse(
+                portalId="ingatlancom",
+                status="SUCCESS",
+                items=items,
+                errorMessage=str(e),
+                elapsedMs=elapsed,
+                pagesProcessed=pages_processed,
+                stopReason="INTERMEDIATE_PAGE_EXCEPTION",
+            )
         return SidecarResponse(
             portalId="ingatlancom",
             status="FAILED",
             items=[],
             errorMessage=str(e),
             elapsedMs=elapsed,
+            pagesProcessed=pages_processed,
+            stopReason="EXCEPTION",
         )

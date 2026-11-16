@@ -248,4 +248,38 @@ class ListingNormalizerTest {
         .build();
     assertEquals(PropertyType.EGYEB_ISMERETLEN, normalizer.resolvePropertyType(ambiguous));
   }
+
+  @Test
+  @DisplayName("#450: 70 karakterre csonkolt Jófogás címek helyes típusbesorolása")
+  void testIssue450TruncatedJofogasTitlesNormalizedToCanonicalType() {
+    RawPropertyListing csaladiH = RawPropertyListing.builder()
+        .url("https://ingatlan.jofogas.hu/1")
+        .title("Kiváló elhelyezkedésű, napfényes, kétszintes felújított családi h")
+        .build();
+    assertEquals(PropertyType.HAZ, normalizer.resolvePropertyType(csaladiH));
+
+    RawPropertyListing ikerH = RawPropertyListing.builder()
+        .url("https://ingatlan.jofogas.hu/2")
+        .title("Hajdúszoboszló csendes részén eladó 4 szobás újszerű ikerh")
+        .build();
+    assertEquals(PropertyType.HAZ, normalizer.resolvePropertyType(ikerH));
+
+    RawPropertyListing sorH = RawPropertyListing.builder()
+        .url("https://ingatlan.jofogas.hu/3")
+        .title("Kertvárosi környezetben garázsos 110 m2-es újszerű sorh")
+        .build();
+    assertEquals(PropertyType.HAZ, normalizer.resolvePropertyType(sorH));
+
+    RawPropertyListing panellak = RawPropertyListing.builder()
+        .url("https://ingatlan.jofogas.hu/4")
+        .title("Debrecen belváros közeli 54 m2-es 2 szobás felújított panellak")
+        .build();
+    assertEquals(PropertyType.LAKAS, normalizer.resolvePropertyType(panellak));
+
+    RawPropertyListing teglalak = RawPropertyListing.builder()
+        .url("https://ingatlan.jofogas.hu/5")
+        .title("Egyetemvárosban galériázható 68 m2-es két erkélyes tégla lak")
+        .build();
+    assertEquals(PropertyType.LAKAS, normalizer.resolvePropertyType(teglalak));
+  }
 }

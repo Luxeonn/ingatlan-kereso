@@ -55,6 +55,10 @@ A kimenet mindig **JSON** formátumban érkezik a `stdout`-ra:
 | `--type` | ❌ | `lakas` | `lakas` \| `haz` \| `telek` \| `garazs` \| `nyaralo` \| `iroda` \| `osszes` |
 | `--min-price` | ❌ | – | Minimum ár millió Ft-ban |
 | `--max-price` | ❌ | – | Maximum ár millió Ft-ban |
+| `--min-area` | ❌ | – | Minimum alapterület m²-ben |
+| `--max-area` | ❌ | – | Maximum alapterület m²-ben |
+| `--max-pages` | ❌ | `20` | Maximálisan letöltendő oldalak száma (max `20`) |
+| `--timeout-ms` | ❌ | `85000` | Puha időkeret ezredmásodpercben a részleges eredmény megőrzéséhez |
 
 ## Architektúra
 

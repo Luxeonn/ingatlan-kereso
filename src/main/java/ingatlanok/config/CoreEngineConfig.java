@@ -7,11 +7,13 @@ import org.springframework.context.annotation.Configuration;
 
 import ingatlanok.core.DataQualityEngine;
 import ingatlanok.core.DeduplicationEngine;
+import ingatlanok.core.IngatlanComHtmlImportService;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.persistence.ConfigStorage;
+import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
@@ -29,6 +31,7 @@ import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
 import ingatlanok.presentation.DashboardPresentationService;
+import ingatlanok.presentation.DedupPresentationService;
 
 @Configuration
 public class CoreEngineConfig {
@@ -92,8 +95,9 @@ public class CoreEngineConfig {
   }
 
   @Bean
-  public DeduplicationEngine deduplicationEngine(ListingStorage listingStorage) {
-    return new DeduplicationEngine(listingStorage);
+  public DeduplicationEngine deduplicationEngine(
+      ListingStorage listingStorage, DedupOverrideStorage dedupOverrideStorage) {
+    return new DeduplicationEngine(listingStorage, dedupOverrideStorage);
   }
 
   @Bean
@@ -117,8 +121,31 @@ public class CoreEngineConfig {
   }
 
   @Bean
+  public IngatlanComHtmlImportService ingatlanComHtmlImportService(
+      PortalEngineRegistry portalRegistry,
+      ListingNormalizer listingNormalizer,
+      DeduplicationEngine dedupEngine,
+      DataQualityEngine qualityEngine,
+      ListingStorage listingStorage) {
+    return new IngatlanComHtmlImportService(
+        portalRegistry, listingNormalizer, dedupEngine, qualityEngine, listingStorage);
+  }
+
+  @Bean
   public DashboardPresentationService dashboardPresentationService(
-      SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
-    return new DashboardPresentationService(searchEngine, analyticsEngine);
+      SearchExecutionEngine searchEngine,
+      MarketAnalyticsEngine analyticsEngine,
+      IngatlanComHtmlImportService htmlImportService) {
+    return new DashboardPresentationService(searchEngine, analyticsEngine, htmlImportService);
+  }
+
+  @Bean
+  public DedupPresentationService dedupPresentationService(
+      ListingStorage listingStorage,
+      DedupOverrideStorage dedupOverrideStorage,
+      DeduplicationEngine dedupEngine,
+      DataQualityEngine qualityEngine) {
+    return new DedupPresentationService(
+        listingStorage, dedupOverrideStorage, dedupEngine, qualityEngine);
   }
 }

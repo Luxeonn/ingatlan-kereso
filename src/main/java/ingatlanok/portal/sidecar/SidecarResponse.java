@@ -30,6 +30,10 @@ public class SidecarResponse implements Serializable {
 
   private long elapsedMs;
 
+  private Integer pagesProcessed;
+
+  private String stopReason;
+
   public boolean isSuccess() {
     return status == SidecarStatus.SUCCESS;
   }

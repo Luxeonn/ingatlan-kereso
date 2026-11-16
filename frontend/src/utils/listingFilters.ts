@@ -1,6 +1,11 @@
 import type { SortOption } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
-import { getEffectivePrice, getPrimaryPortalKey, getItemSourceListingsCount } from './formatters'
+import {
+  getEffectivePrice,
+  getPrimaryPortalKey,
+  getItemSourceListingsCount,
+  hasListingImage,
+} from './formatters'
 
 export function normalizeSearchText(str?: string | null): string {
   return (str || '')
@@ -111,10 +116,12 @@ function matchesQuickSearch(item: IngatlanItem, tokens: string[]): boolean {
 export interface ItemFilterOptions {
   onlyNew?: boolean
   excludeViewed?: boolean
+  sessionViewedUrls?: ReadonlySet<string>
   onlyNewConstruction?: boolean
   onlyBargain?: boolean
   excludeMultiSource?: boolean
   onlyMultiSource?: boolean
+  excludeNoImage?: boolean
   minQualityScore?: number
   selectedPortalFilter?: string
   quickSearchQuery?: string
@@ -125,14 +132,26 @@ export function isListingNew(item: IngatlanItem | null | undefined): boolean {
   return Boolean(item.isNew)
 }
 
-function matchesItemFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
-  if (options.onlyNew && !isListingNew(item)) return false
-  if (options.excludeViewed && item.viewed) return false
-  if (options.onlyNewConstruction && !item.newConstruction) return false
-  if (options.onlyBargain && !isItemBargain(item)) return false
+function isSessionViewed(item: IngatlanItem, sessionViewedUrls?: ReadonlySet<string>): boolean {
+  if (!sessionViewedUrls || sessionViewedUrls.size === 0) return false
+  if (item.url && sessionViewedUrls.has(item.url)) return true
+  return Boolean(item.sourceListings?.some((sl) => sl.url && sessionViewedUrls.has(sl.url)))
+}
+
+function matchesSourceAndImageFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
   if (options.excludeMultiSource && getItemSourceListingsCount(item) !== 1) return false
   if (options.onlyMultiSource && getItemSourceListingsCount(item) <= 1) return false
+  if (options.excludeNoImage && !hasListingImage(item)) return false
   return true
+}
+
+function matchesItemFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
+  const sessionViewed = isSessionViewed(item, options.sessionViewedUrls)
+  if (options.onlyNew && !isListingNew(item) && !sessionViewed) return false
+  if (options.excludeViewed && item.viewed && !sessionViewed) return false
+  if (options.onlyNewConstruction && !item.newConstruction) return false
+  if (options.onlyBargain && !isItemBargain(item)) return false
+  return matchesSourceAndImageFlags(item, options)
 }
 
 export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions = {}): IngatlanItem[] {
@@ -162,6 +181,22 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
   }
 
   return items
+}
+
+export function markItemsAsViewed(items: IngatlanItem[], urlSet: Set<string>): IngatlanItem[] {
+  return items.map((item) => {
+    const directMatch = Boolean(item.url && urlSet.has(item.url))
+    const sourceMatch = Boolean(item.sourceListings?.some((sl) => sl.url && urlSet.has(sl.url)))
+    if (!directMatch && !sourceMatch) return item
+    return {
+      ...item,
+      viewed: true,
+      isNew: false,
+      sourceListings: item.sourceListings?.map((sl) =>
+        sl.url && urlSet.has(sl.url) ? { ...sl, viewed: true } : sl,
+      ),
+    }
+  })
 }
 
 export function filterAndSortItems(

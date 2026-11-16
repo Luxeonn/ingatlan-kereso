@@ -101,3 +101,61 @@ test('Cross-Layer Contract Drift: presentation DTO modified with explicit exempt
     )
   );
 });
+
+test('dependabot[bot] PR passes without Hungarian sections or issue link', () => {
+  const result = verifyPrCompliance({
+    bodyText: 'Bumps foo from 1.0.0 to 1.1.0.',
+    changedFiles: ['build.gradle.kts'],
+    author: 'dependabot[bot]',
+  });
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+  assert.ok(result.passes.some((p) => p.includes('dependabot[bot]')));
+});
+
+test('dependabot[bot] PR still fails if presentation DTO changes without OpenAPI sync', () => {
+  const result = verifyPrCompliance({
+    bodyText: 'Bumps foo from 1.0.0 to 1.1.0.',
+    changedFiles: ['src/main/java/ingatlanok/presentation/DashboardResponseDto.java'],
+    author: 'dependabot[bot]',
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes('Cross-Layer Contract Drift')));
+});
+
+test('develop -> main release PR passes without issue link when Hungarian sections are present', () => {
+  const releaseBody = VALID_SAMPLE_BODY.replace(/Closes #347/, '');
+  const result = verifyPrCompliance({
+    bodyText: releaseBody,
+    changedFiles: ['README.md'],
+    baseRef: 'main',
+    headRef: 'develop',
+  });
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+  assert.ok(result.passes.some((p) => p.includes('Release PR (develop -> main)')));
+});
+
+test('develop -> main release PR still fails if a required Hungarian section is missing', () => {
+  const brokenReleaseBody = VALID_SAMPLE_BODY
+    .replace(/##\s*🛠️\s*Mit módosít[\s\S]*?Closes #347/, '')
+    .trim();
+  const result = verifyPrCompliance({
+    bodyText: brokenReleaseBody,
+    baseRef: 'main',
+    headRef: 'develop',
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("Hiányzó kötelező szekció: 'Mit módosít'")));
+});
+
+test('non-release PR targeting main still requires issue link', () => {
+  const hotfixBody = VALID_SAMPLE_BODY.replace(/Closes #347/, '');
+  const result = verifyPrCompliance({
+    bodyText: hotfixBody,
+    baseRef: 'main',
+    headRef: 'fix/urgent-hotfix',
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes('Hiányzó issue összekapcsolás')));
+});

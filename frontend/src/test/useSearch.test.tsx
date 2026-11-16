@@ -457,4 +457,62 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     expect(result.current.rawCount).toBe(1)
     expect(result.current.items.some((i) => i.id === 'miskolc-hidden')).toBe(false)
   })
+
+  it('preserves item order and length after markAsViewed without excludeViewed (#459)', async () => {
+    const { result } = renderHook(() => useSearch(), { wrapper })
+
+    act(() => {
+      result.current.search({ city: 'Debrecen' })
+    })
+
+    await waitFor(() => expect(result.current.items).toHaveLength(2))
+    const initialIds = result.current.items.map((i) => i.id)
+
+    act(() => {
+      result.current.markAsViewed(mockItem1.url)
+    })
+
+    await waitFor(() => {
+      expect(result.current.items.find((i) => i.id === 'item-1')?.viewed).toBe(true)
+    })
+
+    expect(result.current.items).toHaveLength(2)
+    expect(result.current.items.map((i) => i.id)).toEqual(initialIds)
+  })
+
+  it('keeps newly viewed item visible in current session when excludeViewed is active until filter or search changes (#459)', async () => {
+    act(() => {
+      useFilterStore.getState().setExcludeViewed(true)
+    })
+
+    const { result } = renderHook(() => useSearch(), { wrapper })
+
+    act(() => {
+      result.current.search({ city: 'Debrecen', excludeViewed: true })
+    })
+
+    await waitFor(() => expect(result.current.items).toHaveLength(2))
+
+    act(() => {
+      result.current.markAsViewed(mockItem1.url)
+    })
+
+    await waitFor(() => {
+      expect(result.current.items.find((i) => i.id === 'item-1')?.viewed).toBe(true)
+    })
+
+    // Item remains visible in the grid with viewed=true so layout does not shift
+    expect(result.current.items).toHaveLength(2)
+    expect(result.current.items.map((i) => i.id)).toEqual(['item-1', 'item-2'])
+
+    // Changing a filter clears session-viewed grace period and hides viewed items
+    act(() => {
+      useFilterStore.getState().setSortOption('price_desc')
+    })
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(1)
+    })
+    expect(result.current.items[0]?.id).toBe('item-2')
+  })
 })

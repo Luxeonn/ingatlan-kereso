@@ -659,4 +659,131 @@ class SearchExecutionEngineTest {
     assertNotNull(resultItem.getQualityDeductions());
     assertTrue(resultItem.getQualityDeductions().isEmpty());
   }
+
+  @Test
+  @DisplayName("Részleges vagy bot-védett portálválasz esetén az aktív DB-találatok kiegészítik a keresést")
+  void testPartialOrBotProtectedPortalMergesPersistedActiveListings() {
+    InMemoryListingStorage storage = new InMemoryListingStorage();
+    String city = "Hajdúszoboszló";
+
+    IngatlanItem liveItem = buildIngatlanComHouse("ic-live-1", "https://ingatlan.com/3001", 85_000_000L, 120.0);
+    IngatlanItem persistedActive = buildIngatlanComHouse("ic-db-active", "https://ingatlan.com/3002", 95_000_000L, 135.0);
+    IngatlanItem persistedHidden = buildIngatlanComHouse("ic-db-hidden", "https://ingatlan.com/3003", 90_000_000L, 130.0);
+    persistedHidden.setHidden(true);
+    IngatlanItem persistedInactive = buildIngatlanComHouse("ic-db-inactive", "https://ingatlan.com/3004", 92_000_000L, 130.0);
+    persistedInactive.setStatus(ingatlanok.model.ListingStatus.INACTIVE);
+    IngatlanItem persistedWrongType = buildIngatlanComHouse("ic-db-lakas", "https://ingatlan.com/3005", 80_000_000L, 110.0);
+    persistedWrongType.setPropertyType(PropertyType.LAKAS);
+    IngatlanItem persistedOutOfPrice = buildIngatlanComHouse("ic-db-expensive", "https://ingatlan.com/3006", 200_000_000L, 140.0);
+
+    storage.saveCityItems(
+        city,
+        List.of(
+            buildIngatlanComHouse("ic-live-1", "https://ingatlan.com/3001", 85_000_000L, 120.0),
+            persistedActive,
+            persistedHidden,
+            persistedInactive,
+            persistedWrongType,
+            persistedOutOfPrice));
+
+    PortalEngine partialIngatlanComEngine =
+        new PortalEngine() {
+          @Override
+          public String getId() {
+            return "ingatlancom";
+          }
+
+          @Override
+          public String getName() {
+            return "Ingatlan.com";
+          }
+
+          @Override
+          public PortalDescriptor getDescriptor() {
+            return new PortalDescriptor(
+                "ingatlancom",
+                "Ingatlan.com",
+                "#0284c7",
+                "https://ingatlan.com",
+                true,
+                List.of("haz"),
+                false);
+          }
+
+          @Override
+          public PortalScrapeResult scrape(SearchCriteria criteria) {
+            return PortalScrapeResult.builder()
+                .portalId("ingatlancom")
+                .portalName("Ingatlan.com")
+                .status(ingatlanok.model.PortalScrapeStatus.SUCCESS)
+                .items(List.of(liveItem))
+                .fallbackUrl("https://ingatlan.com/lista/elado+haz+hajduszoboszlo")
+                .message("Részleges találati lista (1 oldal): a Cloudflare WAF korlátozta a további oldalakat")
+                .executionTimeMs(120)
+                .httpStatusCode(200)
+                .technicalDetails("pages=1, stopReason=INTERMEDIATE_PAGE_BOT_PROTECTED")
+                .build();
+          }
+        };
+
+    DataQualityEngine qualityEngine = new DataQualityEngine();
+    SearchExecutionEngine engine =
+        new SearchExecutionEngine(
+            new PortalEngineRegistry(List.of(partialIngatlanComEngine)),
+            storage,
+            storage,
+            new PropertyFilterEngine(),
+            new DeduplicationEngine(storage),
+            new MarketAnalyticsEngine(qualityEngine),
+            qualityEngine);
+
+    SearchCriteria criteria = new SearchCriteria();
+    criteria.setCities(List.of(city));
+    criteria.setPropertyType(PropertyType.HAZ);
+    criteria.setPortals(List.of("ingatlancom"));
+    criteria.setMinPriceMillion(60);
+    criteria.setMaxPriceMillion(130);
+    criteria.setMinArea(95);
+    criteria.setMaxArea(200);
+
+    SearchResult result = engine.executeSearch(criteria);
+    assertEquals(2, result.getTotalFound(), "Élő + aktív megfelelő DB-találatoknak együtt kell megjelenniük");
+    assertTrue(result.getItems().stream().anyMatch(i -> "https://ingatlan.com/3001".equals(i.getUrl())));
+    assertTrue(result.getItems().stream().anyMatch(i -> "https://ingatlan.com/3002".equals(i.getUrl())));
+    assertFalse(result.getItems().stream().anyMatch(i -> "https://ingatlan.com/3003".equals(i.getUrl())));
+    assertFalse(result.getItems().stream().anyMatch(i -> "https://ingatlan.com/3004".equals(i.getUrl())));
+    assertFalse(result.getItems().stream().anyMatch(i -> "https://ingatlan.com/3005".equals(i.getUrl())));
+    assertFalse(result.getItems().stream().anyMatch(i -> "https://ingatlan.com/3006".equals(i.getUrl())));
+    assertEquals(2, result.getPortalCounts().get("Ingatlan.com"));
+  }
+
+  @Test
+  @DisplayName("ParallelPortalScrapeExecutor elegendő (>= 120 mp) időkeretet ad az ingatlancom sidecarnak")
+  void testParallelPortalScrapeExecutorGrantsSidecarTimeoutBudget() {
+    ParallelPortalScrapeExecutor defaultExecutor = new ParallelPortalScrapeExecutor();
+    assertTrue(
+        defaultExecutor.resolveTimeoutSeconds("ingatlancom") >= 120L,
+        "A többoldalas Playwright sidecar futásidő (~45-90s) miatt >= 120 mp külső limit szükséges");
+    assertEquals(15L, defaultExecutor.resolveTimeoutSeconds("dh"));
+
+    ParallelPortalScrapeExecutor customExecutor = new ParallelPortalScrapeExecutor(5);
+    assertEquals(5L, customExecutor.resolveTimeoutSeconds("ingatlancom"));
+    assertEquals(5L, customExecutor.resolveTimeoutSeconds("dh"));
+  }
+
+  private static IngatlanItem buildIngatlanComHouse(
+      String id, String url, long priceHuf, double area) {
+    IngatlanItem item =
+        ingatlanok.testsupport.TestFixtures.validResidentialItem(
+            id, "Hajdúszoboszló", priceHuf, area, 4.0);
+    item.setUrl(url);
+    item.setSource(PortalSource.builder()
+        .portalId("ingatlancom")
+        .portalName("Ingatlan.com")
+        .themeColor("#0284c7")
+        .directListing(false)
+        .build());
+    item.setPropertyType(PropertyType.HAZ);
+    return item;
+  }
 }

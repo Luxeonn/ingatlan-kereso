@@ -5,12 +5,14 @@ import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
+import { IngatlanComImportModal } from './components/modals/IngatlanComImportModal'
 import { SearchErrorBanner, PartialPortalWarningBanner } from './components/layout/StatusBanners'
 import { useSearch } from './hooks/useSearch'
-import { useFilterStore } from './store/useFilterStore'
+import { DEFAULT_PORTALS, useFilterStore } from './store/useFilterStore'
 import { useUiStore, type ListingSubView } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
+import { extractIngatlanComFetchedPages, findPartialIngatlanComStatus } from './utils/ingatlanComUrl'
 import { cn } from './utils/cn'
 import type { IngatlanItem } from './types/property'
 import type { DashboardResponseDto } from './types/api'
@@ -80,6 +82,24 @@ function checkIsTotalPortalFailure(
   return count > 0 && failureCount === count
 }
 
+function isNarrowPortalList(portals?: string[] | null): boolean {
+  const count = portals?.length ?? 0
+  return count > 0 && count <= 2
+}
+
+function canShowPortalBanner(
+  failureCount: number,
+  hasPartialIngatlanCom: boolean,
+  dashboardTab: string,
+  listingSubView: string,
+): boolean {
+  return (
+    (failureCount > 0 || hasPartialIngatlanCom) &&
+    dashboardTab === 'listings' &&
+    listingSubView === 'listings'
+  )
+}
+
 export const App: FC = () => {
   const {
     data,
@@ -105,21 +125,39 @@ export const App: FC = () => {
     clearToast,
     hideProperty,
     restoreProperty,
+    splitSource,
+    mergeSelected,
+    undoDedupOverride,
+    isMerging,
     openAllTabs,
   } = useSearch()
-  const { setCriteria } = useFilterStore()
+  const { criteria, setCriteria, setAllPortals } = useFilterStore()
   const {
     dashboardTab,
     setDashboardTab,
     listingSubView,
     setListingSubView,
     setDiagnosticsModalOpen,
+    setIngatlanComImportModalOpen,
   } = useUiStore()
   const initialLoadDone = useRef(false)
 
   const partialPortalFailures = useMemo(
     () => extractPortalFailures(data?.portalStatuses),
     [data?.portalStatuses],
+  )
+  const partialIngatlanComStatus = useMemo(
+    () => findPartialIngatlanComStatus(data?.portalStatuses),
+    [data?.portalStatuses],
+  )
+  const hasPartialIngatlanCom = Boolean(partialIngatlanComStatus)
+  const ingatlanComFetchedPages = extractIngatlanComFetchedPages(partialIngatlanComStatus)
+  const isNarrowPortalSelection = isNarrowPortalList(criteria.portals)
+  const showPortalBanner = canShowPortalBanner(
+    partialPortalFailures.length,
+    hasPartialIngatlanCom,
+    dashboardTab,
+    listingSubView,
   )
   const isTotalPortalFailure = checkIsTotalPortalFailure(data, partialPortalFailures.length)
 
@@ -150,6 +188,11 @@ export const App: FC = () => {
       setListingSubView('listings')
     }
     search()
+  }
+
+  const handleEnableAllPortalsAndSearch = () => {
+    setAllPortals([...DEFAULT_PORTALS])
+    handleSearch()
   }
 
   // Active listings data slice based on current listing sub-view
@@ -185,11 +228,16 @@ export const App: FC = () => {
         {isError && <SearchErrorBanner error={error} onRetry={handleSearch} />}
 
         {/* Partial or Total Portal Warning Banner */}
-        {partialPortalFailures.length > 0 && dashboardTab === 'listings' && listingSubView === 'listings' && (
+        {showPortalBanner && (
           <PartialPortalWarningBanner
             failures={partialPortalFailures}
             isTotalFailure={isTotalPortalFailure}
+            hasIngatlanComPartial={hasPartialIngatlanCom}
+            ingatlanComMessage={partialIngatlanComStatus?.message}
+            showEnableAllPortals={isNarrowPortalSelection}
             onOpenDiagnostics={() => setDiagnosticsModalOpen(true)}
+            onOpenImportModal={() => setIngatlanComImportModalOpen(true)}
+            onEnableAllPortals={handleEnableAllPortalsAndSearch}
           />
         )}
 
@@ -259,6 +307,10 @@ export const App: FC = () => {
             isClearingHistory={isClearingHistory}
             onHide={hideProperty}
             onRestore={restoreProperty}
+            onSplitSource={splitSource}
+            onUndoOverride={undoDedupOverride}
+            onMergeSelected={mergeSelected}
+            isMerging={isMerging}
             hiddenCount={hiddenCount}
           />
         ) : (
@@ -309,6 +361,7 @@ export const App: FC = () => {
 
       {/* Modals */}
       <DiagnosticsModal portalStatuses={data?.portalStatuses} />
+      <IngatlanComImportModal fetchedPages={ingatlanComFetchedPages} onImportSuccess={handleSearch} />
     </div>
   )
 }
