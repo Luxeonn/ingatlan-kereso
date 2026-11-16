@@ -39,10 +39,13 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           node scripts/verify-pr-compliance.mjs \
             --body "$PR_BODY" \
             --author "$PR_AUTHOR" \
+            --base-ref "$BASE_REF" \
+            --head-ref "$HEAD_REF" \
             --diff-base "origin/$BASE_REF" \
             -v
 

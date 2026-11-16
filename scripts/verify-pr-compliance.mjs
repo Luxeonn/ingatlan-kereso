@@ -72,11 +72,16 @@ export function verifyPrCompliance({
   bodyText,
   changedFiles = [],
   author = '',
+  baseRef = '',
+  headRef = '',
 }) {
   const errors = [];
   const passes = [];
   const normalizedAuthor = typeof author === 'string' ? author.trim() : '';
+  const normalizedBaseRef = typeof baseRef === 'string' ? baseRef.trim() : '';
+  const normalizedHeadRef = typeof headRef === 'string' ? headRef.trim() : '';
   const isAutomatedDependencyPr = AUTOMATED_DEPENDENCY_AUTHORS.has(normalizedAuthor);
+  const isReleasePr = normalizedBaseRef === 'main' && normalizedHeadRef === 'develop';
 
   if (isAutomatedDependencyPr) {
     passes.push(
@@ -100,12 +105,16 @@ export function verifyPrCompliance({
       }
     }
 
-    // 2. Verify Issue linking
-    const issueLinkMatch = bodyText.match(/\b(Closes|Fixes|Resolves)\s+#(\d+)\b/i);
-    if (!issueLinkMatch) {
-      errors.push("Hiányzó issue összekapcsolás (pl. 'Closes #<id>' vagy 'Fixes #<id>').");
+    // 2. Verify Issue linking (not required for develop -> main release PRs)
+    if (isReleasePr) {
+      passes.push('Release PR (develop -> main) — issue-hivatkozás nem kötelező.');
     } else {
-      passes.push(`Issue kapcsolat rendben: ${issueLinkMatch[0]}`);
+      const issueLinkMatch = bodyText.match(/\b(Closes|Fixes|Resolves)\s+#(\d+)\b/i);
+      if (!issueLinkMatch) {
+        errors.push("Hiányzó issue összekapcsolás (pl. 'Closes #<id>' vagy 'Fixes #<id>').");
+      } else {
+        passes.push(`Issue kapcsolat rendben: ${issueLinkMatch[0]}`);
+      }
     }
   }
 
@@ -172,6 +181,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   let changedFilesFile = null;
   let prNumber = null;
   let author = '';
+  let baseRef = '';
+  let headRef = '';
   let verbose = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -183,6 +194,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else if (a === '--changed-files-file' && args[i + 1]) changedFilesFile = args[++i];
     else if (a === '--pr' && args[i + 1]) prNumber = args[++i];
     else if (a === '--author' && args[i + 1]) author = args[++i];
+    else if (a === '--base-ref' && args[i + 1]) baseRef = args[++i];
+    else if (a === '--head-ref' && args[i + 1]) headRef = args[++i];
     else if (a === '-v' || a === '--verbose') verbose = true;
     else if (a === '-h' || a === '--help') {
       console.log('Használat: node scripts/verify-pr-compliance.mjs [opciók]');
@@ -193,6 +206,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       console.log('  --changed-files <f1,f2>    Vesszővel elválasztott módosított fájllista');
       console.log('  --pr <szám>                PR adatok lekérése a gh CLI-vel');
       console.log('  --author <felhasználó>     PR szerző GitHub login neve (pl. dependabot[bot])');
+      console.log('  --base-ref <ág>            PR cél ága (pl. main, develop)');
+      console.log('  --head-ref <ág>            PR forrás ága (pl. develop)');
       console.log('  -v, --verbose              Részletes kimenet');
       process.exit(0);
     }
@@ -200,11 +215,17 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 
   if (prNumber) {
     try {
-      const prJson = execSync(`gh pr view ${prNumber} --json body,files,author`, { encoding: 'utf8' });
+      const prJson = execSync(`gh pr view ${prNumber} --json body,files,author,baseRefName,headRefName`, { encoding: 'utf8' });
       const prData = JSON.parse(prJson);
       bodyText = prData.body;
       if (!author && prData.author?.login) {
         author = prData.author.login;
+      }
+      if (!baseRef && prData.baseRefName) {
+        baseRef = prData.baseRefName;
+      }
+      if (!headRef && prData.headRefName) {
+        headRef = prData.headRefName;
       }
       if (Array.isArray(prData.files)) {
         changedFilesArg = prData.files.map((f) => f.path).join(',');
@@ -230,7 +251,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`Módosított fájlok száma: ${changedFiles.length}`);
   }
 
-  const result = verifyPrCompliance({ bodyText, changedFiles, author });
+  const result = verifyPrCompliance({ bodyText, changedFiles, author, baseRef, headRef });
 
   if (verbose) {
     for (const p of result.passes) {
