@@ -7,10 +7,10 @@ buildscript {
             force("org.apache.httpcomponents.client5:httpclient5:5.6.5")
             force("org.apache.httpcomponents.core5:httpcore5:5.4.4")
             force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
-            force("org.apache.commons:commons-lang3:3.21.0")
+            force("org.apache.commons:commons-lang3:3.22.0")
             force("org.springframework:spring-core:7.0.10")
-            force("tools.jackson.core:jackson-core:3.2.4")
-            force("tools.jackson.core:jackson-databind:3.2.4")
+            force("tools.jackson.core:jackson-core:3.3.0")
+            force("tools.jackson.core:jackson-databind:3.3.0")
         }
     }
 }
@@ -48,7 +48,7 @@ application {
 
 val jsoupVersion = "1.24.1"
 val commonsIoVersion = "2.22.0"
-val commonsLang3Version = "3.21.0"
+val commonsLang3Version = "3.22.0"
 val caffeineVersion = "3.3.1"
 val lombokVersion = "1.18.48"
 val mapstructVersion = "1.6.3"
@@ -57,8 +57,8 @@ val archunitVersion = "1.5.1"
 dependencies {
     constraints {
         implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.27")
-        implementation("tools.jackson.core:jackson-core:3.2.4")
-        implementation("tools.jackson.core:jackson-databind:3.2.4")
+        implementation("tools.jackson.core:jackson-core:3.3.0")
+        implementation("tools.jackson.core:jackson-databind:3.3.0")
         implementation("org.postgresql:postgresql:42.7.14")
         implementation("org.apache.logging.log4j:log4j-api:2.26.1")
         implementation("org.apache.httpcomponents.client5:httpclient5:5.6.5")
