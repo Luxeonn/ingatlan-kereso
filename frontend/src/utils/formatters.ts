@@ -1,14 +1,6 @@
 import {
-  Building2,
-  Home,
-  Trees,
-  Warehouse,
-  Factory,
-  HelpCircle,
-  ShieldCheck,
-  ShieldAlert,
-  ShieldX,
-  type LucideIcon,
+  Building2, Home, Trees, Warehouse, Factory, HelpCircle,
+  ShieldCheck, ShieldAlert, ShieldX, type LucideIcon,
 } from 'lucide-react'
 import type { CanonicalPropertyType, IngatlanItem } from '../types/property'
 import { PORTAL_IDS, type PortalId } from '../types/portal'
@@ -215,6 +207,24 @@ export function getEffectiveSqmPrice(item: IngatlanItem): number | null {
   const directSqm = details.pricePerSquareMeter ?? 0
   if (directSqm > 0) return directSqm
   return area > 0 && totalHuf > 0 ? Math.round(totalHuf / area) : null
+}
+
+const IMAGE_PLACEHOLDER_PATTERNS = ['placeholder', 'no-image', 'default'] as const
+
+export function isValidImageUrl(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return false
+  const cleaned = url.trim().replace(/\?.*$/, '').replace(/^https?:\/\//i, '').toLowerCase()
+  return Boolean(cleaned) && !IMAGE_PLACEHOLDER_PATTERNS.some((p) => cleaned.includes(p))
+}
+
+export function getEffectiveImageUrl(item?: IngatlanItem | null): string | undefined {
+  if (!item) return undefined
+  if (isValidImageUrl(item.imageUrl)) return item.imageUrl?.trim()
+  return item.sourceListings?.find((sl) => isValidImageUrl(sl.imageUrl))?.imageUrl?.trim()
+}
+
+export function hasListingImage(item?: IngatlanItem | null): boolean {
+  return Boolean(getEffectiveImageUrl(item))
 }
 
 export function getItemSourceListingsCount(item: IngatlanItem): number {

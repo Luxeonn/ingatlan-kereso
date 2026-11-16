@@ -205,12 +205,14 @@ describe('filterUrlSync utility', () => {
         onlyNew: false,
         onlyBargain: true,
         excludeMultiSource: false,
+        excludeNoImage: true,
         minQualityScore: 85,
       }
 
       const params = new URLSearchParams()
       appendCriteriaParams(params, customCriteria)
       appendUiFilterParams(params, uiOptions)
+      expect(params.get('excludeNoImage')).toBe('true')
 
       setLocation(`https://example.com/?${params.toString()}`)
       const parsed = parseUrlParams()
@@ -224,6 +226,7 @@ describe('filterUrlSync utility', () => {
       expect(parsed.criteria?.portals).toEqual(['dh', 'jofogas'])
       expect(parsed.sort).toBe('price_desc')
       expect(parsed.onlyBargain).toBe(true)
+      expect(parsed.excludeNoImage).toBe(true)
       expect(parsed.minQualityScore).toBe(85)
     })
   })

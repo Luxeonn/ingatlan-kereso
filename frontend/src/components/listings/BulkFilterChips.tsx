@@ -6,6 +6,7 @@ import {
   Building2,
   Trash2,
   Layers,
+  ImageOff,
 } from 'lucide-react'
 import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
@@ -115,6 +116,9 @@ export interface QuickFilterChipsRowProps {
   onlyMultiSource?: boolean
   setOnlyMultiSource?: (val: boolean) => void
   onlyMultiSourceCount?: number
+  excludeNoImage?: boolean
+  setExcludeNoImage?: (val: boolean) => void
+  excludeNoImageCount?: number
   showHidden?: boolean
   setShowHidden?: (val: boolean) => void
   hiddenCount?: number
@@ -139,6 +143,9 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
   onlyMultiSource,
   setOnlyMultiSource,
   onlyMultiSourceCount,
+  excludeNoImage,
+  setExcludeNoImage,
+  excludeNoImageCount,
   showHidden,
   setShowHidden,
   hiddenCount,
@@ -254,6 +261,21 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             count={onlyMultiSourceCount}
             countTestId="only-multi-source-filter-count"
             activeBadgeClass="bg-indigo-500/20 text-indigo-300"
+          />
+        )}
+
+        {isPinned('excludeNoImage') && setExcludeNoImage && (
+          <QuickFilterToggleButton
+            testId="exclude-no-image-filter"
+            isActive={excludeNoImage}
+            onClick={() => setExcludeNoImage(!excludeNoImage)}
+            title="Kép nélküli vagy placeholder képpel rendelkező hirdetések elrejtése"
+            activeClassName="border border-rose-500/40 bg-rose-500/15 text-rose-400 shadow-sm"
+            icon={<ImageOff className="h-3.5 w-3.5 text-rose-400 shrink-0" />}
+            label="Kép nélküliek rejtése"
+            count={excludeNoImageCount}
+            countTestId="exclude-no-image-filter-count"
+            activeBadgeClass="bg-rose-500/20 text-rose-300"
           />
         )}
       </div>
