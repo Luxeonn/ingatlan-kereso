@@ -11,10 +11,13 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import ingatlanok.model.DedupOverride;
+import ingatlanok.model.DedupOverrideType;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
+import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 
 class DeduplicationEngineTest {
@@ -741,5 +744,144 @@ class DeduplicationEngineTest {
     item.setPrice((priceHuf / 1_000_000.0) + " M Ft");
     item.setStatus(status);
     return item;
+  }
+
+  @Test
+  @DisplayName("FORCE_SPLIT felülírja az egyébként egyező párt")
+  void testForceSplitOverridesHeuristicMatch() {
+    IngatlanItem a = createHouseWithImg("s1", "Duna House", "https://dh.hu/split-1",
+        "Kossuth utca 12 eladó lakás", 65.0, 2.0, 50_000_000L, "https://cdn.dh.hu/img1.jpg");
+    IngatlanItem b = createHouseWithImg("s2", "Otthon Centrum", "https://oc.hu/split-2",
+        "Kossuth utca 12 eladó lakás", 65.0, 2.0, 50_500_000L, "https://cdn.dh.hu/img1.jpg");
+    a.setPropertyType(PropertyType.LAKAS);
+    b.setPropertyType(PropertyType.LAKAS);
+
+    DedupOverrideStorage overrides = stubOverrideStorage(List.of(
+        new DedupOverride("https://dh.hu/split-1", "https://oc.hu/split-2", DedupOverrideType.FORCE_SPLIT)));
+    DeduplicationEngine engine = new DeduplicationEngine(null, overrides);
+
+    List<IngatlanItem> result = engine.deduplicateMultiSignal(List.of(a, b));
+    assertEquals(2, result.size());
+    assertTrue(result.stream().allMatch(IngatlanItem::isManuallySplit));
+  }
+
+  @Test
+  @DisplayName("FORCE_MERGE összevon heurisztikusan eltérő párt és beállítja a manuallyMerged jelzőt")
+  void testForceMergeCombinesHeuristicallyDifferentItems() {
+    IngatlanItem a = createItem("m1", "Duna House", "https://dh.hu/merge-1",
+        "Belvárosi lakás", "Debrecen", PropertyType.LAKAS, 45.0, 1.5, 35_000_000L, "ACTIVE");
+    IngatlanItem b = createItem("m2", "Jófogás", "https://jofogas.hu/merge-2",
+        "Teljesen más című hirdetés", "Debrecen", PropertyType.LAKAS, 90.0, 4.0, 85_000_000L, "ACTIVE");
+
+    DedupOverrideStorage overrides = stubOverrideStorage(List.of(
+        new DedupOverride("https://dh.hu/merge-1", "https://jofogas.hu/merge-2", DedupOverrideType.FORCE_MERGE)));
+    DeduplicationEngine engine = new DeduplicationEngine(null, overrides);
+
+    List<IngatlanItem> result = engine.deduplicateMultiSignal(List.of(a, b));
+    assertEquals(1, result.size());
+    assertEquals(2, result.get(0).getSourcesCount());
+    assertTrue(result.get(0).isManuallyMerged());
+  }
+
+  @Test
+  @DisplayName("Ütközésnél (A-B merge, B-C merge, A-C split) a FORCE_SPLIT nyer tranzitívan is")
+  void testForceSplitWinsTransitivelyOverForceMerge() {
+    IngatlanItem a = createItem("c1", "Duna House", "https://dh.hu/c-1",
+        "Hirdetés A", "Debrecen", PropertyType.LAKAS, 50.0, 2.0, 40_000_000L, "ACTIVE");
+    IngatlanItem b = createItem("c2", "Otthon Centrum", "https://oc.hu/c-2",
+        "Hirdetés B", "Debrecen", PropertyType.LAKAS, 80.0, 3.0, 70_000_000L, "ACTIVE");
+    IngatlanItem c = createItem("c3", "Jófogás", "https://jofogas.hu/c-3",
+        "Hirdetés C", "Debrecen", PropertyType.LAKAS, 110.0, 4.0, 95_000_000L, "ACTIVE");
+
+    DedupOverrideStorage overrides = stubOverrideStorage(List.of(
+        new DedupOverride("https://dh.hu/c-1", "https://oc.hu/c-2", DedupOverrideType.FORCE_MERGE),
+        new DedupOverride("https://jofogas.hu/c-3", "https://oc.hu/c-2", DedupOverrideType.FORCE_MERGE),
+        new DedupOverride("https://dh.hu/c-1", "https://jofogas.hu/c-3", DedupOverrideType.FORCE_SPLIT)));
+    DeduplicationEngine engine = new DeduplicationEngine(null, overrides);
+
+    List<IngatlanItem> result = engine.deduplicateMultiSignal(List.of(a, b, c));
+    assertEquals(2, result.size());
+    boolean aAndCTogether = result.stream().anyMatch(cluster -> {
+      Set<String> urls = cluster.getSourceListings().stream()
+          .map(s -> s.getUrl())
+          .collect(java.util.stream.Collectors.toSet());
+      return urls.contains("https://dh.hu/c-1") && urls.contains("https://jofogas.hu/c-3");
+    });
+    assertFalse(aAndCTogether, "FORCE_SPLIT pár tranzitívan sem kerülhet egy klaszterbe");
+  }
+
+  @Test
+  @DisplayName("Bucketen kívüli (eltérő PropertyType) FORCE_MERGE összevon és a legolcsóbb aktív típusát veszi fel")
+  void testCrossBucketForceMergeAdoptsLowestActivePriceType() {
+    IngatlanItem cheapFlat = createItem("cb1", "Duna House", "https://dh.hu/cb-1",
+        "Olcsó lakás", "Debrecen", PropertyType.LAKAS, 60.0, 2.0, 45_000_000L, "ACTIVE");
+    IngatlanItem expensiveHouse = createItem("cb2", "Otthon Centrum", "https://oc.hu/cb-2",
+        "Drágább ház", "Debrecen", PropertyType.HAZ, 62.0, 2.0, 52_000_000L, "ACTIVE");
+
+    DedupOverrideStorage overrides = stubOverrideStorage(List.of(
+        new DedupOverride("https://dh.hu/cb-1", "https://oc.hu/cb-2", DedupOverrideType.FORCE_MERGE)));
+    DeduplicationEngine engine = new DeduplicationEngine(null, overrides);
+
+    List<IngatlanItem> result = engine.deduplicateMultiSignal(List.of(expensiveHouse, cheapFlat));
+    assertEquals(1, result.size());
+    assertEquals(PropertyType.LAKAS, result.get(0).getPropertyType());
+    assertTrue(result.get(0).isManuallyMerged());
+  }
+
+  @Test
+  @DisplayName("Eltérő városok között a FORCE_MERGE nem von össze")
+  void testForceMergeDoesNotCrossCities() {
+    IngatlanItem deb = createItem("ct1", "Duna House", "https://dh.hu/deb-1",
+        "Debreceni lakás", "Debrecen", PropertyType.LAKAS, 60.0, 2.0, 45_000_000L, "ACTIVE");
+    IngatlanItem eger = createItem("ct2", "Otthon Centrum", "https://oc.hu/eger-2",
+        "Egri lakás", "Eger", PropertyType.LAKAS, 60.0, 2.0, 45_000_000L, "ACTIVE");
+
+    DedupOverrideStorage overrides = stubOverrideStorage(List.of(
+        new DedupOverride("https://dh.hu/deb-1", "https://oc.hu/eger-2", DedupOverrideType.FORCE_MERGE)));
+    DeduplicationEngine engine = new DeduplicationEngine(null, overrides);
+
+    List<IngatlanItem> result = engine.deduplicateMultiSignal(List.of(deb, eger));
+    assertEquals(2, result.size());
+  }
+
+  private DedupOverrideStorage stubOverrideStorage(List<DedupOverride> list) {
+    return new DedupOverrideStorage() {
+      @Override
+      public List<DedupOverride> getAllOverrides() {
+        return list;
+      }
+
+      @Override
+      public List<DedupOverride> getOverridesForUrls(Collection<String> urls) {
+        return list;
+      }
+
+      @Override
+      public List<DedupOverride> getOverridesForUrl(String url) {
+        return list;
+      }
+
+      @Override
+      public java.util.Optional<DedupOverride> findOverrideById(Long id) {
+        return java.util.Optional.empty();
+      }
+
+      @Override
+      public DedupOverride saveOverride(
+          String url1, String url2, DedupOverrideType type, String normalizedCity) {
+        return new DedupOverride(url1, url2, type);
+      }
+
+      @Override
+      public boolean deleteOverrideById(Long id) {
+        return false;
+      }
+
+      @Override
+      public void clearCityOverrides(String city) {}
+
+      @Override
+      public void clearAllOverrides() {}
+    };
   }
 }

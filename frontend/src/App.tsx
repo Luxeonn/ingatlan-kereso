@@ -125,6 +125,10 @@ export const App: FC = () => {
     clearToast,
     hideProperty,
     restoreProperty,
+    splitSource,
+    mergeSelected,
+    undoDedupOverride,
+    isMerging,
     openAllTabs,
   } = useSearch()
   const { criteria, setCriteria, setAllPortals } = useFilterStore()
@@ -303,6 +307,10 @@ export const App: FC = () => {
             isClearingHistory={isClearingHistory}
             onHide={hideProperty}
             onRestore={restoreProperty}
+            onSplitSource={splitSource}
+            onUndoOverride={undoDedupOverride}
+            onMergeSelected={mergeSelected}
+            isMerging={isMerging}
             hiddenCount={hiddenCount}
           />
         ) : (

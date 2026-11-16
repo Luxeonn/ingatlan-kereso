@@ -1,9 +1,12 @@
 package ingatlanok.core.dedup;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PropertyDetails;
 
@@ -257,5 +260,33 @@ public final class ClusterConsolidationHelper {
       return true;
     }
     return Math.abs(roomsA - roomsB) <= maxDiff;
+  }
+
+  public static IngatlanItem findLowestActivePriceSource(List<IngatlanItem> cluster) {
+    if (cluster == null || cluster.isEmpty()) {
+      return null;
+    }
+    List<IngatlanItem> activeWithPrice = cluster.stream()
+        .filter(Objects::nonNull)
+        .filter(i -> i.getStatus() == null || i.getStatus() == ListingStatus.ACTIVE)
+        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
+            && i.getPriceInfo().getAmountHuf() > 0)
+        .toList();
+    if (!activeWithPrice.isEmpty()) {
+      return activeWithPrice.stream()
+          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
+          .orElse(cluster.get(0));
+    }
+    List<IngatlanItem> anyWithPrice = cluster.stream()
+        .filter(Objects::nonNull)
+        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
+            && i.getPriceInfo().getAmountHuf() > 0)
+        .toList();
+    if (!anyWithPrice.isEmpty()) {
+      return anyWithPrice.stream()
+          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
+          .orElse(cluster.get(0));
+    }
+    return cluster.get(0);
   }
 }

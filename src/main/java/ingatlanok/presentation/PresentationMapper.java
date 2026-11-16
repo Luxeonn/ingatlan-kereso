@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
+import ingatlanok.model.DedupOverride;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.MarketSegmentStats;
 import ingatlanok.model.MarketStats;
@@ -67,4 +68,6 @@ public interface PresentationMapper {
   @Mapping(target = "pricePerM2", source = "pricePerM2")
   SourceListing toSourceListingFromItem(
       IngatlanItem item, String portal, Long priceHuf, Long pricePerM2);
+
+  DedupOverrideDto toDedupOverrideDto(DedupOverride override);
 }

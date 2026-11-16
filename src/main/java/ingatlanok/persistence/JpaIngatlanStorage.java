@@ -61,6 +61,8 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   private final ListingObservationRepository listingObservationRepo;
   private final PropertyPersistenceHelper persistenceHelper;
   private final SearchPresetPersistenceHelper presetHelper;
+  @Autowired(required = false)
+  private DedupOverrideStorage dedupOverrideStorage;
 
   @Autowired
   public JpaIngatlanStorage(
@@ -237,12 +239,18 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
             .toList();
     propertyRepo.deleteByNormalizedCity(key);
     persistenceHelper.deleteCityRelatedHistory(urls);
+    if (dedupOverrideStorage != null) {
+      dedupOverrideStorage.clearCityOverrides(key);
+    }
   }
 
   @Override
   @CacheEvict(cacheNames = {"portals", "cities"}, allEntries = true)
   public void clearHistory() {
     persistenceHelper.deleteAllHistory();
+    if (dedupOverrideStorage != null) {
+      dedupOverrideStorage.clearAllOverrides();
+    }
   }
 
   @Override

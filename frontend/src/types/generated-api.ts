@@ -398,6 +398,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dedup/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forrás leválasztása egy klaszterről tartós FORCE_SPLIT felülbírálással */
+        post: operations["splitDedupCluster"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dedup/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kijelölt hirdetések tartós összevonása FORCE_MERGE felülbírálással */
+        post: operations["mergeDedupListings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dedup/overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Egy hirdetéshez tartozó kézi deduplikációs felülbírálások lekérdezése */
+        get: operations["getDedupOverrides"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dedup/overrides/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Kézi deduplikációs felülbírálás visszavonása */
+        delete: operations["deleteDedupOverride"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -637,6 +705,7 @@ export interface components {
             hidden?: boolean;
             /** Format: date-time */
             hiddenAt?: string | null;
+            manuallySplit?: boolean;
         };
         ListingObservation: {
             /** Format: date-time */
@@ -768,6 +837,34 @@ export interface components {
             qualityScore?: number;
             /** @description Minőségi levonási okok listája */
             qualityDeductions?: string[];
+            manuallyMerged?: boolean;
+            manuallySplit?: boolean;
+        };
+        /**
+         * @description Kézi deduplikációs felülbírálás típusa
+         * @enum {string}
+         */
+        DedupOverrideType: "FORCE_SPLIT" | "FORCE_MERGE";
+        DedupOverrideDto: {
+            /** Format: int64 */
+            id: number;
+            urlA: string;
+            urlB: string;
+            type: components["schemas"]["DedupOverrideType"];
+            normalizedCity?: string | null;
+            createdAt: string;
+        };
+        DedupSplitRequestDto: {
+            sourceUrl: string;
+            clusterUrls: string[];
+        };
+        DedupMergeRequestDto: {
+            urls: string[];
+        };
+        DedupActionResponseDto: {
+            items: components["schemas"]["IngatlanItem"][];
+            overrides: components["schemas"]["DedupOverrideDto"][];
+            message: string;
         };
         /**
          * @description Kanonikus ingatlantípus
@@ -1595,6 +1692,100 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClearHistoryResponse"];
+                };
+            };
+        };
+    };
+    splitDedupCluster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DedupSplitRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Az érintett újraklaszterezett elemek */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DedupActionResponseDto"];
+                };
+            };
+        };
+    };
+    mergeDedupListings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DedupMergeRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Az érintett újraklaszterezett elemek */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DedupActionResponseDto"];
+                };
+            };
+        };
+    };
+    getDedupOverrides: {
+        parameters: {
+            query: {
+                /** @description A hirdetés URL-je */
+                url: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aktív kézi felülbírálások listája */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DedupOverrideDto"][];
+                };
+            };
+        };
+    };
+    deleteDedupOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A felülbírálás azonosítója */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A visszavonás utáni újraklaszterezett elemek */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DedupActionResponseDto"];
                 };
             };
         };

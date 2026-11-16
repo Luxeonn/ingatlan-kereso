@@ -9,6 +9,7 @@ import {
   hideProperty as apiHideProperty,
   restoreProperty as apiRestoreProperty,
 } from '../api/propertyApi'
+import { useDedupActions } from './useDedupActions'
 import type { DashboardResponseDto, SearchCriteria } from '../types/api'
 import type { IngatlanItem } from '../types/property'
 import { useFilterStore } from '../store/useFilterStore'
@@ -99,6 +100,10 @@ export function useSearch() {
   const [isSearchPending, setIsSearchPending] = useState(false)
   const [sessionViewedUrls, setSessionViewedUrls] = useState<Set<string>>(() => new Set())
   const searchRequestIdRef = useRef(0)
+  const { splitSource, mergeSelected, undoDedupOverride, isMerging } = useDedupActions(
+    setData,
+    setToastMessage,
+  )
 
   const historyQuery = useQuery({
     queryKey: ['history', criteria.onlyNewConstruction],
@@ -353,6 +358,10 @@ export function useSearch() {
     restoreProperty: (item: IngatlanItem) => restoreMutation.mutate(item),
     clearArchiveHistory: (city?: string) => clearHistoryMutation.mutateAsync(city),
     isClearingHistory: clearHistoryMutation.isPending,
+    splitSource,
+    mergeSelected,
+    undoDedupOverride,
+    isMerging,
     openAllTabs: (itemsToOpen: IngatlanItem[]) => {
       const urls = itemsToOpen.map((item) => item.url).filter(Boolean)
       if (urls.length > 0) {

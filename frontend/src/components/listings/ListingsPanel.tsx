@@ -28,6 +28,10 @@ export interface ListingsPanelProps {
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
+  onMergeSelected?: (urls: string[]) => Promise<boolean | void> | void
+  isMerging?: boolean
   initialBatchSize?: number
   batchSize?: number
 }
@@ -141,6 +145,10 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   onTriggerSearch,
   onClearHistory,
   isClearingHistory = false,
+  onSplitSource,
+  onUndoOverride,
+  onMergeSelected,
+  isMerging = false,
   initialBatchSize,
   batchSize,
 }) => {
@@ -202,6 +210,10 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         onTriggerSearch={onTriggerSearch}
         onClearHistory={onClearHistory}
         isClearingHistory={isClearingHistory}
+        onSplitSource={onSplitSource}
+        onUndoOverride={onUndoOverride}
+        onMergeSelected={onMergeSelected}
+        isMerging={isMerging}
         initialBatchSize={initialBatchSize}
         batchSize={batchSize}
       />

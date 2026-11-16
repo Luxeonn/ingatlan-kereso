@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC } from 'react'
+import { useEffect, useMemo, useState, type FC } from 'react'
 import {
   LayoutGrid,
   List,
@@ -6,6 +6,7 @@ import {
   X,
   Trash2,
   ArrowUpDown,
+  GitMerge,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
@@ -52,6 +53,8 @@ interface BulkActionBarProps {
   onMarkAllViewed?: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
+  onMergeSelected?: (urls: string[]) => Promise<boolean | void> | void
+  isMerging?: boolean
   visibleCount?: number
   hiddenCount?: number
 }
@@ -77,9 +80,11 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   totalRawCount,
   onClearHistory,
   isClearingHistory = false,
+  onMergeSelected,
+  isMerging = false,
   hiddenCount = 0,
 }) => {
-  const { viewMode, setViewMode } = useUiStore()
+  const { viewMode, setViewMode, selectedCardUrls, clearCardSelection } = useUiStore()
   const {
     criteria,
     onlyNew,
@@ -107,6 +112,34 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
 
   const totalSourceListingsCount = useMemo(() => getTotalSourceListingsCount(items), [items])
   const sourceItems = rawItems ?? items
+
+  const selectedItems = useMemo(
+    () => items.filter((it) => Boolean(it.url && selectedCardUrls.includes(it.url))),
+    [items, selectedCardUrls],
+  )
+
+  useEffect(() => {
+    if (selectedCardUrls.length === 0) return undefined
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        clearCardSelection()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedCardUrls.length, clearCardSelection])
+
+  const handleMergeClick = () => {
+    if (!onMergeSelected || selectedItems.length < 2 || isMerging) return
+    const allUrls = new Set<string>()
+    for (const item of selectedItems) {
+      if (item.url) allUrls.add(item.url)
+      for (const src of item.sourceListings ?? []) {
+        if (src.url) allUrls.add(src.url)
+      }
+    }
+    void onMergeSelected(Array.from(allUrls))
+  }
 
   const quickFilterCounts = useMemo(
     () => computeQuickFilterCounts(sourceItems),
@@ -285,6 +318,37 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         portalCounts={portalCounts}
         searchedPortals={criteria.portals}
       />
+
+      {selectedItems.length > 0 && (
+        <div
+          data-testid="selection-action-bar"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs"
+        >
+          <div className="flex flex-wrap items-center gap-2 font-semibold text-blue-200">
+            <span data-testid="selection-count-label">{selectedItems.length} kijelölve</span>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              data-testid="merge-selected-button"
+              disabled={selectedItems.length < 2 || isMerging || !onMergeSelected}
+              onClick={handleMergeClick}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1 font-bold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <GitMerge className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Összevonás</span>
+            </button>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              data-testid="clear-selection-button"
+              onClick={clearCardSelection}
+              className="rounded-lg border border-blue-400/30 px-2.5 py-1 font-semibold text-blue-200 transition-colors hover:bg-blue-500/20"
+            >
+              Kijelölés törlése
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
