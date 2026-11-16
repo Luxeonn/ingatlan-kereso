@@ -168,6 +168,10 @@ describe('useFilterStore', () => {
       expect(useFilterStore.getState().onlyMultiSource).toBe(false)
       expect(localStorage.getItem('preferred_exclude_multi_source')).toBe('true')
       expect(localStorage.getItem('preferred_only_multi_source')).toBe('false')
+
+      useFilterStore.getState().setExcludeNoImage(true)
+      expect(useFilterStore.getState().excludeNoImage).toBe(true)
+      expect(localStorage.getItem('preferred_exclude_no_image')).toBe('true')
     })
   })
 
@@ -176,6 +180,7 @@ describe('useFilterStore', () => {
       useFilterStore.getState().addCity('Debrecen')
       useFilterStore.getState().setOnlyBargain(true)
       useFilterStore.getState().setOnlyMultiSource(true)
+      useFilterStore.getState().setExcludeNoImage(true)
       useFilterStore.getState().setSortOption('bargain_desc')
       useFilterStore.getState().setExcludeViewed(true)
       useFilterStore.getState().setMinQualityScore(70)
@@ -187,7 +192,9 @@ describe('useFilterStore', () => {
       expect(state.onlyBargain).toBe(false)
       expect(state.onlyMultiSource).toBe(false)
       expect(state.excludeMultiSource).toBe(false)
+      expect(state.excludeNoImage).toBe(false)
       expect(localStorage.getItem('preferred_only_multi_source')).toBe('false')
+      expect(localStorage.getItem('preferred_exclude_no_image')).toBe('false')
       expect(state.sortOption).toBe('price_asc')
       expect(state.criteria.excludeViewed).toBe(false)
       expect(localStorage.getItem('preferred_sort_option')).toBe('price_asc')

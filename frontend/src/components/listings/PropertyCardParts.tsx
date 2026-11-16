@@ -29,6 +29,7 @@ import { isListingNew } from '../../utils/listingFilters'
 
 export interface PropertyThumbnailProps {
   item: IngatlanItem
+  imageUrl?: string
   hasValidImage: boolean
   portalStyle: { bg: string; text: string }
   viewMode: 'grid' | 'list'
@@ -38,6 +39,7 @@ export interface PropertyThumbnailProps {
 
 export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
   item,
+  imageUrl,
   hasValidImage,
   portalStyle,
   viewMode,
@@ -45,6 +47,7 @@ export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
   onImageError,
 }) => {
   const TypeIcon = getPropertyTypeConfig(item.propertyType).icon
+  const resolvedImageUrl = imageUrl ?? item.imageUrl
 
   return (
     <div
@@ -54,9 +57,9 @@ export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
         viewMode === 'list' ? 'h-36 w-full sm:h-28 sm:w-44 mb-3 sm:mb-0' : 'mb-3 h-40 w-full',
       )}
     >
-      {hasValidImage ? (
+      {hasValidImage && resolvedImageUrl ? (
         <img
-          src={item.imageUrl}
+          src={resolvedImageUrl}
           alt={item.title || 'Ingatlan előnézeti kép'}
           loading="lazy"
           onError={onImageError}

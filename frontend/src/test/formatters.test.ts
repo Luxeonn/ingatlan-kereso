@@ -19,7 +19,10 @@ import {
   getPortalStyle,
   detectPortalFromUrl,
   openExternalUrl,
+  isValidImageUrl,
+  hasListingImage,
 } from '../utils/formatters'
+import { createMockIngatlanItem } from './testFixtures'
 import type { IngatlanItem } from '../types/property'
 
 describe('formatters utility', () => {
@@ -328,6 +331,45 @@ describe('formatters utility', () => {
       expect(openSpy).not.toHaveBeenCalled()
 
       openSpy.mockRestore()
+    })
+  })
+
+  describe('isValidImageUrl & hasListingImage (#460)', () => {
+    it('rejects null, undefined, empty, whitespace, and placeholder image URLs', () => {
+      expect(isValidImageUrl(null)).toBe(false)
+      expect(isValidImageUrl(undefined)).toBe(false)
+      expect(isValidImageUrl('')).toBe(false)
+      expect(isValidImageUrl('   ')).toBe(false)
+      expect(isValidImageUrl('https://img.hu/placeholder.jpg')).toBe(false)
+      expect(isValidImageUrl('https://img.hu/NO-IMAGE.png?v=1')).toBe(false)
+      expect(isValidImageUrl('https://img.hu/default-house.webp')).toBe(false)
+    })
+
+    it('accepts valid image URLs even when query string contains default param', () => {
+      expect(isValidImageUrl('https://img.hu/pic.jpg')).toBe(true)
+      expect(isValidImageUrl('  https://img.hu/pic.jpg?default=1  ')).toBe(true)
+    })
+
+    it('checks both primary imageUrl and sourceListings[].imageUrl in hasListingImage', () => {
+      expect(hasListingImage(createMockIngatlanItem({ imageUrl: '' }))).toBe(false)
+      expect(hasListingImage(createMockIngatlanItem({ imageUrl: '   ' }))).toBe(false)
+      expect(hasListingImage(createMockIngatlanItem({ imageUrl: undefined }))).toBe(false)
+      expect(
+        hasListingImage(createMockIngatlanItem({ imageUrl: 'https://img.hu/placeholder.jpg' })),
+      ).toBe(false)
+      expect(
+        hasListingImage(createMockIngatlanItem({ imageUrl: 'https://img.hu/real.jpg' })),
+      ).toBe(true)
+
+      const multiSourceWithFallbackImage = createMockIngatlanItem({
+        imageUrl: 'https://img.hu/no-image.png',
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/1', imageUrl: '' },
+          { portal: 'oc', url: 'https://oc.hu/1', imageUrl: 'https://oc.hu/real.jpg' },
+        ],
+      })
+      expect(hasListingImage(multiSourceWithFallbackImage)).toBe(true)
     })
   })
 })

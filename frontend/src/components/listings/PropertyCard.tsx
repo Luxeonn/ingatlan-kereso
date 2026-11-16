@@ -13,6 +13,7 @@ import {
   getPortalStyle,
   getEffectivePrice,
   getEffectiveSqmPrice,
+  getEffectiveImageUrl,
   openExternalUrl,
 } from '../../utils/formatters'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
@@ -52,10 +53,6 @@ function getPortalIdentifier(item: IngatlanItem): string {
 
 function getSourcesCount(item: IngatlanItem): number {
   return item.sourcesCount ?? (item.sourceListings?.length || 1)
-}
-
-function hasValidImageUrl(imageUrl: string | undefined, imageError: boolean): boolean {
-  return Boolean(imageUrl && imageUrl.trim().length > 0 && !imageError)
 }
 
 interface PropertyParametersChipsProps {
@@ -164,6 +161,7 @@ interface PropertyCardContentProps {
   sqmPrice?: number
   floorArea?: number
   rooms?: number
+  imageUrl?: string
   hasValidImage: boolean
   isDrawerOpen: boolean
   isStarred: boolean
@@ -184,6 +182,7 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
   sqmPrice,
   floorArea,
   rooms,
+  imageUrl,
   hasValidImage,
   isDrawerOpen,
   isStarred,
@@ -203,6 +202,7 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
   >
     <PropertyThumbnail
       item={item}
+      imageUrl={imageUrl}
       hasValidImage={hasValidImage}
       portalStyle={portalStyle}
       viewMode={viewMode}
@@ -261,7 +261,8 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
   const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
 
-  const hasValidImage = hasValidImageUrl(item.imageUrl, imageError)
+  const effectiveImageUrl = getEffectiveImageUrl(item)
+  const hasValidImage = Boolean(effectiveImageUrl) && !imageError
 
   const handleOpen = () => {
     openExternalUrl(item.url)
@@ -298,6 +299,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({ item, onMarkViewed, onHide
         sqmPrice={sqmPrice}
         floorArea={floorArea}
         rooms={rooms}
+        imageUrl={effectiveImageUrl}
         hasValidImage={hasValidImage}
         isDrawerOpen={isDrawerOpen}
         isStarred={isStarred}

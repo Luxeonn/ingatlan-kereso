@@ -76,10 +76,11 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     expect(within(filterRow).queryByRole('button', { name: /Csak új építésű/i })).toBeNull()
     expect(within(filterRow).queryByRole('button', { name: /Több forrásosak rejtése/i })).toBeNull()
     expect(within(filterRow).queryByRole('button', { name: /Csak több forrásosak/i })).toBeNull()
+    expect(within(filterRow).queryByTestId('exclude-no-image-filter')).toBeNull()
 
-    // Selector button shows (3/7)
+    // Selector button shows (3/8)
     const selectorBtn = within(filterRow).getByTestId('quick-filter-selector-btn')
-    expect(selectorBtn.textContent).toContain('Szűrők (3/7)')
+    expect(selectorBtn.textContent).toContain('Szűrők (3/8)')
   })
 
   it('AC4: allows customizing pinned quick filters via popover (max 3), disables unchecked options at limit, and persists to localStorage', () => {
@@ -121,17 +122,17 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     // Uncheck 'hidden' -> now 2/7 selected, unchecked options become enabled
     fireEvent.click(hiddenCheckbox)
     expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew'])
-    expect(selectorBtn.textContent).toContain('Szűrők (2/7)')
+    expect(selectorBtn.textContent).toContain('Szűrők (2/8)')
     expect(screen.queryByTestId('hidden-filter-toggle')).toBeNull()
     expect(excludeViewedCheckbox.disabled).toBe(false)
     expect(newConstructionCheckbox.disabled).toBe(false)
     expect(excludeMultiCheckbox.disabled).toBe(false)
     expect(onlyMultiCheckbox.disabled).toBe(false)
 
-    // Check 'excludeViewed' -> back to 3/7 selected
+    // Check 'excludeViewed' -> back to 3/8 selected
     fireEvent.click(excludeViewedCheckbox)
     expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew', 'excludeViewed'])
-    expect(selectorBtn.textContent).toContain('Szűrők (3/7)')
+    expect(selectorBtn.textContent).toContain('Szűrők (3/8)')
 
     // Verify localStorage persistence
     const stored = JSON.parse(localStorage.getItem('pinned_quick_filters') || '[]')
@@ -425,5 +426,44 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     expect(screen.queryByTestId('only-new-construction-filter-count')).toBeNull()
     expect(screen.queryByTestId('exclude-multi-source-filter-count')).toBeNull()
     expect(screen.queryByTestId('only-multi-source-filter-count')).toBeNull()
+    expect(screen.queryByTestId('exclude-no-image-filter-count')).toBeNull()
+  })
+
+  it('pins, toggles, and counts items with valid images on exclude-no-image-filter (#460)', () => {
+    useUiStore.setState({ pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS] })
+    const itemsMixedImages: IngatlanItem[] = [
+      createMockIngatlanItem({ id: 'img-1', imageUrl: 'https://dh.hu/1.jpg' }),
+      createMockIngatlanItem({ id: 'img-2', imageUrl: '' }),
+      createMockIngatlanItem({ id: 'img-3', imageUrl: 'https://dh.hu/placeholder.jpg' }),
+      createMockIngatlanItem({
+        id: 'img-4',
+        imageUrl: '',
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/4', imageUrl: '' },
+          { portal: 'oc', url: 'https://oc.hu/4', imageUrl: 'https://oc.hu/4.jpg' },
+        ],
+      }),
+    ]
+
+    render(
+      <BulkActionBar
+        items={itemsMixedImages}
+        rawItems={itemsMixedImages}
+        totalRawCount={4}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('quick-filter-selector-btn'))
+    fireEvent.click(screen.getByTestId('quick-filter-checkbox-excludeNoImage'))
+
+    const chip = screen.getByTestId('exclude-no-image-filter')
+    expect(chip).toBeTruthy()
+    expect(screen.getByTestId('exclude-no-image-filter-count').textContent).toBe('2')
+    expect(useFilterStore.getState().excludeNoImage).toBe(false)
+
+    fireEvent.click(chip)
+    expect(useFilterStore.getState().excludeNoImage).toBe(true)
+    expect(chip.getAttribute('aria-pressed')).toBe('true')
   })
 })

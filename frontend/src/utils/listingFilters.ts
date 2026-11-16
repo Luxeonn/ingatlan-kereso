@@ -1,6 +1,11 @@
 import type { SortOption } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
-import { getEffectivePrice, getPrimaryPortalKey, getItemSourceListingsCount } from './formatters'
+import {
+  getEffectivePrice,
+  getPrimaryPortalKey,
+  getItemSourceListingsCount,
+  hasListingImage,
+} from './formatters'
 
 export function normalizeSearchText(str?: string | null): string {
   return (str || '')
@@ -116,6 +121,7 @@ export interface ItemFilterOptions {
   onlyBargain?: boolean
   excludeMultiSource?: boolean
   onlyMultiSource?: boolean
+  excludeNoImage?: boolean
   minQualityScore?: number
   selectedPortalFilter?: string
   quickSearchQuery?: string
@@ -132,15 +138,20 @@ function isSessionViewed(item: IngatlanItem, sessionViewedUrls?: ReadonlySet<str
   return Boolean(item.sourceListings?.some((sl) => sl.url && sessionViewedUrls.has(sl.url)))
 }
 
+function matchesSourceAndImageFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
+  if (options.excludeMultiSource && getItemSourceListingsCount(item) !== 1) return false
+  if (options.onlyMultiSource && getItemSourceListingsCount(item) <= 1) return false
+  if (options.excludeNoImage && !hasListingImage(item)) return false
+  return true
+}
+
 function matchesItemFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
   const sessionViewed = isSessionViewed(item, options.sessionViewedUrls)
   if (options.onlyNew && !isListingNew(item) && !sessionViewed) return false
   if (options.excludeViewed && item.viewed && !sessionViewed) return false
   if (options.onlyNewConstruction && !item.newConstruction) return false
   if (options.onlyBargain && !isItemBargain(item)) return false
-  if (options.excludeMultiSource && getItemSourceListingsCount(item) !== 1) return false
-  if (options.onlyMultiSource && getItemSourceListingsCount(item) <= 1) return false
-  return true
+  return matchesSourceAndImageFlags(item, options)
 }
 
 export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOptions = {}): IngatlanItem[] {

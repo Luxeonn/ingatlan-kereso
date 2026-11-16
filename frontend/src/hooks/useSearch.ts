@@ -85,6 +85,7 @@ export function useSearch() {
     onlyBargain,
     excludeMultiSource,
     onlyMultiSource,
+    excludeNoImage,
     minQualityScore,
     quickSearchQuery,
     selectedPortalFilter,
@@ -232,7 +233,7 @@ export function useSearch() {
     openUrlsMutation.mutate(urls)
   }
 
-  const filterResetKey = `${criteria.excludeViewed}|${criteria.onlyNewConstruction}|${onlyNew}|${onlyBargain}|${excludeMultiSource}|${onlyMultiSource}|${minQualityScore}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
+  const filterResetKey = `${criteria.excludeViewed}|${criteria.onlyNewConstruction}|${onlyNew}|${onlyBargain}|${excludeMultiSource}|${onlyMultiSource}|${excludeNoImage}|${minQualityScore}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
   const [prevFilterResetKey, setPrevFilterResetKey] = useState(filterResetKey)
   if (prevFilterResetKey !== filterResetKey) {
     setPrevFilterResetKey(filterResetKey)
@@ -249,6 +250,7 @@ export function useSearch() {
       onlyBargain,
       excludeMultiSource,
       onlyMultiSource,
+      excludeNoImage,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
@@ -261,6 +263,7 @@ export function useSearch() {
       onlyBargain,
       excludeMultiSource,
       onlyMultiSource,
+      excludeNoImage,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,

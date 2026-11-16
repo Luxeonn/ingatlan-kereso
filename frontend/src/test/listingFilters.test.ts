@@ -259,5 +259,30 @@ describe('listingFilters utility', () => {
       })
       expect(sortedAsc.map((i) => i.id)).toEqual(['multi-low', 'single-mid'])
     })
+
+    it('filters out listings without valid image when excludeNoImage is true (#460)', () => {
+      const withImage = createMockIngatlanItem({ id: 'with-img', imageUrl: 'https://dh.hu/1.jpg' })
+      const noImage = createMockIngatlanItem({ id: 'no-img', imageUrl: '' })
+      const placeholderImg = createMockIngatlanItem({
+        id: 'placeholder-img',
+        imageUrl: 'https://dh.hu/placeholder.png',
+      })
+      const multiWithSourceImg = createMockIngatlanItem({
+        id: 'multi-source-img',
+        imageUrl: '',
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/m1', imageUrl: '' },
+          { portal: 'oc', url: 'https://oc.hu/m1', imageUrl: 'https://oc.hu/photo.jpg' },
+        ],
+      })
+      const input = [withImage, noImage, placeholderImg, multiWithSourceImg]
+
+      expect(filterAndSortItems(input, { excludeNoImage: true }).map((i) => i.id)).toEqual([
+        'with-img',
+        'multi-source-img',
+      ])
+      expect(filterAndSortItems(input, { excludeNoImage: false })).toHaveLength(4)
+    })
   })
 })

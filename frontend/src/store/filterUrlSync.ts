@@ -25,6 +25,7 @@ export const urlSchema = z.object({
   excludeMulti: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
   onlyMulti: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
   onlyMultiSource: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
+  excludeNoImage: z.enum(['true', 'false', '1', '0']).optional().catch(undefined),
   minQuality: z.coerce.number().finite().min(0).max(100).optional().catch(undefined),
 })
 
@@ -37,6 +38,7 @@ export interface ParsedUrlFilterResult {
   onlyBargain?: boolean
   excludeMultiSource?: boolean
   onlyMultiSource?: boolean
+  excludeNoImage?: boolean
   minQualityScore?: number
 }
 
@@ -92,6 +94,7 @@ function hasAnyParsedFilter(result: Partial<SearchCriteria>, params: ParsedUrlPa
     params.excludeMulti !== undefined ||
     params.onlyMulti !== undefined ||
     params.onlyMultiSource !== undefined ||
+    params.excludeNoImage !== undefined ||
     params.minQuality !== undefined
   )
 }
@@ -133,6 +136,7 @@ export function parseUrlParams(): ParsedUrlFilterResult {
     onlyBargain: parseOptionalBoolean(params.onlyBargain),
     excludeMultiSource: parsedExcludeMulti,
     onlyMultiSource: parsedOnlyMulti,
+    excludeNoImage: parseOptionalBoolean(params.excludeNoImage),
     minQualityScore: params.minQuality,
   }
 }
@@ -175,6 +179,7 @@ export interface UiFilterParamsOptions {
   onlyBargain: boolean
   excludeMultiSource: boolean
   onlyMultiSource?: boolean
+  excludeNoImage?: boolean
   minQualityScore: number
 }
 
@@ -187,5 +192,6 @@ export function appendUiFilterParams(params: URLSearchParams, options: UiFilterP
   } else if (options.excludeMultiSource) {
     params.set('hideMulti', '1')
   }
+  if (options.excludeNoImage) params.set('excludeNoImage', 'true')
   if (options.minQualityScore > 0) params.set('minQuality', String(options.minQualityScore))
 }

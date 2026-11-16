@@ -16,6 +16,7 @@ import {
   getItemSourceListingsCount,
   getPrimaryPortalKey,
   getTotalSourceListingsCount,
+  hasListingImage,
 } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
@@ -28,6 +29,7 @@ function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
     onlyNewConstruction: 0,
     excludeMultiSource: 0,
     onlyMultiSource: 0,
+    excludeNoImage: 0,
   }
   for (const item of sourceItems) {
     if (isItemBargain(item)) counts.bargain += 1
@@ -37,6 +39,7 @@ function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
     const sourceCount = getItemSourceListingsCount(item)
     if (sourceCount === 1) counts.excludeMultiSource += 1
     if (sourceCount > 1) counts.onlyMultiSource += 1
+    if (hasListingImage(item)) counts.excludeNoImage += 1
   }
   return counts
 }
@@ -91,6 +94,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
     setExcludeMultiSource,
     onlyMultiSource,
     setOnlyMultiSource,
+    excludeNoImage,
+    setExcludeNoImage,
     quickSearchQuery,
     setQuickSearchQuery,
     selectedPortalFilter,
@@ -266,6 +271,9 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         onlyMultiSource={onlyMultiSource}
         setOnlyMultiSource={setOnlyMultiSource}
         onlyMultiSourceCount={quickFilterCounts.onlyMultiSource}
+        excludeNoImage={excludeNoImage}
+        setExcludeNoImage={setExcludeNoImage}
+        excludeNoImageCount={quickFilterCounts.excludeNoImage}
         showHidden={showHidden}
         setShowHidden={setShowHidden}
         hiddenCount={hiddenCount}
