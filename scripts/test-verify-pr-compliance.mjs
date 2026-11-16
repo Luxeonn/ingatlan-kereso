@@ -101,3 +101,24 @@ test('Cross-Layer Contract Drift: presentation DTO modified with explicit exempt
     )
   );
 });
+
+test('dependabot[bot] PR passes without Hungarian sections or issue link', () => {
+  const result = verifyPrCompliance({
+    bodyText: 'Bumps foo from 1.0.0 to 1.1.0.',
+    changedFiles: ['build.gradle.kts'],
+    author: 'dependabot[bot]',
+  });
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+  assert.ok(result.passes.some((p) => p.includes('dependabot[bot]')));
+});
+
+test('dependabot[bot] PR still fails if presentation DTO changes without OpenAPI sync', () => {
+  const result = verifyPrCompliance({
+    bodyText: 'Bumps foo from 1.0.0 to 1.1.0.',
+    changedFiles: ['src/main/java/ingatlanok/presentation/DashboardResponseDto.java'],
+    author: 'dependabot[bot]',
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes('Cross-Layer Contract Drift')));
+});
