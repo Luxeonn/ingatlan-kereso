@@ -38,6 +38,8 @@ public class IngatlanItem implements Serializable {
   private PropertyType propertyType = PropertyType.EGYEB_ISMERETLEN;
   private int sourcesCount = 1;
   private List<SourceListing> sourceListings = new ArrayList<>();
+  private boolean manuallyMerged;
+  private boolean manuallySplit;
 
   // Milestone R4 Bargain fields (#263 & #264)
   private Boolean isBargain = false;

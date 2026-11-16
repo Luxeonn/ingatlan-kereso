@@ -43,6 +43,7 @@ interface UiState {
   starredUrls: string[]
   starredItemsCache: Record<string, IngatlanItem>
   pinnedQuickFilters: QuickFilterId[]
+  selectedCardUrls: string[]
   toggleTheme: () => void
   setViewMode: (mode: 'grid' | 'list') => void
   setDashboardTab: (tab: DashboardTab) => void
@@ -54,6 +55,9 @@ interface UiState {
   isStarred: (url: string) => boolean
   togglePinnedQuickFilter: (id: QuickFilterId) => void
   setPinnedQuickFilters: (ids: QuickFilterId[]) => void
+  toggleCardSelection: (url: string) => void
+  clearCardSelection: () => void
+  setSelectedCardUrls: (urls: string[]) => void
 }
 
 function getInitialTheme(): 'dark' | 'light' {
@@ -138,6 +142,7 @@ export const useUiStore = create<UiState>((set, get) => {
     starredUrls: getInitialStarredUrls(),
     starredItemsCache: getInitialStarredItemsCache(),
     pinnedQuickFilters: getInitialPinnedQuickFilters(),
+    selectedCardUrls: [],
     toggleTheme: () =>
       set((state) => {
         const next = state.theme === 'dark' ? 'light' : 'dark'
@@ -228,5 +233,18 @@ export const useUiStore = create<UiState>((set, get) => {
         savePinnedQuickFilters(next)
         return { pinnedQuickFilters: next }
       }),
+    toggleCardSelection: (url) =>
+      set((state) => {
+        if (!url) return state
+        const exists = state.selectedCardUrls.includes(url)
+        return {
+          selectedCardUrls: exists
+            ? state.selectedCardUrls.filter((u) => u !== url)
+            : [...state.selectedCardUrls, url],
+        }
+      }),
+    clearCardSelection: () => set({ selectedCardUrls: [] }),
+    setSelectedCardUrls: (urls) =>
+      set({ selectedCardUrls: Array.from(new Set(urls.filter(Boolean))) }),
   }
 })

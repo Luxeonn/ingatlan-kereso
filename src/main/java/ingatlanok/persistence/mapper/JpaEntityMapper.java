@@ -15,6 +15,7 @@ import org.mapstruct.ReportingPolicy;
 
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.PropertyParser;
+import ingatlanok.model.DedupOverride;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
 import ingatlanok.model.ListingStatus;
@@ -25,6 +26,7 @@ import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.persistence.entity.DedupOverrideEntity;
 import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
@@ -46,6 +48,8 @@ public abstract class JpaEntityMapper {
               + " ? entity.getPropertyType() : PropertyType.EGYEB_ISMERETLEN)")
   @Mapping(target = "sourcesCount", ignore = true)
   @Mapping(target = "sourceListings", ignore = true)
+  @Mapping(target = "manuallyMerged", ignore = true)
+  @Mapping(target = "manuallySplit", ignore = true)
   @Mapping(target = "isBargain", ignore = true)
   @Mapping(target = "bargain", ignore = true)
   @Mapping(target = "referenceMedianPricePerSquareMeter", ignore = true)
@@ -293,6 +297,8 @@ public abstract class JpaEntityMapper {
   @Mapping(target = "priceHuf", source = "priceAmount")
   @Mapping(target = "pricePerM2", source = "pricePerSqm")
   public abstract SourceListing toSourceListing(PropertyEntity entity);
+
+  public abstract DedupOverride toDedupOverride(DedupOverrideEntity entity);
 
   public abstract ListingObservation toListingObservation(ListingObservationEntity entity);
 

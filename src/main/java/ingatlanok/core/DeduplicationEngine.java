@@ -13,6 +13,7 @@ import java.util.Set;
 import ingatlanok.common.CityUtils;
 import ingatlanok.core.dedup.ClusterConsolidationHelper;
 import ingatlanok.core.dedup.ClusterMatchScorer;
+import ingatlanok.core.dedup.DedupOverrides;
 import ingatlanok.core.dedup.LocationConflictDetector;
 import ingatlanok.core.dedup.LocationConflictDetector.ExtractedLocation;
 import ingatlanok.core.dedup.SemanticConflictDetector;
@@ -21,6 +22,7 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
+import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 
 public class DeduplicationEngine {
@@ -36,9 +38,16 @@ public class DeduplicationEngine {
   private static final double HOUSE_VARIANT_MAX_PRICE_DIFF_RATIO = 0.005; // ±0.5%
 
   private final ListingStorage listingStorage;
+  private final DedupOverrideStorage dedupOverrideStorage;
 
   public DeduplicationEngine(ListingStorage listingStorage) {
+    this(listingStorage, null);
+  }
+
+  public DeduplicationEngine(
+      ListingStorage listingStorage, DedupOverrideStorage dedupOverrideStorage) {
     this.listingStorage = listingStorage;
+    this.dedupOverrideStorage = dedupOverrideStorage;
   }
 
   /**
@@ -71,17 +80,27 @@ public class DeduplicationEngine {
       return Collections.emptyList();
     }
 
+    DedupOverrides overrides = loadOverrides();
+
     // Stage 2: Score-ordered cross-portal multi-signal clustering (order-independent best match)
     List<List<IngatlanItem>> clusters =
-        ClusterMatchScorer.buildBestMatchClusters(stage1Items, this::isMatch);
+        ClusterMatchScorer.buildBestMatchClusters(
+            stage1Items, (a, b) -> isMatch(a, b, overrides), overrides);
 
     // Stage 3: Consolidation into grouped IngatlanItem
     List<IngatlanItem> consolidatedItems = new ArrayList<>(clusters.size());
     for (List<IngatlanItem> cluster : clusters) {
-      consolidatedItems.add(consolidateCluster(cluster));
+      consolidatedItems.add(consolidateCluster(cluster, overrides));
     }
 
     return consolidatedItems;
+  }
+
+  private DedupOverrides loadOverrides() {
+    if (dedupOverrideStorage == null) {
+      return DedupOverrides.EMPTY;
+    }
+    return DedupOverrides.of(dedupOverrideStorage.getAllOverrides());
   }
 
   public List<IngatlanItem> deduplicate(Collection<IngatlanItem> items) {
@@ -89,6 +108,24 @@ public class DeduplicationEngine {
   }
 
   public boolean isMatch(IngatlanItem a, IngatlanItem b) {
+    return isMatch(a, b, DedupOverrides.EMPTY);
+  }
+
+  public boolean isMatch(IngatlanItem a, IngatlanItem b, DedupOverrides overrides) {
+    if (a == null || b == null) {
+      return false;
+    }
+    DedupOverrides effectiveOverrides = overrides != null ? overrides : DedupOverrides.EMPTY;
+    if (effectiveOverrides.isForceSplit(a.getUrl(), b.getUrl())) {
+      return false;
+    }
+    if (effectiveOverrides.isForceMerge(a.getUrl(), b.getUrl())) {
+      return isMatchingCity(a, b);
+    }
+    return isHeuristicMatch(a, b);
+  }
+
+  private boolean isHeuristicMatch(IngatlanItem a, IngatlanItem b) {
     if (!isBaseCompatible(a, b)) {
       return false;
     }
@@ -291,8 +328,8 @@ public class DeduplicationEngine {
     return largeOrHouse && roomDiff <= maxAllowedDiff && areaDiffRatio <= 0.035;
   }
 
-  private IngatlanItem consolidateCluster(List<IngatlanItem> cluster) {
-    IngatlanItem primary = findLowestActivePriceSource(cluster);
+  private IngatlanItem consolidateCluster(List<IngatlanItem> cluster, DedupOverrides overrides) {
+    IngatlanItem primary = ClusterConsolidationHelper.findLowestActivePriceSource(cluster);
 
     ClusterConsolidationHelper.adoptMissingDetailsFromCluster(primary, cluster);
 
@@ -302,7 +339,13 @@ public class DeduplicationEngine {
 
     List<SourceListing> sourceListings = cluster.stream()
         .filter(Objects::nonNull)
-        .map(item -> toSourceListing(item, clusterArea))
+        .map(item -> {
+          SourceListing sl = toSourceListing(item, clusterArea);
+          if (sl != null && overrides.hasAnySplit(item.getUrl())) {
+            sl.setManuallySplit(true);
+          }
+          return sl;
+        })
         .sorted(Comparator.comparing(
             SourceListing::getPriceHuf,
             Comparator.nullsLast(Long::compareTo)))
@@ -310,6 +353,8 @@ public class DeduplicationEngine {
 
     primary.setSourcesCount(cluster.size());
     primary.setSourceListings(sourceListings);
+    primary.setManuallyMerged(overrides.hasAnyForceMergePair(cluster));
+    primary.setManuallySplit(overrides.hasAnySplitMember(cluster));
 
     // If primary has no image, adopt image from any cluster member that has one
     if (primary.getImageUrl() == null || primary.getImageUrl().isBlank()) {
@@ -333,40 +378,6 @@ public class DeduplicationEngine {
     primary.setHidden(anyHidden);
 
     return primary;
-  }
-
-  private IngatlanItem findLowestActivePriceSource(List<IngatlanItem> cluster) {
-    if (cluster == null || cluster.isEmpty()) {
-      return null;
-    }
-    // 1. Minimum active source price
-    List<IngatlanItem> activeWithPrice = cluster.stream()
-        .filter(Objects::nonNull)
-        .filter(i -> i.getStatus() == null || i.getStatus() == ListingStatus.ACTIVE)
-        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
-            && i.getPriceInfo().getAmountHuf() > 0)
-        .toList();
-
-    if (!activeWithPrice.isEmpty()) {
-      return activeWithPrice.stream()
-          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
-          .orElse(cluster.get(0));
-    }
-
-    // 2. Minimum price among all items
-    List<IngatlanItem> anyWithPrice = cluster.stream()
-        .filter(Objects::nonNull)
-        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
-            && i.getPriceInfo().getAmountHuf() > 0)
-        .toList();
-
-    if (!anyWithPrice.isEmpty()) {
-      return anyWithPrice.stream()
-          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
-          .orElse(cluster.get(0));
-    }
-
-    return cluster.get(0);
   }
 
   public SourceListing toSourceListing(IngatlanItem item) {

@@ -13,6 +13,7 @@ import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.persistence.ConfigStorage;
+import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
@@ -30,6 +31,7 @@ import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
 import ingatlanok.presentation.DashboardPresentationService;
+import ingatlanok.presentation.DedupPresentationService;
 
 @Configuration
 public class CoreEngineConfig {
@@ -93,8 +95,9 @@ public class CoreEngineConfig {
   }
 
   @Bean
-  public DeduplicationEngine deduplicationEngine(ListingStorage listingStorage) {
-    return new DeduplicationEngine(listingStorage);
+  public DeduplicationEngine deduplicationEngine(
+      ListingStorage listingStorage, DedupOverrideStorage dedupOverrideStorage) {
+    return new DeduplicationEngine(listingStorage, dedupOverrideStorage);
   }
 
   @Bean
@@ -134,5 +137,15 @@ public class CoreEngineConfig {
       MarketAnalyticsEngine analyticsEngine,
       IngatlanComHtmlImportService htmlImportService) {
     return new DashboardPresentationService(searchEngine, analyticsEngine, htmlImportService);
+  }
+
+  @Bean
+  public DedupPresentationService dedupPresentationService(
+      ListingStorage listingStorage,
+      DedupOverrideStorage dedupOverrideStorage,
+      DeduplicationEngine dedupEngine,
+      DataQualityEngine qualityEngine) {
+    return new DedupPresentationService(
+        listingStorage, dedupOverrideStorage, dedupEngine, qualityEngine);
   }
 }
