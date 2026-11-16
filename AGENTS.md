@@ -14,7 +14,7 @@ The backend is a Java 25 Spring Boot application. Production code lives in `src/
 - `cd frontend && npm run test:e2e` runs Playwright browser tests.
 - `bash scripts/validate-skills.sh -v` (Windows: `& "C:\Program Files\Git\bin\bash.exe" scripts/validate-skills.sh -v`) executes deterministic offline validation of specialist skills, Markdown links, banned words/patterns, architectural guardrails, and frontend OpenAPI schema derivation (all 6 checks must pass).
 
-Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`), which runs on pushes to `develop`, and `.github/workflows/release.yml` (`Docker Release`), which is manually started from a branch (such as `main` or `develop`). Releases derive their version from the latest Git release tag and a patch/minor/major/custom input; GHCR publication must succeed before the Git tag and GitHub Release are created.
+Docker publication is handled by `.github/workflows/images.yml` (`Docker Build`), which runs on pushes to `develop`, and `.github/workflows/release.yml` (`Docker Release`), which is manually started exclusively from the `main` branch (select `main` in the GitHub Actions UI `Use workflow from` dropdown or run `gh workflow run release.yml --ref main`, while `develop` remains the repository default branch for PRs). Releases derive their version from the latest Git release tag and a patch/minor/major/custom input; GHCR publication must succeed before the Git tag and GitHub Release are created.
 
 ## Code Generation & Frontend Deduplication Conventions (Mandatory)
 

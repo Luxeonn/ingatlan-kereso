@@ -180,6 +180,8 @@ Do **not** open a public issue for security vulnerabilities. Follow the procedur
 | Workflow | Trigger | Description |
 | :--- | :--- | :--- |
 | `images.yml` — Docker Build | Push to `develop` | Publishes `latest` backend and frontend images to GHCR automatically |
-| `release.yml` — Docker Release | Manual from a branch | Publishes versioned (`1.x.y`) images, creates Git tag and GitHub Release |
+| `release.yml` — Docker Release | Manual from `main` branch (`gh workflow run release.yml --ref main`) | Publishes versioned (`1.x.y`) images, creates Git tag and GitHub Release |
+
+`develop` remains the repository default branch for pull requests, so when triggering `Docker Release` manually from the GitHub Actions UI, select `main` in the `Use workflow from` dropdown (or run `gh workflow run release.yml --ref main`). Runs started from any other branch or tag are rejected immediately by the `guard` job.
 
 Release versions derive from the latest Git tag plus a `patch` / `minor` / `major` / custom input. Images are tagged with clean numeric SemVer (e.g., `1.2.0`) — no `v` prefix.

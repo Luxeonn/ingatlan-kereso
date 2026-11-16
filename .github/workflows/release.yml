@@ -27,17 +27,17 @@ permissions:
 
 jobs:
   guard:
-    name: Validate release branch
+    name: Require main branch
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require branch
+      - name: Validate selected branch
         env:
           REF_TYPE: ${{ github.ref_type }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          if [ "$REF_TYPE" != "branch" ]; then
-            echo "Docker Release must be started from a branch."
+          if [ "$REF_TYPE" != "branch" ] || [ "$BRANCH" != "main" ]; then
+            echo "Docker Release can only be run from the main branch."
             exit 1
           fi
 
