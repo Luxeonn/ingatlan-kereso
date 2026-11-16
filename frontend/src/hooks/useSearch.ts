@@ -19,6 +19,7 @@ import {
   isItemBargain,
   isListingNew,
   filterAndSortItems,
+  markItemsAsViewed,
 } from '../utils/listingFilters'
 
 export { normalizePortalKey, normalizeSearchText, isItemBargain, filterAndSortItems }
@@ -95,6 +96,7 @@ export function useSearch() {
   const [toastUndoItem, setToastUndoItem] = useState<IngatlanItem | null>(null)
   const [searchError, setSearchError] = useState<Error | null>(null)
   const [isSearchPending, setIsSearchPending] = useState(false)
+  const [sessionViewedUrls, setSessionViewedUrls] = useState<Set<string>>(() => new Set())
   const searchRequestIdRef = useRef(0)
 
   const historyQuery = useQuery({
@@ -154,28 +156,14 @@ export function useSearch() {
   })
 
   const markViewedInState = (urlSet: Set<string>) => {
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            items: prev.items.map((item) => {
-              const directMatch = Boolean(item.url && urlSet.has(item.url))
-              const sourceMatch = Boolean(
-                item.sourceListings?.some((sl) => sl.url && urlSet.has(sl.url)),
-              )
-              if (!directMatch && !sourceMatch) return item
-              return {
-                ...item,
-                viewed: true,
-                isNew: false,
-                sourceListings: item.sourceListings?.map((sl) =>
-                  sl.url && urlSet.has(sl.url) ? { ...sl, viewed: true } : sl,
-                ),
-              }
-            }),
-          }
-        : prev,
-    )
+    setSessionViewedUrls((prev) => {
+      const next = new Set(prev)
+      urlSet.forEach((u) => {
+        if (u) next.add(u)
+      })
+      return next
+    })
+    setData((prev) => (prev ? { ...prev, items: markItemsAsViewed(prev.items, urlSet) } : prev))
     queryClient.invalidateQueries({ queryKey: ['history'] })
   }
 
@@ -244,9 +232,19 @@ export function useSearch() {
     openUrlsMutation.mutate(urls)
   }
 
+  const filterResetKey = `${criteria.excludeViewed}|${criteria.onlyNewConstruction}|${onlyNew}|${onlyBargain}|${excludeMultiSource}|${onlyMultiSource}|${minQualityScore}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
+  const [prevFilterResetKey, setPrevFilterResetKey] = useState(filterResetKey)
+  if (prevFilterResetKey !== filterResetKey) {
+    setPrevFilterResetKey(filterResetKey)
+    if (sessionViewedUrls.size > 0) {
+      setSessionViewedUrls(new Set())
+    }
+  }
+
   const sharedFilterOptions = useMemo(
     () => ({
       excludeViewed: criteria.excludeViewed,
+      sessionViewedUrls,
       onlyNewConstruction: criteria.onlyNewConstruction,
       onlyBargain,
       excludeMultiSource,
@@ -258,6 +256,7 @@ export function useSearch() {
     }),
     [
       criteria.excludeViewed,
+      sessionViewedUrls,
       criteria.onlyNewConstruction,
       onlyBargain,
       excludeMultiSource,
@@ -338,6 +337,7 @@ export function useSearch() {
     search: (overrideCriteria?: Partial<SearchCriteria>) => {
       const nextRequestId = searchRequestIdRef.current + 1
       searchRequestIdRef.current = nextRequestId
+      setSessionViewedUrls(new Set())
       setSearchError(null)
       setIsSearchPending(true)
       searchMutation.mutate({

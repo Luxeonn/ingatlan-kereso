@@ -32,7 +32,7 @@ const QuickFilterCountBadge: FC<QuickFilterCountBadgeProps> = ({
     <span
       data-testid={testId}
       className={cn(
-        'rounded-full px-1.5 py-0.2 text-[10px] font-bold shrink-0',
+        'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums shrink-0',
         isActive ? activeClass : inactiveClass,
       )}
     >
@@ -80,7 +80,7 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
     onClick={onClick}
     title={title}
     className={cn(
-      'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition-all',
+      'flex h-8 flex-1 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-all',
       isActive ? activeClassName : inactiveClassName,
     )}
   >
@@ -311,7 +311,7 @@ export const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
             type="button"
             onClick={() => setSelectedPortalFilter(chip.id)}
             className={cn(
-              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all',
+              'flex h-7 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-semibold transition-all',
               isActive
                 ? 'border-blue-500/50 bg-blue-600 text-white shadow-sm'
                 : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
@@ -320,7 +320,7 @@ export const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
             <span>{chip.label}</span>
             <span
               className={cn(
-                'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
+                'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums',
                 isActive
                   ? 'bg-white/20 text-white'
                   : 'bg-[var(--bg-card)] text-[var(--text-secondary)]',
