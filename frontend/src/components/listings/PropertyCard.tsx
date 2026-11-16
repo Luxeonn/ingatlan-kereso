@@ -29,8 +29,8 @@ interface PropertyCardProps {
   onMarkViewed: (url: string) => void
   onHide?: (item: IngatlanItem) => void
   onRestore?: (item: IngatlanItem) => void
-  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<void> | void
-  onUndoOverride?: (overrideId: number) => Promise<void> | void
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
   viewMode?: 'grid' | 'list'
 }
 

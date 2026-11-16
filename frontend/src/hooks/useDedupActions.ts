@@ -43,6 +43,13 @@ export function replaceAffectedItems(
   ]
 }
 
+function resolveErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) {
+    return err.message
+  }
+  return 'Hiba történt a művelet során'
+}
+
 export function useDedupActions(
   setData: Dispatch<SetStateAction<DashboardResponseDto | null>>,
   setToastMessage: Dispatch<SetStateAction<string | null>>,
@@ -51,17 +58,23 @@ export function useDedupActions(
   const { clearCardSelection } = useUiStore()
   const [isMerging, setIsMerging] = useState(false)
 
-  const splitSource = async (sourceUrl: string, clusterUrls: string[]) => {
-    const res = await apiSplitCluster(sourceUrl, clusterUrls)
-    const affected = new Set([sourceUrl, ...clusterUrls])
-    setData((prev) =>
-      prev ? { ...prev, items: replaceAffectedItems(prev.items, affected, res.items) } : prev,
-    )
-    setToastMessage(res.message)
-    queryClient.invalidateQueries({ queryKey: ['history'] })
+  const splitSource = async (sourceUrl: string, clusterUrls: string[]): Promise<boolean> => {
+    try {
+      const res = await apiSplitCluster(sourceUrl, clusterUrls)
+      const affected = new Set([sourceUrl, ...clusterUrls])
+      setData((prev) =>
+        prev ? { ...prev, items: replaceAffectedItems(prev.items, affected, res.items) } : prev,
+      )
+      setToastMessage(res.message)
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+      return true
+    } catch (err) {
+      setToastMessage(resolveErrorMessage(err))
+      return false
+    }
   }
 
-  const mergeSelected = async (urls: string[]) => {
+  const mergeSelected = async (urls: string[]): Promise<boolean> => {
     setIsMerging(true)
     try {
       const res = await apiMergeListings(urls)
@@ -72,24 +85,34 @@ export function useDedupActions(
       clearCardSelection()
       setToastMessage(res.message)
       queryClient.invalidateQueries({ queryKey: ['history'] })
+      return true
+    } catch (err) {
+      setToastMessage(resolveErrorMessage(err))
+      return false
     } finally {
       setIsMerging(false)
     }
   }
 
-  const undoDedupOverride = async (overrideId: number) => {
-    const res = await apiDeleteDedupOverride(overrideId)
-    const affected = new Set<string>()
-    for (const item of res.items) {
-      for (const u of collectItemUrls(item)) affected.add(u)
+  const undoDedupOverride = async (overrideId: number): Promise<boolean> => {
+    try {
+      const res = await apiDeleteDedupOverride(overrideId)
+      const affected = new Set<string>()
+      for (const item of res.items) {
+        for (const u of collectItemUrls(item)) affected.add(u)
+      }
+      setData((prev) =>
+        prev && affected.size > 0
+          ? { ...prev, items: replaceAffectedItems(prev.items, affected, res.items) }
+          : prev,
+      )
+      setToastMessage(res.message)
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+      return true
+    } catch (err) {
+      setToastMessage(resolveErrorMessage(err))
+      return false
     }
-    setData((prev) =>
-      prev && affected.size > 0
-        ? { ...prev, items: replaceAffectedItems(prev.items, affected, res.items) }
-        : prev,
-    )
-    setToastMessage(res.message)
-    queryClient.invalidateQueries({ queryKey: ['history'] })
   }
 
   return { splitSource, mergeSelected, undoDedupOverride, isMerging }

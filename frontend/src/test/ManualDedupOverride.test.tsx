@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, renderHook, act } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { PropertyCard } from '../components/listings/PropertyCard'
 import { BulkActionBar } from '../components/listings/BulkActionBar'
 import { PropertyDetailsDrawer } from '../components/listings/PropertyDetailsDrawer'
+import { useDedupActions } from '../hooks/useDedupActions'
 import { useUiStore } from '../store/useUiStore'
 import { createMockIngatlanItem } from './testFixtures'
 import * as formatters from '../utils/formatters'
@@ -163,5 +166,31 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     await waitFor(() => {
       expect(onUndoOverride).toHaveBeenCalledWith(42)
     })
+  })
+
+  it('useDedupActions: hiba esetén toastot jelenít meg és nem törli a kijelölést', async () => {
+    vi.mocked(dedupApi.mergeListings).mockRejectedValueOnce(
+      new Error('Csak azonos településen belüli hirdetések vonhatók össze'),
+    )
+    useUiStore.setState({ selectedCardUrls: ['https://dh.hu/a', 'https://oc.hu/b'] })
+    const setData = vi.fn()
+    const setToastMessage = vi.fn()
+    const queryClient = new QueryClient()
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+
+    const { result } = renderHook(() => useDedupActions(setData, setToastMessage), { wrapper })
+
+    let ok = true
+    await act(async () => {
+      ok = await result.current.mergeSelected(['https://dh.hu/a', 'https://oc.hu/b'])
+    })
+
+    expect(ok).toBe(false)
+    expect(setToastMessage).toHaveBeenCalledWith(
+      'Csak azonos településen belüli hirdetések vonhatók össze',
+    )
+    expect(useUiStore.getState().selectedCardUrls).toEqual(['https://dh.hu/a', 'https://oc.hu/b'])
   })
 })

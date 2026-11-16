@@ -15,8 +15,8 @@ export interface PropertyDetailsModalProps {
   item: IngatlanItem
   onClose: () => void
   onMarkViewed?: (url: string) => void
-  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<void> | void
-  onUndoOverride?: (overrideId: number) => Promise<void> | void
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
 }
 
 function formatModalPrice(priceMillion: number | null | undefined, rawPrice?: string): string {

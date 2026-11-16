@@ -10,8 +10,8 @@ import { cn } from '../../utils/cn'
 export interface PropertyDetailsDrawerProps {
   item: IngatlanItem
   onMarkViewed?: (url: string) => void
-  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<void> | void
-  onUndoOverride?: (overrideId: number) => Promise<void> | void
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
   className?: string
 }
 
@@ -45,12 +45,23 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
   const [isMutating, setIsMutating] = useState(false)
   const hasManualOverride = Boolean(item.manuallyMerged || item.manuallySplit)
 
+  const sources = buildFallbackSources(item)
+  const clusterUrls = sources.map((s) => s.url).filter((u): u is string => Boolean(u))
+  const clusterUrlKey = clusterUrls.join('\0')
+
   useEffect(() => {
-    if (!item.url || !hasManualOverride) return undefined
+    if (!hasManualOverride) return undefined
+    const urls = clusterUrlKey ? clusterUrlKey.split('\0') : item.url ? [item.url] : []
+    if (urls.length === 0) return undefined
     let cancelled = false
-    getDedupOverrides(item.url)
-      .then((res) => {
-        if (!cancelled) setOverrides(res)
+    Promise.all(urls.map((u) => getDedupOverrides(u).catch(() => [] as DedupOverrideDto[])))
+      .then((results) => {
+        if (cancelled) return
+        const byId = new Map<number, DedupOverrideDto>()
+        for (const list of results) {
+          for (const ov of list) byId.set(ov.id, ov)
+        }
+        setOverrides(Array.from(byId.values()))
       })
       .catch(() => {
         if (!cancelled) setOverrides([])
@@ -58,9 +69,8 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
     return () => {
       cancelled = true
     }
-  }, [item.url, hasManualOverride])
+  }, [item.url, clusterUrlKey, hasManualOverride])
 
-  const sources = buildFallbackSources(item)
   const handleOpenSource = (url?: string) => {
     if (!url) return
     openExternalUrl(url)
@@ -71,7 +81,6 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
   const deductions = item.qualityDeductions ?? []
   const qualityConfig = score !== null ? getQualityConfig(score) : null
   const isMultiSource = sources.length > 1
-  const clusterUrls = sources.map((s) => s.url).filter((u): u is string => Boolean(u))
   const displayedOverrides = hasManualOverride ? overrides : []
 
   const handleSplit = async (sourceUrl: string) => {
@@ -88,8 +97,10 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
     if (!onUndoOverride || isMutating) return
     setIsMutating(true)
     try {
-      await onUndoOverride(overrideId)
-      setOverrides((prev) => prev.filter((o) => o.id !== overrideId))
+      const ok = await onUndoOverride(overrideId)
+      if (ok !== false) {
+        setOverrides((prev) => prev.filter((o) => o.id !== overrideId))
+      }
     } finally {
       setIsMutating(false)
     }

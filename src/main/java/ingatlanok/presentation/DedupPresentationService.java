@@ -1,11 +1,13 @@
 package ingatlanok.presentation;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 
 import ingatlanok.common.CityUtils;
@@ -191,11 +193,21 @@ public class DedupPresentationService {
 
   private Set<String> expandConnectedForceMergeUrls(Collection<String> seedUrls) {
     Set<String> expanded = new LinkedHashSet<>(seedUrls);
-    List<DedupOverride> related = overrideStorage.getOverridesForUrls(expanded);
-    for (DedupOverride ov : related) {
-      if (ov.type() == DedupOverrideType.FORCE_MERGE) {
-        expanded.add(ov.urlA());
-        expanded.add(ov.urlB());
+    Queue<String> frontier = new ArrayDeque<>(expanded);
+    while (!frontier.isEmpty()) {
+      List<String> batch = new ArrayList<>();
+      while (!frontier.isEmpty()) {
+        batch.add(frontier.poll());
+      }
+      for (DedupOverride ov : overrideStorage.getOverridesForUrls(batch)) {
+        if (ov.type() == DedupOverrideType.FORCE_MERGE) {
+          if (expanded.add(ov.urlA())) {
+            frontier.add(ov.urlA());
+          }
+          if (expanded.add(ov.urlB())) {
+            frontier.add(ov.urlB());
+          }
+        }
       }
     }
     return expanded;

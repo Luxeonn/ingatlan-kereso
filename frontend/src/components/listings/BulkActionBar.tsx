@@ -53,7 +53,7 @@ interface BulkActionBarProps {
   onMarkAllViewed?: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
-  onMergeSelected?: (urls: string[]) => Promise<void> | void
+  onMergeSelected?: (urls: string[]) => Promise<boolean | void> | void
   isMerging?: boolean
   visibleCount?: number
   hiddenCount?: number

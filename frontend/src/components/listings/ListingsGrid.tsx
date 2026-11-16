@@ -23,9 +23,9 @@ interface ListingsGridProps {
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
-  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<void> | void
-  onUndoOverride?: (overrideId: number) => Promise<void> | void
-  onMergeSelected?: (urls: string[]) => Promise<void> | void
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
+  onMergeSelected?: (urls: string[]) => Promise<boolean | void> | void
   isMerging?: boolean
   initialBatchSize?: number
   batchSize?: number
