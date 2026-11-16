@@ -206,5 +206,85 @@ describe('ListingsGrid component', () => {
     expect(sentinel).toBeTruthy()
     expect(sentinel.textContent).toContain('További ingatlanok betöltése... (10 / 25 db)')
   })
+
+  it('preserves visibleLimit when items receives a new array reference with identical URLs/order (#459)', () => {
+    const manyItems = Array.from({ length: 45 }, (_, i) =>
+      createMockIngatlanItem({
+        id: `item-${i}`,
+        url: `https://dh.hu/ingatlan/${i}`,
+        title: `Ingatlan ${i}`,
+        viewed: false,
+      }),
+    )
+
+    const { rerender } = render(
+      <ListingsGrid
+        items={manyItems}
+        rawItems={manyItems}
+        totalRawCount={45}
+        isLoading={false}
+        hasSearched={true}
+        initialBatchSize={18}
+        batchSize={18}
+        onMarkViewed={onMarkViewed}
+        onOpenAll={onOpenAll}
+        onTriggerSearch={onTriggerSearch}
+      />,
+    )
+
+    // Load next batch -> visibleLimit becomes 36
+    const sentinel = screen.getByTestId('infinite-scroll-sentinel')
+    fireEvent.click(sentinel)
+    expect(screen.getByTestId('infinite-scroll-sentinel').textContent).toContain('(36 / 45 db)')
+
+    // Rerender with a new array reference (e.g. after markAsViewed updates viewed=true)
+    const updatedItems = manyItems.map((item, idx) =>
+      idx === 20 ? { ...item, viewed: true, isNew: false } : item,
+    )
+
+    rerender(
+      <ListingsGrid
+        items={updatedItems}
+        rawItems={updatedItems}
+        totalRawCount={45}
+        isLoading={false}
+        hasSearched={true}
+        initialBatchSize={18}
+        batchSize={18}
+        onMarkViewed={onMarkViewed}
+        onOpenAll={onOpenAll}
+        onTriggerSearch={onTriggerSearch}
+      />,
+    )
+
+    // visibleLimit must remain 36
+    expect(screen.getByTestId('infinite-scroll-sentinel').textContent).toContain('(36 / 45 db)')
+
+    // Rerender with genuinely different list content -> visibleLimit resets to 18
+    const newSearchItems = Array.from({ length: 45 }, (_, i) =>
+      createMockIngatlanItem({
+        id: `other-${i}`,
+        url: `https://oc.hu/ingatlan/${i}`,
+        title: `Másik ingatlan ${i}`,
+      }),
+    )
+
+    rerender(
+      <ListingsGrid
+        items={newSearchItems}
+        rawItems={newSearchItems}
+        totalRawCount={45}
+        isLoading={false}
+        hasSearched={true}
+        initialBatchSize={18}
+        batchSize={18}
+        onMarkViewed={onMarkViewed}
+        onOpenAll={onOpenAll}
+        onTriggerSearch={onTriggerSearch}
+      />,
+    )
+
+    expect(screen.getByTestId('infinite-scroll-sentinel').textContent).toContain('(18 / 45 db)')
+  })
 })
 
