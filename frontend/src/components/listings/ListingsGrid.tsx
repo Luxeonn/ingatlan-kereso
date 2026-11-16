@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FC, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FC, type ReactNode } from 'react'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { Inbox, Search, Star, Archive } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
@@ -101,11 +101,19 @@ function renderEmptyState(props: EmptyStateProps): ReactNode {
   return null
 }
 
+function buildItemsSignature(items: IngatlanItem[]): string {
+  return `${items.length}:${items.map((item) => item.url || item.id || '').join('\0')}`
+}
+
 function shouldResetBatchToken(
-  prev: { items: IngatlanItem[]; mode?: string; initialBatchSize: number },
-  current: { items: IngatlanItem[]; mode?: string; initialBatchSize: number }
+  prev: { itemsSignature: string; mode?: string; initialBatchSize: number },
+  current: { itemsSignature: string; mode?: string; initialBatchSize: number }
 ): boolean {
-  return prev.items !== current.items || prev.mode !== current.mode || prev.initialBatchSize !== current.initialBatchSize
+  return (
+    prev.itemsSignature !== current.itemsSignature ||
+    prev.mode !== current.mode ||
+    prev.initialBatchSize !== current.initialBatchSize
+  )
 }
 
 export const ListingsGrid: FC<ListingsGridProps> = ({
@@ -127,17 +135,18 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   batchSize = DEFAULT_BATCH_STEP,
 }) => {
   const { viewMode } = useUiStore()
+  const itemsSignature = useMemo(() => buildItemsSignature(items), [items])
   const initialLimit = items.length <= initialBatchSize + 3 ? items.length : initialBatchSize
   const [columns, setColumns] = useState(1)
   const [scrollMargin, setScrollMargin] = useState(0)
   const [visibleLimit, setVisibleLimit] = useState(initialLimit)
-  const [prevResetToken, setPrevResetToken] = useState(() => ({ items, mode, initialBatchSize }))
+  const [prevResetToken, setPrevResetToken] = useState(() => ({ itemsSignature, mode, initialBatchSize }))
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLButtonElement>(null)
 
-  // Reset pagination limit during render when items, mode, or batch size changes (#278)
-  if (shouldResetBatchToken(prevResetToken, { items, mode, initialBatchSize })) {
-    setPrevResetToken({ items, mode, initialBatchSize })
+  // Reset pagination limit during render only when list content/order, mode, or batch size changes (#278, #459)
+  if (shouldResetBatchToken(prevResetToken, { itemsSignature, mode, initialBatchSize })) {
+    setPrevResetToken({ itemsSignature, mode, initialBatchSize })
     setVisibleLimit(items.length <= initialBatchSize + 3 ? items.length : initialBatchSize)
   }
 
@@ -197,9 +206,10 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   }, [hasSearched, visibleItems.length, mode])
 
   const rowCount = Math.ceil(visibleItems.length / columns)
+  const estimatedRowHeight = viewMode === 'list' ? 160 : 320
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
-    estimateSize: () => 480,
+    estimateSize: () => estimatedRowHeight,
     overscan: 1,
     scrollMargin,
   })

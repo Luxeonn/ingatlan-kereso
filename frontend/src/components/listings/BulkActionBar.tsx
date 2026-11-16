@@ -125,7 +125,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   return (
     <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
           <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
           {items.length !== totalRawCount && (
             <span className="text-[11px] font-normal text-[var(--text-secondary)]">
