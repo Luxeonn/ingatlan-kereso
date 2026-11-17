@@ -18,9 +18,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.filter.CorsFilter;
 
 import ingatlanok.common.JsonSupport;
-import ingatlanok.config.GlobalCorsFilter;
+import ingatlanok.config.RequestLoggingFilter;
+import ingatlanok.config.SecurityHeadersFilter;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchPreset;
 
@@ -32,7 +34,13 @@ class RestApiControllerValidationTest {
   private WebApplicationContext webApplicationContext;
 
   @Autowired
-  private GlobalCorsFilter globalCorsFilter;
+  private SecurityHeadersFilter securityHeadersFilter;
+
+  @Autowired
+  private RequestLoggingFilter requestLoggingFilter;
+
+  @Autowired
+  private CorsFilter corsFilter;
 
   private MockMvc mockMvc;
 
@@ -40,7 +48,7 @@ class RestApiControllerValidationTest {
   void setupMockMvc() {
     mockMvc =
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilters(globalCorsFilter)
+            .addFilters(securityHeadersFilter, requestLoggingFilter, corsFilter)
             .build();
   }
 

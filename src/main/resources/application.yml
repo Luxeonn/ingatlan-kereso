@@ -5,6 +5,11 @@ server:
 spring:
   application:
     name: ingatlan-kereso
+  cache:
+    type: caffeine
+    cache-names: portals,cities
+    caffeine:
+      spec: expireAfterWrite=60s,maximumSize=100
   threads:
     virtual:
       enabled: true
