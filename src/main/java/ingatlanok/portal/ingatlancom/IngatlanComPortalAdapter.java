@@ -10,7 +10,7 @@ import ingatlanok.portal.PortalUrlBuilder;
 
 public class IngatlanComPortalAdapter extends AbstractPortalAdapter {
 
-  private static final PortalDescriptor DESCRIPTOR =
+  public static final PortalDescriptor DESCRIPTOR =
       new PortalDescriptor(
           "ingatlancom",
           "Ingatlan.com",

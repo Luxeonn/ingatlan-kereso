@@ -20,6 +20,7 @@ import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.testsupport.TestFixtures;
 
 class KoltozzbeParserEdgeCasesTest {
 
@@ -56,7 +57,7 @@ class KoltozzbeParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new KoltozzbePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertNull(item.getPriceInfo().getAmountHuf());
@@ -75,7 +76,7 @@ class KoltozzbeParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new KoltozzbePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(85_000_000L, item.getPriceInfo().getAmountHuf());
@@ -93,7 +94,7 @@ class KoltozzbeParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new KoltozzbePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(110_000_000L, item.getPriceInfo().getAmountHuf());
@@ -163,7 +164,7 @@ class KoltozzbeParserEdgeCasesTest {
 
     assertNull(raw.priceHuf(), "A 0 ár nem maradhat 0L a nyers modellben");
     IngatlanItem item = normalizer.normalize(
-        raw, new KoltozzbePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
     assertNotNull(item, "A 0 árú hirdetést nem szabad eldobni");
     assertNull(item.getPriceInfo().getAmountHuf());
   }

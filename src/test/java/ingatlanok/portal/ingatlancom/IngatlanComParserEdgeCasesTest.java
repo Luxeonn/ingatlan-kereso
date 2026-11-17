@@ -20,6 +20,7 @@ import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.testsupport.TestFixtures;
 
 class IngatlanComParserEdgeCasesTest {
 
@@ -49,7 +50,7 @@ class IngatlanComParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new IngatlanComPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ingatlanComEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertNull(item.getPriceInfo().getAmountHuf());
@@ -68,7 +69,7 @@ class IngatlanComParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new IngatlanComPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ingatlanComEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(55_000_000L, item.getPriceInfo().getAmountHuf());
@@ -87,7 +88,7 @@ class IngatlanComParserEdgeCasesTest {
 
     assertEquals("69 M Ft", raw.priceText());
     IngatlanItem item = normalizer.normalize(
-        raw, new IngatlanComPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ingatlanComEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(69_000_000L, item.getPriceInfo().getAmountHuf());

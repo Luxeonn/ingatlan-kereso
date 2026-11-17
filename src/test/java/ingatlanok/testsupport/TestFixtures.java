@@ -2,12 +2,32 @@ package ingatlanok.testsupport;
 
 import java.util.List;
 
+import ingatlanok.core.DataQualityEngine;
+import ingatlanok.core.DeduplicationEngine;
+import ingatlanok.core.MarketAnalyticsEngine;
+import ingatlanok.core.MarketStatisticsCalculator;
+import ingatlanok.core.normalization.ListingNormalizer;
+import ingatlanok.core.normalization.ListingValidator;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.persistence.ListingStorage;
+import ingatlanok.portal.RawListingNormalizer;
+import ingatlanok.portal.dh.DunaHousePortalEngine;
+import ingatlanok.portal.dh.DunaHouseUrlBuilder;
+import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
+import ingatlanok.portal.ingatlanbazar.IngatlanBazarQueryBuilder;
+import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
+import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
+import ingatlanok.portal.jofogas.JofogasPortalEngine;
+import ingatlanok.portal.jofogas.JofogasUrlBuilder;
+import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
+import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
+import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
+import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
 
 /**
  * Shared Object Mother / Test Data Builder factory for backend tests.
@@ -158,5 +178,53 @@ public final class TestFixtures {
     criteria.setMaxArea(120);
     criteria.setPortals(List.of("dh", "oc", "jofogas", "koltozzbe", "ingatlanbazar"));
     return criteria;
+  }
+
+  public static ListingNormalizer listingNormalizer() {
+    return new ListingNormalizer(new ListingValidator());
+  }
+
+  public static MarketAnalyticsEngine marketAnalyticsEngine() {
+    return new MarketAnalyticsEngine(new DataQualityEngine(), new MarketStatisticsCalculator());
+  }
+
+  public static MarketAnalyticsEngine marketAnalyticsEngine(DataQualityEngine qualityEngine) {
+    return new MarketAnalyticsEngine(qualityEngine, new MarketStatisticsCalculator());
+  }
+
+  public static DeduplicationEngine deduplicationEngine() {
+    return new DeduplicationEngine(null, null);
+  }
+
+  public static DeduplicationEngine deduplicationEngine(ListingStorage storage) {
+    return new DeduplicationEngine(storage, null);
+  }
+
+  public static DunaHousePortalEngine dhEngine() {
+    return new DunaHousePortalEngine(new DunaHouseUrlBuilder(), listingNormalizer());
+  }
+
+  public static OtthonCentrumPortalEngine ocEngine() {
+    return new OtthonCentrumPortalEngine(new OtthonCentrumUrlBuilder(), listingNormalizer());
+  }
+
+  public static JofogasPortalEngine jofogasEngine() {
+    return new JofogasPortalEngine(new JofogasUrlBuilder(), listingNormalizer());
+  }
+
+  public static IngatlanBazarPortalEngine ingatlanBazarEngine() {
+    return new IngatlanBazarPortalEngine(new IngatlanBazarQueryBuilder(), listingNormalizer());
+  }
+
+  public static KoltozzbePortalEngine koltozzbeEngine() {
+    return new KoltozzbePortalEngine(new KoltozzbeUrlBuilder(), listingNormalizer());
+  }
+
+  public static IngatlanComPortalEngine ingatlanComEngine() {
+    return ingatlanComEngine(listingNormalizer());
+  }
+
+  public static IngatlanComPortalEngine ingatlanComEngine(RawListingNormalizer normalizer) {
+    return new IngatlanComPortalEngine(new IngatlanComUrlBuilder(), normalizer);
   }
 }

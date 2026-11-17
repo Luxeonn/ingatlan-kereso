@@ -26,8 +26,8 @@ import ingatlanok.testsupport.TestFixtures;
 @DisplayName("Business Logic Golden Dataset & Regression Test First Suite (#345)")
 class BusinessLogicGoldenDatasetRegressionTest {
 
-  private final MarketAnalyticsEngine analyticsEngine = new MarketAnalyticsEngine();
-  private final DeduplicationEngine dedupEngine = new DeduplicationEngine(null);
+  private final MarketAnalyticsEngine analyticsEngine = TestFixtures.marketAnalyticsEngine();
+  private final DeduplicationEngine dedupEngine = TestFixtures.deduplicationEngine();
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test

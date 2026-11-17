@@ -11,7 +11,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import ingatlanok.core.DeduplicationEngine;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
@@ -26,6 +25,7 @@ import ingatlanok.persistence.InMemoryListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
+import ingatlanok.testsupport.TestFixtures;
 
 class PortalStatusDiagnosticTest {
 
@@ -141,11 +141,17 @@ class PortalStatusDiagnosticTest {
       }
     };
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
-    SearchExecutionEngine search = new SearchExecutionEngine(new PortalEngineRegistry(List.of(engine)),
-        storage, storage, new PropertyFilterEngine(), new DeduplicationEngine(storage), analytics);
+    MarketAnalyticsEngine analytics = TestFixtures.marketAnalyticsEngine();
+    SearchExecutionEngine search = SearchExecutionEngine.builder()
+        .portalRegistry(new PortalEngineRegistry(List.of(engine)))
+        .listingStorage(storage)
+        .configStorage(storage)
+        .filterEngine(new PropertyFilterEngine())
+        .dedupEngine(TestFixtures.deduplicationEngine(storage))
+        .analyticsEngine(analytics)
+        .build();
     DashboardResponseDto response =
-        new DashboardPresentationService(search, analytics).executeSearch(criteria);
+        new DashboardPresentationService(search, analytics, null).executeSearch(criteria);
     assertNotNull(response);
     assertNotNull(response.getPortalStatuses());
     assertFalse(response.getPortalStatuses().isEmpty());
@@ -236,18 +242,19 @@ class PortalStatusDiagnosticTest {
         };
 
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
+    MarketAnalyticsEngine analytics = TestFixtures.marketAnalyticsEngine();
     SearchExecutionEngine search =
-        new SearchExecutionEngine(
-            new PortalEngineRegistry(List.of(dhEngine, icEngine, ocEngine)),
-            storage,
-            storage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(storage),
-            analytics);
+        SearchExecutionEngine.builder()
+            .portalRegistry(new PortalEngineRegistry(List.of(dhEngine, icEngine, ocEngine)))
+            .listingStorage(storage)
+            .configStorage(storage)
+            .filterEngine(new PropertyFilterEngine())
+            .dedupEngine(TestFixtures.deduplicationEngine(storage))
+            .analyticsEngine(analytics)
+            .build();
 
     DashboardResponseDto response =
-        new DashboardPresentationService(search, analytics).executeSearch(criteria);
+        new DashboardPresentationService(search, analytics, null).executeSearch(criteria);
 
     List<PortalStatusDto> statuses = response.getPortalStatuses();
     assertEquals(3, statuses.size(), "Minden aktív portál pontosan egyszer szerepelhet");
@@ -320,18 +327,19 @@ class PortalStatusDiagnosticTest {
         };
 
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
+    MarketAnalyticsEngine analytics = TestFixtures.marketAnalyticsEngine();
     SearchExecutionEngine search =
-        new SearchExecutionEngine(
-            new PortalEngineRegistry(List.of(dhEngine)),
-            storage,
-            storage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(storage),
-            analytics);
+        SearchExecutionEngine.builder()
+            .portalRegistry(new PortalEngineRegistry(List.of(dhEngine)))
+            .listingStorage(storage)
+            .configStorage(storage)
+            .filterEngine(new PropertyFilterEngine())
+            .dedupEngine(TestFixtures.deduplicationEngine(storage))
+            .analyticsEngine(analytics)
+            .build();
 
     DashboardResponseDto response =
-        new DashboardPresentationService(search, analytics).executeSearch(criteria);
+        new DashboardPresentationService(search, analytics, null).executeSearch(criteria);
 
     assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.getExecutionStatus());
     assertEquals(1, response.getPortalStatuses().size());

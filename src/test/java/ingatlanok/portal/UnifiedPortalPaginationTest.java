@@ -26,6 +26,7 @@ import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumHtmlStrategy;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
+import ingatlanok.testsupport.TestFixtures;
 
 class UnifiedPortalPaginationTest {
 
@@ -72,7 +73,7 @@ class UnifiedPortalPaginationTest {
   @Test
   @DisplayName("Ingatlanbazár alapértelmezett lapozással 3+ oldalt is letölt és üres oldalon megáll")
   void ingatlanBazarDefaultPaginationFetchesBeyondTwoPages() {
-    IngatlanBazarPortalEngine engine = new IngatlanBazarPortalEngine();
+    IngatlanBazarPortalEngine engine = TestFixtures.ingatlanBazarEngine();
     List<String> requestedUrls = new ArrayList<>();
 
     PortalScrapeResult result = engine.scrape(debrecenHouseCriteria(), url -> {
@@ -105,7 +106,7 @@ class UnifiedPortalPaginationTest {
     assertEquals(baseUrl + "?page=2", urlBuilder.buildPageUrl(baseUrl, 2));
     assertEquals(baseUrl + "?sort=asc&page=2", urlBuilder.buildPageUrl(baseUrl + "?sort=asc", 2));
 
-    OtthonCentrumPortalEngine engine = new OtthonCentrumPortalEngine();
+    OtthonCentrumPortalEngine engine = TestFixtures.ocEngine();
     List<String> requestedUrls = new ArrayList<>();
 
     PortalScrapeResult result = engine.scrape(debrecenHouseCriteria(), url -> {
@@ -142,7 +143,7 @@ class UnifiedPortalPaginationTest {
     assertEquals("https://ingatlan.jofogas.hu/lista?o=2",
         urlBuilder.buildPageUrl("https://ingatlan.jofogas.hu/lista", 2));
 
-    JofogasPortalEngine engine = new JofogasPortalEngine();
+    JofogasPortalEngine engine = TestFixtures.jofogasEngine();
     List<String> requestedUrls = new ArrayList<>();
 
     PortalScrapeResult result = engine.scrape(debrecenHouseCriteria(), url -> {

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PropertyType;
@@ -15,6 +17,7 @@ import ingatlanok.model.QualityScore;
  * Deterministic rule-based data quality and reliability scoring engine (#267).
  * Evaluates listings on a 0-100 scale based on sanity, plausibility, and anomaly checks.
  */
+@Service
 public class DataQualityEngine {
 
   public static final int BASE_SCORE = 100;

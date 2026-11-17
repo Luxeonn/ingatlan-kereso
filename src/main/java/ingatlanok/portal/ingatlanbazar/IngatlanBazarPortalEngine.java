@@ -1,7 +1,10 @@
 package ingatlanok.portal.ingatlanbazar;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+
+import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
@@ -12,31 +15,19 @@ import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalUrlBuilder;
 import ingatlanok.portal.RawListingNormalizer;
 
+@Component
 public class IngatlanBazarPortalEngine extends AbstractAdapterPortalEngine {
 
   private final IngatlanBazarQueryBuilder queryBuilder;
 
-  public IngatlanBazarPortalEngine() {
-    this(new IngatlanBazarQueryBuilder(), null);
-  }
-
-  public IngatlanBazarPortalEngine(IngatlanBazarQueryBuilder queryBuilder) {
-    this(queryBuilder, null);
-  }
-
   public IngatlanBazarPortalEngine(
       IngatlanBazarQueryBuilder queryBuilder, RawListingNormalizer normalizer) {
-    this(queryBuilder != null ? queryBuilder : new IngatlanBazarQueryBuilder(), normalizer, true);
-  }
-
-  private IngatlanBazarPortalEngine(
-      IngatlanBazarQueryBuilder queryBuilder, RawListingNormalizer normalizer, boolean normalized) {
     super(
-        queryBuilder,
+        Objects.requireNonNull(queryBuilder, "IngatlanBazarQueryBuilder nem lehet null"),
         List.of(
             new IngatlanBazarApiStrategy(
                 queryBuilder, new IngatlanBazarRawParser(), HttpFetcher::fetchJson)),
-        normalizer);
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.queryBuilder = queryBuilder;
   }
 

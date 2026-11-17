@@ -2,11 +2,14 @@ package ingatlanok.portal.dh;
 
 import java.util.Optional;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.PortalUrlBuilder;
 
+@Component
 public class DunaHouseUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://dh.hu";

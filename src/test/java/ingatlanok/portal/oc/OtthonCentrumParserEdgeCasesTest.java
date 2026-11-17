@@ -20,6 +20,7 @@ import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.testsupport.TestFixtures;
 
 class OtthonCentrumParserEdgeCasesTest {
 
@@ -48,7 +49,7 @@ class OtthonCentrumParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new OtthonCentrumPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertNull(item.getPriceInfo().getAmountHuf());
@@ -67,7 +68,7 @@ class OtthonCentrumParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new OtthonCentrumPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(45_000_000L, item.getPriceInfo().getAmountHuf(), "A kártyaszövegből kinyert árat kell használnia");
@@ -86,7 +87,7 @@ class OtthonCentrumParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new OtthonCentrumPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item, "A 0 árú rekordot nem szabad elutasítani, ha egyébként érvényes");
     assertNull(item.getPriceInfo().getAmountHuf());
@@ -103,7 +104,7 @@ class OtthonCentrumParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new OtthonCentrumPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(85_000_000L, item.getPriceInfo().getAmountHuf());
@@ -123,7 +124,7 @@ class OtthonCentrumParserEdgeCasesTest {
     assertEquals("https://www.oc.hu/uploads/oc5.jpg", raw.imageUrl());
 
     IngatlanItem item = normalizer.normalize(
-        raw, new OtthonCentrumPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(92_000_000L, item.getPriceInfo().getAmountHuf());

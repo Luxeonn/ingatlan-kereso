@@ -19,13 +19,14 @@ import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
+import ingatlanok.testsupport.TestFixtures;
 
 class DeduplicationEngineTest {
 
   @Test
   @DisplayName("Deduplikáció URL alapján a sorrend megőrzésével")
   void testDeduplicateByUrl() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem item1 =
         new IngatlanItem(
@@ -55,7 +56,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Baseline snapshot esetén minden találat isNew = false értéket kap")
   void testApplyNewStatusBaseline() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem item =
         new IngatlanItem(
@@ -138,7 +139,7 @@ class DeduplicationEngineTest {
           }
         };
 
-    DeduplicationEngine engine = new DeduplicationEngine(mockStorage);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine(mockStorage);
     IngatlanItem item1 =
         new IngatlanItem(
             "1", "dh", "http://new", "Új tétel", "50 M Ft", "Debrecen", "", "2026-10-14", false);
@@ -155,7 +156,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Kereszt-portál klaszterezés azonos fizikai ingatlan esetén és legolcsóbb forrás kiemelése")
   void testMultiPortalClusteringMatchesAndLowestPriceSelected() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem dh = createItem("dh-1", "Duna House", "http://dh/1", "DH Családi Lakás",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 80_000_000L, "ACTIVE");
@@ -186,7 +187,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Alapterület tolerancia határ: <=5% csoportosítva, >5% elutasítva")
   void testAreaToleranceBoundary() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     // 100m2 és 105m2: diff 5, max 105 -> 5/105 = 0.0476 <= 0.05 -> klaszterezve
     IngatlanItem itemA = createItem("1", "dh", "http://1", "Lakás A",
@@ -212,7 +213,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Szobaszám konfliktusvédelem: >=1 szoba eltérés esetén nem vonható össze")
   void testRoomCountConflictGuard() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     // 3 szoba vs 4 szoba -> diff >= 1.0 -> elutasítva
     IngatlanItem item3 = createItem("1", "dh", "http://1", "3 szobás",
@@ -237,7 +238,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Ársáv érvényesség: <=20% eltérés megengedett, >20% eltérés elutasítva")
   void testPriceBandSanity() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     // 100M vs 82M: diff 18M / 100M = 0.18 <= 0.20 -> csoportosítva
     IngatlanItem item100 = createItem("1", "dh", "http://1", "Lakás 100M",
@@ -262,7 +263,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Eltérő kanonikus típusok és nem alaptípusok (EGYEB_ISMERETLEN) nem vonhatók össze")
   void testPropertyTypeRejection() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem lakas = createItem("1", "dh", "http://1", "Lakás",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 80_000_000L, "ACTIVE");
@@ -285,7 +286,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("TELEK típusok összevonása alapterület és ár alapján")
   void testTelekGrouping() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem telek1 = createItem("1", "dh", "http://t1", "Építési telek",
         "Debrecen", PropertyType.TELEK, 800.0, 0.0, 25_000_000L, "ACTIVE");
@@ -303,7 +304,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Eltérő városok nem vonhatók össze, de kis- és nagybetű normalizálás működik")
   void testCityNormalizationAndSeparation() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem deb = createItem("1", "dh", "http://1", "Debreceni lakás",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 80_000_000L, "ACTIVE");
@@ -324,7 +325,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Inaktív forrás helyett az aktív legalacsonyabb árú forrás válik elsődlegessé")
   void testLowestActivePriceSelectedOverInactive() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem dhInactive = createItem("1", "dh", "http://dh/inactive", "DH Inaktív Olcsó",
         "Debrecen", PropertyType.LAKAS, 100.0, 3.0, 65_000_000L, "INACTIVE");
@@ -346,7 +347,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Egyedi forrású hirdetés sourcesCount = 1 és pontosan 1 sourceListing elemet kap")
   void testSingleSourceListingHandling() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem single = createItem("1", "dh", "http://single", "Egyedi hirdetés",
         "Debrecen", PropertyType.LAKAS, 60.0, 2.0, 50_000_000L, "ACTIVE");
@@ -361,7 +362,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Null és üres kollekciók kezelése")
   void testNullAndEmptyHandling() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
     assertTrue(engine.deduplicateMultiSignal(null).isEmpty());
     assertTrue(engine.deduplicateMultiSignal(List.of()).isEmpty());
     assertEquals(0, engine.deduplicate(List.of()).size());
@@ -370,7 +371,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("#426: Legjobb egyezés alapú klaszterezés megakadályozza a 24.49M vs 28.9M keresztbe párosítást")
   void testIssue426BestMatchClusteringPreventsCrossPricePairing() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem k28 = createItem("k28", "Költözzbe", "https://koltozzbe.hu/h10978033",
         "Eladó panellakás, Miskolcon 28.9 M Ft, 1+1 szobás",
@@ -401,7 +402,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("Ragozott utcanév egyezés, prózazaj elutasítása és intraportál sabloncím védelem")
   void testInflectedStreetsAndIntraPortalGenericTitleGuard() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem miskolcA = createItem("ma", "Költözzbe", "https://koltozzbe.hu/h1",
         "Eladó panellakás, Miskolcon, Szentgyörgy úton 24.49 M Ft",
@@ -435,7 +436,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("#437: Sabloncímű és eltérő fotójú intraportál duplikátumok összevonása Miskolcon")
   void testIssue437MiskolcTemplateTitledIntraPortalAndCrossPortalClustering() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     // 2. emeleti 1.5 szobás panellakás: több Költözzbe + 1 Ingatlan.com eltérő CDN képekkel
     IngatlanItem k2FloorA = createItem("k2a", "Költözzbe", "https://koltozzbe.hu/ingatlan/h10880350",
@@ -501,7 +502,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("#437: Explicit emeletszám-konfliktus megakadályozza eltérő emeleti lakások hamis összevonását")
   void testIssue437ExplicitFloorConflictPreventsFalseMerge() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem flat2ndFloor = createItem("f2", "Költözzbe", "https://koltozzbe.hu/h2",
         "Eladó panellakás, Miskolcon 25.9 M Ft, 1+1 szobás",
@@ -541,7 +542,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("#440: Pozitív bizonyíték nélküli kereszt-portál párosítás elutasítása Miskolc 35 m2 panellakásoknál")
   void testIssue440PreventsFalseCrossPortalClusteringWithoutPositiveEvidence() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem ic = createItem("ic-35573255", "Ingatlan.com", "https://ingatlan.com/35573255",
         "Miskolc, Győri kapu", "Miskolc", PropertyType.LAKAS, 35.0, 1.5, 25_000_000L, "ACTIVE");
@@ -585,7 +586,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("#440: Pozitív utca- vagy képegyezéssel a ±20% ársávon belüli kereszt-portál klaszterezés megmarad")
   void testIssue440AllowsCrossPortalMergeWithPositiveEvidenceWithinPriceBand() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem streetA = createItem("s1", "Duna House", "https://dh.hu/s1",
         "Miskolc, Szentgyörgy utca felújított lakás",
@@ -613,7 +614,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("#450: Hajdúszoboszló 11 hirdetésből álló multi-portál és intra-portál ikerház/családi ház klaszter")
   void testIssue450HajduszoboszloKoltozzbeAndMultiPortalHouseConsolidation() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
     IngatlanItem k140a = createHouseWithImg("k1", "Költözzbe", "https://koltozzbe.hu/ingatlan/k1",
         "Eladó ikerház, Hajdúszoboszlón 109 M Ft, 3+1 szobás",
         140.0, 3.5, 109_000_000L, "https://cdn.koltozzbe.hu/img-k1.jpg");
@@ -668,7 +669,7 @@ class DeduplicationEngineTest {
   @Test
   @DisplayName("#450: Intra-portál TELEK, azonos utca variáns és kisterseg user-id védelem")
   void testIssue450IntraPortalTelekAndSameStreetAndKistersegUserIdRules() {
-    DeduplicationEngine engine = new DeduplicationEngine(null);
+    DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
     IngatlanItem telekA = createItem("t1", "Költözzbe", "https://koltozzbe.hu/t1",
         "Eladó telek, Hajdúszoboszlón 35 M Ft", "Hajdúszoboszló",

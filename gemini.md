@@ -86,7 +86,7 @@ ingatlan-kereso/
 │   ├── persistence/                             # Layer 4: ListingStorage, ConfigStorage, JpaIngatlanStorage, service/PropertyPersistenceHelper, mapper/JpaEntityMapper, entity/*, repository/*
 │   ├── portal/                                  # Layer 3: PortalEngine, PortalEngineRegistry, dh/, oc/, jofogas/, koltozzbe/, ingatlanbazar/, ingatlancom/
 │   ├── presentation/                            # Layer 1a: DashboardPresentationService, PresentationMapper, DashboardResponseDto, MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, PortalStatusDto
-│   ├── config/                                  # Layer 1b: CoreEngineConfig, GlobalCorsFilter, SpaWebMvcConfig
+│   ├── config/                                  # Layer 1b: CacheConfig, GlobalCorsFilter, RequestLoggingFilter, SpaWebMvcConfig
 │   └── web/                                     # Layer 1b: RestApiController, GlobalExceptionHandler
 └── src/test/
     ├── java/ingatlanok/testsupport/TestFixtures.java # Shared Object Mother builder factory for deterministic tests

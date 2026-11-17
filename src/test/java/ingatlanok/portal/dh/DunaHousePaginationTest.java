@@ -16,6 +16,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.testsupport.TestFixtures;
 
 class DunaHousePaginationTest {
 
@@ -48,7 +49,7 @@ class DunaHousePaginationTest {
     criteria.setMaxArea(200);
 
     List<String> requestedUrls = new ArrayList<>();
-    DunaHousePortalEngine engine = new DunaHousePortalEngine();
+    DunaHousePortalEngine engine = TestFixtures.dhEngine();
 
     PortalScrapeResult result = engine.scrape(criteria, url -> {
       requestedUrls.add(url);
@@ -88,7 +89,7 @@ class DunaHousePaginationTest {
     criteria.setMaxArea(200);
 
     List<String> requestedUrls = new ArrayList<>();
-    DunaHousePortalEngine engine = new DunaHousePortalEngine();
+    DunaHousePortalEngine engine = TestFixtures.dhEngine();
 
     PortalScrapeResult result = engine.scrape(criteria, url -> {
       requestedUrls.add(url);
@@ -124,7 +125,7 @@ class DunaHousePaginationTest {
     criteria.setMaxArea(200);
 
     List<String> requestedUrls = new ArrayList<>();
-    DunaHousePortalEngine engine = new DunaHousePortalEngine();
+    DunaHousePortalEngine engine = TestFixtures.dhEngine();
 
     PortalScrapeResult result = engine.scrape(criteria, url -> {
       requestedUrls.add(url);

@@ -20,6 +20,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.testsupport.TestFixtures;
 
 class DunaHouseLiveHtmlParsingTest {
 
@@ -45,7 +46,7 @@ class DunaHouseLiveHtmlParsingTest {
   @Test
   @DisplayName("DH valós 2. oldali HTML: minden kártya fontos adatai (ár, terület, szoba, kép, város, URL) kinyerhetők")
   void testRealSearchPage2HtmlExtractsAllKeyFields() {
-    DunaHousePortalEngine engine = new DunaHousePortalEngine();
+    DunaHousePortalEngine engine = TestFixtures.dhEngine();
     PortalScrapeResult result = engine.scrape(criteria, url -> page2Doc, 1);
 
     assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());

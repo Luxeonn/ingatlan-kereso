@@ -10,6 +10,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.core.dedup.ClusterConsolidationHelper;
 import ingatlanok.core.dedup.ClusterMatchScorer;
@@ -25,6 +28,7 @@ import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 
+@Service
 public class DeduplicationEngine {
 
   private static final double MAX_AREA_TOLERANCE_RATIO = 0.05; // ±5%
@@ -40,12 +44,9 @@ public class DeduplicationEngine {
   private final ListingStorage listingStorage;
   private final DedupOverrideStorage dedupOverrideStorage;
 
-  public DeduplicationEngine(ListingStorage listingStorage) {
-    this(listingStorage, null);
-  }
-
   public DeduplicationEngine(
-      ListingStorage listingStorage, DedupOverrideStorage dedupOverrideStorage) {
+      ListingStorage listingStorage,
+      @Autowired(required = false) DedupOverrideStorage dedupOverrideStorage) {
     this.listingStorage = listingStorage;
     this.dedupOverrideStorage = dedupOverrideStorage;
   }

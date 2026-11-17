@@ -26,24 +26,20 @@ import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
-import ingatlanok.portal.dh.DunaHousePortalEngine;
 import ingatlanok.portal.dh.DunaHouseRawParser;
 import ingatlanok.portal.dh.DunaHouseUrlBuilder;
-import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
 import ingatlanok.portal.ingatlanbazar.IngatlanBazarQueryBuilder;
 import ingatlanok.portal.ingatlanbazar.IngatlanBazarRawParser;
-import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
 import ingatlanok.portal.ingatlancom.IngatlanComRawParser;
 import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
-import ingatlanok.portal.jofogas.JofogasPortalEngine;
 import ingatlanok.portal.jofogas.JofogasRawParser;
 import ingatlanok.portal.jofogas.JofogasUrlBuilder;
 import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
 import ingatlanok.portal.koltozzbe.KoltozzbeRawParser;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
-import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumRawParser;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
+import ingatlanok.testsupport.TestFixtures;
 
 class PortalAdaptersModularTest {
 
@@ -91,7 +87,7 @@ class PortalAdaptersModularTest {
     Document doc = Jsoup.parse(html, DunaHouseUrlBuilder.BASE_URL);
 
     DunaHouseRawParser rawParser = new DunaHouseRawParser();
-    PortalDescriptor desc = new DunaHousePortalEngine().getDescriptor();
+    PortalDescriptor desc = TestFixtures.dhEngine().getDescriptor();
     List<IngatlanItem> items =
         normalizeAll(rawParser.parseRawListings(doc), desc, criteria, "2026-10-14 12:00:00");
 
@@ -132,7 +128,7 @@ class PortalAdaptersModularTest {
     Document doc = Jsoup.parse(html, OtthonCentrumUrlBuilder.BASE_URL);
 
     OtthonCentrumRawParser rawParser = new OtthonCentrumRawParser();
-    PortalDescriptor desc = new OtthonCentrumPortalEngine().getDescriptor();
+    PortalDescriptor desc = TestFixtures.ocEngine().getDescriptor();
     List<IngatlanItem> items =
         normalizeAll(rawParser.parseRawListings(doc), desc, criteria, "2026-10-14 12:00:00");
 
@@ -166,7 +162,7 @@ class PortalAdaptersModularTest {
     Document doc = Jsoup.parse(html, JofogasUrlBuilder.BASE_URL);
 
     JofogasRawParser rawParser = new JofogasRawParser();
-    PortalDescriptor desc = new JofogasPortalEngine().getDescriptor();
+    PortalDescriptor desc = TestFixtures.jofogasEngine().getDescriptor();
     List<IngatlanItem> items =
         normalizeAll(rawParser.parseRawListings(doc), desc, criteria, "2026-10-14 12:00:00");
 
@@ -225,7 +221,7 @@ class PortalAdaptersModularTest {
             + "}";
 
     IngatlanBazarRawParser rawParser = new IngatlanBazarRawParser();
-    PortalDescriptor desc = new IngatlanBazarPortalEngine().getDescriptor();
+    PortalDescriptor desc = TestFixtures.ingatlanBazarEngine().getDescriptor();
     List<IngatlanItem> items =
         normalizeAll(rawParser.parseRawListings(json), desc, criteria, "2026-10-14 12:00:00");
 
@@ -302,7 +298,7 @@ class PortalAdaptersModularTest {
             + "</body></html>";
 
     List<String> requestedUrls = new ArrayList<>();
-    KoltozzbePortalEngine engine = new KoltozzbePortalEngine();
+    KoltozzbePortalEngine engine = TestFixtures.koltozzbeEngine();
     PortalScrapeResult result =
         engine.scrape(
             criteria,
@@ -372,7 +368,7 @@ class PortalAdaptersModularTest {
             + "</a>"
             + "</body></html>";
     IngatlanComRawParser rawParser = new IngatlanComRawParser();
-    PortalDescriptor desc = new IngatlanComPortalEngine().getDescriptor();
+    PortalDescriptor desc = TestFixtures.ingatlanComEngine().getDescriptor();
     List<IngatlanItem> parsedCards =
         normalizeAll(
             rawParser.parseRawListings(Jsoup.parse(cardsHtml, IngatlanComUrlBuilder.BASE_URL)),
@@ -414,7 +410,7 @@ class PortalAdaptersModularTest {
             + "}}]}"
             + "</script></head><body></body></html>";
     KoltozzbeRawParser kbRawParser = new KoltozzbeRawParser();
-    PortalDescriptor kbDesc = new KoltozzbePortalEngine().getDescriptor();
+    PortalDescriptor kbDesc = TestFixtures.koltozzbeEngine().getDescriptor();
     List<IngatlanItem> kbItems =
         normalizeAll(
             kbRawParser.parseJsonLdListings(Jsoup.parse(jsonLdHtml, KoltozzbeUrlBuilder.BASE_URL)),
@@ -436,7 +432,7 @@ class PortalAdaptersModularTest {
             + "</div>"
             + "</body></html>";
     OtthonCentrumRawParser ocRawParser = new OtthonCentrumRawParser();
-    PortalDescriptor ocDesc = new OtthonCentrumPortalEngine().getDescriptor();
+    PortalDescriptor ocDesc = TestFixtures.ocEngine().getDescriptor();
     List<IngatlanItem> ocItems =
         normalizeAll(
             ocRawParser.parseRawListings(Jsoup.parse(ocSeoHtml, OtthonCentrumUrlBuilder.BASE_URL)),
@@ -517,19 +513,19 @@ class PortalAdaptersModularTest {
             + "?property_location=1462&price_max=60&property_floor_area=-80&property__2=3",
         new IngatlanBazarQueryBuilder().buildSearchUrl(maxOnly));
 
-    PortalScrapeResult dhFail = new DunaHousePortalEngine().scrape(minOnly, u -> null);
+    PortalScrapeResult dhFail = TestFixtures.dhEngine().scrape(minOnly, u -> null);
     assertEquals(PortalScrapeStatus.FAILED, dhFail.getStatus());
     assertTrue(dhFail.getFallbackUrl().contains("hajdu-bihar-megye/hajduszoboszlo"));
 
-    PortalScrapeResult ocFail = new OtthonCentrumPortalEngine().scrape(minOnly, u -> null);
+    PortalScrapeResult ocFail = TestFixtures.ocEngine().scrape(minOnly, u -> null);
     assertEquals(PortalScrapeStatus.FAILED, ocFail.getStatus());
     assertTrue(ocFail.getFallbackUrl().contains("/ingatlanok/lista/"));
 
-    PortalScrapeResult ibFail = new IngatlanBazarPortalEngine().scrape(minOnly, u -> null);
+    PortalScrapeResult ibFail = TestFixtures.ingatlanBazarEngine().scrape(minOnly, u -> null);
     assertEquals(PortalScrapeStatus.FAILED, ibFail.getStatus());
     assertTrue(ibFail.getFallbackUrl().contains("property_location=1462"));
 
-    PortalScrapeResult icBot = new IngatlanComPortalEngine().scrape(minOnly, u -> null);
+    PortalScrapeResult icBot = TestFixtures.ingatlanComEngine().scrape(minOnly, u -> null);
     assertEquals(PortalScrapeStatus.BOT_PROTECTED, icBot.getStatus());
     assertEquals(
         "https://ingatlan.com/lista/elado+telek+500-m2-tol+20-mFt-tol+hajduszoboszlo",
@@ -547,12 +543,12 @@ class PortalAdaptersModularTest {
     criteria.setMinArea(null);
     criteria.setMaxArea(null);
 
-    PortalDescriptor dhDesc = new DunaHousePortalEngine().getDescriptor();
-    PortalDescriptor ocDesc = new OtthonCentrumPortalEngine().getDescriptor();
-    PortalDescriptor jfDesc = new JofogasPortalEngine().getDescriptor();
-    PortalDescriptor ibDesc = new IngatlanBazarPortalEngine().getDescriptor();
-    PortalDescriptor kbDesc = new KoltozzbePortalEngine().getDescriptor();
-    PortalDescriptor icDesc = new IngatlanComPortalEngine().getDescriptor();
+    PortalDescriptor dhDesc = TestFixtures.dhEngine().getDescriptor();
+    PortalDescriptor ocDesc = TestFixtures.ocEngine().getDescriptor();
+    PortalDescriptor jfDesc = TestFixtures.jofogasEngine().getDescriptor();
+    PortalDescriptor ibDesc = TestFixtures.ingatlanBazarEngine().getDescriptor();
+    PortalDescriptor kbDesc = TestFixtures.koltozzbeEngine().getDescriptor();
+    PortalDescriptor icDesc = TestFixtures.ingatlanComEngine().getDescriptor();
 
     // Duna House fixture
     String dhHtml = readFixture("/fixtures/dh/sample-dh.html");

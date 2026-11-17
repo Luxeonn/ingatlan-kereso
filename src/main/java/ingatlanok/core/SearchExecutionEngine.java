@@ -8,6 +8,8 @@ import java.util.Objects;
 
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
@@ -20,6 +22,7 @@ import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
 
 @Getter
+@Service
 public class SearchExecutionEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SearchExecutionEngine.class);
@@ -35,77 +38,19 @@ public class SearchExecutionEngine {
   private final SearchResultAggregator resultAggregator;
   private final SearchPersistenceSynchronizer persistenceSynchronizer;
 
-  public SearchExecutionEngine(
-      PortalEngineRegistry portalRegistry,
-      ListingStorage listingStorage,
-      ConfigStorage configStorage,
-      PropertyFilterEngine filterEngine,
-      DeduplicationEngine dedupEngine,
-      MarketAnalyticsEngine analyticsEngine) {
-    this(
-        portalRegistry,
-        listingStorage,
-        configStorage,
-        filterEngine,
-        dedupEngine,
-        analyticsEngine,
-        null,
-        null,
-        null);
-  }
-
-  public SearchExecutionEngine(
-      PortalEngineRegistry portalRegistry,
-      ListingStorage listingStorage,
-      ConfigStorage configStorage,
-      PropertyFilterEngine filterEngine,
-      DeduplicationEngine dedupEngine,
-      MarketAnalyticsEngine analyticsEngine,
-      DataQualityEngine qualityEngine) {
-    this(
-        portalRegistry,
-        listingStorage,
-        configStorage,
-        filterEngine,
-        dedupEngine,
-        analyticsEngine,
-        qualityEngine,
-        null,
-        null);
-  }
-
-  public SearchExecutionEngine(
-      PortalEngineRegistry portalRegistry,
-      ListingStorage listingStorage,
-      ConfigStorage configStorage,
-      PropertyFilterEngine filterEngine,
-      DeduplicationEngine dedupEngine,
-      MarketAnalyticsEngine analyticsEngine,
-      ParallelPortalScrapeExecutor scrapeExecutor,
-      SearchResultAggregator resultAggregator) {
-    this(
-        portalRegistry,
-        listingStorage,
-        configStorage,
-        filterEngine,
-        dedupEngine,
-        analyticsEngine,
-        null,
-        scrapeExecutor,
-        resultAggregator);
-  }
-
   @Builder
+  @Autowired
   public SearchExecutionEngine(
       PortalEngineRegistry portalRegistry,
       ListingStorage listingStorage,
-      ConfigStorage configStorage,
+      @Autowired(required = false) ConfigStorage configStorage,
       PropertyFilterEngine filterEngine,
       DeduplicationEngine dedupEngine,
       MarketAnalyticsEngine analyticsEngine,
       DataQualityEngine qualityEngine,
       ParallelPortalScrapeExecutor scrapeExecutor,
-      SearchResultAggregator resultAggregator) {
+      SearchResultAggregator resultAggregator,
+      SearchPersistenceSynchronizer persistenceSynchronizer) {
     this.portalRegistry = Objects.requireNonNull(portalRegistry);
     this.listingStorage = Objects.requireNonNull(listingStorage);
     this.configStorage = configStorage;
@@ -118,7 +63,9 @@ public class SearchExecutionEngine {
     this.resultAggregator =
         resultAggregator != null ? resultAggregator : new SearchResultAggregator();
     this.persistenceSynchronizer =
-        new SearchPersistenceSynchronizer(this.portalRegistry, this.listingStorage);
+        persistenceSynchronizer != null
+            ? persistenceSynchronizer
+            : new SearchPersistenceSynchronizer(this.portalRegistry, this.listingStorage);
   }
 
   public SearchResult executeSearch(SearchCriteria criteria) {

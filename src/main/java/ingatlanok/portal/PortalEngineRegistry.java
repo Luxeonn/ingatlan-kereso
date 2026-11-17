@@ -5,17 +5,30 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import ingatlanok.model.SearchCriteria;
 
+@Component
 public class PortalEngineRegistry {
 
-  private final Map<String, PortalEngine> engines = new ConcurrentHashMap<>();
+  private final Map<String, PortalEngine> engines = new ConcurrentSkipListMap<>();
 
-  public PortalEngineRegistry(List<PortalEngine> portalEngines) {
+  @Autowired
+  public PortalEngineRegistry(@Autowired(required = false) List<PortalEngine> portalEngines) {
     if (portalEngines != null) {
-      portalEngines.forEach(this::register);
+      for (PortalEngine engine : portalEngines) {
+        if (engine != null && engine.getDescriptor() != null && engine.getDescriptor().id() != null) {
+          String key = engine.getDescriptor().id().toLowerCase(Locale.ROOT);
+          PortalEngine previous = engines.putIfAbsent(key, engine);
+          if (previous != null && previous != engine) {
+            throw new IllegalStateException("Duplikált portálmotor azonosító: " + key);
+          }
+        }
+      }
     }
   }
 

@@ -10,12 +10,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalEngine;
 
+@Component
 public class ParallelPortalScrapeExecutor {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(ParallelPortalScrapeExecutor.class);
@@ -25,6 +29,7 @@ public class ParallelPortalScrapeExecutor {
   private final long timeoutSeconds;
   private final long sidecarTimeoutSeconds;
 
+  @Autowired
   public ParallelPortalScrapeExecutor() {
     this(DEFAULT_TIMEOUT_SECONDS, DEFAULT_SIDECAR_TIMEOUT_SECONDS);
   }

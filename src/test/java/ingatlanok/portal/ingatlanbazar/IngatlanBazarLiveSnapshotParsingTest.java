@@ -23,6 +23,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.testsupport.TestFixtures;
 
 class IngatlanBazarLiveSnapshotParsingTest {
 
@@ -75,7 +76,7 @@ class IngatlanBazarLiveSnapshotParsingTest {
     assertEquals(39, filtered.matchingItems().size(),
         "39 hirdetés marad meg a 70-120M Ft szűrőn belül");
 
-    DeduplicationEngine dedup = new DeduplicationEngine(null);
+    DeduplicationEngine dedup = TestFixtures.deduplicationEngine();
     List<IngatlanItem> deduplicated = dedup.deduplicateMultiSignal(filtered.matchingItems());
     assertEquals(39, deduplicated.size(),
         "Sabloncímű Ingatlanbazár hirdetések nem olvadhatnak össze tévesen intraportálon belül");

@@ -17,10 +17,6 @@ import ingatlanok.model.PortalSource;
 import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngineRegistry;
-import ingatlanok.portal.dh.DunaHousePortalEngine;
-import ingatlanok.portal.jofogas.JofogasPortalEngine;
-import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
-import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.testsupport.TestFixtures;
 
 class SearchPersistenceSynchronizerTest {
@@ -29,10 +25,10 @@ class SearchPersistenceSynchronizerTest {
     PortalEngineRegistry registry =
         new PortalEngineRegistry(
             List.of(
-                new DunaHousePortalEngine(),
-                new OtthonCentrumPortalEngine(),
-                new JofogasPortalEngine(),
-                new KoltozzbePortalEngine()));
+                TestFixtures.dhEngine(),
+                TestFixtures.ocEngine(),
+                TestFixtures.jofogasEngine(),
+                TestFixtures.koltozzbeEngine()));
     return new SearchPersistenceSynchronizer(registry, Mockito.mock(ListingStorage.class));
   }
 

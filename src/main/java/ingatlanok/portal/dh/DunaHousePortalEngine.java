@@ -1,9 +1,11 @@
 package ingatlanok.portal.dh;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
+import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
@@ -14,30 +16,18 @@ import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalUrlBuilder;
 import ingatlanok.portal.RawListingNormalizer;
 
+@Component
 public class DunaHousePortalEngine extends AbstractAdapterPortalEngine {
 
   private final DunaHouseUrlBuilder dhUrlBuilder;
 
-  public DunaHousePortalEngine() {
-    this(new DunaHouseUrlBuilder(), null);
-  }
-
-  public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder) {
-    this(urlBuilder, null);
-  }
-
   public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
-    this(urlBuilder != null ? urlBuilder : new DunaHouseUrlBuilder(), normalizer, true);
-  }
-
-  private DunaHousePortalEngine(
-      DunaHouseUrlBuilder urlBuilder, RawListingNormalizer normalizer, boolean normalized) {
     super(
-        urlBuilder,
+        Objects.requireNonNull(urlBuilder, "DunaHouseUrlBuilder nem lehet null"),
         List.of(
             new DunaHouseHtmlStrategy(
                 urlBuilder, new DunaHouseRawParser(), HttpFetcher::fetchDocument)),
-        normalizer);
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.dhUrlBuilder = urlBuilder;
   }
 
