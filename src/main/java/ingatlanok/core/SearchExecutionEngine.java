@@ -8,6 +8,8 @@ import java.util.Objects;
 
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
@@ -20,6 +22,7 @@ import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
 
 @Getter
+@Service
 public class SearchExecutionEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(SearchExecutionEngine.class);
@@ -54,10 +57,11 @@ public class SearchExecutionEngine {
         null);
   }
 
+  @Autowired
   public SearchExecutionEngine(
       PortalEngineRegistry portalRegistry,
       ListingStorage listingStorage,
-      ConfigStorage configStorage,
+      @Autowired(required = false) ConfigStorage configStorage,
       PropertyFilterEngine filterEngine,
       DeduplicationEngine dedupEngine,
       MarketAnalyticsEngine analyticsEngine,

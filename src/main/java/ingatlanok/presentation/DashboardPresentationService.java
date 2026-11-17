@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import ingatlanok.core.IngatlanComHtmlImportService;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.SearchExecutionEngine;
@@ -12,6 +15,7 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 
+@Service
 public class DashboardPresentationService {
 
   private final SearchExecutionEngine searchEngine;
@@ -23,10 +27,11 @@ public class DashboardPresentationService {
     this(searchEngine, analyticsEngine, null);
   }
 
+  @Autowired
   public DashboardPresentationService(
       SearchExecutionEngine searchEngine,
       MarketAnalyticsEngine analyticsEngine,
-      IngatlanComHtmlImportService htmlImportService) {
+      @Autowired(required = false) IngatlanComHtmlImportService htmlImportService) {
     this.searchEngine = Objects.requireNonNull(searchEngine);
     this.analyticsEngine = Objects.requireNonNull(analyticsEngine);
     this.htmlImportService = htmlImportService;

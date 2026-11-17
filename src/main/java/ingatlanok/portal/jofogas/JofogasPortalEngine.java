@@ -1,9 +1,12 @@
 package ingatlanok.portal.jofogas;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
@@ -14,12 +17,20 @@ import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalUrlBuilder;
 import ingatlanok.portal.RawListingNormalizer;
 
+@Component
 public class JofogasPortalEngine extends AbstractAdapterPortalEngine {
 
   private final JofogasUrlBuilder jofogasUrlBuilder;
 
   public JofogasPortalEngine() {
     this(new JofogasUrlBuilder(), null);
+  }
+
+  @Autowired
+  public JofogasPortalEngine(RawListingNormalizer normalizer) {
+    this(
+        new JofogasUrlBuilder(),
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
   }
 
   public JofogasPortalEngine(JofogasUrlBuilder urlBuilder) {

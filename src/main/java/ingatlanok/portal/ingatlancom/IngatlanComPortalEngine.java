@@ -1,9 +1,12 @@
 package ingatlanok.portal.ingatlancom;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
@@ -13,12 +16,20 @@ import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalUrlBuilder;
 import ingatlanok.portal.RawListingNormalizer;
 
+@Component
 public class IngatlanComPortalEngine extends AbstractAdapterPortalEngine {
 
   private final IngatlanComUrlBuilder icUrlBuilder;
 
   public IngatlanComPortalEngine() {
     this(new IngatlanComUrlBuilder(), null);
+  }
+
+  @Autowired
+  public IngatlanComPortalEngine(RawListingNormalizer normalizer) {
+    this(
+        new IngatlanComUrlBuilder(),
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
   }
 
   public IngatlanComPortalEngine(IngatlanComUrlBuilder urlBuilder) {

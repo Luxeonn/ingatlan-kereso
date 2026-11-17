@@ -3,6 +3,8 @@ package ingatlanok.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
@@ -10,6 +12,7 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
+@Service
 public class PropertyFilterEngine {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(PropertyFilterEngine.class);

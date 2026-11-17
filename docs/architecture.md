@@ -103,7 +103,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │  - presentation: DashboardPresentationService, PresentationMapper, DTOs (ListingDto, DashboardResponseDto,
     │                  MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, ListingObservationDto, PortalStatusDto)
     │  - web: RestApiController, GlobalExceptionHandler
-    │  - config: GlobalCorsFilter, SpaWebMvcConfig, CoreEngineConfig
+    │  - config: GlobalCorsFilter, SpaWebMvcConfig, CacheConfig, RequestLoggingFilter
     ▼
 [Layer 2: Core Domain & Business Logic]
     │  - core: SearchExecutionEngine, SearchPersistenceSynchronizer, ParallelPortalScrapeExecutor,

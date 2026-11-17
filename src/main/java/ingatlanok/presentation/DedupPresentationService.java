@@ -10,6 +10,9 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.core.DataQualityEngine;
 import ingatlanok.core.DeduplicationEngine;
@@ -19,6 +22,7 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 
+@Service
 public class DedupPresentationService {
 
   private static final int MAX_BATCH_URLS = 30;
@@ -28,6 +32,7 @@ public class DedupPresentationService {
   private final DeduplicationEngine dedupEngine;
   private final DataQualityEngine qualityEngine;
 
+  @Autowired
   public DedupPresentationService(
       ListingStorage listingStorage,
       DedupOverrideStorage overrideStorage,

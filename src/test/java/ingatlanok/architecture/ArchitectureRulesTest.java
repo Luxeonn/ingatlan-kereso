@@ -24,6 +24,10 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import ingatlanok.portal.AbstractAdapterPortalEngine;
 
 /**
  * Bytecode-level automated architecture integrity rules enforcing 4-layer unidirectional flow,
@@ -166,6 +170,19 @@ public final class ArchitectureRulesTest {
           .should()
           .resideInAPackage("..ingatlanok.web..")
           .because("REST and MVC controllers must reside exclusively in the web presentation layer");
+
+  @ArchTest
+  static final ArchRule CONCRETE_PORTAL_ENGINES_MUST_BE_SPRING_COMPONENTS =
+      classes()
+          .that()
+          .areAssignableTo(AbstractAdapterPortalEngine.class)
+          .and()
+          .doNotHaveModifier(JavaModifier.ABSTRACT)
+          .should()
+          .beAnnotatedWith(Component.class)
+          .orShould()
+          .beAnnotatedWith(Service.class)
+          .because("Concrete portal engines must be auto-discovered by Spring component scanning");
 
   @ArchTest
   static final ArchRule CONTROLLERS_DO_NOT_DEPEND_ON_CORE_ENGINES =

@@ -6,6 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.MarketSegmentKey;
@@ -17,6 +20,7 @@ import ingatlanok.model.PropertyType;
  * Statistical market analytics engine computing medians, category segmentation, bargain indicators,
  * and price drop metrics purely within the domain/core layer.
  */
+@Service
 public class MarketAnalyticsEngine {
 
   private static final int MIN_SAMPLE_SIZE = MarketStatisticsCalculator.MIN_SAMPLE_SIZE;
@@ -29,6 +33,7 @@ public class MarketAnalyticsEngine {
     this(new DataQualityEngine());
   }
 
+  @Autowired
   public MarketAnalyticsEngine(DataQualityEngine qualityEngine) {
     this.qualityEngine = qualityEngine != null ? qualityEngine : new DataQualityEngine();
     this.statisticsCalculator = new MarketStatisticsCalculator();

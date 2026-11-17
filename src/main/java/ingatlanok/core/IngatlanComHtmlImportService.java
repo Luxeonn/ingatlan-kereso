@@ -12,6 +12,8 @@ import java.util.Objects;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.CityUtils;
@@ -33,6 +35,7 @@ import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
  * Parses and persists user-supplied Ingatlan.com search result HTML without outbound requests or
  * anti-bot circumvention (#455).
  */
+@Service
 public class IngatlanComHtmlImportService {
 
   static final int MAX_HTML_BYTES = 5 * 1024 * 1024;
@@ -48,6 +51,7 @@ public class IngatlanComHtmlImportService {
   private final SearchPersistenceSynchronizer persistenceSynchronizer;
   private final PortalDescriptor portalDescriptor;
 
+  @Autowired
   public IngatlanComHtmlImportService(
       PortalEngineRegistry portalRegistry,
       ListingNormalizer listingNormalizer,

@@ -1,9 +1,12 @@
 package ingatlanok.portal.koltozzbe;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
@@ -14,6 +17,7 @@ import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalUrlBuilder;
 import ingatlanok.portal.RawListingNormalizer;
 
+@Component
 public class KoltozzbePortalEngine extends AbstractAdapterPortalEngine {
 
   public static final int DEFAULT_MAX_PAGES = 20;
@@ -23,6 +27,14 @@ public class KoltozzbePortalEngine extends AbstractAdapterPortalEngine {
 
   public KoltozzbePortalEngine() {
     this(new KoltozzbeUrlBuilder(), DEFAULT_MAX_PAGES, null);
+  }
+
+  @Autowired
+  public KoltozzbePortalEngine(RawListingNormalizer normalizer) {
+    this(
+        new KoltozzbeUrlBuilder(),
+        DEFAULT_MAX_PAGES,
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
   }
 
   public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder) {

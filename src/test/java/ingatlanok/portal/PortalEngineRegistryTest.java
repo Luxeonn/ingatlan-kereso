@@ -3,6 +3,7 @@ package ingatlanok.portal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -75,6 +76,31 @@ class PortalEngineRegistryTest {
     assertTrue(active.stream().anyMatch(e -> "dh".equals(e.getId())));
     assertTrue(active.stream().anyMatch(e -> "oc".equals(e.getId())));
     assertFalse(active.stream().anyMatch(e -> "jofogas".equals(e.getId())));
+  }
+
+  @Test
+  @DisplayName("Duplikált portál-ID injektálása fail-fast IllegalStateException hibát dob")
+  void testDuplicatePortalIdThrowsIllegalState() {
+    List<PortalEngine> duplicateEngines =
+        List.of(new DunaHousePortalEngine(), new DunaHousePortalEngine());
+    IllegalStateException ex =
+        assertThrows(
+            IllegalStateException.class,
+            () -> new PortalEngineRegistry(duplicateEngines));
+    assertTrue(ex.getMessage().contains("dh"));
+  }
+
+  @Test
+  @DisplayName("Null vagy üres portállista biztonságosan üres regisztert hoz létre és determinisztikusan rendez")
+  void testNullListAndDeterministicDescriptorOrder() {
+    PortalEngineRegistry emptyRegistry = new PortalEngineRegistry(null);
+    assertTrue(emptyRegistry.getAllEngines().isEmpty());
+
+    List<String> ids =
+        createRegistry().getAllDescriptors().stream().map(PortalDescriptor::id).toList();
+    assertEquals(
+        List.of("dh", "ingatlanbazar", "ingatlancom", "jofogas", "koltozzbe", "oc"),
+        ids);
   }
 
   private PortalEngineRegistry createRegistry() {

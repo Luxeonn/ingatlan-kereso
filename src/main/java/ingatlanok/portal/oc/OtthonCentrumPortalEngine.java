@@ -1,10 +1,13 @@
 package ingatlanok.portal.oc;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
@@ -15,12 +18,20 @@ import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalUrlBuilder;
 import ingatlanok.portal.RawListingNormalizer;
 
+@Component
 public class OtthonCentrumPortalEngine extends AbstractAdapterPortalEngine {
 
   private final OtthonCentrumUrlBuilder ocUrlBuilder;
 
   public OtthonCentrumPortalEngine() {
     this(new OtthonCentrumUrlBuilder(), null);
+  }
+
+  @Autowired
+  public OtthonCentrumPortalEngine(RawListingNormalizer normalizer) {
+    this(
+        new OtthonCentrumUrlBuilder(),
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
   }
 
   public OtthonCentrumPortalEngine(OtthonCentrumUrlBuilder urlBuilder) {
