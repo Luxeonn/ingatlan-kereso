@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import ingatlanok.persistence.repository.DedupOverrideRepository;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class JpaDedupOverrideStorage implements DedupOverrideStorage {
 
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
@@ -26,12 +28,6 @@ public class JpaDedupOverrideStorage implements DedupOverrideStorage {
 
   private final DedupOverrideRepository overrideRepo;
   private final JpaEntityMapper mapper;
-
-  public JpaDedupOverrideStorage(
-      DedupOverrideRepository overrideRepo, JpaEntityMapper mapper) {
-    this.overrideRepo = overrideRepo;
-    this.mapper = mapper;
-  }
 
   @Override
   @Transactional(readOnly = true)

@@ -57,15 +57,10 @@ public class SearchExecutionEngine {
     this.filterEngine = Objects.requireNonNull(filterEngine);
     this.dedupEngine = Objects.requireNonNull(dedupEngine);
     this.analyticsEngine = Objects.requireNonNull(analyticsEngine);
-    this.qualityEngine = qualityEngine != null ? qualityEngine : new DataQualityEngine();
-    this.scrapeExecutor =
-        scrapeExecutor != null ? scrapeExecutor : new ParallelPortalScrapeExecutor();
-    this.resultAggregator =
-        resultAggregator != null ? resultAggregator : new SearchResultAggregator();
-    this.persistenceSynchronizer =
-        persistenceSynchronizer != null
-            ? persistenceSynchronizer
-            : new SearchPersistenceSynchronizer(this.portalRegistry, this.listingStorage);
+    this.qualityEngine = Objects.requireNonNull(qualityEngine);
+    this.scrapeExecutor = Objects.requireNonNull(scrapeExecutor);
+    this.resultAggregator = Objects.requireNonNull(resultAggregator);
+    this.persistenceSynchronizer = Objects.requireNonNull(persistenceSynchronizer);
   }
 
   public SearchResult executeSearch(SearchCriteria criteria) {

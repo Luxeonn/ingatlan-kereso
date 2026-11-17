@@ -1,19 +1,23 @@
 package ingatlanok.web;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import tools.jackson.databind.ObjectMapper;
 
 import ingatlanok.common.AppLogger;
-import ingatlanok.common.JsonSupport;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
   private static final AppLogger LOGGER = AppLogger.getLogger(GlobalExceptionHandler.class);
+
+  private final ObjectMapper objectMapper;
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ApiErrorResponse> handleIllegalArgument(
@@ -73,7 +77,7 @@ public class GlobalExceptionHandler {
             request.getRequestURI());
     return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-        .body(JsonSupport.mapper().writeValueAsString(body));
+        .body(objectMapper.writeValueAsString(body));
   }
 
   @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)

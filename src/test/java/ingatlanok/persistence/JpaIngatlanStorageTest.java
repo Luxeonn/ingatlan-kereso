@@ -586,14 +586,8 @@ class JpaIngatlanStorageTest {
         };
 
     ingatlanok.core.SearchExecutionEngine searchEngine =
-        ingatlanok.core.SearchExecutionEngine.builder()
-            .portalRegistry(new ingatlanok.portal.PortalEngineRegistry(List.of(stubEngine)))
-            .listingStorage(storage)
-            .configStorage(storage)
-            .filterEngine(new ingatlanok.core.PropertyFilterEngine())
-            .dedupEngine(ingatlanok.testsupport.TestFixtures.deduplicationEngine(storage))
-            .analyticsEngine(ingatlanok.testsupport.TestFixtures.marketAnalyticsEngine())
-            .build();
+        ingatlanok.testsupport.TestFixtures.searchExecutionEngine(
+            new ingatlanok.portal.PortalEngineRegistry(List.of(stubEngine)), storage, storage);
 
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));
@@ -653,6 +647,7 @@ class JpaIngatlanStorageTest {
 
     SearchPreset used = storage.markPresetAsUsed(saved.id()).orElseThrow();
     assertNotNull(used.lastUsedAt());
+    assertEquals(saved.updatedAt(), used.updatedAt());
 
     SearchPreset updatePayload = new SearchPreset(saved.id(), "Debrecen Nagyerdei Lakások", null, null, null, null);
     SearchPreset updated = storage.updatePreset(saved.id(), updatePayload).orElseThrow();

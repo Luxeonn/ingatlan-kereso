@@ -1,6 +1,7 @@
 package ingatlanok.persistence.entity;
 
 import java.io.Serializable;
+import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -50,4 +53,20 @@ public class SearchPresetEntity implements Serializable {
 
   @Column(name = "last_used_at", length = 50)
   private String lastUsedAt;
+
+  @PrePersist
+  void onCreate() {
+    String now = Instant.now().toString();
+    if (this.createdAt == null) {
+      this.createdAt = now;
+    }
+    if (this.updatedAt == null) {
+      this.updatedAt = now;
+    }
+  }
+
+  @PreUpdate
+  void onUpdate() {
+    this.updatedAt = Instant.now().toString();
+  }
 }

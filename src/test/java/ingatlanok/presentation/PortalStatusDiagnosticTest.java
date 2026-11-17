@@ -11,8 +11,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import ingatlanok.core.MarketAnalyticsEngine;
-import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
@@ -141,17 +139,11 @@ class PortalStatusDiagnosticTest {
       }
     };
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = TestFixtures.marketAnalyticsEngine();
-    SearchExecutionEngine search = SearchExecutionEngine.builder()
-        .portalRegistry(new PortalEngineRegistry(List.of(engine)))
-        .listingStorage(storage)
-        .configStorage(storage)
-        .filterEngine(new PropertyFilterEngine())
-        .dedupEngine(TestFixtures.deduplicationEngine(storage))
-        .analyticsEngine(analytics)
-        .build();
+    SearchExecutionEngine search =
+        TestFixtures.searchExecutionEngine(new PortalEngineRegistry(List.of(engine)), storage, storage);
     DashboardResponseDto response =
-        new DashboardPresentationService(search, analytics, null).executeSearch(criteria);
+        TestFixtures.dashboardPresentationService(search, TestFixtures.marketAnalyticsEngine())
+            .executeSearch(criteria);
     assertNotNull(response);
     assertNotNull(response.getPortalStatuses());
     assertFalse(response.getPortalStatuses().isEmpty());
@@ -242,19 +234,13 @@ class PortalStatusDiagnosticTest {
         };
 
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = TestFixtures.marketAnalyticsEngine();
     SearchExecutionEngine search =
-        SearchExecutionEngine.builder()
-            .portalRegistry(new PortalEngineRegistry(List.of(dhEngine, icEngine, ocEngine)))
-            .listingStorage(storage)
-            .configStorage(storage)
-            .filterEngine(new PropertyFilterEngine())
-            .dedupEngine(TestFixtures.deduplicationEngine(storage))
-            .analyticsEngine(analytics)
-            .build();
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine, icEngine, ocEngine)), storage, storage);
 
     DashboardResponseDto response =
-        new DashboardPresentationService(search, analytics, null).executeSearch(criteria);
+        TestFixtures.dashboardPresentationService(search, TestFixtures.marketAnalyticsEngine())
+            .executeSearch(criteria);
 
     List<PortalStatusDto> statuses = response.getPortalStatuses();
     assertEquals(3, statuses.size(), "Minden aktív portál pontosan egyszer szerepelhet");
@@ -327,19 +313,13 @@ class PortalStatusDiagnosticTest {
         };
 
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = TestFixtures.marketAnalyticsEngine();
     SearchExecutionEngine search =
-        SearchExecutionEngine.builder()
-            .portalRegistry(new PortalEngineRegistry(List.of(dhEngine)))
-            .listingStorage(storage)
-            .configStorage(storage)
-            .filterEngine(new PropertyFilterEngine())
-            .dedupEngine(TestFixtures.deduplicationEngine(storage))
-            .analyticsEngine(analytics)
-            .build();
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine)), storage, storage);
 
     DashboardResponseDto response =
-        new DashboardPresentationService(search, analytics, null).executeSearch(criteria);
+        TestFixtures.dashboardPresentationService(search, TestFixtures.marketAnalyticsEngine())
+            .executeSearch(criteria);
 
     assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.getExecutionStatus());
     assertEquals(1, response.getPortalStatuses().size());

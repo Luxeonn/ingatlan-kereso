@@ -5,9 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.model.IngatlanItem;
@@ -23,16 +23,11 @@ import ingatlanok.portal.PortalEngineRegistry;
  * status history) and reconciles per-portal scrape counts and diagnostic status cards.
  */
 @Component
+@RequiredArgsConstructor
 public class SearchPersistenceSynchronizer {
 
   private final PortalEngineRegistry portalRegistry;
   private final ListingStorage listingStorage;
-
-  public SearchPersistenceSynchronizer(
-      PortalEngineRegistry portalRegistry, ListingStorage listingStorage) {
-    this.portalRegistry = Objects.requireNonNull(portalRegistry);
-    this.listingStorage = Objects.requireNonNull(listingStorage);
-  }
 
   public void enrichWithPersistedState(List<IngatlanItem> items) {
     if (items == null || items.isEmpty()) {

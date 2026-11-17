@@ -65,18 +65,6 @@ public class RestApiController {
     this.portalEngineRegistry = portalEngineRegistry;
   }
 
-  @Deprecated
-  public RestApiController(
-      ListingStorage listingStorage,
-      DashboardPresentationService dashboardPresentationService,
-      PortalEngineRegistry portalEngineRegistry) {
-    this(
-        listingStorage,
-        listingStorage instanceof ConfigStorage cs ? cs : null,
-        dashboardPresentationService,
-        portalEngineRegistry);
-  }
-
   @GetMapping("/status")
   public ResponseEntity<StatusResponseDto> getStatus() {
     StatusResponseDto status =
@@ -129,11 +117,7 @@ public class RestApiController {
 
   @GetMapping("/config")
   public ResponseEntity<SearchCriteria> getLastCriteria() {
-    ConfigStorage cs = getConfigStorage();
-    SearchCriteria criteria = null;
-    if (cs != null) {
-      criteria = cs.getLastCriteria();
-    }
+    SearchCriteria criteria = configStorage != null ? configStorage.getLastCriteria() : null;
     if (criteria == null) {
       criteria = new SearchCriteria();
     }
@@ -143,11 +127,10 @@ public class RestApiController {
   @PostMapping("/config")
   public ResponseEntity<ActionSuccessResponseDto> saveLastCriteria(
       @RequestBody(required = false) SearchCriteria criteria) {
-    ConfigStorage cs = getConfigStorage();
     if (criteria != null) {
       criteria.validate();
-      if (cs != null) {
-        cs.saveLastCriteria(criteria);
+      if (configStorage != null) {
+        configStorage.saveLastCriteria(criteria);
       }
     }
     return ResponseEntity.ok(ActionSuccessResponseDto.of(true));
@@ -155,17 +138,15 @@ public class RestApiController {
 
   @GetMapping("/presets")
   public ResponseEntity<List<SearchPreset>> getPresets() {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null) {
+    if (configStorage == null) {
       return ResponseEntity.ok(List.of());
     }
-    return ResponseEntity.ok(cs.getPresets());
+    return ResponseEntity.ok(configStorage.getPresets());
   }
 
   @PostMapping("/presets")
   public ResponseEntity<SearchPreset> createPreset(@RequestBody SearchPreset preset) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null) {
+    if (configStorage == null) {
       return ResponseEntity.badRequest().build();
     }
     if (preset == null) {
@@ -180,15 +161,14 @@ public class RestApiController {
     if (preset.criteria() != null) {
       preset.criteria().validate();
     }
-    SearchPreset created = cs.savePreset(preset);
+    SearchPreset created = configStorage.savePreset(preset);
     return ResponseEntity.ok(created);
   }
 
   @PutMapping("/presets/{id}")
   public ResponseEntity<SearchPreset> updatePreset(
       @PathVariable("id") Long id, @RequestBody SearchPreset preset) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null || id == null || preset == null) {
+    if (configStorage == null || id == null || preset == null) {
       return ResponseEntity.badRequest().build();
     }
     if (id <= 0) {
@@ -203,21 +183,20 @@ public class RestApiController {
     if (preset.criteria() != null) {
       preset.criteria().validate();
     }
-    return cs.updatePreset(id, preset)
+    return configStorage.updatePreset(id, preset)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
   @DeleteMapping("/presets/{id}")
   public ResponseEntity<ActionSuccessResponseDto> deletePreset(@PathVariable("id") Long id) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null || id == null) {
+    if (configStorage == null || id == null) {
       return ResponseEntity.badRequest().build();
     }
     if (id <= 0) {
       throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
     }
-    boolean deleted = cs.deletePreset(id);
+    boolean deleted = configStorage.deletePreset(id);
     if (!deleted) {
       return ResponseEntity.notFound().build();
     }
@@ -226,23 +205,15 @@ public class RestApiController {
 
   @PostMapping("/presets/{id}/use")
   public ResponseEntity<SearchPreset> usePreset(@PathVariable("id") Long id) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null || id == null) {
+    if (configStorage == null || id == null) {
       return ResponseEntity.badRequest().build();
     }
     if (id <= 0) {
       throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
     }
-    return cs.markPresetAsUsed(id)
+    return configStorage.markPresetAsUsed(id)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.notFound().build());
-  }
-
-  private ConfigStorage getConfigStorage() {
-    if (configStorage != null) {
-      return configStorage;
-    }
-    return (listingStorage instanceof ConfigStorage cs) ? cs : null;
   }
 
   @GetMapping("/history")

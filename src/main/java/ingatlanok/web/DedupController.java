@@ -2,6 +2,7 @@ package ingatlanok.web;
 
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,13 +21,10 @@ import ingatlanok.presentation.DedupSplitRequestDto;
 
 @RestController
 @RequestMapping("/api/dedup")
+@RequiredArgsConstructor
 public class DedupController {
 
   private final DedupPresentationService dedupPresentationService;
-
-  public DedupController(DedupPresentationService dedupPresentationService) {
-    this.dedupPresentationService = dedupPresentationService;
-  }
 
   @PostMapping("/split")
   public ResponseEntity<DedupActionResponseDto> splitCluster(

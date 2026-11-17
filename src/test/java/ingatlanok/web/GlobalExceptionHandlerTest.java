@@ -11,10 +11,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import ingatlanok.common.JsonSupport;
+
 @DisplayName("GlobalExceptionHandlerTest - Globális REST kivételkezelő tesztek")
 class GlobalExceptionHandlerTest {
 
-  private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+  private final GlobalExceptionHandler handler = new GlobalExceptionHandler(JsonSupport.mapper());
 
   @Test
   @DisplayName("IllegalArgumentException kezelése - 400 Bad Request és strukturált JSON válasz")
