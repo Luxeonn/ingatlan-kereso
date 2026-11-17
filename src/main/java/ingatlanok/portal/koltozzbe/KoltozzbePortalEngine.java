@@ -1,24 +1,25 @@
 package ingatlanok.portal.koltozzbe;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.portal.AdapterPortalEngine;
-import ingatlanok.portal.PortalDescriptor;
-import ingatlanok.portal.PortalEngine;
+import ingatlanok.portal.AbstractAdapterPortalEngine;
+import ingatlanok.portal.ExtractionStrategy;
+import ingatlanok.portal.PortalAdapter;
+import ingatlanok.portal.PortalUrlBuilder;
 import ingatlanok.portal.RawListingNormalizer;
 
-public class KoltozzbePortalEngine implements PortalEngine {
+public class KoltozzbePortalEngine extends AbstractAdapterPortalEngine {
 
   public static final int DEFAULT_MAX_PAGES = 20;
 
-  private final KoltozzbeUrlBuilder urlBuilder;
+  private final KoltozzbeUrlBuilder koltozzbeUrlBuilder;
   private final int maxPages;
-  private final AdapterPortalEngine adapterEngine;
 
   public KoltozzbePortalEngine() {
     this(new KoltozzbeUrlBuilder(), DEFAULT_MAX_PAGES, null);
@@ -33,52 +34,51 @@ public class KoltozzbePortalEngine implements PortalEngine {
   }
 
   public KoltozzbePortalEngine(
+      KoltozzbeUrlBuilder urlBuilder, int maxPages, RawListingNormalizer normalizer) {
+    this(
+        urlBuilder != null ? urlBuilder : new KoltozzbeUrlBuilder(),
+        maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES,
+        normalizer,
+        true);
+  }
+
+  private KoltozzbePortalEngine(
       KoltozzbeUrlBuilder urlBuilder,
       int maxPages,
-      RawListingNormalizer normalizer) {
-    this.urlBuilder = urlBuilder != null ? urlBuilder : new KoltozzbeUrlBuilder();
-    this.maxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
-    this.adapterEngine = new AdapterPortalEngine(new KoltozzbePortalAdapter(this.urlBuilder,
+      RawListingNormalizer normalizer,
+      boolean normalized) {
+    super(
+        urlBuilder,
         List.of(
-            new KoltozzbeExtractionStrategy(this.urlBuilder, new KoltozzbeRawParser(),
-                HttpFetcher::fetchDocument, this.maxPages)
-        )),
+            new KoltozzbeExtractionStrategy(
+                urlBuilder, new KoltozzbeRawParser(), HttpFetcher::fetchDocument, maxPages)),
         normalizer);
+    this.koltozzbeUrlBuilder = urlBuilder;
+    this.maxPages = maxPages;
   }
 
   @Override
-  public PortalDescriptor getDescriptor() {
-    return adapterEngine.getDescriptor();
-  }
-
-  @Override
-  public PortalScrapeResult scrape(SearchCriteria criteria) {
-    return adapterEngine.scrape(criteria);
+  protected PortalAdapter createAdapter(
+      PortalUrlBuilder builder, List<ExtractionStrategy> strategies) {
+    return new KoltozzbePortalAdapter(builder, strategies);
   }
 
   public PortalScrapeResult scrape(
-      SearchCriteria criteria, java.util.function.Function<String, Document> documentFetcher) {
+      SearchCriteria criteria, Function<String, Document> documentFetcher) {
     return scrape(criteria, documentFetcher, maxPages);
   }
 
   public PortalScrapeResult scrape(
-      SearchCriteria criteria,
-      java.util.function.Function<String, Document> documentFetcher,
-      int customMaxPages) {
-    AdapterPortalEngine dynamicEngine = new AdapterPortalEngine(new KoltozzbePortalAdapter(urlBuilder,
+      SearchCriteria criteria, Function<String, Document> documentFetcher, int customMaxPages) {
+    return scrapeWithDynamicStrategies(
+        criteria,
         List.of(
             new KoltozzbeExtractionStrategy(
-                urlBuilder, new KoltozzbeRawParser(), documentFetcher, customMaxPages)
-        )),
-        adapterEngine.getNormalizer());
-    return dynamicEngine.scrape(criteria);
+                koltozzbeUrlBuilder, new KoltozzbeRawParser(), documentFetcher, customMaxPages)));
   }
 
+  @Override
   public KoltozzbeUrlBuilder getUrlBuilder() {
-    return urlBuilder;
-  }
-
-  public RawListingNormalizer getNormalizer() {
-    return adapterEngine.getNormalizer();
+    return koltozzbeUrlBuilder;
   }
 }

@@ -261,16 +261,7 @@ public class RestApiController {
       @PathVariable(value = "id", required = false) String pathId,
       @RequestParam(value = "id", required = false) String paramId,
       @RequestParam(value = "url", required = false) String paramUrl) {
-    String key =
-        pathId != null && !pathId.isBlank()
-            ? pathId
-            : (paramId != null && !paramId.isBlank() ? paramId : paramUrl);
-    if (key == null || key.isBlank()) {
-      throw new IllegalArgumentException("Hiányzó 'id' vagy 'url' paraméter!");
-    }
-    if (key.length() > 1000) {
-      throw new IllegalArgumentException("A megadott azonosító vagy URL túl hosszú!");
-    }
+    String key = resolveListingKey(pathId, paramId, paramUrl);
     List<PriceHistoryEntry> history = listingStorage.getPriceHistory(key);
     return ResponseEntity.ok(history);
   }
@@ -280,16 +271,7 @@ public class RestApiController {
       @PathVariable(value = "id", required = false) String pathId,
       @RequestParam(value = "id", required = false) String paramId,
       @RequestParam(value = "url", required = false) String paramUrl) {
-    String key =
-        pathId != null && !pathId.isBlank()
-            ? pathId
-            : (paramId != null && !paramId.isBlank() ? paramId : paramUrl);
-    if (key == null || key.isBlank()) {
-      throw new IllegalArgumentException("Hiányzó 'id' vagy 'url' paraméter!");
-    }
-    if (key.length() > 1000) {
-      throw new IllegalArgumentException("A megadott azonosító vagy URL túl hosszú!");
-    }
+    String key = resolveListingKey(pathId, paramId, paramUrl);
     List<StatusLogEntry> log = listingStorage.getStatusLog(key);
     return ResponseEntity.ok(log);
   }
@@ -299,6 +281,12 @@ public class RestApiController {
       @PathVariable(value = "id", required = false) String pathId,
       @RequestParam(value = "id", required = false) String paramId,
       @RequestParam(value = "url", required = false) String paramUrl) {
+    String key = resolveListingKey(pathId, paramId, paramUrl);
+    List<ListingObservation> observations = listingStorage.getListingObservations(key);
+    return ResponseEntity.ok(observations);
+  }
+
+  private String resolveListingKey(String pathId, String paramId, String paramUrl) {
     String key =
         pathId != null && !pathId.isBlank()
             ? pathId
@@ -309,8 +297,7 @@ public class RestApiController {
     if (key.length() > 1000) {
       throw new IllegalArgumentException("A megadott azonosító vagy URL túl hosszú!");
     }
-    List<ListingObservation> observations = listingStorage.getListingObservations(key);
-    return ResponseEntity.ok(observations);
+    return key;
   }
 
   @GetMapping("/properties/hidden")
