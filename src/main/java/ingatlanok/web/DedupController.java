@@ -2,6 +2,9 @@ package ingatlanok.web;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,23 +31,25 @@ public class DedupController {
 
   @PostMapping("/split")
   public ResponseEntity<DedupActionResponseDto> splitCluster(
-      @RequestBody(required = false) DedupSplitRequestDto request) {
+      @Valid @RequestBody(required = false) DedupSplitRequestDto request) {
     return ResponseEntity.ok(dedupPresentationService.splitCluster(request));
   }
 
   @PostMapping("/merge")
   public ResponseEntity<DedupActionResponseDto> mergeListings(
-      @RequestBody(required = false) DedupMergeRequestDto request) {
+      @Valid @RequestBody(required = false) DedupMergeRequestDto request) {
     return ResponseEntity.ok(dedupPresentationService.mergeListings(request));
   }
 
   @GetMapping("/overrides")
-  public ResponseEntity<List<DedupOverrideDto>> getOverrides(@RequestParam("url") String url) {
+  public ResponseEntity<List<DedupOverrideDto>> getOverrides(
+      @RequestParam("url") @NotBlank(message = "A lekérdezett URL paraméter kötelező") String url) {
     return ResponseEntity.ok(dedupPresentationService.getOverridesForUrl(url));
   }
 
   @DeleteMapping("/overrides/{id}")
-  public ResponseEntity<DedupActionResponseDto> deleteOverride(@PathVariable("id") Long id) {
+  public ResponseEntity<DedupActionResponseDto> deleteOverride(
+      @PathVariable("id") @Positive(message = "Érvénytelen felülbírálás azonosító") Long id) {
     return ResponseEntity.ok(dedupPresentationService.deleteOverride(id));
   }
 }

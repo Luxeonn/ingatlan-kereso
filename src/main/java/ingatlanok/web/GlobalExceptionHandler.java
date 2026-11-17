@@ -1,11 +1,18 @@
 package ingatlanok.web;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -89,26 +96,57 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
-  @ExceptionHandler(
-      org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+  @ExceptionHandler(HandlerMethodValidationException.class)
   public ResponseEntity<ApiErrorResponse> handleValidationException(
-      org.springframework.web.method.annotation.HandlerMethodValidationException ex,
-      HttpServletRequest request) {
-    String msg = "Érvénytelen kérés paraméterek";
+      HandlerMethodValidationException ex, HttpServletRequest request) {
+    String msg =
+        ex.getAllErrors().stream()
+            .map(MessageSourceResolvable::getDefaultMessage)
+            .filter(m -> m != null && !m.isBlank())
+            .findFirst()
+            .orElse("Érvénytelen kérés paraméterek");
     LOGGER.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
-  @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+  @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValid(
-      org.springframework.web.bind.MethodArgumentNotValidException ex, HttpServletRequest request) {
-    org.springframework.validation.FieldError fieldError = ex.getBindingResult().getFieldError();
-    String msg =
-        fieldError != null
-            ? "Érvénytelen paraméter típus: " + fieldError.getField()
-            : "Érvénytelen kérés paraméterek";
+      MethodArgumentNotValidException ex, HttpServletRequest request) {
+    String msg = resolveBindingValidationMessage(ex);
     LOGGER.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ApiErrorResponse> handleConstraintViolation(
+      ConstraintViolationException ex, HttpServletRequest request) {
+    String msg =
+        ex.getConstraintViolations().stream()
+            .map(ConstraintViolation::getMessage)
+            .filter(m -> m != null && !m.isBlank())
+            .findFirst()
+            .orElse("Érvénytelen kérés paraméterek");
+    LOGGER.warn(msg);
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
+  }
+
+  private String resolveBindingValidationMessage(MethodArgumentNotValidException ex) {
+    FieldError fieldError = ex.getBindingResult().getFieldError();
+    if (fieldError != null && fieldError.isBindingFailure()) {
+      return "Érvénytelen paraméter típus: " + fieldError.getField();
+    }
+    if (fieldError != null
+        && fieldError.getDefaultMessage() != null
+        && !fieldError.getDefaultMessage().isBlank()) {
+      return fieldError.getDefaultMessage();
+    }
+    ObjectError globalError = ex.getBindingResult().getGlobalError();
+    if (globalError != null
+        && globalError.getDefaultMessage() != null
+        && !globalError.getDefaultMessage().isBlank()) {
+      return globalError.getDefaultMessage();
+    }
+    return "Érvénytelen kérés paraméterek";
   }
 
   @ExceptionHandler({

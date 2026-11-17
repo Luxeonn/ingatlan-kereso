@@ -4,11 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Set;
+
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import ingatlanok.common.JsonSupport;
@@ -205,5 +213,51 @@ class GlobalExceptionHandlerTest {
         "Hiányzó kötelező kérés paraméter: requiredParam", response.getBody().message());
     assertEquals("/api/test", response.getBody().path());
     assertNotNull(response.getBody().timestamp());
+  }
+
+  @Test
+  @DisplayName("MethodArgumentNotValidException kezelése - validációs üzenet és type-binding hiba")
+  void testHandleMethodArgumentNotValid() throws NoSuchMethodException {
+    MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/search");
+    MethodParameter param =
+        new MethodParameter(String.class.getDeclaredMethod("concat", String.class), 0);
+
+    BeanPropertyBindingResult validationResult =
+        new BeanPropertyBindingResult(new Object(), "criteria");
+    validationResult.addError(new FieldError("criteria", "minPriceMillion", "A minimum ár nem lehet negatív"));
+    ResponseEntity<ApiErrorResponse> valResponse =
+        handler.handleMethodArgumentNotValid(
+            new MethodArgumentNotValidException(param, validationResult), request);
+    assertEquals(HttpStatus.BAD_REQUEST, valResponse.getStatusCode());
+    assertEquals("A minimum ár nem lehet negatív", valResponse.getBody().message());
+
+    BeanPropertyBindingResult bindingFailureResult =
+        new BeanPropertyBindingResult(new Object(), "query");
+    bindingFailureResult.addError(
+        new FieldError("query", "limit", "abc", true, null, null, "Failed to convert"));
+    ResponseEntity<ApiErrorResponse> bindResponse =
+        handler.handleMethodArgumentNotValid(
+            new MethodArgumentNotValidException(param, bindingFailureResult), request);
+    assertEquals(HttpStatus.BAD_REQUEST, bindResponse.getStatusCode());
+    assertEquals("Érvénytelen paraméter típus: limit", bindResponse.getBody().message());
+
+    BeanPropertyBindingResult globalErrorResult =
+        new BeanPropertyBindingResult(new Object(), "query");
+    globalErrorResult.addError(new ObjectError("query", "Globális hiba"));
+    ResponseEntity<ApiErrorResponse> globalResponse =
+        handler.handleMethodArgumentNotValid(
+            new MethodArgumentNotValidException(param, globalErrorResult), request);
+    assertEquals(HttpStatus.BAD_REQUEST, globalResponse.getStatusCode());
+    assertEquals("Globális hiba", globalResponse.getBody().message());
+  }
+
+  @Test
+  @DisplayName("ConstraintViolationException kezelése - 400 Bad Request fallback üzenettel")
+  void testHandleConstraintViolation() {
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
+    ConstraintViolationException ex = new ConstraintViolationException(Set.of());
+    ResponseEntity<ApiErrorResponse> response = handler.handleConstraintViolation(ex, request);
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    assertEquals("Érvénytelen kérés paraméterek", response.getBody().message());
   }
 }

@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,7 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,57 +23,59 @@ import ingatlanok.web.HistoryQueryDto;
 @DisplayName("RuntimeBoundaryValidationTest - Domain és külső határ típusbiztonsági validációs egységtesztek (#403)")
 class RuntimeBoundaryValidationTest {
 
+  private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+
   @Test
-  @DisplayName("SearchCriteria.validate() - Érvényes alapértelmezett feltételek hiba nélkül lefutnak")
+  @DisplayName("SearchCriteria Bean Validation - Érvényes alapértelmezett feltételek hiba nélkül lefutnak")
   void testSearchCriteriaDefaultValid() {
     SearchCriteria criteria = new SearchCriteria();
-    assertDoesNotThrow(criteria::validate);
+    assertTrue(validator.validate(criteria).isEmpty());
   }
 
   @Test
-  @DisplayName("SearchCriteria.validate() - Negatív értékek és invertált tartományok kivételt dobnak")
+  @DisplayName("SearchCriteria Bean Validation - Negatív értékek és invertált tartományok hibát adnak")
   void testSearchCriteriaInvalidNumbers() {
     SearchCriteria c1 = new SearchCriteria();
     c1.setMinPriceMillion(-1);
-    assertThrows(IllegalArgumentException.class, c1::validate);
+    assertFalse(validator.validate(c1).isEmpty());
 
     SearchCriteria c2 = new SearchCriteria();
     c2.setMaxPriceMillion(-1);
-    assertThrows(IllegalArgumentException.class, c2::validate);
+    assertFalse(validator.validate(c2).isEmpty());
 
     SearchCriteria c3 = new SearchCriteria();
     c3.setMinPriceMillion(100);
     c3.setMaxPriceMillion(50);
-    assertThrows(IllegalArgumentException.class, c3::validate);
+    assertFalse(validator.validate(c3).isEmpty());
 
     SearchCriteria c4 = new SearchCriteria();
     c4.setMinArea(-5);
-    assertThrows(IllegalArgumentException.class, c4::validate);
+    assertFalse(validator.validate(c4).isEmpty());
 
     SearchCriteria c5 = new SearchCriteria();
     c5.setMaxArea(-10);
-    assertThrows(IllegalArgumentException.class, c5::validate);
+    assertFalse(validator.validate(c5).isEmpty());
 
     SearchCriteria c6 = new SearchCriteria();
     c6.setMinArea(200);
     c6.setMaxArea(80);
-    assertThrows(IllegalArgumentException.class, c6::validate);
+    assertFalse(validator.validate(c6).isEmpty());
 
     SearchCriteria c7 = new SearchCriteria();
     c7.setMinRooms(-2);
-    assertThrows(IllegalArgumentException.class, c7::validate);
+    assertFalse(validator.validate(c7).isEmpty());
   }
 
   @Test
-  @DisplayName("SearchCriteria.validate() - Ismeretlen portál és túl hosszú településnév kivételt dob")
+  @DisplayName("SearchCriteria Bean Validation - Ismeretlen portál és túl hosszú településnév hibát ad")
   void testSearchCriteriaInvalidPortalsAndCities() {
     SearchCriteria c1 = new SearchCriteria();
     c1.setPortals(List.of("dh", "fake_portal_xyz"));
-    assertThrows(IllegalArgumentException.class, c1::validate);
+    assertFalse(validator.validate(c1).isEmpty());
 
     SearchCriteria c2 = new SearchCriteria();
     c2.setCity("A".repeat(201));
-    assertThrows(IllegalArgumentException.class, c2::validate);
+    assertFalse(validator.validate(c2).isEmpty());
 
     SearchCriteria c3 = new SearchCriteria();
     List<String> tooManyCities = new ArrayList<>();
@@ -78,51 +83,69 @@ class RuntimeBoundaryValidationTest {
       tooManyCities.add("Város" + i);
     }
     c3.setCities(tooManyCities);
-    assertThrows(IllegalArgumentException.class, c3::validate);
+    assertFalse(validator.validate(c3).isEmpty());
   }
 
   @Test
-  @DisplayName("HistoryQueryDto.validate() - Érvénytelen query paraméterek kivételt dobnak")
+  @DisplayName("SearchPreset Bean Validation - OnCreate vs OnUpdate csoportok helyesen viselkednek")
+  void testSearchPresetValidationGroups() {
+    SearchPreset missingName = new SearchPreset(null, null, new SearchCriteria(), null, null, null);
+    Set<ConstraintViolation<SearchPreset>> createViolations =
+        validator.validate(missingName, ValidationGroups.OnCreate.class);
+    assertFalse(createViolations.isEmpty());
+
+    Set<ConstraintViolation<SearchPreset>> updateViolationsNullName =
+        validator.validate(missingName, ValidationGroups.OnUpdate.class);
+    assertTrue(updateViolationsNullName.isEmpty(), "PUT frissítésnél a null név megengedett");
+
+    SearchPreset blankName = new SearchPreset(null, "   ", new SearchCriteria(), null, null, null);
+    Set<ConstraintViolation<SearchPreset>> updateViolationsBlankName =
+        validator.validate(blankName, ValidationGroups.OnUpdate.class);
+    assertFalse(updateViolationsBlankName.isEmpty(), "PUT frissítésnél a blank név tilos");
+  }
+
+  @Test
+  @DisplayName("HistoryQueryDto Bean Validation - Érvénytelen query paraméterek hibát adnak")
   void testHistoryQueryDtoValidation() {
     HistoryQueryDto q1 = new HistoryQueryDto(
         null, false, null, -1.0, 100.0, 50.0, 100.0, 1.0, 3.0, false, false, "DISCOVERED_DESC", 50, 0);
-    assertThrows(IllegalArgumentException.class, q1::validate);
+    assertFalse(validator.validate(q1).isEmpty());
 
     HistoryQueryDto q2 = new HistoryQueryDto(
         null, false, null, 120.0, 80.0, 50.0, 100.0, 1.0, 3.0, false, false, "DISCOVERED_DESC", 50, 0);
-    assertThrows(IllegalArgumentException.class, q2::validate);
+    assertFalse(validator.validate(q2).isEmpty());
 
     HistoryQueryDto q3 = new HistoryQueryDto(
         null, false, null, 50.0, 100.0, -10.0, 100.0, 1.0, 3.0, false, false, "DISCOVERED_DESC", 50, 0);
-    assertThrows(IllegalArgumentException.class, q3::validate);
+    assertFalse(validator.validate(q3).isEmpty());
 
     HistoryQueryDto q4 = new HistoryQueryDto(
         null, false, null, 50.0, 100.0, 150.0, 60.0, 1.0, 3.0, false, false, "DISCOVERED_DESC", 50, 0);
-    assertThrows(IllegalArgumentException.class, q4::validate);
+    assertFalse(validator.validate(q4).isEmpty());
 
     HistoryQueryDto q5 = new HistoryQueryDto(
         null, false, null, 50.0, 100.0, 50.0, 100.0, 4.0, 2.0, false, false, "DISCOVERED_DESC", 50, 0);
-    assertThrows(IllegalArgumentException.class, q5::validate);
+    assertFalse(validator.validate(q5).isEmpty());
 
     HistoryQueryDto q6 = new HistoryQueryDto(
         null, false, null, 50.0, 100.0, 50.0, 100.0, 1.0, 3.0, false, false, "DISCOVERED_DESC", 0, 0);
-    assertThrows(IllegalArgumentException.class, q6::validate);
+    assertFalse(validator.validate(q6).isEmpty());
 
     HistoryQueryDto q7 = new HistoryQueryDto(
         null, false, null, 50.0, 100.0, 50.0, 100.0, 1.0, 3.0, false, false, "DISCOVERED_DESC", 50, -1);
-    assertThrows(IllegalArgumentException.class, q7::validate);
+    assertFalse(validator.validate(q7).isEmpty());
 
     HistoryQueryDto q8 = new HistoryQueryDto(
         null, false, "ismeretlen_portal", 50.0, 100.0, 50.0, 100.0, 1.0, 3.0, false, false, "DISCOVERED_DESC", 50, 0);
-    assertThrows(IllegalArgumentException.class, q8::validate);
+    assertFalse(validator.validate(q8).isEmpty());
   }
 
   @Test
   @DisplayName("Money - Negatív érték nem engedélyezett a domain értékobjektumban")
   void testMoneyValidation() {
-    assertDoesNotThrow(() -> Money.ofHuf(0));
-    assertDoesNotThrow(() -> Money.ofHuf(50_000_000L));
-    assertDoesNotThrow(() -> Money.ofMillions(45.5));
+    assertTrue(Money.ofHuf(0).amountHuf() == 0);
+    assertTrue(Money.ofHuf(50_000_000L).amountHuf() == 50_000_000L);
+    assertTrue(Money.ofMillions(45.5).amountHuf() == 45_500_000L);
 
     assertThrows(IllegalArgumentException.class, () -> new Money(-1L));
     assertThrows(IllegalArgumentException.class, () -> Money.ofHuf(-100L));

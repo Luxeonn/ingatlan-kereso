@@ -66,7 +66,7 @@ class RestApiControllerValidationTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.error").value("Bad Request"))
-        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet negatív: -10"));
+        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet negatív"));
   }
 
   @Test
@@ -83,7 +83,7 @@ class RestApiControllerValidationTest {
                 .content(JsonSupport.mapper().writeValueAsString(criteria)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet nagyobb a maximum árnál: 150 > 50"));
+        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet nagyobb a maximum árnál"));
   }
 
   @Test
@@ -99,7 +99,7 @@ class RestApiControllerValidationTest {
                 .content(JsonSupport.mapper().writeValueAsString(criteria)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("A minimum alapterület nem lehet negatív: -20"));
+        .andExpect(jsonPath("$.message").value("A minimum alapterület nem lehet negatív"));
   }
 
   @Test
@@ -118,7 +118,7 @@ class RestApiControllerValidationTest {
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(
             jsonPath("$.message")
-                .value("A minimum alapterület nem lehet nagyobb a maximum alapterületnél: 250 > 100"));
+                .value("A minimum alapterület nem lehet nagyobb a maximum alapterületnél"));
   }
 
   @Test
@@ -135,7 +135,7 @@ class RestApiControllerValidationTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(
-            jsonPath("$.message").value("Ismeretlen portál azonosító a keresési feltételekben: ismeretlen_portal"));
+            jsonPath("$.message").value("Ismeretlen portál azonosító a keresési feltételekben"));
   }
 
   @Test
@@ -151,7 +151,7 @@ class RestApiControllerValidationTest {
                 .content(JsonSupport.mapper().writeValueAsString(criteria)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("A minimum szobaszám nem lehet negatív: -5"));
+        .andExpect(jsonPath("$.message").value("A minimum szobaszám nem lehet negatív"));
   }
 
   @Test
@@ -161,7 +161,7 @@ class RestApiControllerValidationTest {
         .perform(get("/api/history").param("limit", "-5"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("A limit értéke csak pozitív egész szám lehet: -5"));
+        .andExpect(jsonPath("$.message").value("A limit értéke csak pozitív egész szám lehet"));
   }
 
   @Test
@@ -171,7 +171,7 @@ class RestApiControllerValidationTest {
         .perform(get("/api/history").param("offset", "-10"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("Az offset értéke nem lehet negatív: -10"));
+        .andExpect(jsonPath("$.message").value("Az offset értéke nem lehet negatív"));
   }
 
   @Test
@@ -181,7 +181,7 @@ class RestApiControllerValidationTest {
         .perform(get("/api/history").param("minPrice", "100").param("maxPrice", "40"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet nagyobb a maximum árnál: 100.0 > 40.0"));
+        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet nagyobb a maximum árnál"));
   }
 
   @Test
@@ -191,7 +191,7 @@ class RestApiControllerValidationTest {
         .perform(get("/api/history").param("portal", "nemletezo_portal"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("Ismeretlen portál azonosító: nemletezo_portal"));
+        .andExpect(jsonPath("$.message").value("Ismeretlen portál azonosító"));
   }
 
   @Test
@@ -223,12 +223,12 @@ class RestApiControllerValidationTest {
                 .content(JsonSupport.mapper().writeValueAsString(preset)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet negatív: -50"));
+        .andExpect(jsonPath("$.message").value("A minimum ár nem lehet negatív"));
   }
 
   @Test
-  @DisplayName("PUT /api/presets/{id} - Negatív id 400 Bad Request-et ad")
-  void testUpdatePresetNegativeId() throws Exception {
+  @DisplayName("PUT /api/presets/{id} - Negatív id és üres név 400, null név megengedett (404 ha nincs)")
+  void testUpdatePresetNegativeIdAndPartialName() throws Exception {
     SearchPreset preset = new SearchPreset(null, "Módosított sablon", new SearchCriteria(), null, null, null);
 
     mockMvc
@@ -238,7 +238,25 @@ class RestApiControllerValidationTest {
                 .content(JsonSupport.mapper().writeValueAsString(preset)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("Érvénytelen preset azonosító: -5"));
+        .andExpect(jsonPath("$.message").value("Érvénytelen preset azonosító"));
+
+    SearchPreset blankNamePreset = new SearchPreset(null, "   ", new SearchCriteria(), null, null, null);
+    mockMvc
+        .perform(
+            put("/api/presets/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonSupport.mapper().writeValueAsString(blankNamePreset)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.message").value("A preset neve nem lehet üres!"));
+
+    SearchPreset nullNamePreset = new SearchPreset(null, null, new SearchCriteria(), null, null, null);
+    mockMvc
+        .perform(
+            put("/api/presets/999999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonSupport.mapper().writeValueAsString(nullNamePreset)))
+        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -248,7 +266,7 @@ class RestApiControllerValidationTest {
         .perform(delete("/api/presets/-1"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("Érvénytelen preset azonosító: -1"));
+        .andExpect(jsonPath("$.message").value("Érvénytelen preset azonosító"));
   }
 
   @Test
@@ -258,7 +276,17 @@ class RestApiControllerValidationTest {
         .perform(post("/api/presets/-10/use"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.message").value("Érvénytelen preset azonosító: -10"));
+        .andExpect(jsonPath("$.message").value("Érvénytelen preset azonosító"));
+  }
+
+  @Test
+  @DisplayName("POST /api/properties/{id}/hide - Üres azonosító 400 Bad Request-et ad")
+  void testHidePropertyBlankId() throws Exception {
+    mockMvc
+        .perform(post("/api/properties/   /hide"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.message").value("Az azonosító nem lehet üres!"));
   }
 
   @Test

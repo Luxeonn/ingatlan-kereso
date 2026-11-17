@@ -2,6 +2,12 @@ package ingatlanok.web;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+
 import ingatlanok.model.ListingSortOption;
 import ingatlanok.model.PortalId;
 import ingatlanok.persistence.PropertySearchCriteria;
@@ -10,20 +16,20 @@ import ingatlanok.persistence.PropertySearchCriteria;
  * Encapsulates GET /api/history query parameters into a strongly typed record (#401 / JAVA-004).
  */
 public record HistoryQueryDto(
-    String city,
+    @Size(max = 200, message = "A település neve túl hosszú") String city,
     Boolean onlyDiscounted,
     String portal,
-    Double minPrice,
-    Double maxPrice,
-    Double minArea,
-    Double maxArea,
-    Double minRooms,
-    Double maxRooms,
+    @PositiveOrZero(message = "A minimum ár nem lehet negatív") Double minPrice,
+    @PositiveOrZero(message = "A maximum ár nem lehet negatív") Double maxPrice,
+    @PositiveOrZero(message = "A minimum alapterület nem lehet negatív") Double minArea,
+    @PositiveOrZero(message = "A maximum alapterület nem lehet negatív") Double maxArea,
+    @PositiveOrZero(message = "A minimum szobaszám nem lehet negatív") Double minRooms,
+    @PositiveOrZero(message = "A maximum szobaszám nem lehet negatív") Double maxRooms,
     Boolean excludeViewed,
     Boolean onlyNewConstruction,
     ListingSortOption sortBy,
-    Integer limit,
-    Integer offset) {
+    @Positive(message = "A limit értéke csak pozitív egész szám lehet") Integer limit,
+    @PositiveOrZero(message = "Az offset értéke nem lehet negatív") Integer offset) {
 
   public HistoryQueryDto(
       String city,
@@ -57,73 +63,31 @@ public record HistoryQueryDto(
         offset);
   }
 
-  public void validate() {
-    validatePrices();
-    validateAreas();
-    validateRooms();
-    validatePaging();
-    validatePortalAndCity();
+  @JsonIgnore
+  @AssertTrue(message = "A minimum ár nem lehet nagyobb a maximum árnál")
+  public boolean isPriceRangeValid() {
+    return minPrice == null || maxPrice == null || minPrice <= maxPrice;
   }
 
-  private void validatePrices() {
-    if (minPrice != null && minPrice < 0) {
-      throw new IllegalArgumentException("A minimum ár nem lehet negatív: " + minPrice);
-    }
-    if (maxPrice != null && maxPrice < 0) {
-      throw new IllegalArgumentException("A maximum ár nem lehet negatív: " + maxPrice);
-    }
-    if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
-      throw new IllegalArgumentException(
-          "A minimum ár nem lehet nagyobb a maximum árnál: " + minPrice + " > " + maxPrice);
-    }
+  @JsonIgnore
+  @AssertTrue(message = "A minimum alapterület nem lehet nagyobb a maximum alapterületnél")
+  public boolean isAreaRangeValid() {
+    return minArea == null || maxArea == null || minArea <= maxArea;
   }
 
-  private void validateAreas() {
-    if (minArea != null && minArea < 0) {
-      throw new IllegalArgumentException("A minimum alapterület nem lehet negatív: " + minArea);
-    }
-    if (maxArea != null && maxArea < 0) {
-      throw new IllegalArgumentException("A maximum alapterület nem lehet negatív: " + maxArea);
-    }
-    if (minArea != null && maxArea != null && minArea > maxArea) {
-      throw new IllegalArgumentException(
-          "A minimum alapterület nem lehet nagyobb a maximum alapterületnél: " + minArea + " > " + maxArea);
-    }
+  @JsonIgnore
+  @AssertTrue(message = "A minimum szobaszám nem lehet nagyobb a maximum szobaszámnál")
+  public boolean isRoomRangeValid() {
+    return minRooms == null || maxRooms == null || minRooms <= maxRooms;
   }
 
-  private void validateRooms() {
-    if (minRooms != null && minRooms < 0) {
-      throw new IllegalArgumentException("A minimum szobaszám nem lehet negatív: " + minRooms);
-    }
-    if (maxRooms != null && maxRooms < 0) {
-      throw new IllegalArgumentException("A maximum szobaszám nem lehet negatív: " + maxRooms);
-    }
-    if (minRooms != null && maxRooms != null && minRooms > maxRooms) {
-      throw new IllegalArgumentException(
-          "A minimum szobaszám nem lehet nagyobb a maximum szobaszámnál: " + minRooms + " > " + maxRooms);
-    }
-  }
-
-  private void validatePaging() {
-    if (limit != null && limit <= 0) {
-      throw new IllegalArgumentException("A limit értéke csak pozitív egész szám lehet: " + limit);
-    }
-    if (offset != null && offset < 0) {
-      throw new IllegalArgumentException("Az offset értéke nem lehet negatív: " + offset);
-    }
-  }
-
-  private void validatePortalAndCity() {
-    if (portal != null && !portal.isBlank() && PortalId.fromString(portal) == PortalId.UNKNOWN) {
-      throw new IllegalArgumentException("Ismeretlen portál azonosító: " + portal);
-    }
-    if (city != null && city.length() > 200) {
-      throw new IllegalArgumentException("A település neve túl hosszú: " + city);
-    }
+  @JsonIgnore
+  @AssertTrue(message = "Ismeretlen portál azonosító")
+  public boolean isPortalValid() {
+    return portal == null || portal.isBlank() || PortalId.fromString(portal) != PortalId.UNKNOWN;
   }
 
   public PropertySearchCriteria toCriteria() {
-    validate();
     List<String> cities = (city != null && !city.isBlank()) ? List.of(city) : null;
     List<String> portals = (portal != null && !portal.isBlank()) ? List.of(portal) : null;
     int pageSize = limit == null || limit <= 0 ? 50 : Math.min(limit, 200);
