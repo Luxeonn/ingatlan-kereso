@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
@@ -21,34 +20,14 @@ public class IngatlanBazarPortalEngine extends AbstractAdapterPortalEngine {
 
   private final IngatlanBazarQueryBuilder queryBuilder;
 
-  public IngatlanBazarPortalEngine() {
-    this(new IngatlanBazarQueryBuilder(), null);
-  }
-
-  @Autowired
-  public IngatlanBazarPortalEngine(RawListingNormalizer normalizer) {
-    this(
-        new IngatlanBazarQueryBuilder(),
-        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
-  }
-
-  public IngatlanBazarPortalEngine(IngatlanBazarQueryBuilder queryBuilder) {
-    this(queryBuilder, null);
-  }
-
   public IngatlanBazarPortalEngine(
       IngatlanBazarQueryBuilder queryBuilder, RawListingNormalizer normalizer) {
-    this(queryBuilder != null ? queryBuilder : new IngatlanBazarQueryBuilder(), normalizer, true);
-  }
-
-  private IngatlanBazarPortalEngine(
-      IngatlanBazarQueryBuilder queryBuilder, RawListingNormalizer normalizer, boolean normalized) {
     super(
-        queryBuilder,
+        Objects.requireNonNull(queryBuilder, "IngatlanBazarQueryBuilder nem lehet null"),
         List.of(
             new IngatlanBazarApiStrategy(
                 queryBuilder, new IngatlanBazarRawParser(), HttpFetcher::fetchJson)),
-        normalizer);
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.queryBuilder = queryBuilder;
   }
 

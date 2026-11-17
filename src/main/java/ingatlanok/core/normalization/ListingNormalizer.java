@@ -95,11 +95,11 @@ public class ListingNormalizer implements RawListingNormalizer {
 
   private final ListingValidator validator;
 
-  @Autowired
   public ListingNormalizer() {
     this(new ListingValidator());
   }
 
+  @Autowired
   public ListingNormalizer(ListingValidator validator) {
     this.validator = validator != null ? validator : new ListingValidator();
   }

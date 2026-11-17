@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
@@ -23,50 +22,18 @@ public class KoltozzbePortalEngine extends AbstractAdapterPortalEngine {
   public static final int DEFAULT_MAX_PAGES = 20;
 
   private final KoltozzbeUrlBuilder koltozzbeUrlBuilder;
-  private final int maxPages;
 
-  public KoltozzbePortalEngine() {
-    this(new KoltozzbeUrlBuilder(), DEFAULT_MAX_PAGES, null);
-  }
-
-  @Autowired
-  public KoltozzbePortalEngine(RawListingNormalizer normalizer) {
-    this(
-        new KoltozzbeUrlBuilder(),
-        DEFAULT_MAX_PAGES,
-        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
-  }
-
-  public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder) {
-    this(urlBuilder, DEFAULT_MAX_PAGES, null);
-  }
-
-  public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder, int maxPages) {
-    this(urlBuilder, maxPages, null);
-  }
-
-  public KoltozzbePortalEngine(
-      KoltozzbeUrlBuilder urlBuilder, int maxPages, RawListingNormalizer normalizer) {
-    this(
-        urlBuilder != null ? urlBuilder : new KoltozzbeUrlBuilder(),
-        maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES,
-        normalizer,
-        true);
-  }
-
-  private KoltozzbePortalEngine(
-      KoltozzbeUrlBuilder urlBuilder,
-      int maxPages,
-      RawListingNormalizer normalizer,
-      boolean normalized) {
+  public KoltozzbePortalEngine(KoltozzbeUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
     super(
-        urlBuilder,
+        Objects.requireNonNull(urlBuilder, "KoltozzbeUrlBuilder nem lehet null"),
         List.of(
             new KoltozzbeExtractionStrategy(
-                urlBuilder, new KoltozzbeRawParser(), HttpFetcher::fetchDocument, maxPages)),
-        normalizer);
+                urlBuilder,
+                new KoltozzbeRawParser(),
+                HttpFetcher::fetchDocument,
+                DEFAULT_MAX_PAGES)),
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.koltozzbeUrlBuilder = urlBuilder;
-    this.maxPages = maxPages;
   }
 
   @Override
@@ -77,7 +44,7 @@ public class KoltozzbePortalEngine extends AbstractAdapterPortalEngine {
 
   public PortalScrapeResult scrape(
       SearchCriteria criteria, Function<String, Document> documentFetcher) {
-    return scrape(criteria, documentFetcher, maxPages);
+    return scrape(criteria, documentFetcher, DEFAULT_MAX_PAGES);
   }
 
   public PortalScrapeResult scrape(

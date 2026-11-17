@@ -29,6 +29,7 @@ import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.PortalDescriptor;
+import ingatlanok.testsupport.TestFixtures;
 
 class KoltozzbeLiveHtmlParsingTest {
 
@@ -76,7 +77,7 @@ class KoltozzbeLiveHtmlParsingTest {
   void testFullScrapeNoFalseMergesAndStreetQuarterCompatibility() throws Exception {
     Document doc = loadDocument();
     KoltozzbePortalEngine engine =
-        new KoltozzbePortalEngine(new KoltozzbeUrlBuilder(), 1, new ListingNormalizer());
+        new KoltozzbePortalEngine(new KoltozzbeUrlBuilder(), new ListingNormalizer());
     SearchCriteria criteria = buildDebrecenHouseCriteria();
 
     PortalScrapeResult result =
@@ -85,7 +86,7 @@ class KoltozzbeLiveHtmlParsingTest {
     assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
     assertEquals(20, result.getItems().size());
 
-    DeduplicationEngine dedup = new DeduplicationEngine(null);
+    DeduplicationEngine dedup = TestFixtures.deduplicationEngine();
     List<IngatlanItem> deduplicated = dedup.deduplicateMultiSignal(result.getItems());
     assertEquals(20, deduplicated.size(),
         "A Költözzbe 1. oldalán szereplő 20 eltérő hirdetés nem vonható össze tévesen");

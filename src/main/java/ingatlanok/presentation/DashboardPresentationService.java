@@ -23,12 +23,6 @@ public class DashboardPresentationService {
   private final IngatlanComHtmlImportService htmlImportService;
 
   public DashboardPresentationService(
-      SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
-    this(searchEngine, analyticsEngine, null);
-  }
-
-  @Autowired
-  public DashboardPresentationService(
       SearchExecutionEngine searchEngine,
       MarketAnalyticsEngine analyticsEngine,
       @Autowired(required = false) IngatlanComHtmlImportService htmlImportService) {

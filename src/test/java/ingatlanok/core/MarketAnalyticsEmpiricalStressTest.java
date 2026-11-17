@@ -30,6 +30,7 @@ import ingatlanok.presentation.MarketSegmentStatsDto;
 import ingatlanok.presentation.MarketStatsDto;
 import ingatlanok.presentation.PortalStatusDto;
 import ingatlanok.presentation.PriceDropItemDto;
+import ingatlanok.testsupport.TestFixtures;
 
 /**
  * Empirical stress test harness challenging MarketAnalyticsEngine segment calculations,
@@ -41,7 +42,7 @@ class MarketAnalyticsEmpiricalStressTest {
 
   @BeforeEach
   void setUp() {
-    engine = new MarketAnalyticsEngine();
+    engine = TestFixtures.marketAnalyticsEngine();
   }
 
   private IngatlanItem createItem(

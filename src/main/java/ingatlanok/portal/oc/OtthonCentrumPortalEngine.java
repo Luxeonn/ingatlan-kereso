@@ -6,7 +6,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
@@ -23,34 +22,14 @@ public class OtthonCentrumPortalEngine extends AbstractAdapterPortalEngine {
 
   private final OtthonCentrumUrlBuilder ocUrlBuilder;
 
-  public OtthonCentrumPortalEngine() {
-    this(new OtthonCentrumUrlBuilder(), null);
-  }
-
-  @Autowired
-  public OtthonCentrumPortalEngine(RawListingNormalizer normalizer) {
-    this(
-        new OtthonCentrumUrlBuilder(),
-        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
-  }
-
-  public OtthonCentrumPortalEngine(OtthonCentrumUrlBuilder urlBuilder) {
-    this(urlBuilder, null);
-  }
-
   public OtthonCentrumPortalEngine(
       OtthonCentrumUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
-    this(urlBuilder != null ? urlBuilder : new OtthonCentrumUrlBuilder(), normalizer, true);
-  }
-
-  private OtthonCentrumPortalEngine(
-      OtthonCentrumUrlBuilder urlBuilder, RawListingNormalizer normalizer, boolean normalized) {
     super(
-        urlBuilder,
+        Objects.requireNonNull(urlBuilder, "OtthonCentrumUrlBuilder nem lehet null"),
         List.of(
             new OtthonCentrumHtmlStrategy(
                 urlBuilder, new OtthonCentrumRawParser(), HttpFetcher::fetchDocument)),
-        normalizer);
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.ocUrlBuilder = urlBuilder;
   }
 

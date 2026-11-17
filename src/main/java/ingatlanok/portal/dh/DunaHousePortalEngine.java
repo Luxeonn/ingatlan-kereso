@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
@@ -22,33 +21,13 @@ public class DunaHousePortalEngine extends AbstractAdapterPortalEngine {
 
   private final DunaHouseUrlBuilder dhUrlBuilder;
 
-  public DunaHousePortalEngine() {
-    this(new DunaHouseUrlBuilder(), null);
-  }
-
-  @Autowired
-  public DunaHousePortalEngine(RawListingNormalizer normalizer) {
-    this(
-        new DunaHouseUrlBuilder(),
-        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
-  }
-
-  public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder) {
-    this(urlBuilder, null);
-  }
-
   public DunaHousePortalEngine(DunaHouseUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
-    this(urlBuilder != null ? urlBuilder : new DunaHouseUrlBuilder(), normalizer, true);
-  }
-
-  private DunaHousePortalEngine(
-      DunaHouseUrlBuilder urlBuilder, RawListingNormalizer normalizer, boolean normalized) {
     super(
-        urlBuilder,
+        Objects.requireNonNull(urlBuilder, "DunaHouseUrlBuilder nem lehet null"),
         List.of(
             new DunaHouseHtmlStrategy(
                 urlBuilder, new DunaHouseRawParser(), HttpFetcher::fetchDocument)),
-        normalizer);
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.dhUrlBuilder = urlBuilder;
   }
 

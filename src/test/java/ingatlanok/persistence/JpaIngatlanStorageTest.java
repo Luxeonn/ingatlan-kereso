@@ -586,13 +586,14 @@ class JpaIngatlanStorageTest {
         };
 
     ingatlanok.core.SearchExecutionEngine searchEngine =
-        new ingatlanok.core.SearchExecutionEngine(
-            new ingatlanok.portal.PortalEngineRegistry(List.of(stubEngine)),
-            storage,
-            storage,
-            new ingatlanok.core.PropertyFilterEngine(),
-            new ingatlanok.core.DeduplicationEngine(storage),
-            new ingatlanok.core.MarketAnalyticsEngine());
+        ingatlanok.core.SearchExecutionEngine.builder()
+            .portalRegistry(new ingatlanok.portal.PortalEngineRegistry(List.of(stubEngine)))
+            .listingStorage(storage)
+            .configStorage(storage)
+            .filterEngine(new ingatlanok.core.PropertyFilterEngine())
+            .dedupEngine(ingatlanok.testsupport.TestFixtures.deduplicationEngine(storage))
+            .analyticsEngine(ingatlanok.testsupport.TestFixtures.marketAnalyticsEngine())
+            .build();
 
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));

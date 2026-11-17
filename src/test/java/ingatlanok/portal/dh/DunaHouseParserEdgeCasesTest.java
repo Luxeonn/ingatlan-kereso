@@ -19,6 +19,7 @@ import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.testsupport.TestFixtures;
 
 class DunaHouseParserEdgeCasesTest {
 
@@ -47,7 +48,7 @@ class DunaHouseParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        missingPriceRaw, new DunaHousePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        missingPriceRaw, TestFixtures.dhEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertNotNull(item.getPriceInfo());
@@ -69,7 +70,7 @@ class DunaHouseParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        missingDetailsRaw, new DunaHousePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        missingDetailsRaw, TestFixtures.dhEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(75_000_000L, item.getPriceInfo().getAmountHuf());
@@ -90,7 +91,7 @@ class DunaHouseParserEdgeCasesTest {
     assertNull(placeholderRaw.imageUrl(), "A placeholder képjelölő nem adhat vissza érvényes képet");
 
     IngatlanItem item = normalizer.normalize(
-        placeholderRaw, new DunaHousePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        placeholderRaw, TestFixtures.dhEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
     assertNotNull(item);
     assertNull(item.getImageUrl());
   }
@@ -107,7 +108,7 @@ class DunaHouseParserEdgeCasesTest {
     assertEquals("https://cdn.dh.hu/images/photo5.jpg", relativeRaw.imageUrl());
 
     IngatlanItem item = normalizer.normalize(
-        relativeRaw, new DunaHousePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        relativeRaw, TestFixtures.dhEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
     assertNotNull(item);
     assertEquals("https://cdn.dh.hu/images/photo5.jpg", item.getImageUrl());
   }
@@ -122,7 +123,7 @@ class DunaHouseParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        multiMillionRaw, new DunaHousePortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        multiMillionRaw, TestFixtures.dhEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(350_500_000L, item.getPriceInfo().getAmountHuf());

@@ -3,10 +3,13 @@ package ingatlanok.portal.oc;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.PortalUrlBuilder;
 
+@Component
 public class OtthonCentrumUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://www.oc.hu";

@@ -17,7 +17,7 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PropertyType;
 import ingatlanok.persistence.InMemoryListingStorage;
 import ingatlanok.portal.PortalEngineRegistry;
-import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
+import ingatlanok.testsupport.TestFixtures;
 
 class IngatlanComHtmlImportServiceTest {
 
@@ -47,18 +47,18 @@ class IngatlanComHtmlImportServiceTest {
   @BeforeEach
   void setUp() {
     storage = new InMemoryListingStorage();
-    ListingNormalizer normalizer = new ListingNormalizer();
+    ListingNormalizer normalizer = TestFixtures.listingNormalizer();
     PortalEngineRegistry registry =
-        new PortalEngineRegistry(
-            List.of(new IngatlanComPortalEngine(null, normalizer)));
+        new PortalEngineRegistry(List.of(TestFixtures.ingatlanComEngine(normalizer)));
     DataQualityEngine qualityEngine = new DataQualityEngine();
     importService =
         new IngatlanComHtmlImportService(
             registry,
             normalizer,
-            new DeduplicationEngine(storage),
+            TestFixtures.deduplicationEngine(storage),
             qualityEngine,
-            storage);
+            storage,
+            new SearchPersistenceSynchronizer(registry, storage));
   }
 
   @Test

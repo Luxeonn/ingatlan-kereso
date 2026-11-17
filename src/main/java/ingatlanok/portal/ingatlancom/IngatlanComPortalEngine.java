@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.model.PortalScrapeResult;
@@ -21,34 +20,14 @@ public class IngatlanComPortalEngine extends AbstractAdapterPortalEngine {
 
   private final IngatlanComUrlBuilder icUrlBuilder;
 
-  public IngatlanComPortalEngine() {
-    this(new IngatlanComUrlBuilder(), null);
-  }
-
-  @Autowired
-  public IngatlanComPortalEngine(RawListingNormalizer normalizer) {
-    this(
-        new IngatlanComUrlBuilder(),
-        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
-  }
-
-  public IngatlanComPortalEngine(IngatlanComUrlBuilder urlBuilder) {
-    this(urlBuilder, null);
-  }
-
   public IngatlanComPortalEngine(
       IngatlanComUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
-    this(urlBuilder != null ? urlBuilder : new IngatlanComUrlBuilder(), normalizer, true);
-  }
-
-  private IngatlanComPortalEngine(
-      IngatlanComUrlBuilder urlBuilder, RawListingNormalizer normalizer, boolean normalized) {
     super(
-        urlBuilder,
+        Objects.requireNonNull(urlBuilder, "IngatlanComUrlBuilder nem lehet null"),
         List.of(
             new IngatlanComSidecarStrategy(urlBuilder),
             new IngatlanComHtmlStrategy(urlBuilder, new IngatlanComRawParser(), null)),
-        normalizer);
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.icUrlBuilder = urlBuilder;
   }
 

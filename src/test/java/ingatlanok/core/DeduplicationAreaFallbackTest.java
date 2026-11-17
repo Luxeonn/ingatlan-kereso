@@ -16,13 +16,14 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
+import ingatlanok.testsupport.TestFixtures;
 
 /**
  * Tests for Issue #338: Deduplication and clustering with missing or varied unit floor area.
  */
 class DeduplicationAreaFallbackTest {
 
-  private final DeduplicationEngine engine = new DeduplicationEngine(null);
+  private final DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
   @Test
   @DisplayName("#338: 6 db azonos Költözzbe panellakás alapterület nélkül sikeresen 1 kártyává olvad")

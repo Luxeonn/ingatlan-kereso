@@ -13,12 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.portal.dh.DunaHousePortalEngine;
-import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
-import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
-import ingatlanok.portal.jofogas.JofogasPortalEngine;
-import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
-import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
+import ingatlanok.testsupport.TestFixtures;
 
 class PortalEngineRegistryTest {
 
@@ -82,7 +77,7 @@ class PortalEngineRegistryTest {
   @DisplayName("Duplikált portál-ID injektálása fail-fast IllegalStateException hibát dob")
   void testDuplicatePortalIdThrowsIllegalState() {
     List<PortalEngine> duplicateEngines =
-        List.of(new DunaHousePortalEngine(), new DunaHousePortalEngine());
+        List.of(TestFixtures.dhEngine(), TestFixtures.dhEngine());
     IllegalStateException ex =
         assertThrows(
             IllegalStateException.class,
@@ -106,11 +101,11 @@ class PortalEngineRegistryTest {
   private PortalEngineRegistry createRegistry() {
     return new PortalEngineRegistry(
         List.of(
-            new DunaHousePortalEngine(),
-            new OtthonCentrumPortalEngine(),
-            new JofogasPortalEngine(),
-            new IngatlanBazarPortalEngine(),
-            new KoltozzbePortalEngine(),
-            new IngatlanComPortalEngine()));
+            TestFixtures.dhEngine(),
+            TestFixtures.ocEngine(),
+            TestFixtures.jofogasEngine(),
+            TestFixtures.ingatlanBazarEngine(),
+            TestFixtures.koltozzbeEngine(),
+            TestFixtures.ingatlanComEngine()));
   }
 }

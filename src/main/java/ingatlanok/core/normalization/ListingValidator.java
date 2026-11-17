@@ -2,9 +2,12 @@ package ingatlanok.core.normalization;
 
 import java.net.URI;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.PortalDescriptor;
 
+@Component
 public class ListingValidator {
 
   public boolean isValid(RawPropertyListing raw, PortalDescriptor descriptor) {

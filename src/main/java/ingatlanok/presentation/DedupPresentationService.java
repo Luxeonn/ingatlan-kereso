@@ -6,11 +6,10 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import ingatlanok.common.CityUtils;
@@ -23,6 +22,7 @@ import ingatlanok.persistence.DedupOverrideStorage;
 import ingatlanok.persistence.ListingStorage;
 
 @Service
+@RequiredArgsConstructor
 public class DedupPresentationService {
 
   private static final int MAX_BATCH_URLS = 30;
@@ -31,18 +31,6 @@ public class DedupPresentationService {
   private final DedupOverrideStorage overrideStorage;
   private final DeduplicationEngine dedupEngine;
   private final DataQualityEngine qualityEngine;
-
-  @Autowired
-  public DedupPresentationService(
-      ListingStorage listingStorage,
-      DedupOverrideStorage overrideStorage,
-      DeduplicationEngine dedupEngine,
-      DataQualityEngine qualityEngine) {
-    this.listingStorage = Objects.requireNonNull(listingStorage);
-    this.overrideStorage = Objects.requireNonNull(overrideStorage);
-    this.dedupEngine = Objects.requireNonNull(dedupEngine);
-    this.qualityEngine = Objects.requireNonNull(qualityEngine);
-  }
 
   public DedupActionResponseDto splitCluster(DedupSplitRequestDto request) {
     if (request == null || request.sourceUrl() == null || request.sourceUrl().isBlank()) {

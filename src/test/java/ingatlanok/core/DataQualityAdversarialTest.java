@@ -20,6 +20,7 @@ import ingatlanok.model.MarketStats;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
+import ingatlanok.testsupport.TestFixtures;
 
 /**
  * Adversarial and empirical stress test suite for DataQualityEngine and MarketAnalyticsEngine (#267).
@@ -33,7 +34,7 @@ class DataQualityAdversarialTest {
   @BeforeEach
   void setUp() {
     qualityEngine = new DataQualityEngine();
-    analyticsEngine = new MarketAnalyticsEngine(qualityEngine);
+    analyticsEngine = TestFixtures.marketAnalyticsEngine(qualityEngine);
   }
 
   private IngatlanItem createBaselineResidential(String id, long priceHuf, double areaM2, Double rooms) {

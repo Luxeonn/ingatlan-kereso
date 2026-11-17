@@ -20,6 +20,7 @@ import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.testsupport.TestFixtures;
 
 class JofogasParserEdgeCasesTest {
 
@@ -48,7 +49,7 @@ class JofogasParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new JofogasPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.jofogasEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertNull(item.getPriceInfo().getAmountHuf());
@@ -67,7 +68,7 @@ class JofogasParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new JofogasPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.jofogasEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(82_000_000L, item.getPriceInfo().getAmountHuf());
@@ -85,7 +86,7 @@ class JofogasParserEdgeCasesTest {
         .orElseThrow();
 
     IngatlanItem item = normalizer.normalize(
-        raw, new JofogasPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.jofogasEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertEquals(45_500_000L, item.getPriceInfo().getAmountHuf());

@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.common.HttpFetcher;
@@ -22,33 +21,13 @@ public class JofogasPortalEngine extends AbstractAdapterPortalEngine {
 
   private final JofogasUrlBuilder jofogasUrlBuilder;
 
-  public JofogasPortalEngine() {
-    this(new JofogasUrlBuilder(), null);
-  }
-
-  @Autowired
-  public JofogasPortalEngine(RawListingNormalizer normalizer) {
-    this(
-        new JofogasUrlBuilder(),
-        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
-  }
-
-  public JofogasPortalEngine(JofogasUrlBuilder urlBuilder) {
-    this(urlBuilder, null);
-  }
-
   public JofogasPortalEngine(JofogasUrlBuilder urlBuilder, RawListingNormalizer normalizer) {
-    this(urlBuilder != null ? urlBuilder : new JofogasUrlBuilder(), normalizer, true);
-  }
-
-  private JofogasPortalEngine(
-      JofogasUrlBuilder urlBuilder, RawListingNormalizer normalizer, boolean normalized) {
     super(
-        urlBuilder,
+        Objects.requireNonNull(urlBuilder, "JofogasUrlBuilder nem lehet null"),
         List.of(
             new JofogasHtmlStrategy(
                 urlBuilder, new JofogasRawParser(), HttpFetcher::fetchDocument)),
-        normalizer);
+        Objects.requireNonNull(normalizer, "RawListingNormalizer nem lehet null"));
     this.jofogasUrlBuilder = urlBuilder;
   }
 

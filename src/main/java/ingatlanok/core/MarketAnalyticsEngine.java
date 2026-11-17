@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import ingatlanok.common.CityUtils;
@@ -29,14 +29,11 @@ public class MarketAnalyticsEngine {
   private final DataQualityEngine qualityEngine;
   private final MarketStatisticsCalculator statisticsCalculator;
 
-  public MarketAnalyticsEngine() {
-    this(new DataQualityEngine());
-  }
-
-  @Autowired
-  public MarketAnalyticsEngine(DataQualityEngine qualityEngine) {
-    this.qualityEngine = qualityEngine != null ? qualityEngine : new DataQualityEngine();
-    this.statisticsCalculator = new MarketStatisticsCalculator();
+  public MarketAnalyticsEngine(
+      DataQualityEngine qualityEngine, MarketStatisticsCalculator statisticsCalculator) {
+    this.qualityEngine = Objects.requireNonNull(qualityEngine, "DataQualityEngine nem lehet null");
+    this.statisticsCalculator =
+        Objects.requireNonNull(statisticsCalculator, "MarketStatisticsCalculator nem lehet null");
   }
 
   public boolean isEligibleForMedian(IngatlanItem item) {

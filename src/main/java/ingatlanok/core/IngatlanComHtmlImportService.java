@@ -12,13 +12,11 @@ import java.util.Objects;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
-import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PredefinedCity;
 import ingatlanok.model.PropertyType;
@@ -26,8 +24,10 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
+import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
-import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
+import ingatlanok.portal.RawListingNormalizer;
+import ingatlanok.portal.ingatlancom.IngatlanComPortalAdapter;
 import ingatlanok.portal.ingatlancom.IngatlanComRawParser;
 import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
 
@@ -44,32 +44,31 @@ public class IngatlanComHtmlImportService {
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   private final IngatlanComRawParser rawParser;
-  private final ListingNormalizer listingNormalizer;
+  private final RawListingNormalizer listingNormalizer;
   private final DeduplicationEngine dedupEngine;
   private final DataQualityEngine qualityEngine;
   private final ListingStorage listingStorage;
   private final SearchPersistenceSynchronizer persistenceSynchronizer;
   private final PortalDescriptor portalDescriptor;
 
-  @Autowired
   public IngatlanComHtmlImportService(
       PortalEngineRegistry portalRegistry,
-      ListingNormalizer listingNormalizer,
+      RawListingNormalizer listingNormalizer,
       DeduplicationEngine dedupEngine,
       DataQualityEngine qualityEngine,
-      ListingStorage listingStorage) {
+      ListingStorage listingStorage,
+      SearchPersistenceSynchronizer persistenceSynchronizer) {
     this.rawParser = new IngatlanComRawParser();
     this.listingNormalizer = Objects.requireNonNull(listingNormalizer);
     this.dedupEngine = Objects.requireNonNull(dedupEngine);
     this.qualityEngine = Objects.requireNonNull(qualityEngine);
     this.listingStorage = Objects.requireNonNull(listingStorage);
-    this.persistenceSynchronizer =
-        new SearchPersistenceSynchronizer(Objects.requireNonNull(portalRegistry), listingStorage);
+    this.persistenceSynchronizer = Objects.requireNonNull(persistenceSynchronizer);
     this.portalDescriptor =
-        portalRegistry
+        Objects.requireNonNull(portalRegistry)
             .getEngine("ingatlancom")
-            .map(e -> e.getDescriptor())
-            .orElseGet(() -> new IngatlanComPortalEngine().getDescriptor());
+            .map(PortalEngine::getDescriptor)
+            .orElse(IngatlanComPortalAdapter.DESCRIPTOR);
   }
 
   public record ImportSummary(

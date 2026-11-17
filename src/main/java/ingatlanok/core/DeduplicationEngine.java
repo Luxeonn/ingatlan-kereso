@@ -44,11 +44,6 @@ public class DeduplicationEngine {
   private final ListingStorage listingStorage;
   private final DedupOverrideStorage dedupOverrideStorage;
 
-  public DeduplicationEngine(ListingStorage listingStorage) {
-    this(listingStorage, null);
-  }
-
-  @Autowired
   public DeduplicationEngine(
       ListingStorage listingStorage,
       @Autowired(required = false) DedupOverrideStorage dedupOverrideStorage) {

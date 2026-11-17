@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
@@ -20,6 +22,7 @@ import ingatlanok.portal.PortalEngineRegistry;
  * Synchronizes scraped listing items with persisted storage state (viewed flags, price deltas,
  * status history) and reconciles per-portal scrape counts and diagnostic status cards.
  */
+@Component
 public class SearchPersistenceSynchronizer {
 
   private final PortalEngineRegistry portalRegistry;

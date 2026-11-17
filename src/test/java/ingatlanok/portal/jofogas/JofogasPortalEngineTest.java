@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.testsupport.TestFixtures;
 
 class JofogasPortalEngineTest {
 
@@ -86,7 +87,7 @@ class JofogasPortalEngineTest {
             + "</body></html>";
     Document doc = Jsoup.parse(html, JofogasUrlBuilder.BASE_URL);
 
-    JofogasPortalEngine engine = new JofogasPortalEngine();
+    JofogasPortalEngine engine = TestFixtures.jofogasEngine();
     PortalScrapeResult result = engine.scrape(criteria, url -> doc);
 
     assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
@@ -129,7 +130,7 @@ class JofogasPortalEngineTest {
   @Test
   @DisplayName("Engine scrape null criteria esetén hibát ad vissza összeomlás nélkül")
   void testEngineScrapeNullCriteriaReturnsFailure() {
-    JofogasPortalEngine engine = new JofogasPortalEngine();
+    JofogasPortalEngine engine = TestFixtures.jofogasEngine();
     PortalScrapeResult result = engine.scrape(null, url -> null);
 
     assertEquals(PortalScrapeStatus.FAILED, result.getStatus());
