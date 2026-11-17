@@ -15,9 +15,10 @@ import ingatlanok.common.JsonSupport;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.portal.HtmlListingParser;
 import ingatlanok.portal.PortalSupport;
 
-public class OtthonCentrumRawParser {
+public class OtthonCentrumRawParser implements HtmlListingParser {
 
   private static final Pattern ID_PATTERN =
       Pattern.compile("/(?:ingatlanok|uj-lakas)/([A-Za-z0-9]+)(?:\\?|$|/|#)");
@@ -34,6 +35,7 @@ public class OtthonCentrumRawParser {
     return json != null && !json.isBlank() ? json.trim() : null;
   }
 
+  @Override
   public List<RawPropertyListing> parseRawListings(Document document) {
     List<RawPropertyListing> items = new ArrayList<>();
     if (document == null) {

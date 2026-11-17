@@ -15,15 +15,17 @@ import ingatlanok.common.JsonSupport;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.portal.HtmlListingParser;
 import ingatlanok.portal.PortalSupport;
 
-public class JofogasRawParser {
+public class JofogasRawParser implements HtmlListingParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("_(\\d+)\\.htm");
 
   private record NextDataAd(
       String subject, Long priceHuf, String detailsText, String locationText) {}
 
+  @Override
   public List<RawPropertyListing> parseRawListings(Document document) {
     List<RawPropertyListing> items = new ArrayList<>();
     if (document == null) {

@@ -32,12 +32,9 @@ public class JofogasUrlBuilder implements PortalUrlBuilder {
     return BASE_URL + route + "?" + String.join("&", queryParams);
   }
 
+  @Override
   public String buildPageUrl(String searchUrl, int page) {
-    if (searchUrl == null || page <= 1) {
-      return searchUrl;
-    }
-    String separator = searchUrl.contains("?") ? "&" : "?";
-    return searchUrl + separator + "o=" + page;
+    return PortalUrlBuilder.appendPageQueryParam(searchUrl, "o", page);
   }
 
   private String resolveLocationSegment(String city) {

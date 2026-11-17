@@ -3,12 +3,12 @@ package ingatlanok.portal.dh;
 import java.util.List;
 
 import ingatlanok.model.PropertyType;
+import ingatlanok.portal.AbstractPortalAdapter;
 import ingatlanok.portal.ExtractionStrategy;
-import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalUrlBuilder;
 
-public class DunaHousePortalAdapter implements PortalAdapter {
+public class DunaHousePortalAdapter extends AbstractPortalAdapter {
 
   private static final PortalDescriptor DESCRIPTOR =
       new PortalDescriptor(
@@ -20,31 +20,12 @@ public class DunaHousePortalAdapter implements PortalAdapter {
           List.of(PropertyType.LAKAS, PropertyType.HAZ, PropertyType.TELEK),
           true);
 
-  private final DunaHouseUrlBuilder urlBuilder;
-  private final List<ExtractionStrategy> strategies;
-
   public DunaHousePortalAdapter() {
     this(new DunaHouseUrlBuilder(), List.of(new DunaHouseHtmlStrategy()));
   }
 
   public DunaHousePortalAdapter(
-      DunaHouseUrlBuilder urlBuilder, List<ExtractionStrategy> strategies) {
-    this.urlBuilder = urlBuilder != null ? urlBuilder : new DunaHouseUrlBuilder();
-    this.strategies = strategies != null ? List.copyOf(strategies) : List.of();
-  }
-
-  @Override
-  public PortalDescriptor getDescriptor() {
-    return DESCRIPTOR;
-  }
-
-  @Override
-  public PortalUrlBuilder getUrlBuilder() {
-    return urlBuilder;
-  }
-
-  @Override
-  public List<ExtractionStrategy> getStrategies() {
-    return strategies;
+      PortalUrlBuilder urlBuilder, List<ExtractionStrategy> strategies) {
+    super(DESCRIPTOR, urlBuilder != null ? urlBuilder : new DunaHouseUrlBuilder(), strategies);
   }
 }

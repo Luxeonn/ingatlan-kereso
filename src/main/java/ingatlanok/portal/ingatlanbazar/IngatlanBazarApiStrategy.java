@@ -1,30 +1,27 @@
 package ingatlanok.portal.ingatlanbazar;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
-import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
-import ingatlanok.portal.ExtractionStrategy;
-import ingatlanok.portal.PortalSupport;
+import ingatlanok.portal.AbstractPaginatedExtractionStrategy;
+import ingatlanok.portal.PageStepOutcome;
+import ingatlanok.portal.PaginationState;
+import ingatlanok.portal.PaginationStopReason;
 
-public class IngatlanBazarApiStrategy implements ExtractionStrategy {
+public class IngatlanBazarApiStrategy extends AbstractPaginatedExtractionStrategy {
 
-  public static final int DEFAULT_MAX_PAGES = 20;
+  public static final int DEFAULT_MAX_PAGES = AbstractPaginatedExtractionStrategy.DEFAULT_MAX_PAGES;
 
   private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarApiStrategy.class);
 
   private final IngatlanBazarQueryBuilder queryBuilder;
   private final IngatlanBazarRawParser rawParser;
   private final Function<String, String> jsonFetcher;
-  private final int maxPages;
 
   public IngatlanBazarApiStrategy() {
     this(new IngatlanBazarQueryBuilder(), new IngatlanBazarRawParser(), HttpFetcher::fetchJson);
@@ -42,10 +39,10 @@ public class IngatlanBazarApiStrategy implements ExtractionStrategy {
       IngatlanBazarRawParser rawParser,
       Function<String, String> jsonFetcher,
       int maxPages) {
+    super(maxPages, DEFAULT_MAX_PAGES);
     this.queryBuilder = queryBuilder != null ? queryBuilder : new IngatlanBazarQueryBuilder();
     this.rawParser = rawParser != null ? rawParser : new IngatlanBazarRawParser();
     this.jsonFetcher = jsonFetcher != null ? jsonFetcher : HttpFetcher::fetchJson;
-    this.maxPages = maxPages > 0 ? maxPages : DEFAULT_MAX_PAGES;
   }
 
   @Override
@@ -54,92 +51,61 @@ public class IngatlanBazarApiStrategy implements ExtractionStrategy {
   }
 
   @Override
-  public RawExtractionResult extract(SearchCriteria criteria) {
-    String webSearchUrl = queryBuilder.buildSearchUrl(criteria);
-    LOGGER.info("Ingatlanbazár API lekérdezés indítása: {}", webSearchUrl);
-
-    List<RawPropertyListing> allListings = new ArrayList<>();
-    Set<String> processedUrls = new HashSet<>();
-    Set<String> processedNativeIds = new HashSet<>();
-    Set<String> visitedPageUrls = new HashSet<>();
-    int pagesProcessed = 0;
-    String stopReason = "MAX_PAGES_REACHED";
-
-    for (int page = 1; page <= maxPages; page++) {
-      String apiUrl = queryBuilder.buildApiSearchUrl(criteria, page);
-      if (apiUrl == null || !visitedPageUrls.add(apiUrl)) {
-        stopReason = "DUPLICATE_PAGE_URL";
-        break;
-      }
-
-      PageFetchOutcome fetchOutcome = fetchPageJson(apiUrl, page);
-      if (fetchOutcome.json() == null) {
-        if (page == 1 && allListings.isEmpty()) {
-          return PortalSupport.resolveFirstPageFetchFailure(
-              method(), webSearchUrl, fetchOutcome.errorMessage());
-        }
-        stopReason = fetchOutcome.stopReason();
-        break;
-      }
-
-      pagesProcessed++;
-      String pageStopReason = processPageJson(
-          fetchOutcome.json(), page, processedUrls, processedNativeIds, allListings);
-      if (pageStopReason != null) {
-        stopReason = pageStopReason;
-        break;
-      }
-    }
-
-    LOGGER.info("Ingatlanbazár lapozás befejezve: feldolgozott oldalak={}, találatok={}, leállás oka={}",
-        pagesProcessed, allListings.size(), stopReason);
-
-    if (allListings.isEmpty()) {
-      return RawExtractionResult.empty(method(), webSearchUrl);
-    }
-    String details = String.format("pages=%d, stopReason=%s", pagesProcessed, stopReason);
-    return RawExtractionResult.success(allListings, method(), details);
+  protected String getPortalLogName() {
+    return "Ingatlanbazár";
   }
 
-  private PageFetchOutcome fetchPageJson(String apiUrl, int page) {
+  @Override
+  protected String getFallbackBaseUrl() {
+    return IngatlanBazarQueryBuilder.BASE_URL;
+  }
+
+  @Override
+  protected String resolveSearchUrl(SearchCriteria criteria) {
+    return queryBuilder.buildSearchUrl(criteria);
+  }
+
+  @Override
+  protected String buildPageUrl(
+      SearchCriteria criteria, String searchUrl, int page, PaginationState state) {
+    return queryBuilder.buildApiSearchUrl(criteria, page);
+  }
+
+  @Override
+  protected PageStepOutcome fetchAndProcessPage(
+      SearchCriteria criteria,
+      String searchUrl,
+      String pageUrl,
+      int page,
+      PaginationState state) {
+    String json;
     try {
-      String json = jsonFetcher.apply(apiUrl);
-      if (json == null || json.isBlank()) {
-        LOGGER.warn("Nem sikerült letölteni az Ingatlanbazár {}. oldal JSON választ: {}", page, apiUrl);
-        return new PageFetchOutcome(
-            null,
-            "INTERMEDIATE_PAGE_FETCH_FAILED",
-            "Nem sikerült elérni az Ingatlanbazár REST API-t");
-      }
-      return new PageFetchOutcome(json, null, null);
+      json = jsonFetcher.apply(pageUrl);
     } catch (Exception e) {
       LOGGER.error("Hiba az Ingatlanbazár {}. oldal API lekérésekor: {}", page, e.getMessage(), e);
-      return new PageFetchOutcome(null, "INTERMEDIATE_PAGE_EXCEPTION", e.getMessage());
+      return page == 1 && state.isEmpty()
+          ? PageStepOutcome.abortFirstPageFailure(e.getMessage())
+          : PageStepOutcome.stop(PaginationStopReason.INTERMEDIATE_PAGE_EXCEPTION);
     }
-  }
 
-  private String processPageJson(
-      String json,
-      int page,
-      Set<String> processedUrls,
-      Set<String> processedNativeIds,
-      List<RawPropertyListing> allListings) {
+    if (json == null || json.isBlank()) {
+      LOGGER.warn("Nem sikerült letölteni az Ingatlanbazár {}. oldal JSON választ: {}", page, pageUrl);
+      return page == 1 && state.isEmpty()
+          ? PageStepOutcome.abortFirstPageFailure("Nem sikerült elérni az Ingatlanbazár REST API-t")
+          : PageStepOutcome.stop(PaginationStopReason.INTERMEDIATE_PAGE_FETCH_FAILED);
+    }
+
+    state.incrementPagesProcessed();
     List<RawPropertyListing> pageListings = rawParser.parseRawListings(json);
     if (pageListings.isEmpty()) {
-      return page == 1 ? "FIRST_PAGE_EMPTY" : "EMPTY_PAGE";
+      return PageStepOutcome.stop(
+          page == 1 ? PaginationStopReason.FIRST_PAGE_EMPTY : PaginationStopReason.EMPTY_PAGE);
     }
-    int addedOnPage = 0;
-    for (RawPropertyListing raw : pageListings) {
-      if (raw != null && PortalSupport.markProcessedListing(
-          processedUrls, processedNativeIds, raw.url(), raw.nativeId())) {
-        allListings.add(raw);
-        addedOnPage++;
-      }
-    }
-    return addedOnPage == 0 ? "REPEATED_PAGE_CONTENT" : null;
+    int added = state.addNewListings(pageListings);
+    return added == 0
+        ? PageStepOutcome.stop(PaginationStopReason.REPEATED_PAGE_CONTENT)
+        : PageStepOutcome.continuePagination();
   }
-
-  private record PageFetchOutcome(String json, String stopReason, String errorMessage) {}
 
   public IngatlanBazarQueryBuilder getQueryBuilder() {
     return queryBuilder;
