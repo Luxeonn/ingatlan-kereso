@@ -19,11 +19,11 @@ Keep property-portal scraping reliable despite external DOM changes, network tim
 
 Activate this skill for any task, pull request, or code review affecting any of the following:
 
-- **Portal engines and shared scraping utilities**: `src/main/java/ingatlanok/portal/**`, `src/main/java/ingatlanok/scraper/**`, `src/main/java/ingatlanok/common/HttpFetcher.java`
-- **Web server and API security**: `src/main/java/ingatlanok/web/**`, `src/main/java/ingatlanok/config/GlobalCorsFilter.java`, `src/main/java/ingatlanok/config/SpaWebMvcConfig.java`
+- **Portal engines, sidecars, and HTML import**: `src/main/java/ingatlanok/portal/**` (including `AbstractAdapterPortalEngine`, `AbstractPaginatedExtractionStrategy`, `sidecar/`), `tools/**` (`sidecar.py`, `sidecar-playwright.mjs`, `scrapers/ingatlancom.py`), `src/main/java/ingatlanok/core/IngatlanComHtmlImportService.java`, `src/main/java/ingatlanok/common/HttpFetcher.java`
+- **Web server and API security**: `src/main/java/ingatlanok/web/**`, `src/main/java/ingatlanok/config/WebCorsConfig.java`, `src/main/java/ingatlanok/config/SecurityHeadersFilter.java`, `src/main/java/ingatlanok/config/RequestLoggingFilter.java`
 - **Input parsing and validation**: `src/main/java/ingatlanok/common/PropertyParser.java`, search criteria and URL-building code
 - **Outbound network boundaries**: HTTP clients, request headers, timeouts, allowed domains, redirect handling
-- **Security-related configuration and dependencies**: `build.gradle.kts`, `application.yml`, Docker and environment configuration
+- **Security-related configuration and dependencies**: `build.gradle.kts`, `src/main/resources/application.yml`, Docker and environment configuration
 - **PR labels**: `security`, `scraping`, `backend`
 
 ---
@@ -33,27 +33,28 @@ Activate this skill for any task, pull request, or code review affecting any of 
 ### In-Scope Responsibilities
 
 1. **Resilient portal scraping**:
-   - Handle network failures, timeouts, rate limiting, changed HTML, missing fields, and bot-protection pages without crashing the application.
-   - Return an explicit portal status such as `BOT_PROTECTED` or `FAILED`, including a direct search link where available.
-   - Keep one slow or stalled portal from indefinitely blocking `SearchExecutionEngine`.
+   - Handle network failures, timeouts, rate limiting, changed HTML, missing fields, and bot-protection pages without crashing the application across `AbstractAdapterPortalEngine` / `AbstractPaginatedExtractionStrategy` / `AbstractPaginatedHtmlStrategy` engines.
+   - Return an explicit portal status (`SUCCESS`, `EMPTY`, `BOT_PROTECTED`, `SPA_FALLBACK`, or `FAILED`), including a direct search link where available.
+   - Keep one slow or stalled portal from indefinitely blocking `SearchExecutionEngine` (`ParallelPortalScrapeExecutor` enforces 15s for standard portals and 120s for the `ingatlancom` sidecar).
+   - For `ingatlan.com`, isolate browser/TLS-impersonation work in `IngatlanComSidecarStrategy` (`SidecarCliExecutor` -> `tools/sidecar.py` / `tools/sidecar-playwright.mjs`) and validate manual HTML uploads in `IngatlanComHtmlImportService` (5 MB max HTML limit, allowed `ingatlan.com` `sourceUrl` host check, zero outbound requests).
 2. **Network requests, timeouts, and single-point SSRF isolation**:
    - Route all outbound HTTP requests through the centralized `HttpFetcher`.
    - Single-point SSRF containment: `Jsoup.connect` calls are strictly encapsulated in `HttpFetcher.java` (asserted by ArchUnit and `scripts/validate-skills.sh`). Direct external connection calls anywhere else in the codebase are forbidden.
-   - Enforce a 15-second (15,000 ms) connect/read timeout; infinite waits are prohibited.
+   - Enforce a 15-second (`15,000 ms`) connect/read timeout in `HttpFetcher` (and bounded `25–105s` process timeouts in `SidecarCliExecutor`); infinite waits are prohibited.
    - Use realistic browser headers where required, including `User-Agent`, `Sec-Ch-Ua`, and `Accept-Language: hu-HU`.
 3. **SSRF prevention and domain allowlisting**:
    - Restrict scraper requests to the six approved domains: `dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, and `ingatlan.com`.
    - Prevent fetching arbitrary URLs supplied by untrusted user input.
 4. **Input validation, builder-based model construction, and injection prevention**:
    - Validate and normalize search criteria (city, price, floor area, and room count).
-   - Construct `IngatlanItem`, `PriceInfo`, `PropertyDetails`, `PortalSource`, and `PortalScrapeResult` inside portal parsers (`DunaHouseRawParser`, `OtthonCentrumRawParser`, `KoltozzbeRawParser`, `IngatlanBazarRawParser`, `IngatlanComRawParser`, `JofogasHtmlStrategy`) and `PropertyParser` using Lombok `@Builder` instead of setter chains; never use `@SneakyThrows` so 0-crash exception handling stays explicit.
+   - Construct `IngatlanItem`, `PriceInfo`, `PropertyDetails`, `PortalSource`, and `PortalScrapeResult` inside portal parsers (`DunaHouseRawParser`, `OtthonCentrumRawParser`, `JofogasRawParser`, `KoltozzbeRawParser`, `IngatlanBazarRawParser`, `IngatlanComRawParser`) and `PropertyParser` using Lombok `@Builder` instead of setter chains; never use `@SneakyThrows` so 0-crash exception handling stays explicit.
    - Protect regex parsing (`PropertyParser`) against ReDoS.
    - Avoid unparameterized SQL/HQL and string-concatenated database queries.
 5. **Spring Boot server hardening, virtual thread non-pinning, CORS, and safe external link opening**:
    - Bind to `127.0.0.1` by default in local environments where appropriate.
-   - Java 25 virtual thread non-pinning: never use the `synchronized` keyword in `portal/`, `core/`, or `web/` packages. Use `ReentrantLock` for mutual exclusion to avoid carrier-thread pinning (asserted by ArchUnit and `scripts/validate-skills.sh`).
-   - Configure `GlobalCorsFilter` to accept only approved origins; never combine wildcard `*` with `allowCredentials=true`.
-   - Keep security headers active, including `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
+   - Java 25 virtual thread non-pinning: never use the `synchronized` keyword anywhere in `src/main/java/ingatlanok/`. Use `ReentrantLock` for mutual exclusion to avoid carrier-thread pinning (asserted by ArchUnit, Checkstyle, and `scripts/validate-skills.sh`).
+   - Configure `WebCorsConfig` (`CorsFilter` bean + originless `OPTIONS` preflight handler) to accept only approved loopback origins; never combine wildcard `*` with `allowCredentials=true`.
+   - Keep security headers active via `SecurityHeadersFilter` (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`).
    - Route all frontend external portal/listing window openings through the centralized `openExternalUrl` helper (`frontend/src/utils/formatters.ts`) so `noopener,noreferrer` window features and URL validation are uniformly enforced; direct `window.open` in components is blocked by ESLint AST rule and `scripts/validate-skills.sh`.
 6. **Portal independence and issue-scope boundaries**:
    - Ensure portal scrapers remain strictly decoupled from core business logic (`PORTAL_DOES_NOT_DEPEND_ON_CORE`) and persistence layers (`PORTAL_DOES_NOT_DEPEND_ON_PERSISTENCE`).
@@ -140,8 +141,8 @@ For every review, the specialist must follow this four-phase workflow:
 
 - [ ] Local development binds to `127.0.0.1` by default where appropriate.
 - [ ] Java 25 virtual thread non-pinning: zero `synchronized` methods or blocks anywhere in `src/main/java/ingatlanok/`; use `ReentrantLock` for mutual exclusion (asserted by ArchUnit, Checkstyle `noSynchronized`, and `scripts/validate-skills.sh`).
-- [ ] `GlobalCorsFilter` accepts only approved origins; wildcard `*` is never combined with credentials (`allowCredentials=true`).
-- [ ] Security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`) remain enabled.
+- [ ] `WebCorsConfig` accepts only approved loopback origins; wildcard `*` is never combined with credentials (`allowCredentials=true`).
+- [ ] `SecurityHeadersFilter` keeps security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`) enabled.
 - [ ] External listing/portal links opened from the frontend use the centralized `openExternalUrl` helper (`noopener,noreferrer`); direct `window.open` in components is forbidden by ESLint AST rule and `scripts/validate-skills.sh`.
 
 ---
@@ -176,7 +177,7 @@ The specialist must stop immediately and reject approval with a `FINDING` status
 4. **Permissive CORS wildcard**: `Access-Control-Allow-Origin: *` is used with credentials or without proper preflight filtering.
 5. **Hard-coded secrets**: API keys, passwords, or private tokens are committed to source code.
 6. **SQL/H2 injection risk**: SQL/HQL queries are assembled by concatenating untrusted values instead of using parameters.
-7. **Virtual thread carrier-pinning**: `synchronized` keyword is used in service/portal/core/web paths instead of `ReentrantLock`.
+7. **Virtual thread carrier-pinning**: `synchronized` keyword is used anywhere in `src/main/java/ingatlanok/` instead of `ReentrantLock`.
 8. **Unsafe external window navigation**: Direct `window.open` is invoked in frontend components instead of `openExternalUrl`.
 
 ---
@@ -187,8 +188,8 @@ Approval (`NO_FINDING`) from `scraper-security-engineer` may be granted only whe
 
 1. Each affected portal engine has an offline unit test that passes without network access.
 2. External calls are handled so expected failures do not crash the service.
-3. Outbound requests are restricted to the six approved portal domains, enforce a 15-second timeout, and are strictly isolated to `HttpFetcher.java`.
-4. Virtual threads are non-pinned (`synchronized` is absent from service/portal/core/web paths).
+3. Outbound requests are restricted to the six approved portal domains, enforce a 15-second timeout in `HttpFetcher` (and bounded 25–105s in `SidecarCliExecutor`), and are strictly isolated to `HttpFetcher.java`.
+4. Virtual threads are non-pinned (`synchronized` is absent from `src/main/java/ingatlanok/`).
 5. Frontend external link openings use `openExternalUrl` with `noopener,noreferrer`.
-6. Server hardening (localhost binding, `GlobalCorsFilter`, and security headers) remains intact.
+6. Server hardening (localhost binding, `WebCorsConfig`, and `SecurityHeadersFilter`) remains intact.
 7. The PR Gate block contains exactly one professional, non-generic rationale sentence.

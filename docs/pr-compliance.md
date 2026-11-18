@@ -47,6 +47,7 @@ Key automated checks performed by `verify-pr-compliance.mjs`:
 - Presence and non-empty content of the 2 mandatory sections (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`).
 - Issue closing reference (`Closes #<id>`, `Fixes #<id>`, or `Resolves #<id>`).
 - Cross-Layer presentation DTO & OpenAPI contract drift check: modifying `presentation/*Dto.java` requires `openapi/api-spec.yaml` and `frontend/src/types/generated-api.ts` synchronization or explicit justification in the PR description.
+- Automated exemptions: `dependabot[bot]` / `app/dependabot` PRs are exempt from the Hungarian 2-section body and issue-link checks, and `develop -> main` release PRs are exempt from the issue-link check.
 
 ### 3.2. Governance & Specialist Skill Validator (`validate-skills.sh`)
 Deterministic offline validator enforcing 7 sequential phases:
@@ -57,8 +58,8 @@ bash scripts/validate-skills.sh -v
 ### 3.3. GitHub Actions PR Compliance Workflow (`.github/workflows/pr-compliance.yml`)
 Runs automatically on PR open, edit (`edited`), or commit push:
 - Validates the 2 mandatory sections, issue linking, and OpenAPI contract drift.
-- Runs validator unit tests.
-- Executes `validate-skills.sh` if governance or documentation files changed.
+- Runs validator unit tests (`node --test scripts/test-verify-pr-compliance.mjs`).
+- Executes `bash scripts/validate-skills.sh -v` unconditionally on every PR.
 
 ---
 

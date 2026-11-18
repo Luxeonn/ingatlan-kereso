@@ -13,19 +13,19 @@ This specialist skill owns **software quality assurance**, **fully offline herme
 
 ### Primary Mission
 
-Ensure every code change is covered by deterministic, network-independent tests; native Gradle `jacocoTestCoverageVerification` enforces a minimum 80% line coverage bound to `check`; Checkstyle reports zero violations under strict Clean Code metrics; frontend ESLint enforces a zero-warning gate (`--max-warnings 0`); the 6-part offline validator (`scripts/validate-skills.sh`) enforces architectural guardrails; containers meet security and health-check requirements; and CI/CD workflows prevent silent failures and false-green results.
+Ensure every code change is covered by deterministic, network-independent tests; native Gradle `jacocoTestCoverageVerification` enforces a minimum 80% line coverage bound to `check`; Checkstyle reports zero violations under strict Clean Code metrics; frontend ESLint enforces a zero-warning gate (`--max-warnings 0`); the 7-part offline validator (`scripts/validate-skills.sh`) enforces architectural guardrails; containers meet security and health-check requirements; and CI/CD workflows prevent silent failures and false-green results.
 
 ### Activation Triggers
 
 Activate this skill for any task, pull request, or code review affecting any of the following:
 
-- **CI/CD workflows and actions**: `.github/workflows/**` (`ci.yml`, `dependency-submission.yml`, `pr-build.yml`, `release.yml`, `images.yml`)
-- **PR template and verification scripts**: `.github/pull_request_template.md`, `.github/scripts/**` (`calculate-jacoco.sh`)
+- **CI/CD workflows and actions**: `.github/workflows/**` (`ci.yml`, `dependency-submission.yml`, `images.yml`, `pr-build.yml`, `pr-compliance.yml`, `pr-guards.yml`, `release.yml`)
+- **PR template and verification scripts**: `.github/pull_request_template.md`, `.github/scripts/**` (`calculate-jacoco.sh`, `run-smoke-test.sh`)
 - **Containerization configuration**: `Dockerfile*`, `docker-compose.yml`, `frontend/Dockerfile`, `frontend/nginx.conf`
-- **Automation and runtime scripts**: `scripts/**` (`validate-skills.sh`, `smoke-test-docker-compose.sh`, `start-docker.*`)
-- **Backend and frontend test files**: `src/test/**`, `frontend/**/__tests__/**`, `frontend/e2e/**`
+- **Automation and runtime scripts**: `scripts/**` (`validate-skills.sh`, `ai-verify.sh`, `verify-pr-compliance.mjs`, `verify-pr-compliance.sh`, `test-verify-pr-compliance.mjs`, `smoke-test-docker-compose.sh`, `start-docker.*`)
+- **Backend and frontend test files**: `src/test/**`, `frontend/src/test/**`, `frontend/e2e/**`
 - **Quality assurance configuration**: `config/checkstyle/**`, `build.gradle.kts` (test/JaCoCo/Checkstyle blocks)
-- **AI directives and policies**: `GEMINI.md`, `gemini.md`, `.agents/**`
+- **AI directives and policies**: `AGENTS.md`, `gemini.md`, `frontend/AGENTS.md`, `src/main/java/ingatlanok/AGENTS.md`, `docs/architecture/type-safety/allowlist.md`, `.agents/**`
 - **PR labels**: `ci`, `devops`, `testing`, `quality`
 
 ---
@@ -39,22 +39,22 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Use MockMvc endpoint tests, Spring Data JPA tests with embedded H2 or in-memory storage, and ArchUnit architecture rules (`ArchitectureRulesTest.java`).
    - Maintain the frontend Vitest and Playwright E2E test suites.
 2. **Code quality gates & static analysis**:
-   - Enforce minimum 80.00% line coverage via native Gradle `jacocoTestCoverageVerification` bound directly to `./gradlew check` across core and persistence packages (including MapStruct mappers `JpaEntityMapper` and `PresentationMapper`, with targeted null/fallback unit tests).
+   - Enforce minimum 80.00% line coverage via native Gradle `jacocoTestCoverageVerification` bound directly to `./gradlew check` across core and persistence packages (including MapStruct mappers `JpaEntityMapper`, `PresentationMapper`, and `SearchPresetMapper`, with targeted null/fallback unit tests).
    - Coverage calculation (`calculate-jacoco.sh`) must fail closed: exit non-zero if the CSV is missing or coverage is below threshold.
    - Checkstyle 10.21.4 must report zero warnings (`maxWarnings = 0`, `isIgnoreFailures = false`) under strict Clean Code metrics: `MethodLength` <= 80 (non-empty), `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, `DeclarationOrder`, and block forbidden Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@ToString`, `@SneakyThrows`).
    - Frontend static analysis must enforce an ESLint zero-warning gate (`--max-warnings 0`) with Clean Code rules (`complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`) and AST restriction against direct `window.open`.
-   - Maintain the 6-part deterministic offline validator (`scripts/validate-skills.sh`) enforcing YAML frontmatter, 8 mandatory sections, decision tokens, relative links, banned words, and architectural guardrails / frontend OpenAPI derivation.
+   - Maintain the 7-part deterministic offline validator (`scripts/validate-skills.sh`) enforcing YAML frontmatter, 8 mandatory sections, decision tokens, relative links, banned words, architectural guardrails / frontend OpenAPI derivation, and PR template compliance / decision tokens / Spring Boot version alignment / `test-verify-pr-compliance.mjs`.
    - MapStruct mappers must compile with `unmappedTargetPolicy = ReportingPolicy.ERROR`, and frontend OpenAPI types (`npm run generate-api`) must stay 100% synchronized with `openapi/api-spec.yaml` with zero dead DTOs or unused API client functions.
 3. **Containerization and release security**:
-   - Multi-stage Temurin JRE 25 runtime container; run as non-root (`appuser:appuser`, UID 10001), use declared volumes (`/app/data`, `/app/logs`), and enforce a health check (`curl -f http://localhost:8080/api/status`).
+   - Multi-stage Temurin JRE 25 runtime container; run as non-root (`appuser:appuser`, UID 10001), prepare `/app/data` and `/app/logs` with `VOLUME ["/app/logs"]` (mapped to named `backend_logs` in Compose), and enforce a health check (`curl -f http://localhost:8080/api/status`).
    - Docker Compose three-tier architecture: chain health dependencies (`service_healthy`) for `db` (PostgreSQL 17), `backend`, and `frontend` (Nginx SPA).
    - Maintain smoke-test automation in `scripts/smoke-test-docker-compose.sh`.
    - Use numeric SemVer versions from `build.gradle.kts`; Git and GitHub release tags use the `vX.Y.Z` prefix, while release image tags use `X.Y.Z` and `sha-<commit>`.
 4. **CI/CD pipeline reliability (eliminating false-green results)**:
    - Comprehensive path filtering (`dorny/paths-filter`) must ensure Docker, Gradle, scripts, configuration, and AI directive changes cannot bypass CI.
    - Minimal fail-closed gate: any required job failure, cancellation, or unexpected skip fails the workflow without producing a verbose summary report.
-   - Require a Conventional Commit PR title.
-   - Run the shared CI checks on the selected commit before manual release or `develop` image publication.
+   - Require a Conventional Commit PR title (`pr-build.yml`), branch up-to-date check with `develop` (`pr-guards.yml`), and Hungarian PR template + OpenAPI/DTO sync + `validate-skills.sh` checks (`pr-compliance.yml`).
+   - Run the shared CI checks on the selected commit before manual release (`release.yml`, restricted strictly to `main`) or `develop` image publication (`images.yml`).
    - Keep release tags and GHCR write permissions scoped to the publishing jobs.
 5. **Issue-scope CI verification and anti-scope-creep quality gates**:
    - Verify that all changes in the PR diff map directly to the issue's requirements and acceptance criteria in the traceability table.
@@ -99,7 +99,7 @@ For every review, the specialist must follow this four-phase workflow:
    - Check path filters, required job dependencies, the minimal fail-closed gate, JaCoCo thresholds, Checkstyle, and Docker security configuration.
 3. **Phase 3: Deterministic local verification**
    - Run backend check suite: `./gradlew checkstyleMain checkstyleTest test jacocoTestReport jacocoTestCoverageVerification check bootJar`.
-   - Run offline skills and architecture validator: `bash scripts/validate-skills.sh -v` (all 6 checks must pass).
+   - Run offline skills and architecture validator: `bash scripts/validate-skills.sh -v` (all 7 checks `[1/7]`–`[7/7]` must pass).
    - Run frontend check suite: `cd frontend && npm run generate-api && npm run typecheck && npm run lint && npm run test && npm run build` (ESLint zero-warning gate `--max-warnings 0`).
    - Run Docker smoke tests when container configuration is affected.
    - Verify that standard unit and integration tests do not require live external network access.
@@ -190,7 +190,7 @@ Approval (`NO_FINDING`) from `quality-devops-engineer` may be granted only when 
 
 1. `./gradlew checkstyleMain checkstyleTest test jacocoTestReport jacocoTestCoverageVerification check bootJar` passes offline with zero test failures, zero Checkstyle Clean Code warnings, and >=80.00% line coverage.
 2. Frontend verification (`npm run generate-api && npm run typecheck && npm run lint && npm run test && npm run build`) passes with zero errors and zero warnings (`--max-warnings 0`).
-3. The offline `validate-skills.sh` validator reports zero errors across all 6 checks.
+3. The offline `validate-skills.sh` validator reports zero errors across all 7 checks (`[1/7]`–`[7/7]`).
 4. Docker and Compose configuration meets container-security and health-check requirements.
 5. CI/CD path filters and the minimal gate prevent false-green results.
 6. The PR build workflow requires a valid Conventional Commit title.

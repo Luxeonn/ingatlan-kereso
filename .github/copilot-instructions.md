@@ -11,37 +11,37 @@ When generating code, reviewing Pull Requests, or proposing refactors, strictly 
 Code is organized strictly into four decoupled layers. Cross-layer dependencies must follow unidirectional flow:
 
 ```
-[Layer 1: Frontend SPA & REST API] (Decoupled React 19 SPA + Spring MVC Headless REST API)
+[Layer 1: Frontend SPA & REST API] (Decoupled React 19 SPA + Spring MVC Headless REST API: RestApiController, DedupController)
              │
              ▼
-[Layer 2: Core Domain & Business Logic] (FilterEngine, DeduplicationEngine, MarketAnalyticsEngine)
+[Layer 2: Core Domain & Business Logic] (SearchExecutionEngine, PropertyFilterEngine, DeduplicationEngine, DataQualityEngine, MarketAnalyticsEngine, ListingNormalizer, IngatlanComHtmlImportService, PersistedFallbackMerger)
              │
              ▼
-[Layer 3: Pluggable Portal Engines] (Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, Ingatlan.com)
+[Layer 3: Pluggable Portal Engines] (Duna House, Otthon Centrum, Jófogás, Költözzbe, Ingatlanbazár, Ingatlan.com + SidecarCliExecutor)
              │
              ▼
-[Layer 4: Decoupled Persistence] (ListingStorage, ConfigStorage, JpaIngatlanStorage: Embedded H2 dev / PostgreSQL 17 prod)
+[Layer 4: Decoupled Persistence] (ListingStorage, ConfigStorage, DedupOverrideStorage, JpaIngatlanStorage, JpaDedupOverrideStorage, SearchPresetEntity, DedupOverrideEntity: Embedded H2 dev / PostgreSQL 17 prod)
 ```
 
 1. **No Layer Inversion:** Never import Layer 1 (Presentation/Web) into Layer 2, 3, or 4.
-2. **Pluggable Portal Design (OCP):** All scraper engines implement `PortalEngine` and register dynamically in `PortalEngineRegistry`. Never hardcode portal-specific logic in core orchestrators.
-3. **Decoupled Persistence:** Never invoke raw SQL or database connections directly from the Web or Portal layers. All persistence access must go through `ListingStorage` or `ConfigStorage` interfaces.
+2. **Pluggable Portal Design (OCP):** Concrete scraper engines extend `AbstractAdapterPortalEngine` (implementing `PortalEngine`) as Spring `@Component` beans and register dynamically in `PortalEngineRegistry`. Never hardcode portal-specific logic in core orchestrators.
+3. **Decoupled Persistence:** Never invoke raw SQL or database connections directly from the Web or Portal layers. All persistence access must go through `ListingStorage`, `ConfigStorage`, or `DedupOverrideStorage` interfaces.
 
 ---
 
 ## 2. Concurrency & Performance (Java 25 LTS)
 
 1. **Virtual Threads First:** Use Java 25 lightweight virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`).
-2. **Never Block Carrier Threads:** Avoid synchronized blocks around long I/O operations. Use concurrent data structures (`ConcurrentHashMap`, `ReentrantReadWriteLock`).
-3. **Decoupled JPA Persistence (Dual-Mode):** Primary persistence relies on Spring Data JPA through `JpaIngatlanStorage`. Development/CLI runs on embedded H2 (`jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1`), while production runs on PostgreSQL 17 in Docker Compose. Ephemeral in-memory H2 (`jdbc:h2:mem:testdb`) is used for hermetic tests. Storage abstraction contracts (`ListingStorage`, `ConfigStorage`) isolate business logic from database vendors.
-4. **Lombok & MapStruct Code Generation:** Use Lombok `@Getter`, `@Builder`, and `@NoArgsConstructor` (and `@Setter` only where post-construction mutation is required) across domain models, presentation DTOs, and JPA entities. Prefer `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates) over setter chains; omit `@Setter` on read-only DTOs/value objects (`MarketStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`). Never use `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` (enforced by Checkstyle), and never generate `equals`/`hashCode`/`toString` on JPA entities. Use MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` (`@AfterMapping`, `@MappingTarget`) instead of manual DTO/entity field-copy code.
+2. **Never Block Carrier Threads:** Zero `synchronized` methods or blocks are permitted anywhere in `src/main/java/ingatlanok/` (enforced by Checkstyle, ArchUnit, and `validate-skills.sh`). Use `ReentrantLock` and concurrent data structures (`ConcurrentHashMap`, `ReentrantReadWriteLock`).
+3. **Decoupled JPA Persistence (Dual-Mode):** Primary persistence relies on Spring Data JPA through `JpaIngatlanStorage` and `JpaDedupOverrideStorage`. Development/CLI runs on embedded H2 (`jdbc:h2:file:./data/ingatlanok_jpa;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1`), while production runs on PostgreSQL 17 in Docker Compose. Ephemeral in-memory H2 (`jdbc:h2:mem:testdb`) is used for hermetic tests. Storage abstraction contracts (`ListingStorage`, `ConfigStorage`, `DedupOverrideStorage`) isolate business logic from database vendors.
+4. **Lombok, Records & MapStruct Code Generation:** Use Lombok `@Getter`, `@Builder`, and `@NoArgsConstructor` (and `@Setter` only where post-construction mutation is required) across domain models, presentation DTOs, and JPA entities. Prefer `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates) over setter chains; omit `@Setter` on read-only DTOs/value objects (`MarketStatsDto`, `MarketSegmentStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`), and prefer Java `record` types for immutable API DTOs (`HistoryQueryDto`, `DedupOverrideDto`, `DedupActionResponseDto`, `IngatlanComHtmlImportResponseDto`, `StatusResponseDto`, `CitiesResponseDto`, etc.). Never use `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows` (enforced by Checkstyle), and never generate `equals`/`hashCode`/`toString` on JPA entities. Use MapStruct (`JpaEntityMapper`, `PresentationMapper`, `SearchPresetMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` (`@AfterMapping`, `@MappingTarget`) instead of manual DTO/entity field-copy code.
 
 ---
 
 ## 3. Resilience & 0-Crash Guarantee
 
 1. **0-Crash Principle:** A scraper failure (network timeout, WAF trigger, bot challenge, DOM alteration) on one portal must NEVER crash the server or abort searches on other portals.
-2. **Graceful Fallback:** Scrapers must return structured `PortalScrapeResult` with explicit statuses (`SUCCESS`, `EMPTY`, `BOT_PROTECTED`, `FAILED`) and a direct browser fallback search URL.
+2. **Graceful Fallback:** Scrapers must return structured `PortalScrapeResult` with explicit statuses (`SUCCESS`, `EMPTY`, `BOT_PROTECTED`, `SPA_FALLBACK`, `FAILED`) and a direct browser fallback search URL.
 3. **Safe Number Parsing:** Always sanitize currency amounts, floor areas, and room numbers. Never throw unhandled `NumberFormatException` in user-facing endpoints.
 
 ---
@@ -58,13 +58,13 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 
 1. **100% Offline & Hermetic Tests:** Automated unit and integration tests must run without external network connectivity. Live web scraping during `./gradlew test` is strictly prohibited.
 2. **Mocking & Fixtures:** Use pre-recorded offline HTML/JSON fixtures (`src/test/resources/`) and mock portal engines.
-3. **Coverage Standard:** Maintain 80%+ JaCoCo instruction and line coverage across domain and persistence packages.
-4. **Static Code Analysis:** Checkstyle is strictly enforced on `./gradlew check`.
+3. **Coverage Standard:** Maintain 80%+ JaCoCo line coverage across domain and persistence packages (`jacocoTestCoverageVerification` bound to `./gradlew check`).
+4. **Static Code Analysis & Governance Gates:** Checkstyle (`checkstyleMain`, `checkstyleTest`), ArchUnit (`ArchitectureRulesTest.java`), frontend Vitest/Playwright/ESLint (`--max-warnings 0`), OpenAPI drift checks (`openapi-drift`), and `bash scripts/validate-skills.sh -v` (7 checks `[1/7]`–`[7/7]`) are strictly enforced alongside `pr-compliance.yml` and `pr-guards.yml`.
 
 ---
 
 ## 6. Git & PR Conventions
 
 1. **Conventional Commits:** PR titles and commits must follow `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `chore: ...`.
-2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop`. Branch naming follows `feature/<name>`, `fix/<name>`, `refactor/<name>`.
+2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop`. Branch naming follows `feature/<name>`, `fix/<name>`, `refactor/<name>`, `docs/<name>`, `chore/<name>`.
 3. **Concise PR Description:** Every PR must follow `.github/pull_request_template.md` (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`, and `Closes #<id>` / `Fixes #<id>`). See `docs/pr-compliance.md` for details.
