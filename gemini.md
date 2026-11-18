@@ -1,4 +1,4 @@
-# Ingatlan Kereső - System Architecture & AI Workflow Directives (GEMINI.md)
+# Ingatlan Kereső - System Architecture & AI Workflow Directives (gemini.md)
 
 This document establishes the technical system architecture, 4-layer component boundaries, persistence design, web scraping specifications, and mandatory AI development and version control guidelines for **ingatlan-kereso**.
 
@@ -12,39 +12,42 @@ This document establishes the technical system architecture, 4-layer component b
 flowchart TD
     subgraph UI ["Frontend Layer (Browser SPA)"]
         SPA["React 19 + TypeScript + Tailwind SPA"]
-        Panels["SearchPanel | ListingsPanel | MarketAnalyticsPanel"]
+        Panels["SearchPanel | ListingsPanel | MarketAnalyticsPanel | Modals"]
         SPA --> Panels
     end
 
     subgraph Server ["Server Layer (Headless Spring Boot 4.1.2 / Java 25)"]
-        HTTP["Spring MVC REST Controllers (Port 8080)"]
+        HTTP["RestApiController & DedupController (Port 8080)"]
+        Pres["DashboardPresentationService & DedupPresentationService"]
         VThread["Virtual Threads Dispatcher"]
-        Cors["GlobalCorsFilter & SpaWebMvcConfig"]
-        HTTP --> VThread & Cors
+        Cors["WebCorsConfig & SecurityHeadersFilter"]
+        HTTP --> VThread & Cors & Pres
     end
 
     subgraph Service ["Core & Scraper Layer"]
         Orchestrator["IngatlanSearchService / SearchExecutionEngine"]
         Normalizer["ListingNormalizer (Canonical PropertyType)"]
-        Portals["Portal Engines: DH | OC | Jofogas | Koltozzbe | IngatlanBazar | IngatlanCom"]
+        Portals["Portal Engines (AbstractAdapterPortalEngine): DH | OC | Jofogas | Koltozzbe | IngatlanBazar | IngatlanCom (+ Sidecar)"]
+        Import["IngatlanComHtmlImportService & PersistedFallbackMerger"]
         Quality["DataQualityEngine (0-100 Score & Outlier Filter)"]
         Analytics["MarketAnalyticsEngine & MarketStatisticsCalculator"]
-        Dedup["DeduplicationEngine (Multi-Signal Clustering)"]
-        
+        Dedup["DeduplicationEngine (+ DedupOverrides)"]
+
         Orchestrator --> Portals --> Normalizer --> Dedup --> Quality --> Analytics
+        Orchestrator --> Import
     end
 
     subgraph Persistence ["Persistence Layer (3-Tier Spring Data JPA)"]
-        Storage["JpaIngatlanStorage & PropertyPersistenceHelper (ListingStorage / ConfigStorage)"]
-        Repo["PropertyRepository / ListingObservationRepository / ConfigRepository / StatusLogRepository"]
+        Storage["JpaIngatlanStorage & JpaDedupOverrideStorage (ListingStorage / ConfigStorage / DedupOverrideStorage)"]
+        Repo["PropertyRepository / ListingObservationRepository / PriceHistoryRepository / StatusLogRepository / ConfigRepository / SearchPresetRepository / DedupOverrideRepository"]
         H2[("data/ingatlanok_jpa.mv.db (Embedded H2 / PostgreSQL 17)")]
         Storage --> Repo --> H2
     end
 
-    Panels -->|POST /api/search| HTTP
-    VThread --> Orchestrator
-    Dedup <-->|Cross-Portal Grouping & Observations| Storage
-    Analytics --> Orchestrator -->|SearchResult JSON| HTTP -->|JSON Response| SPA
+    Panels -->|"/api/search, /api/dedup/*, /api/presets*"| HTTP
+    VThread --> Pres --> Orchestrator
+    Dedup <-->|"Cross-Portal Clustering, Overrides & Observations"| Storage
+    Analytics --> Orchestrator -->|DashboardResponseDto JSON| HTTP -->|JSON Response| SPA
 ```
 
 ---
@@ -57,37 +60,42 @@ Each Java package includes a `package-info.java` module map documenting public e
 ingatlan-kereso/
 ├── .github/
 │   ├── pull_request_template.md                 # PR checklist
-│   └── workflows/                               # ci.yml, dependency-submission.yml, pr-build.yml, release.yml, images.yml
+│   └── workflows/                               # ci.yml, dependency-submission.yml, images.yml, pr-build.yml, pr-compliance.yml, pr-guards.yml, release.yml
 ├── config/checkstyle/checkstyle.xml             # Checkstyle 10.21.4 ruleset (FileLength <= 450, 2-space Indentation)
 ├── scripts/
 │   ├── ai-verify.sh                             # Compact, token-efficient verification runner (--backend, --frontend, --all)
 │   ├── start-docker.bat                         # Windows launcher (local build, GHCR latest, or custom tag)
 │   ├── smoke-test-docker-compose.sh             # Manual Compose integration smoke test
-│   └── validate-skills.sh                       # Offline specialist-skill & architectural guardrail validator (6 checks)
+│   ├── verify-pr-compliance.{mjs,sh}            # PR template, issue link, and DTO/OpenAPI sync validator + test-verify-pr-compliance.mjs
+│   └── validate-skills.sh                       # Offline specialist-skill & architectural guardrail validator (7 checks: [1/7]–[7/7])
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 25, Spring Boot 4.1.2, -Werror, JaCoCo >=80%)
-├── Dockerfile & docker-compose.yml              # Multi-stage Temurin JRE 25 & 3-tier stack (Postgres, Backend, Nginx UI)
+├── Dockerfile & docker-compose.yml              # Multi-stage Temurin JRE 25 (+ Python/Playwright Chromium) & 3-tier stack
 ├── docs/architecture.md                         # Authoritative system architecture reference
+├── tools/                                       # sidecar.py, scrapers/ingatlancom.py, sidecar-playwright.mjs (Node/Python sidecars)
 ├── frontend/                                    # Decoupled React 19 + TypeScript + Vite SPA (ESLint max-lines <= 350)
 │   ├── src/
+│   │   ├── api/                                 # client.ts (openapi-fetch), cityApi.ts, dedupApi.ts, portalApi.ts, presetApi.ts, propertyApi.ts, searchApi.ts
 │   │   ├── components/
 │   │   │   ├── analytics/                       # MarketAnalyticsPanel.tsx, MarketAnalyticsKpiSection.tsx, charts & tables
-│   │   │   ├── filters/                         # SearchPanel.tsx, NumericStepper.tsx (shared AreaStepper/PriceStepper)
-│   │   │   └── listings/                        # ListingsPanel.tsx, BulkActionBar.tsx, BulkFilterChips.tsx, PropertyCard.tsx, PropertyCardParts.tsx, QualityScoreShield.tsx
-│   │   ├── hooks/                               # useMarketAnalytics.ts, useSearch.ts, useOutsideDismiss.ts
+│   │   │   ├── filters/                         # SearchPanel.tsx, SearchPresetsBar.tsx, NumericStepper.tsx (shared AreaStepper/PriceStepper)
+│   │   │   ├── listings/                        # ListingsPanel.tsx, BulkActionBar.tsx, BulkFilterChips.tsx, PropertyCard.tsx, PropertyCardParts.tsx, QualityScoreShield.tsx
+│   │   │   └── modals/                          # DiagnosticsModal.tsx, IngatlanComImportModal.tsx
+│   │   ├── hooks/                               # useDedupActions.ts, useMarketAnalytics.ts, useSearch.ts, useOutsideDismiss.ts
+│   │   ├── store/                               # useFilterStore.ts, filterUrlSync.ts, useUiStore.ts
 │   │   ├── test/                                # Vitest suites & testFixtures.ts (Object Mother mock factories)
 │   │   ├── types/generated-api.ts               # Single-source-of-truth OpenAPI TypeScript schemas
 │   │   └── utils/                               # formatters.ts, marketAnalyticsMath.ts, marketAnalyticsAggregation.ts
 │   └── eslint.config.js & vite.config.ts        # Zero-warning ESLint & Vite config
 ├── src/main/java/ingatlanok/
-│   ├── IngatlanApplication.java & Main.java     # Spring Boot & CLI hybrid entry points
-│   ├── common/                                  # HttpFetcher (SSRF sink), PropertyParser, CityUtils, SlugUtils, BrowserUtils
-│   ├── core/                                    # Layer 2: SearchExecutionEngine, SearchPersistenceSynchronizer, ListingNormalizer, PropertyFilterEngine, DeduplicationEngine, DataQualityEngine, MarketAnalyticsEngine, MarketStatisticsCalculator
-│   ├── model/                                   # Canonical PropertyType, Property, SourceListing, ListingObservation, IngatlanItem, MarketStats, MarketSegmentStats, PriceDropItem, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult
-│   ├── persistence/                             # Layer 4: ListingStorage, ConfigStorage, JpaIngatlanStorage, service/PropertyPersistenceHelper, mapper/JpaEntityMapper, entity/*, repository/*
-│   ├── portal/                                  # Layer 3: PortalEngine, PortalEngineRegistry, dh/, oc/, jofogas/, koltozzbe/, ingatlanbazar/, ingatlancom/
-│   ├── presentation/                            # Layer 1a: DashboardPresentationService, PresentationMapper, DashboardResponseDto, MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, PortalStatusDto
-│   ├── config/                                  # Layer 1b: CacheConfig, GlobalCorsFilter, RequestLoggingFilter, SpaWebMvcConfig
-│   └── web/                                     # Layer 1b: RestApiController, GlobalExceptionHandler
+│   ├── IngatlanApplication.java & CliSearchRunner.java # Spring Boot & CLI hybrid entry points
+│   ├── common/                                  # HttpFetcher (SSRF sink), PropertyParser, CityUtils, SlugUtils, BrowserUtils, resilience/
+│   ├── core/                                    # Layer 2: SearchExecutionEngine, ParallelPortalScrapeExecutor, SearchPersistenceSynchronizer, PersistedFallbackMerger, IngatlanComHtmlImportService, ListingNormalizer, PropertyFilterEngine, DeduplicationEngine (+ core/dedup/*), DataQualityEngine, MarketAnalyticsEngine, MarketStatisticsCalculator
+│   ├── model/                                   # Canonical PropertyType, DedupOverride, DedupOverrideType, SearchPreset, Property, SourceListing, ListingObservation, IngatlanItem, MarketStats, MarketSegmentStats, PriceDropItem, QualityScore, QualityDeduction, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult
+│   ├── persistence/                             # Layer 4: ListingStorage, ConfigStorage, DedupOverrideStorage, JpaIngatlanStorage, JpaDedupOverrideStorage, InMemoryListingStorage, service/{PropertyPersistenceHelper,SearchPresetPersistenceHelper}, mapper/{JpaEntityMapper,SearchPresetMapper}, entity/*, repository/*
+│   ├── portal/                                  # Layer 3: PortalEngine, AbstractAdapterPortalEngine, AbstractPortalAdapter, AbstractPaginatedExtractionStrategy, AbstractPaginatedHtmlStrategy, PortalEngineRegistry, sidecar/{SidecarCliExecutor,SidecarResponse,SidecarStatus}, dh/, oc/, jofogas/, koltozzbe/, ingatlanbazar/, ingatlancom/
+│   ├── presentation/                            # Layer 1a: DashboardPresentationService, DedupPresentationService, PresentationMapper, DashboardResponseDto, Dedup*Dto, IngatlanComHtmlImport*Dto, MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, PortalStatusDto
+│   ├── config/                                  # Layer 1b: WebCorsConfig, SecurityHeadersFilter, RequestLoggingFilter
+│   └── web/                                     # Layer 1b: RestApiController, DedupController, GlobalExceptionHandler, HistoryQueryDto, typed response records
 └── src/test/
     ├── java/ingatlanok/testsupport/TestFixtures.java # Shared Object Mother builder factory for deterministic tests
     └── resources/logback-test.xml               # Quiet WARN-level test logging to prevent console token bloat
@@ -99,14 +107,14 @@ ingatlan-kereso/
 
 1. **Spring Boot 4.1.2 & Java 25 Virtual Threads:** Headless REST service with `spring.threads.virtual.enabled=true`. Scraping I/O and REST requests never block carrier threads.
 2. **0-Crash Resilience:** Network failures, DOM changes, or WAF challenges on one portal never crash the server; portal engines return structured status cards (`BOT_PROTECTED`, `FAILED`, `SPA_FALLBACK`).
-3. **Decoupled 3-Tier Persistence (Dual-Mode):** Hidden behind `ListingStorage` and `ConfigStorage`. `JpaIngatlanStorage` and `PropertyPersistenceHelper` use Spring Data JPA with embedded H2 (`data/ingatlanok_jpa.mv.db`) for dev/CLI, PostgreSQL 17 for Docker Compose, and in-memory H2 for hermetic tests.
+3. **Decoupled 3-Tier Persistence (Dual-Mode):** Hidden behind `ListingStorage`, `ConfigStorage`, and `DedupOverrideStorage`. `JpaIngatlanStorage` (`PropertyPersistenceHelper`, `SearchPresetPersistenceHelper`) and `JpaDedupOverrideStorage` use Spring Data JPA with embedded H2 (`data/ingatlanok_jpa.mv.db`) for dev/CLI, PostgreSQL 17 for Docker Compose, and in-memory H2 for hermetic tests.
 4. **Modern Decoupled Frontend & Clean Versioning:** Autonomous React 19 + TypeScript + Vite SPA served by Nginx in production. GHCR images use clean numeric SemVer tags (`1.0.0`, `1.0.0-<sha>`) without a `v` prefix.
-5. **Canonical Normalization, Multi-Signal Deduplication & 3-Tier Analytics:** Portal categories map to `PropertyType`. Identical physical properties across portals cluster into a single card showing the lowest active price and a multi-source drawer. `MarketAnalyticsEngine` and `MarketStatisticsCalculator` compute domain `MarketStats` (living vs. land area medians, bargains $\ge 20\%$ below median), while `DataQualityEngine` (0–100 score) quarantines outliers ($< 70$).
+5. **Canonical Normalization, Multi-Signal Deduplication & 3-Tier Analytics:** Portal categories map to `PropertyType`. Identical physical properties across portals cluster into a single card showing the lowest active price and a multi-source drawer (with persistent `FORCE_SPLIT` / `FORCE_MERGE` `DedupOverrides` via `DedupController`). `MarketAnalyticsEngine` and `MarketStatisticsCalculator` compute domain `MarketStats` (living vs. land area medians, bargains $\ge 20\%$ below median), while `DataQualityEngine` (0–100 score) quarantines outliers ($< 70$).
 6. **Mandatory Boilerplate Elimination & Single-Source-of-Truth Patterns:**
-   - **Backend (Lombok & MapStruct):** Use `@Getter`, `@Builder` (`@Builder.Default`, `toBuilder = true`), and `@NoArgsConstructor` (`@Setter` only where post-construction mutation is needed; read-only DTOs/value objects omit `@Setter`). `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` are forbidden. Use MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`.
+   - **Backend (Lombok & MapStruct):** Use `@Getter`, `@Builder` (`@Builder.Default`, `toBuilder = true`), and `@NoArgsConstructor` (`@Setter` only where post-construction mutation is needed; read-only DTOs/value objects omit `@Setter`). `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` are forbidden. Use MapStruct (`JpaEntityMapper`, `PresentationMapper`, `SearchPresetMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`.
    - **Frontend (OpenAPI Derivation & Deduplication):** Derive all frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) from `generated-api.ts` (`components['schemas']`). Centralize helpers in `utils/formatters.ts` (`normalizePortalKey`, `PORTAL_CHIPS`, `clampQualityScore`, `getQualityConfig`, `getEffectivePrice`, `getEffectiveSqmPrice`, `openExternalUrl`) and reuse `NumericStepper`, `useOutsideDismiss`, and `SORT_OPTIONS`.
 7. **Fail-Closed Compiler, Exception-Free ArchUnit & Strict Modularity Gates:**
-   - **Backend Javac & ArchUnit:** Javac enforces `-Werror` and `-Xlint:unchecked,deprecation,rawtypes,fallthrough,cast,overrides,divzero,empty`. `ArchitectureRulesTest.java` enforces 4-layer unidirectional flow with **zero exceptions** (`core`, `persistence`, and `portal` never depend on `presentation`, `web`, or `config`), storage encapsulation, read-only DTO/model immutability, single-point SSRF isolation in `HttpFetcher`, and virtual thread non-pinning (no `synchronized` in `core/`, `portal/`, `service/`, `web/`).
+   - **Backend Javac & ArchUnit:** Javac enforces `-Werror` and `-Xlint:unchecked,deprecation,rawtypes,fallthrough,cast,overrides,divzero,empty`. `ArchitectureRulesTest.java` enforces 4-layer unidirectional flow with **zero exceptions** (`core`, `persistence`, and `portal` never depend on `presentation`, `web`, or `config`), storage encapsulation, read-only DTO/model immutability, single-point SSRF isolation in `HttpFetcher`, and virtual thread non-pinning (no `synchronized` anywhere in `src/main/java/ingatlanok/`).
    - **Checkstyle 10.21.4:** Enforces `FileLength` <= 450, 2-space `Indentation`, `WhitespaceAround`, `WhitespaceAfter`, `NoWhitespaceBefore`, `GenericWhitespace`, `EmptyLineSeparator`, `MethodLength` <= 80, `ParameterNumber` <= 6, `CyclomaticComplexity` <= 12, `BooleanExpressionComplexity` <= 4, `NestedIfDepth` <= 3, `NestedTryDepth` <= 2, and `DeclarationOrder`.
    - **Frontend TypeScript & ESLint:** Enforces `noImplicitReturns`, `noImplicitOverride`, `forceConsistentCasingInFileNames`, ESLint `--max-warnings 0`, `max-lines: 350` (`skipBlankLines: true, skipComments: true`), `complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`, and AST ban on direct `window.open`.
 8. **AI Token-Efficiency & High-Signal Tooling:**
@@ -126,7 +134,7 @@ ingatlan-kereso/
 | **Jófogás Ingatlan** | `jofogas.hu` | Live Jsoup DOM | Query-based parsing with price and location regex cleaning |
 | **Költözzbe** | `koltozzbe.hu` | Live DOM & JSON-LD | Dual strategy: HTML cards and Schema.org JSON-LD |
 | **Ingatlanbazár** | `ingatlanbazar.hu` | Live Internal REST API | High-speed JSON endpoints (`/api/property-search`) with cached location codes |
-| **Ingatlan.com** | `ingatlan.com` | Graceful Fallback | Cloudflare WAF protected. Generates direct search link fallback without blocking |
+| **Ingatlan.com** | `ingatlan.com` | Sidecar + HTML Import / Fallback | `IngatlanComSidecarStrategy` (`SidecarCliExecutor` → `tools/sidecar.py` / `tools/sidecar-playwright.mjs`, 120s budget in `ParallelPortalScrapeExecutor`), `PersistedFallbackMerger`, manual HTML import (`IngatlanComHtmlImportService`), and graceful `BOT_PROTECTED` fallback when WAF blocks |
 
 ---
 
@@ -145,7 +153,7 @@ ingatlan-kereso/
 > 7. **Standardized Issue Templates:** Always follow `.github/ISSUE_TEMPLATE/bug_report.yml` (`fix: <summary>`, `bug` label) and `.github/ISSUE_TEMPLATE/feature_request.yml` (`feat: <summary>`, `enhancement` label) as the single source of truth.
 > 8. **Regression Test First Discipline:** Follow the 6-step cycle in [docs/business-logic-regression.md](docs/business-logic-regression.md); prove the defect with a failing test (Red) before fixing the implementation (Green).
 > 9. **Issue-Scope Boundary & Anti-Scope-Creep Guardrails:** Modifications must be strictly confined to the issue's stated goals and acceptance criteria. Unsolicited refactoring, technology version bumps, package reorganizations, or API/DB contract shifts are prohibited. Out-of-scope improvements must be documented as separate proposed issues; never execute them opportunistically. Any supporting change required to meet acceptance criteria must be explicitly justified in the Hungarian PR body.
-> 10. **Adversarial Self-Review Protocol (Anti-Tunnel-Vision & Confirmation-Bias Gate):** Before opening any PR, agents must systematically audit their own implementation against four critical invariants: (1) **Multi-Source Domain Invariant** (no direct `item.priceInfo.amountHuf` / `item.detailsInfo.pricePerSquareMeter` access, use `getEffectivePrice`/`getEffectiveSqmPrice` from `src/utils/formatters.ts`), (2) **Multi-City & Partial Failure Invariant** (proper handling of mixed portal/city statuses), (3) **End-to-End Contract Traceability** (DTO -> `api-spec.yaml` -> `generated-api.ts` -> UI components), and (4) **Hermetic Test Isolation** (no production `app.test-mode` branching, zero `synchronized` carrier-pinning in Java 25).
+> 10. **Adversarial Self-Review Protocol (Anti-Tunnel-Vision & Confirmation-Bias Gate):** Before opening any PR, agents must systematically audit their own implementation against four critical invariants: (1) **Multi-Source Domain Invariant** (no direct `item.priceInfo.amountHuf` / `item.detailsInfo.pricePerSquareMeter` access, use `getEffectivePrice`/`getEffectiveSqmPrice` from `frontend/src/utils/formatters.ts`), (2) **Multi-City & Partial Failure Invariant** (proper handling of mixed portal/city statuses), (3) **End-to-End Contract Traceability** (DTO -> `api-spec.yaml` -> `generated-api.ts` -> UI components), and (4) **Hermetic Test Isolation** (no production `app.test-mode` branching, zero `synchronized` carrier-pinning in Java 25).
 > 11. **Cross-Portal Bug & Fix Consistency Rule:** Whenever a scraping, pagination, URL-building, or parsing bug is discovered or fixed in one portal engine, always audit all other portal engines (`dh`, `oc`, `jofogas`, `koltozzbe`, `ingatlanbazar`, `ingatlancom`) for the same defect and apply the fix uniformly across every affected portal.
 
 ---
@@ -166,4 +174,4 @@ Never push unverified code to remote. Run fast iterative checks via `bash script
   ```bash
   bash scripts/validate-skills.sh -v
   ```
-- **AppSec & Spring CLI:** Route all external scraping HTTP calls through `HttpFetcher` (SSRF protection) and keep `@ConditionalOnProperty(name = "cli")` synchronized via `System.setProperty("cli", "true")` in `main()`.
+- **AppSec & Spring CLI:** Route all external scraping HTTP calls through `HttpFetcher` (SSRF protection) and keep `@ConditionalOnProperty(name = "cli")` on `CliSearchRunner` synchronized via `System.setProperty("cli", "true")` in `IngatlanApplication.main()`.

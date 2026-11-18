@@ -19,8 +19,8 @@ Maintain the application's layered, loosely coupled architecture; fail-closed co
 
 Activate this skill for any task, pull request, or code review affecting any of the following:
 
-- **Backend architecture and layers**: `src/main/java/ingatlanok/(core|model|persistence|presentation|web)/`
-- **Application entry points and configuration**: `src/main/java/ingatlanok/IngatlanApplication.java`, `src/main/java/ingatlanok/Main.java`, `src/main/resources/application.yml`
+- **Backend architecture and layers**: `src/main/java/ingatlanok/(config|core|model|persistence|presentation|service|web)/`
+- **Application entry points and configuration**: `src/main/java/ingatlanok/IngatlanApplication.java`, `src/main/java/ingatlanok/CliSearchRunner.java`, `src/main/resources/application.yml`
 - **Frontend SPA client**: `frontend/**` (`src/`, `package.json`, `vite.config.ts`, `nginx.conf`, `index.html`)
 - **Build and architecture-level dependencies**: `build.gradle.kts`, `settings.gradle.kts`
 - **PR labels**: `architecture`, `enhancement`, `frontend`, `backend`
@@ -32,10 +32,10 @@ Activate this skill for any task, pull request, or code review affecting any of 
 ### In-Scope Responsibilities
 
 1. **Four-layer unidirectional architecture & ArchUnit enforcement**:
-   - `web/`: Spring MVC `@RestController` headless endpoints (`/api/search`, `/api/stats`, `/api/portal-statuses`, `/api/config`, `/api/status`), CORS, and web configuration (`SpaWebMvcConfig`, `GlobalCorsFilter`).
-   - `presentation/`: DTO models, KPI aggregation, and aggregated market statistics.
-   - `core/`: Filtering engine (`PropertyFilterEngine`), O(1) deduplication (`DeduplicationEngine`), aggregation, and parallel query coordination (`SearchExecutionEngine`, `MarketAnalyticsEngine`).
-   - `persistence/`: Storage abstractions (`ListingStorage`, `ConfigStorage`), Spring Data JPA entities (`PropertyEntity`, `PriceHistoryEntity`, `ConfigEntity`), repositories (`PropertyRepository`), and the `JpaIngatlanStorage` implementation.
+   - `web/` & `config/`: Spring MVC `@RestController` headless endpoints (`RestApiController`: `/api/search`, `/api/status`, `/api/portals`, `/api/cities`, `/api/config`, `/api/presets*`, `/api/history`, `/api/history/clear`, `/api/properties/*`, `/api/portals/ingatlancom/import-html`, `/api/open-urls`, `/api/items/viewed`; `DedupController`: `/api/dedup/*`), `GlobalExceptionHandler`, `HistoryQueryDto`, and web/security configuration (`WebCorsConfig`, `SecurityHeadersFilter`, `RequestLoggingFilter`).
+   - `presentation/`: `DashboardPresentationService`, `DedupPresentationService`, `PresentationMapper`, KPI/market statistics DTOs (`DashboardResponseDto`, `MarketStatsDto`, `MarketSegmentStatsDto`, `PriceDropItemDto`, `PortalStatusDto`), and manual dedup / HTML import DTOs (`DedupActionResponseDto`, `DedupMergeRequestDto`, `DedupSplitRequestDto`, `DedupOverrideDto`, `IngatlanComHtmlImportRequestDto`, `IngatlanComHtmlImportResponseDto`).
+   - `core/`: Filtering (`PropertyFilterEngine`), normalization (`ListingNormalizer`), O(1) & multi-signal deduplication (`DeduplicationEngine`, `core/dedup/*`), data quality (`DataQualityEngine`), HTML import (`IngatlanComHtmlImportService`), DB fallback merge (`PersistedFallbackMerger`), parallel query coordination (`SearchExecutionEngine`, `ParallelPortalScrapeExecutor`), and market analytics (`MarketAnalyticsEngine`, `MarketStatisticsCalculator`).
+   - `persistence/`: Storage abstractions (`ListingStorage`, `ConfigStorage`, `DedupOverrideStorage`), Spring Data JPA entities (`PropertyEntity`, `ListingObservationEntity`, `PriceHistoryEntity`, `StatusLogEntity`, `ConfigEntity`, `SearchPresetEntity`, `DedupOverrideEntity`), repositories (`PropertyRepository`, `ListingObservationRepository`, `PriceHistoryRepository`, `StatusLogRepository`, `ConfigRepository`, `SearchPresetRepository`, `DedupOverrideRepository`), mappers (`JpaEntityMapper`, `SearchPresetMapper`), `PropertySpecifications`, and implementations (`JpaIngatlanStorage`, `JpaDedupOverrideStorage`).
    - Guarded by automated ArchUnit tests (`ArchitectureRulesTest.java`): strict downward dependency flow, complete storage abstraction (no direct Repository/JPA access outside `persistence`), and single-point SSRF isolation in `HttpFetcher`.
 2. **Concurrency model (Java 25 LTS)**:
    - Virtual threads (`spring.threads.virtual.enabled=true`, `Executors.newVirtualThreadPerTaskExecutor()`). Avoid blocking carrier threads. Synchronized blocks (`synchronized`) in service paths are prohibited and blocked by ArchUnit.
@@ -45,16 +45,16 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Keep persistence decoupled: direct JDBC calls and obsolete embedded or NoSQL engines are prohibited.
 4. **Code generation and mapping conventions (Lombok, MapStruct & DTO Immutability)**:
    - Use Lombok `@Getter`, `@Builder`, and `@NoArgsConstructor` (plus `@Setter` only where post-construction mutation is required) across domain models, presentation DTOs, and JPA entities.
-   - Prefer `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates) over multi-line setter chains. Omit `@Setter` on read-only DTOs and value objects (`MarketStatsDto`, `PriceDropItemDto`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`) to enforce strict immutability (verified by ArchUnit).
-   - Do not use `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows`; preserve hand-written `equals`/`hashCode` where they encode business identity and never generate `equals`/`hashCode`/`toString` on JPA entities. Prefer `record` for pure immutable value carriers.
-   - Use MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` (plus `@AfterMapping` and `@MappingTarget` where enrichment or merge semantics apply) instead of repetitive hand-written entity ↔ DTO/domain field copying.
+   - Prefer `@Builder` (with `@Builder.Default`, constructor-level `@Builder` for normalizing constructors, and `toBuilder = true` for copy-updates) over multi-line setter chains. Omit `@Setter` on read-only DTOs and value objects (`MarketStatsDto`, `MarketSegmentStatsDto`, `PriceDropItemDto`, `MarketStats`, `MarketSegmentStats`, `PriceDropItem`, `PortalStatusDto`, `DashboardResponseDto`, `PortalSource`, `PriceInfo`, `PropertyDetails`) to enforce strict immutability (verified by ArchUnit).
+   - Do not use `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@SneakyThrows`; preserve hand-written `equals`/`hashCode` where they encode business identity and never generate `equals`/`hashCode`/`toString` on JPA entities. Prefer `record` for pure immutable value carriers and web/presentation DTOs.
+   - Use MapStruct (`JpaEntityMapper`, `PresentationMapper`, `SearchPresetMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` (plus `@AfterMapping` and `@MappingTarget` where enrichment or merge semantics apply) instead of repetitive hand-written entity ↔ DTO/domain field copying.
 5. **Modern standalone React 19 frontend & deduplication rules**:
-   - React 19, TypeScript 5.9, Tailwind CSS v4, and Vite 8.3.
+   - React 19, TypeScript 5.9, Tailwind CSS v4, and Vite 8.3.8.
    - Strict TypeScript compiler options: `noImplicitReturns`, `noImplicitOverride`, and `forceConsistentCasingInFileNames`.
    - ESLint zero-warning gate (`--max-warnings 0`) enforcing Clean Code metrics: `complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq` (strict `===` / `!==`), `@typescript-eslint/consistent-type-imports`, and `@typescript-eslint/no-explicit-any: error`.
    - AST property restriction forbidding direct `window.open` in favor of centralized, safe `openExternalUrl` from `utils/formatters.ts`.
    - Derive frontend DTO types (`types/property.ts`, `types/api.ts`, `types/portal.ts`) directly from OpenAPI-generated `generated-api.ts` (`components['schemas']`). Hand-duplicated DTO interfaces, unused DTO types, and unreferenced API client functions are prohibited.
-   - Centralize shared domain calculations and helpers in `utils/formatters.ts` (`normalizePortalKey`, `PORTAL_CHIPS`, `clampQualityScore`, `getQualityConfig`, `getEffectivePrice`, `getEffectiveSqmPrice`, `openExternalUrl`) and shared histogram/type-normalization utilities in `hooks/useMarketAnalytics.ts`.
+   - Centralize shared domain calculations and helpers in `utils/formatters.ts` (`normalizePortalKey`, `PORTAL_CHIPS`, `clampQualityScore`, `getQualityConfig`, `getEffectivePrice`, `getEffectiveSqmPrice`, `openExternalUrl`) and shared histogram/type-normalization utilities in `utils/marketAnalyticsMath.ts` and `utils/marketAnalyticsAggregation.ts` (re-exported via `hooks/useMarketAnalytics.ts`).
    - Reuse shared UI primitives (`NumericStepper` for `AreaStepper`/`PriceStepper`, `useOutsideDismiss` for popovers/dropdowns, `SORT_OPTIONS` and `updateCriteria` in `useFilterStore`) and forbid redundant pass-through wrapper components.
    - Client state management (Zustand) and server-state synchronization (TanStack Query).
    - Responsive layout (360px through 4K), light/dark themes, skeleton loading, and Google Fonts CDN typography (Plus Jakarta Sans).
@@ -65,7 +65,7 @@ Activate this skill for any task, pull request, or code review affecting any of 
 ### Explicit Non-Goals
 
 - **Web scraping and portal-specific DOM analysis**: Internal portal-engine logic, Jsoup selectors, and Cloudflare WAF handling belong to `scraper-security-engineer`.
-- **CI/CD workflows, container hardening, and JaCoCo calculations**: GitHub Actions (`ci.yml`, `pr-build.yml`, `release.yml`, `images.yml`), multi-stage Dockerfile optimization, and coverage gates belong to `quality-devops-engineer`.
+- **CI/CD workflows, container hardening, and JaCoCo calculations**: GitHub Actions (`ci.yml`, `dependency-submission.yml`, `images.yml`, `pr-build.yml`, `pr-compliance.yml`, `pr-guards.yml`, `release.yml`), multi-stage Dockerfile optimization, and coverage gates belong to `quality-devops-engineer`.
 
 ---
 
@@ -100,7 +100,7 @@ For every review, the specialist must follow this four-phase workflow:
 2. **Phase 2: Architecture and rule validation**
    - Run automated ArchUnit rules (`ArchitectureRulesTest.java`) ensuring 4-layer unidirectional flow, storage abstraction, and DTO immutability.
    - Verify that no layer inversion exists (for example, `core` must not reference `web` or `presentation` classes).
-   - Verify that database operations go exclusively through the `ListingStorage` and `ConfigStorage` interfaces.
+   - Verify that database operations go exclusively through the `ListingStorage`, `ConfigStorage`, and `DedupOverrideStorage` interfaces.
    - Check for synchronized blocks (`synchronized`) around long-running I/O in virtual-thread code.
 3. **Phase 3: Empirical and build verification**
    - Verify backend compilation with `./gradlew compileJava` under fail-closed compiler flags (`-Werror`, `-Xlint:unchecked,deprecation,rawtypes,fallthrough,cast,overrides,divzero,empty`).
@@ -135,19 +135,19 @@ For every review, the specialist must follow this four-phase workflow:
 ### C. Persistence, Lombok, and MapStruct Conventions
 
 - [ ] The persistence layer uses Spring Data JPA entities and repositories exclusively.
-- [ ] All persistence access goes through the `ListingStorage` or `ConfigStorage` interfaces.
+- [ ] All persistence access goes through the `ListingStorage`, `ConfigStorage`, or `DedupOverrideStorage` interfaces.
 - [ ] No direct JDBC/SQL calls exist in business logic.
 - [ ] No obsolete persistence engines or unsupported database drivers are present in the codebase.
-- [ ] Indexes on entities (`PropertyEntity`, `PriceHistoryEntity`) support O(1) deduplication and fast queries.
+- [ ] Indexes on entities (`PropertyEntity`, `PriceHistoryEntity`, `SearchPresetEntity`, `DedupOverrideEntity`) support O(1) deduplication and fast queries.
 - [ ] Models, DTOs, and entities use `@Getter`/`@Builder`/`@NoArgsConstructor` (and `@Setter` only where post-construction mutation is needed); read-only DTOs/value objects omit `@Setter` to ensure strict immutability (enforced by ArchUnit), and `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` are never used.
-- [ ] Entity ↔ domain/DTO conversions are handled via MapStruct (`JpaEntityMapper`, `PresentationMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` rather than manual field-copy boilerplate.
+- [ ] Entity ↔ domain/DTO conversions are handled via MapStruct (`JpaEntityMapper`, `PresentationMapper`, `SearchPresetMapper`) with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR` rather than manual field-copy boilerplate.
 
 ### D. Frontend Integrity, OpenAPI Types, and Deduplication
 
 - [ ] The frontend compiles with zero errors under strict TypeScript compiler options (`noImplicitReturns`, `noImplicitOverride`, `forceConsistentCasingInFileNames`).
 - [ ] ESLint passes with zero warnings (`--max-warnings 0`) under Clean Code metrics (`complexity: 15`, `max-depth: 4`, `max-params: 5`, `eqeqeq`, `@typescript-eslint/consistent-type-imports`, `@typescript-eslint/no-explicit-any: error`).
 - [ ] Direct `window.open` calls in frontend components are forbidden by ESLint AST rule; all external links use `openExternalUrl` from `utils/formatters.ts`.
-- [ ] Multi-Source domain invariants are strictly preserved: no direct access to `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` across UI components, hooks, or filters; canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` from `src/utils/formatters.ts` are used (enforced by ESLint AST rule `no-restricted-syntax`).
+- [ ] Multi-Source domain invariants are strictly preserved: no direct access to `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` across UI components, hooks, or filters; canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` from `frontend/src/utils/formatters.ts` are used (enforced by ESLint AST rule `no-restricted-syntax`).
 - [ ] Cross-Layer presentation DTO and OpenAPI contract sync: any modification or addition to presentation DTOs is 1:1 synchronized with `openapi/api-spec.yaml` and `frontend/src/types/generated-api.ts` (enforced by `OpenApiSpecIntegrityTest.java` and `scripts/verify-pr-compliance.mjs`).
 - [ ] DTO types in `types/` derive directly from `generated-api.ts` (`components['schemas']`) without hand-written schema duplication or dead API functions.
 - [ ] Shared domain calculations (`getEffectivePrice`, `getEffectiveSqmPrice`, `getQualityConfig`, `normalizePortalKey`, `PORTAL_CHIPS`, `openExternalUrl`) and UI primitives (`NumericStepper`, `useOutsideDismiss`, `SORT_OPTIONS`) are reused rather than duplicated across components, hooks, or stores.

@@ -39,14 +39,14 @@ flowchart LR
 
 ## 3. Map of Business-Critical Calculations & Rules (6 Key Areas)
 
-### 1. Property Identification & Deduplication (`DeduplicationEngine`, `ClusterConsolidationHelper`)
+### 1. Property Identification & Deduplication (`DeduplicationEngine`, `core.dedup.*`)
 - **Phase 1: O(1) URL Deduplication:** Merges identical trimmed URLs while preserving original iteration order.
-- **Phase 2: Cross-Portal Clustering:** Restricted to `LAKAS`, `HAZ`, and `TELEK` categories within the same normalized settlement (`CityUtils.normalizeCityKey`).
-- **Living Area Tolerance:** $\lvert A - B \rvert / \max(A, B) \le 0.05$ ($\pm 5.0\%$).
+- **Phase 2: Cross-Portal Clustering & Manual Overrides:** Restricted to `LAKAS`, `HAZ`, and `TELEK` categories within the same normalized settlement (`CityUtils.normalizeCityKey`). Honors persisted manual `DedupOverrides` (`FORCE_SPLIT` and `FORCE_MERGE`, #461/#471) before and during clustering.
+- **Living Area Tolerance:** $\lvert A - B \rvert / \max(A, B) \le 0.05$ ($\pm 5.0\%$), relaxed to $\le 0.06$ (`HOUSE_MAX_AREA_TOLERANCE_RATIO`, $\pm 6.0\%$) for `HAZ` net/gross floor area variance.
 - **Price Band:** $\le 20.0\%$ when area is known; $\le 1.0\%$ when area is missing, requiring corroborating evidence (matching image URL/hash or strong title overlap).
 - **Room Count Tolerance:** $\le 0.5$ rooms difference (for large properties $\ge 120\text{ m}^2$ or houses, adaptive differences of $2.5\text{--}3.0$ rooms are allowed when area difference $\le 3.5\%$).
-- **Conflict Gates:** Budapest district mismatch (I–XXIII), neighborhood/street conflicts, construction type mismatch (brick vs. panel), floor level conflicts (ground floor vs. penthouse/attic), condition conflicts (new construction vs. renovation/demolition), $> 25\%$ plot size divergence.
-- **Consolidation:** The listing with the lowest active price becomes the primary display item; missing area, rooms, thumbnail, and the `newConstruction` flag are inherited across cluster members.
+- **Conflict Gates & Scoring (`core.dedup`):** `ClusterMatchScorer`, `LocationConflictDetector`, `SemanticConflictDetector`, and `TextualSimilarityMatcher` enforce Budapest district mismatch (I–XXIII), neighborhood/street conflicts, construction type mismatch (brick vs. panel), floor level conflicts (ground floor vs. penthouse/attic), condition conflicts (new construction vs. renovation/demolition), and $> 25\%$ plot size divergence.
+- **Consolidation (`ClusterConsolidationHelper`):** The listing with the lowest active price becomes the primary display item; missing area, rooms, thumbnail, and the `newConstruction` flag are inherited across cluster members.
 
 ### 2. Price & Price-Per-Square-Meter Calculations (`PropertyParser`, `ListingNormalizer`)
 - **Price Parsing:** Million HUF notations (`45.5 M Ft`, `45,5 M Ft`) and full integer Forint notations (spaced, non-breaking space `\u00A0`, or dotted thousand groups: `45.000.000 Ft`).
@@ -67,7 +67,7 @@ flowchart LR
 - **Invariant:** $\sum \text{segment.bargainCount} == \text{stats.bargainCount}$.
 
 ### 5. Data Quality & Listing Lifecycle (`DataQualityEngine`, `PriceHistoryTracker`)
-- **Quality Scoring (0–100):** Valid price $[1\text{M}, 5\text{B}]$ HUF, residential area $[10, 2000]\text{ m}^2$, plot area $[50, 500\,000]\text{ m}^2$, valid settlement, realistic unit price $[100\text{k}, 4\text{M}]\text{ HUF/m}^2$, room density $[12, 150]\text{ m}^2/\text{room}$, and presence of image/title. Listings with score $< 70$ are quarantined.
+- **Quality Scoring (0–100):** Valid URL (`-20` on invalid URL), valid price $[1\text{M}, 5\text{B}]$ HUF, residential area $[10, 2000]\text{ m}^2$, plot area $[50, 500\,000]\text{ m}^2$, valid settlement, realistic unit price $[100\text{k}, 4\text{M}]\text{ HUF/m}^2$, room density $[12, 150]\text{ m}^2/\text{room}$, sudden extreme price changes $> 50\%$ (`-25`), and presence of image/title, producing structured `QualityDeduction` (`QualityDeductionRule`) records. Listings with score $< 70$ are quarantined.
 - **Price Change Tracking:** $\Delta = \text{new} - \text{prev}$, $\Delta\% = \text{round}((\Delta / \text{prev}) \times 100, 2)$. Classified into `PRICE_DROP`, `PRICE_INCREASE`, or unchanged.
 - **Observation Lifecycle Events:** `NEW`, `PRICE_CHANGED`, `UNCHANGED`, and `RELISTED`.
 
