@@ -18,9 +18,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.filter.CorsFilter;
 
 import ingatlanok.common.JsonSupport;
-import ingatlanok.config.GlobalCorsFilter;
+import ingatlanok.config.RequestLoggingFilter;
+import ingatlanok.config.SecurityHeadersFilter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchPreset;
@@ -33,7 +35,11 @@ class RestApiControllerIntegrationTest {
 
   @Autowired private ListingStorage listingStorage;
 
-  @Autowired private GlobalCorsFilter globalCorsFilter;
+  @Autowired private SecurityHeadersFilter securityHeadersFilter;
+
+  @Autowired private RequestLoggingFilter requestLoggingFilter;
+
+  @Autowired private CorsFilter corsFilter;
 
   private MockMvc mockMvc;
 
@@ -41,7 +47,7 @@ class RestApiControllerIntegrationTest {
   void setupMockMvc() {
     mockMvc =
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilters(globalCorsFilter)
+            .addFilters(securityHeadersFilter, requestLoggingFilter, corsFilter)
             .build();
   }
 
@@ -403,6 +409,29 @@ class RestApiControllerIntegrationTest {
                 .header("Origin", "http://[2001:db8::1]:8080")
                 .header("Access-Control-Request-Method", "POST"))
         .andExpect(status().isForbidden());
+
+    mockMvc
+        .perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
+                    "/api/search")
+                .header("Origin", "http://localhost.attacker.com")
+                .header("Access-Control-Request-Method", "POST"))
+        .andExpect(status().isForbidden())
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .string("X-Content-Type-Options", "nosniff"))
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .exists(RequestLoggingFilter.HEADER));
+
+    mockMvc
+        .perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
+                "/api/search"))
+        .andExpect(status().isOk())
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .string("Access-Control-Allow-Origin", "http://127.0.0.1"));
   }
 
   @Test

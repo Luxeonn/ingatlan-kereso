@@ -28,7 +28,7 @@ flowchart TD
 
     subgraph Server ["Server Layer (Headless Spring Boot 4.1.2 / Java 25)"]
         REST["RestApiController (/api/*)"]
-        Cors["GlobalCorsFilter & SpaWebMvcConfig (CORS & Preflight)"]
+        Cors["WebCorsConfig & SecurityHeadersFilter (CORS & Headers)"]
         ExHandler["GlobalExceptionHandler (@RestControllerAdvice)"]
         VThread["Java 25 Virtual Threads Dispatcher\n(Executors.newVirtualThreadPerTaskExecutor)"]
         
@@ -103,7 +103,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │  - presentation: DashboardPresentationService, PresentationMapper, DTOs (ListingDto, DashboardResponseDto,
     │                  MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, ListingObservationDto, PortalStatusDto)
     │  - web: RestApiController, GlobalExceptionHandler
-    │  - config: GlobalCorsFilter, SpaWebMvcConfig, CacheConfig, RequestLoggingFilter
+    │  - config: WebCorsConfig, SecurityHeadersFilter, RequestLoggingFilter
     ▼
 [Layer 2: Core Domain & Business Logic]
     │  - core: SearchExecutionEngine, SearchPersistenceSynchronizer, ParallelPortalScrapeExecutor,
@@ -298,7 +298,7 @@ The UI is decomposed into distinct, single-responsibility panel views and reusab
 ## 7. Application Security (AppSec) & Server Hardening
 
 1. **Localhost Default Binding**: Spring Boot binds by default to `127.0.0.1` (`server.address: ${SERVER_HOST:127.0.0.1}`). In containerized environments, `SERVER_HOST=0.0.0.0` is explicitly injected via Docker Compose.
-2. **Global CORS Filter (`GlobalCorsFilter`)**: Registered with `@Order(Ordered.HIGHEST_PRECEDENCE)`. Restricts origins to localhost and loopback interfaces (`localhost`, `127.0.0.1`, `0.0.0.0`, `[::1]`) across all ports. Preflight `OPTIONS` requests from unauthorized origins return `403 Forbidden`.
+2. **Centralized CORS Policy (`WebCorsConfig` & `SecurityHeadersFilter`)**: Restricts cross-origin access to local loopback interfaces (`localhost`, `127.0.0.1`, `0.0.0.0`, `[::1]`) with exact port-scoped patterns via Spring `CorsFilter`, while `SecurityHeadersFilter` (`OncePerRequestFilter`, `@Order(Ordered.HIGHEST_PRECEDENCE)`) applies defensive headers on every response including `403 Forbidden` CORS preflight rejections.
 3. **Security Headers**: Injected on every response:
    - `X-Content-Type-Options: nosniff`
    - `X-Frame-Options: DENY`

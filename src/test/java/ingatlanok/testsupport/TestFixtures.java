@@ -2,10 +2,17 @@ package ingatlanok.testsupport;
 
 import java.util.List;
 
+import org.mapstruct.factory.Mappers;
+
 import ingatlanok.core.DataQualityEngine;
 import ingatlanok.core.DeduplicationEngine;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.MarketStatisticsCalculator;
+import ingatlanok.core.ParallelPortalScrapeExecutor;
+import ingatlanok.core.PropertyFilterEngine;
+import ingatlanok.core.SearchExecutionEngine;
+import ingatlanok.core.SearchPersistenceSynchronizer;
+import ingatlanok.core.SearchResultAggregator;
 import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.core.normalization.ListingValidator;
 import ingatlanok.model.IngatlanItem;
@@ -14,7 +21,9 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
+import ingatlanok.persistence.ConfigStorage;
 import ingatlanok.persistence.ListingStorage;
+import ingatlanok.portal.PortalEngineRegistry;
 import ingatlanok.portal.RawListingNormalizer;
 import ingatlanok.portal.dh.DunaHousePortalEngine;
 import ingatlanok.portal.dh.DunaHouseUrlBuilder;
@@ -28,6 +37,8 @@ import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
+import ingatlanok.presentation.DashboardPresentationService;
+import ingatlanok.presentation.PresentationMapper;
 
 /**
  * Shared Object Mother / Test Data Builder factory for backend tests.
@@ -226,5 +237,42 @@ public final class TestFixtures {
 
   public static IngatlanComPortalEngine ingatlanComEngine(RawListingNormalizer normalizer) {
     return new IngatlanComPortalEngine(new IngatlanComUrlBuilder(), normalizer);
+  }
+
+  public static PresentationMapper presentationMapper() {
+    return Mappers.getMapper(PresentationMapper.class);
+  }
+
+  public static SearchExecutionEngine searchExecutionEngine(
+      PortalEngineRegistry registry, ListingStorage listingStorage, ConfigStorage configStorage) {
+    DataQualityEngine qualityEngine = new DataQualityEngine();
+    return searchExecutionEngine(
+        registry, listingStorage, configStorage, qualityEngine, marketAnalyticsEngine(qualityEngine));
+  }
+
+  public static SearchExecutionEngine searchExecutionEngine(
+      PortalEngineRegistry registry,
+      ListingStorage listingStorage,
+      ConfigStorage configStorage,
+      DataQualityEngine qualityEngine,
+      MarketAnalyticsEngine analyticsEngine) {
+    return SearchExecutionEngine.builder()
+        .portalRegistry(registry)
+        .listingStorage(listingStorage)
+        .configStorage(configStorage)
+        .filterEngine(new PropertyFilterEngine())
+        .dedupEngine(deduplicationEngine(listingStorage))
+        .analyticsEngine(analyticsEngine)
+        .qualityEngine(qualityEngine)
+        .scrapeExecutor(new ParallelPortalScrapeExecutor())
+        .resultAggregator(new SearchResultAggregator())
+        .persistenceSynchronizer(new SearchPersistenceSynchronizer(registry, listingStorage))
+        .build();
+  }
+
+  public static DashboardPresentationService dashboardPresentationService(
+      SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
+    return new DashboardPresentationService(
+        searchEngine, analyticsEngine, null, presentationMapper());
   }
 }

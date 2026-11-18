@@ -2,6 +2,9 @@ package ingatlanok.persistence.service;
 
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingObservation;
 import ingatlanok.model.ListingStatus;
@@ -24,6 +27,8 @@ import ingatlanok.persistence.service.StatusLogTracker.StatusDecision;
  * Coordinates entity persistence, price history snapshots, status logs, and periodic listing
  * observations for {@link ingatlanok.persistence.JpaIngatlanStorage}.
  */
+@Service
+@RequiredArgsConstructor
 public class PropertyPersistenceHelper {
 
   private final PropertyRepository propertyRepo;
@@ -33,23 +38,6 @@ public class PropertyPersistenceHelper {
   private final JpaEntityMapper mapper;
   private final PriceHistoryTracker priceTracker;
   private final StatusLogTracker statusTracker;
-
-  public PropertyPersistenceHelper(
-      PropertyRepository propertyRepo,
-      PriceHistoryRepository priceHistoryRepo,
-      StatusLogRepository statusLogRepo,
-      ListingObservationRepository listingObservationRepo,
-      JpaEntityMapper mapper,
-      PriceHistoryTracker priceTracker,
-      StatusLogTracker statusTracker) {
-    this.propertyRepo = propertyRepo;
-    this.priceHistoryRepo = priceHistoryRepo;
-    this.statusLogRepo = statusLogRepo;
-    this.listingObservationRepo = listingObservationRepo;
-    this.mapper = mapper;
-    this.priceTracker = priceTracker;
-    this.statusTracker = statusTracker;
-  }
 
   public void saveItem(IngatlanItem item, String now) {
     mapper.normalizeItem(item);

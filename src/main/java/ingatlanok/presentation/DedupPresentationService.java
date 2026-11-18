@@ -31,6 +31,7 @@ public class DedupPresentationService {
   private final DedupOverrideStorage overrideStorage;
   private final DeduplicationEngine dedupEngine;
   private final DataQualityEngine qualityEngine;
+  private final PresentationMapper presentationMapper;
 
   public DedupActionResponseDto splitCluster(DedupSplitRequestDto request) {
     if (request == null || request.sourceUrl() == null || request.sourceUrl().isBlank()) {
@@ -207,6 +208,6 @@ public class DedupPresentationService {
   }
 
   private List<DedupOverrideDto> toOverrideDtos(List<DedupOverride> overrides) {
-    return overrides.stream().map(PresentationMapper.INSTANCE::toDedupOverrideDto).toList();
+    return overrides.stream().map(presentationMapper::toDedupOverrideDto).toList();
   }
 }

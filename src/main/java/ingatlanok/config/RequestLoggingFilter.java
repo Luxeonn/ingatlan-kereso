@@ -4,11 +4,8 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -17,6 +14,7 @@ import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Assigns a correlation id to every request (MDC key {@code cid}, echoed in {@code
@@ -24,7 +22,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
-public class RequestLoggingFilter implements Filter {
+public class RequestLoggingFilter extends OncePerRequestFilter {
 
   public static final String HEADER = "X-Correlation-Id";
   public static final String MDC_KEY = "cid";
@@ -40,17 +38,16 @@ public class RequestLoggingFilter implements Filter {
   }
 
   @Override
-  public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
-      throws IOException, ServletException {
-    HttpServletRequest request = (HttpServletRequest) req;
-    HttpServletResponse response = (HttpServletResponse) res;
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      throws ServletException, IOException {
     String cid = resolveId(request.getHeader(HEADER));
     MDC.put(MDC_KEY, cid);
     response.setHeader(HEADER, cid);
     long start = System.nanoTime();
     LOGGER.info("Kérés: {} {}", request.getMethod(), request.getRequestURI());
     try {
-      chain.doFilter(req, res);
+      filterChain.doFilter(request, response);
     } finally {
       LOGGER.info(
           "Válasz: {} {} -> {} ({} ms)",

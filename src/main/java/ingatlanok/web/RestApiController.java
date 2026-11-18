@@ -6,12 +6,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -30,6 +35,7 @@ import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchPreset;
 import ingatlanok.model.StatusLogEntry;
+import ingatlanok.model.ValidationGroups;
 import ingatlanok.persistence.ConfigStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
@@ -63,18 +69,6 @@ public class RestApiController {
     this.configStorage = configStorage;
     this.dashboardPresentationService = dashboardPresentationService;
     this.portalEngineRegistry = portalEngineRegistry;
-  }
-
-  @Deprecated
-  public RestApiController(
-      ListingStorage listingStorage,
-      DashboardPresentationService dashboardPresentationService,
-      PortalEngineRegistry portalEngineRegistry) {
-    this(
-        listingStorage,
-        listingStorage instanceof ConfigStorage cs ? cs : null,
-        dashboardPresentationService,
-        portalEngineRegistry);
   }
 
   @GetMapping("/status")
@@ -129,11 +123,7 @@ public class RestApiController {
 
   @GetMapping("/config")
   public ResponseEntity<SearchCriteria> getLastCriteria() {
-    ConfigStorage cs = getConfigStorage();
-    SearchCriteria criteria = null;
-    if (cs != null) {
-      criteria = cs.getLastCriteria();
-    }
+    SearchCriteria criteria = configStorage != null ? configStorage.getLastCriteria() : null;
     if (criteria == null) {
       criteria = new SearchCriteria();
     }
@@ -142,82 +132,50 @@ public class RestApiController {
 
   @PostMapping("/config")
   public ResponseEntity<ActionSuccessResponseDto> saveLastCriteria(
-      @RequestBody(required = false) SearchCriteria criteria) {
-    ConfigStorage cs = getConfigStorage();
-    if (criteria != null) {
-      criteria.validate();
-      if (cs != null) {
-        cs.saveLastCriteria(criteria);
-      }
+      @Valid @RequestBody(required = false) SearchCriteria criteria) {
+    if (criteria != null && configStorage != null) {
+      configStorage.saveLastCriteria(criteria);
     }
     return ResponseEntity.ok(ActionSuccessResponseDto.of(true));
   }
 
   @GetMapping("/presets")
   public ResponseEntity<List<SearchPreset>> getPresets() {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null) {
+    if (configStorage == null) {
       return ResponseEntity.ok(List.of());
     }
-    return ResponseEntity.ok(cs.getPresets());
+    return ResponseEntity.ok(configStorage.getPresets());
   }
 
   @PostMapping("/presets")
-  public ResponseEntity<SearchPreset> createPreset(@RequestBody SearchPreset preset) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null) {
+  public ResponseEntity<SearchPreset> createPreset(
+      @Validated(ValidationGroups.OnCreate.class) @RequestBody SearchPreset preset) {
+    if (configStorage == null) {
       return ResponseEntity.badRequest().build();
     }
-    if (preset == null) {
-      throw new IllegalArgumentException("A preset nem lehet üres!");
-    }
-    if (preset.name() == null || preset.name().isBlank()) {
-      throw new IllegalArgumentException("A preset neve kötelező!");
-    }
-    if (preset.name().length() > 100) {
-      throw new IllegalArgumentException("A preset neve legfeljebb 100 karakter lehet!");
-    }
-    if (preset.criteria() != null) {
-      preset.criteria().validate();
-    }
-    SearchPreset created = cs.savePreset(preset);
+    SearchPreset created = configStorage.savePreset(preset);
     return ResponseEntity.ok(created);
   }
 
   @PutMapping("/presets/{id}")
   public ResponseEntity<SearchPreset> updatePreset(
-      @PathVariable("id") Long id, @RequestBody SearchPreset preset) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null || id == null || preset == null) {
+      @PathVariable("id") @Positive(message = "Érvénytelen preset azonosító") Long id,
+      @Validated(ValidationGroups.OnUpdate.class) @RequestBody SearchPreset preset) {
+    if (configStorage == null) {
       return ResponseEntity.badRequest().build();
     }
-    if (id <= 0) {
-      throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
-    }
-    if (preset.name() != null && preset.name().isBlank()) {
-      throw new IllegalArgumentException("A preset neve nem lehet üres!");
-    }
-    if (preset.name() != null && preset.name().length() > 100) {
-      throw new IllegalArgumentException("A preset neve legfeljebb 100 karakter lehet!");
-    }
-    if (preset.criteria() != null) {
-      preset.criteria().validate();
-    }
-    return cs.updatePreset(id, preset)
+    return configStorage.updatePreset(id, preset)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
   @DeleteMapping("/presets/{id}")
-  public ResponseEntity<ActionSuccessResponseDto> deletePreset(@PathVariable("id") Long id) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null || id == null) {
+  public ResponseEntity<ActionSuccessResponseDto> deletePreset(
+      @PathVariable("id") @Positive(message = "Érvénytelen preset azonosító") Long id) {
+    if (configStorage == null) {
       return ResponseEntity.badRequest().build();
     }
-    if (id <= 0) {
-      throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
-    }
-    boolean deleted = cs.deletePreset(id);
+    boolean deleted = configStorage.deletePreset(id);
     if (!deleted) {
       return ResponseEntity.notFound().build();
     }
@@ -225,28 +183,19 @@ public class RestApiController {
   }
 
   @PostMapping("/presets/{id}/use")
-  public ResponseEntity<SearchPreset> usePreset(@PathVariable("id") Long id) {
-    ConfigStorage cs = getConfigStorage();
-    if (cs == null || id == null) {
+  public ResponseEntity<SearchPreset> usePreset(
+      @PathVariable("id") @Positive(message = "Érvénytelen preset azonosító") Long id) {
+    if (configStorage == null) {
       return ResponseEntity.badRequest().build();
     }
-    if (id <= 0) {
-      throw new IllegalArgumentException("Érvénytelen preset azonosító: " + id);
-    }
-    return cs.markPresetAsUsed(id)
+    return configStorage.markPresetAsUsed(id)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
-  private ConfigStorage getConfigStorage() {
-    if (configStorage != null) {
-      return configStorage;
-    }
-    return (listingStorage instanceof ConfigStorage cs) ? cs : null;
-  }
-
   @GetMapping("/history")
-  public ResponseEntity<List<IngatlanItem>> getHistory(@ModelAttribute HistoryQueryDto query) {
+  public ResponseEntity<List<IngatlanItem>> getHistory(
+      @Valid @ModelAttribute HistoryQueryDto query) {
     HistoryQueryDto effectiveQuery =
         query != null
             ? query
@@ -308,9 +257,11 @@ public class RestApiController {
 
   @PostMapping("/properties/{id}/hide")
   public ResponseEntity<PropertyHideResponseDto> hideProperty(
-      @PathVariable("id") String id,
-      @RequestBody(required = false) PropertyBatchActionRequest body) {
-    validatePropertyId(id);
+      @PathVariable("id")
+          @NotBlank(message = "Az azonosító nem lehet üres!")
+          @Size(max = 500, message = "Az azonosító túl hosszú!")
+          String id,
+      @Valid @RequestBody(required = false) PropertyBatchActionRequest body) {
     boolean success = processBatchAction(id, body, listingStorage::hideProperty);
     if (!success) {
       return ResponseEntity.notFound().build();
@@ -320,23 +271,16 @@ public class RestApiController {
 
   @PostMapping("/properties/{id}/restore")
   public ResponseEntity<PropertyHideResponseDto> restoreProperty(
-      @PathVariable("id") String id,
-      @RequestBody(required = false) PropertyBatchActionRequest body) {
-    validatePropertyId(id);
+      @PathVariable("id")
+          @NotBlank(message = "Az azonosító nem lehet üres!")
+          @Size(max = 500, message = "Az azonosító túl hosszú!")
+          String id,
+      @Valid @RequestBody(required = false) PropertyBatchActionRequest body) {
     boolean success = processBatchAction(id, body, listingStorage::restoreProperty);
     if (!success) {
       return ResponseEntity.notFound().build();
     }
     return ResponseEntity.ok(PropertyHideResponseDto.of(true, false, id));
-  }
-
-  private void validatePropertyId(String id) {
-    if (id == null || id.isBlank()) {
-      throw new IllegalArgumentException("Az azonosító nem lehet üres!");
-    }
-    if (id.length() > 500) {
-      throw new IllegalArgumentException("Az azonosító túl hosszú!");
-    }
   }
 
   private boolean processBatchAction(
@@ -366,15 +310,14 @@ public class RestApiController {
 
   @PostMapping("/portals/ingatlancom/import-html")
   public ResponseEntity<IngatlanComHtmlImportResponseDto> importIngatlanComHtml(
-      @RequestBody(required = false) IngatlanComHtmlImportRequestDto body) {
+      @Valid @RequestBody(required = false) IngatlanComHtmlImportRequestDto body) {
     return ResponseEntity.ok(dashboardPresentationService.importIngatlanComHtml(body));
   }
 
   @PostMapping("/search")
   public ResponseEntity<DashboardResponseDto> executeSearch(
-      @RequestBody(required = false) SearchCriteria criteria) {
+      @Valid @RequestBody(required = false) SearchCriteria criteria) {
     SearchCriteria effectiveCriteria = criteria != null ? criteria : new SearchCriteria();
-    effectiveCriteria.validate();
     DashboardResponseDto result = dashboardPresentationService.executeSearch(effectiveCriteria);
     return ResponseEntity.ok(result);
   }

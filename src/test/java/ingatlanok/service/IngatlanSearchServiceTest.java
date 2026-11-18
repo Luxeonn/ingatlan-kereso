@@ -62,17 +62,9 @@ class IngatlanSearchServiceTest {
         };
     ingatlanok.persistence.InMemoryListingStorage storage =
         new ingatlanok.persistence.InMemoryListingStorage();
-    ingatlanok.core.MarketAnalyticsEngine analytics =
-        ingatlanok.testsupport.TestFixtures.marketAnalyticsEngine();
     ingatlanok.core.SearchExecutionEngine engine =
-        ingatlanok.core.SearchExecutionEngine.builder()
-            .portalRegistry(new ingatlanok.portal.PortalEngineRegistry(List.of(mockEngine)))
-            .listingStorage(storage)
-            .configStorage(storage)
-            .filterEngine(new ingatlanok.core.PropertyFilterEngine())
-            .dedupEngine(ingatlanok.testsupport.TestFixtures.deduplicationEngine(storage))
-            .analyticsEngine(analytics)
-            .build();
+        ingatlanok.testsupport.TestFixtures.searchExecutionEngine(
+            new ingatlanok.portal.PortalEngineRegistry(List.of(mockEngine)), storage, storage);
     return new IngatlanSearchService(engine);
   }
 

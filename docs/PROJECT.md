@@ -48,7 +48,7 @@
 ## Interface Contracts
 ### Legacy WebServer ↔ Spring Boot MVC
 - `WebServer.java` remains a minimal facade retaining public methods (`start()`, `stop()`, `getPort()`, `isRunning()`) so the 24 existing unit tests pass without modifying test assertions.
-- All routing, HTTP handling, and static file serving is natively handled by Spring MVC (`RestApiController` and `SpaWebMvcConfig`).
+- All routing and HTTP handling is natively handled by Spring MVC (`RestApiController`, `DedupController`, and `WebCorsConfig`).
 
 ### Persistence Abstraction ↔ Shared Helpers
 - `ListingFilterService.filter(Collection<IngatlanItem>, ListingFilterDto)`: Stateless in-memory stream filtering and sorting.
