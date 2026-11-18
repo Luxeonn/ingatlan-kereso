@@ -118,7 +118,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │  - core: SearchExecutionEngine, SearchPersistenceSynchronizer, ParallelPortalScrapeExecutor,
     │          PersistedFallbackMerger, IngatlanComHtmlImportService, SearchResultAggregator,
     │          PropertyFilterEngine, DeduplicationEngine, MarketAnalyticsEngine,
-    │          MarketStatisticsCalculator, ListingNormalizer, DataQualityEngine
+    │          MarketStatisticsCalculator, DataQualityEngine
     │  - core.dedup: ClusterConsolidationHelper, ClusterMatchScorer, DedupOverrides,
     │                LocationConflictDetector, LocationDictionaries, SemanticConflictDetector, TextualSimilarityMatcher
     │  - core.normalization: ListingNormalizer, ListingValidator
@@ -193,7 +193,7 @@ All 27 paths (30 HTTP operations) defined in `openapi/api-spec.yaml` and served 
 | `/api/presets/{id}` | `PUT` | `id` path + `SearchPreset` (`OnUpdate`) | `SearchPreset` | Updates an existing saved search preset. |
 | `/api/presets/{id}` | `DELETE` | `id` path variable | `ActionSuccessResponseDto` | Deletes a saved search preset. |
 | `/api/presets/{id}/use` | `POST` | `id` path variable | `SearchPreset` | Marks a saved preset as used and updates last-used timestamp. |
-| `/api/history` | `GET` | `HistoryQueryDto` (`city`, `onlyNewConstruction`, `portal`, `propertyType`, `minPrice`, `maxPrice`, `minArea`, `maxArea`, `minRooms`, `excludeViewed`, `onlyDiscounted`, `sortBy`, `limit`, `offset`) | `List<IngatlanItem>` | Multi-criteria filtered, paginated property search across database. |
+| `/api/history` | `GET` | `HistoryQueryDto` (`city`, `onlyDiscounted`, `portal`, `minPrice`, `maxPrice`, `minArea`, `maxArea`, `minRooms`, `maxRooms`, `excludeViewed`, `onlyNewConstruction`, `sortBy`, `limit`, `offset`) | `List<IngatlanItem>` | Multi-criteria filtered, paginated property search across database. |
 | `/api/properties/price-history` | `GET` | `id` or `url` param | `List<PriceHistoryEntry>` | Price change history log for a specific property. |
 | `/api/properties/{id}/price-history` | `GET` | `id` path variable | `List<PriceHistoryEntry>` | Path-variable variant for property price history. |
 | `/api/properties/status-log` | `GET` | `id` or `url` param | `List<StatusLogEntry>` | Discovery and status audit trail for a property. |
