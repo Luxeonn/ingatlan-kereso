@@ -1,7 +1,12 @@
 package ingatlanok.config;
 
+import java.io.IOException;
 import java.util.List;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -47,6 +52,20 @@ public class WebCorsConfig {
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
-    return new CorsFilter(source);
+    return new CorsFilter(source) {
+      @Override
+      protected void doFilterInternal(
+          HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+          throws ServletException, IOException {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())
+            && request.getHeader("Origin") == null) {
+          response.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1");
+          response.setHeader("Vary", "Origin");
+          response.setStatus(HttpServletResponse.SC_OK);
+          return;
+        }
+        super.doFilterInternal(request, response, filterChain);
+      }
+    };
   }
 }

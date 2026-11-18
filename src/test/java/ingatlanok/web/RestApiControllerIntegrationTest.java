@@ -423,6 +423,15 @@ class RestApiControllerIntegrationTest {
         .andExpect(
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                 .exists(RequestLoggingFilter.HEADER));
+
+    mockMvc
+        .perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
+                "/api/search"))
+        .andExpect(status().isOk())
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .string("Access-Control-Allow-Origin", "http://127.0.0.1"));
   }
 
   @Test
