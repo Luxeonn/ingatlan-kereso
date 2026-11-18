@@ -25,22 +25,22 @@
 
 ## ✨ Miért más az Ingatlan Kereső?
 
-A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti eltérő áron, pontatlan adatokkal és mesterségesen felpumpált kínálattal. Az **Ingatlan Kereső** a háttérben elvégzi a piszkos munkát, hogy neked már csak a tiszta képpel kelljen foglalkoznod:
+A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti eltérő áron, pontatlan adatokkal és mesterségesen felpumpált kínálattal. Az **Ingatlan Kereső** a háttérben elvégzi a szűrést és elemzést:
 
-- 🚀 **Villámgyors, párhuzamos portál-aggregáció**  
-  Egyetlen kereséssel valós időben gyűjti össze a legfontosabb hazai ingatlanportálok kínálatát – több tucat megnyitott böngészőfül nélkül.
+- 🚀 **Párhuzamos portál-aggregáció 6 hazai portálról**  
+  Egyetlen kereséssel gyűjti össze a kínálatot (`dh.hu`, `oc.hu`, `jofogas.hu`, `koltozzbe.hu`, `ingatlanbazar.hu`, `ingatlan.com`) virtuális szálakon futó, hibatűrő motorral.
 
-- 🧩 **Intelligens duplikáció-szűrés és ár-összevetés**  
-  Felismeri, ha ugyanazt az ingatlant több helyen is hirdetik, egyetlen tiszta kártyára vonja össze őket, és azonnal a **legkedvezőbb elérhető árat** teszi eléd.
+- 🧩 **Intelligens duplikáció-szűrés és kézi forráskezelés (Split / Merge)**  
+  Összevonja az azonos ingatlanok többportálos hirdetéseit a **legkedvezőbb aktív árral**, és a `DedupController` API-n keresztül lehetővé teszi a téves összevonás leválasztását („Nem ugyanaz”), több kártya kézi összevonását (`Ctrl+kattintás` + „Összevonás”), valamint a felülbírálások visszavonását.
 
-- 💎 **Piaci radar és „Alkalmi vétel” vadász**  
-  Saját statisztikai elemzőmotorja folyamatosan méri a helyi piaci árszintet, és automatikusan megjelöli azokat az ingatlanokat, amelyek érdemben a piaci érték alatt érhetők el.
+- 🛡️ **Ingatlan.com Sidecar és böngészős HTML-import**  
+  A Cloudflare-védett portált on-demand Python (`curl_cffi`) és Playwright Chromium sidecarral kérdezi le; korlátozás esetén közvetlen keresőlinket és böngészős HTML-importot biztosít a további oldalakhoz.
 
-- 🛡️ **Beépített adatminőség-védelem**  
-  Kiszűri a gyanús, hiányos vagy megtévesztő hirdetéseket, így sem a találati listádat, sem a piaci elemzéseket nem torzítják a hibás adatok.
+- 💎 **Szegmentált piaci radar és „Alkalmi vétel” vadász**  
+  Külön számítja a lakóingatlan- és telekpiaci medián m² árat, legalább 20%-os árelőnynél „Alkalmi vétel” jelölést ad, és interaktív grafikonokon mutatja az árszórást, városi összevetést és áresési toplistát.
 
-- 📉 **Ártörténet és árváltozás-követés**  
-  Nem felejt: rögzíti az árváltozásokat és az újrahirdetéseket, így pontosan látod, melyik eladó engedett az árból az elmúlt időszakban.
+- 🔍 **Beépített adatminőség-védelem, ártörténet és mentett presetek**  
+  0–100 pontos adatminőségi pajzzsal szűri a kiugró vagy hiányos hirdetéseket, naplózza az árváltozásokat és megtekintési állapotokat, továbbá támogatja az egykattintásos mentett keresési sablonokat (presetek), kedvenceket és archívumot.
 
 <br />
 
@@ -50,15 +50,13 @@ A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti e
 
 ## 🏗️ Milyen komponensekből épül fel?
 
-A rendszer modern, egymástól függetlenül skálázható rétegekre épül:
-
 | Komponens | Technológiai alap | Mit csinál? |
 | :--- | :--- | :--- |
-| 🎨 **Webes Felület (SPA)** | React 19, TypeScript, Tailwind CSS | Gyors, letisztult keresőfelület, interaktív szűrők és vizuális piaci elemző dashboard. |
-| ⚡ **Központi API Szerver** | Java 25 LTS, Spring Boot | Nagy teljesítményű, virtuális szálakra épülő háttérszolgáltatás a kérések azonnali kiszolgálására. |
-| 🧠 **Elemző és Normalizáló Motor** | Saját üzleti algoritmusok | Hirdetések egységesítése, kereszt-portál összevonás, minőségellenőrzés és piaci statisztikák. |
-| 🕷️ **Portál Konnektorok** | Hibatűrő adatgyűjtő modulok | Párhuzamos és védett kapcsolat a hazai ingatlanportálokkal, automatikus tartalék-stratégiákkal. |
-| 🗄️ **Adattár (Perzisztencia)** | Spring Data JPA, H2 / PostgreSQL | Az ingatlanok, forráshirdetések és történeti ármozgások megbízható tárolása. |
+| 🎨 **Webes Felület (SPA)** | React 19, TypeScript 5.9, Vite 8.3, Tailwind CSS 4 | Letisztult keresőfelület, szűrők, kézi dedup vezérlők és piaci elemző dashboard (élesben Nginx proxy mögött). |
+| ⚡ **Headless REST API** | Java 25 LTS, Spring Boot 4.1.2 | Virtuális szálakra épülő backend API (`RestApiController`, `DedupController`), OpenAPI szerződéssel. |
+| 🧠 **Üzleti és Elemző Motor** | Saját domain algoritmusok | Normalizálás, klaszteres duplikáció-kezelés, 0–100 adatminőség és szegmentált piaci statisztikák. |
+| 🕷️ **Portál Konnektorok & Sidecar** | Jsoup, REST kliens, Python / Playwright | Párhuzamos portál-adatgyűjtés SSRF-védett `HttpFetcher`-en keresztül, automatikus sidecar fallbackkel. |
+| 🗄️ **Perzisztencia** | Spring Data JPA, H2 / PostgreSQL 17 | Ingatlanok, megfigyelések, ártörténet, kézi dedup felülbírálások és keresési presetek tárolása. |
 
 <br />
 
@@ -68,12 +66,12 @@ A rendszer modern, egymástól függetlenül skálázható rétegekre épül:
 
 ## 🚀 Hogyan indítsd el?
 
-### 🐳 1. Indítás Dockerrel (A legegyszerűbb mód)
+### 🐳 1. Indítás Dockerrel (ajánlott)
 
-Egyetlen lépésben elindítja a teljes rendszert (adatbázis, háttérszerver és webes felület):
+Egyetlen lépésben elindítja a teljes rendszert (PostgreSQL 17, backend + beépített sidecar futtatókörnyezetek és Nginx frontend):
 
 ```bash
-# Előre felépített csomagok letöltése és indítása:
+# Előre felépített képek letöltése és indítása:
 docker compose pull backend frontend
 docker compose up -d --no-build
 
@@ -81,17 +79,15 @@ docker compose up -d --no-build
 docker compose up -d --build
 ```
 
-> 💡 **Tipp Windows felhasználóknak:** Indítsd el a `scripts/start-docker.bat` fájlt, amely egy kényelmes menüből kínálja fel az indítási opciókat!
+> 💡 **Windows tipp:** A `scripts/start-docker.bat` interaktív menüből indítja a lokális buildet vagy a GHCR képeket.
 
-👉 Indítás után nyisd meg a böngészőben: **[http://localhost:8080](http://localhost:8080)**
-
-<br />
+👉 Indítás után nyisd meg: **[http://localhost:8080](http://localhost:8080)**
 
 ### 💻 2. Lokális fejlesztői indítás
 
-Ha közvetlenül a forráskódból szeretnéd futtatni (**JDK 25** és **Node.js 22+** szükséges):
+Előfeltételek: **JDK 25** és **Node.js 22+** (opcionálisan Python 3.10+ / Playwright az Ingatlan.com sidecarhoz, lásd [tools/README.md](tools/README.md)).
 
-**1. Háttérszerver (Backend) indítása:**
+**1. Backend indítása:**
 
 ```bash
 # Linux / macOS
@@ -101,7 +97,7 @@ Ha közvetlenül a forráskódból szeretnéd futtatni (**JDK 25** és **Node.js
 .\gradlew.bat bootRun
 ```
 
-**2. Webes felület (Frontend) indítása** *(külön terminálban)*:
+**2. Frontend indítása** *(külön terminálban)*:
 
 ```bash
 cd frontend
@@ -109,7 +105,7 @@ npm ci
 npm run dev
 ```
 
-👉 Fejlesztői felület: **[http://localhost:5173](http://localhost:5173)** *(automatikusan kapcsolódik a `localhost:8080`-on futó szerverhez)*.
+👉 Fejlesztői felület: **[http://localhost:5173](http://localhost:5173)** *(automatikusan a `localhost:8080` API-hoz csatlakozik)*.
 
 <br />
 
@@ -120,11 +116,18 @@ npm run dev
 ## 🧪 Minőségellenőrzés
 
 ```bash
-# Backend ellenőrzés és csomagolás
-./gradlew check bootJar
+# Gyors, összevont ellenőrzés (backend + frontend)
+bash scripts/ai-verify.sh --all
 
-# Frontend ellenőrzés, tesztek és build
-cd frontend && npm run lint && npm run typecheck && npm run test && npm run build
+# Teljes backend kapu (Checkstyle, ArchUnit, JUnit 5, JaCoCo >= 80%, bootJar)
+./gradlew checkstyleMain checkstyleTest test jacocoTestReport jacocoTestCoverageVerification check bootJar
+
+# Teljes frontend kapu (OpenAPI típusgenerálás, TypeScript, ESLint, Vitest, Vite build, E2E)
+cd frontend && npm run generate-api && npm run typecheck && npm run lint && npm run test && npm run build
+npm run test:e2e
+
+# Dokumentációs és architekturális guardrail ellenőrzés (7/7)
+bash scripts/validate-skills.sh -v
 ```
 
 <br />
@@ -135,8 +138,11 @@ cd frontend && npm run lint && npm run typecheck && npm run test && npm run buil
 
 ## 📚 További tudnivalók
 
+- 🤝 [Közreműködői útmutató](CONTRIBUTING.md) *(branch/worktree, PR-megfelelőség, CI/CD)*
+- ♿ [Akadálymentességi útmutató (WCAG 2.2 AA)](Accessibility.md)
+- 🔒 [Biztonsági irányelvek (AppSec & hibajelentés)](SECURITY.md)
+- 🎨 [Frontend SPA útmutató](frontend/README.md)
+- 🐍 [Scraper Sidecar (Python & Playwright)](tools/README.md)
 - 🏛️ [Rendszerarchitektúra részletesen](docs/architecture.md)
 - 🔌 [REST API Specifikáció (OpenAPI)](openapi/api-spec.yaml)
-- 🔒 [Biztonsági irányelvek](SECURITY.md)
-- 🤝 [Fejlesztői irányelvek](AGENTS.md)
 - ⚖️ [Licenc (GPL-3.0)](LICENSE)
