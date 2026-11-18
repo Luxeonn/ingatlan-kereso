@@ -13,13 +13,14 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
+import ingatlanok.testsupport.TestFixtures;
 
 /**
  * Tests for #298 and #307 multi-signal deduplication and clustering rationalization.
  */
 class DeduplicationEngineRationalizationTest {
 
-  private final DeduplicationEngine engine = new DeduplicationEngine(null);
+  private final DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
   @Test
   @DisplayName("#298: Hajdúszoboszló 190 m² 2 generációs ház 7 vs 5 szobával sikeresen összevonásra kerül")

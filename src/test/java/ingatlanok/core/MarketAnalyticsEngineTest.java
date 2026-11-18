@@ -19,6 +19,7 @@ import ingatlanok.model.MarketStats;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
+import ingatlanok.testsupport.TestFixtures;
 
 class MarketAnalyticsEngineTest {
 
@@ -26,7 +27,7 @@ class MarketAnalyticsEngineTest {
 
   @BeforeEach
   void setUp() {
-    engine = new MarketAnalyticsEngine();
+    engine = TestFixtures.marketAnalyticsEngine();
   }
 
   private IngatlanItem createItem(

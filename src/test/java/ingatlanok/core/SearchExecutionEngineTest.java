@@ -31,6 +31,7 @@ import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
+import ingatlanok.testsupport.TestFixtures;
 
 class SearchExecutionEngineTest {
 
@@ -174,13 +175,7 @@ class SearchExecutionEngineTest {
     PortalEngineRegistry registry = new PortalEngineRegistry(List.of(goodEngine, failingEngine));
 
     SearchExecutionEngine engine =
-        new SearchExecutionEngine(
-            registry,
-            mockStorage,
-            mockConfig,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(mockStorage),
-            new MarketAnalyticsEngine());
+        TestFixtures.searchExecutionEngine(registry, mockStorage, mockConfig);
 
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));
@@ -257,13 +252,8 @@ class SearchExecutionEngineTest {
         };
 
     SearchExecutionEngine engine =
-        new SearchExecutionEngine(
-            new PortalEngineRegistry(List.of(stubEngine)),
-            baseStorage,
-            baseStorage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(baseStorage),
-            new MarketAnalyticsEngine());
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(stubEngine)), baseStorage, baseStorage);
 
     SearchCriteria firstRun = new SearchCriteria();
     firstRun.setCities(List.of("Debrecen"));
@@ -334,13 +324,8 @@ class SearchExecutionEngineTest {
         };
 
     SearchExecutionEngine engine =
-        new SearchExecutionEngine(
-            new PortalEngineRegistry(List.of(stubEngine)),
-            storage,
-            storage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(storage),
-            new MarketAnalyticsEngine());
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(stubEngine)), storage, storage);
 
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));
@@ -419,13 +404,8 @@ class SearchExecutionEngineTest {
         };
 
     SearchExecutionEngine engine =
-        new SearchExecutionEngine(
-            new PortalEngineRegistry(List.of(stubEngine)),
-            storage,
-            storage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(storage),
-            new MarketAnalyticsEngine());
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(stubEngine)), storage, storage);
 
     SearchCriteria firstRun = new SearchCriteria();
     firstRun.setCities(List.of("Debrecen"));
@@ -558,13 +538,8 @@ class SearchExecutionEngineTest {
         };
 
     SearchExecutionEngine engine =
-        new SearchExecutionEngine(
-            new PortalEngineRegistry(List.of(dhEngine, ibEngine)),
-            storage,
-            storage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(storage),
-            new MarketAnalyticsEngine());
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(dhEngine, ibEngine)), storage, storage);
 
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));
@@ -634,14 +609,12 @@ class SearchExecutionEngineTest {
 
     DataQualityEngine qualityEngine = new DataQualityEngine();
     SearchExecutionEngine engine =
-        new SearchExecutionEngine(
+        TestFixtures.searchExecutionEngine(
             new PortalEngineRegistry(List.of(dhEngine)),
             storage,
             storage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(storage),
-            new MarketAnalyticsEngine(qualityEngine),
-            qualityEngine);
+            qualityEngine,
+            TestFixtures.marketAnalyticsEngine(qualityEngine));
 
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of("Debrecen"));
@@ -728,14 +701,12 @@ class SearchExecutionEngineTest {
 
     DataQualityEngine qualityEngine = new DataQualityEngine();
     SearchExecutionEngine engine =
-        new SearchExecutionEngine(
+        TestFixtures.searchExecutionEngine(
             new PortalEngineRegistry(List.of(partialIngatlanComEngine)),
             storage,
             storage,
-            new PropertyFilterEngine(),
-            new DeduplicationEngine(storage),
-            new MarketAnalyticsEngine(qualityEngine),
-            qualityEngine);
+            qualityEngine,
+            TestFixtures.marketAnalyticsEngine(qualityEngine));
 
     SearchCriteria criteria = new SearchCriteria();
     criteria.setCities(List.of(city));

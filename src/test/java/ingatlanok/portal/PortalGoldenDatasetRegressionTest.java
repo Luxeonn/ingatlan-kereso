@@ -40,6 +40,7 @@ import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
+import ingatlanok.testsupport.TestFixtures;
 
 /**
  * Deterministic, offline Golden Dataset regression test suite for real estate scrapers (#370).
@@ -78,7 +79,7 @@ class PortalGoldenDatasetRegressionTest {
     PortalFixture fixture = loadFixture("dh", "source.html");
     Document doc = Jsoup.parse(fixture.sourceContent(), DunaHouseUrlBuilder.BASE_URL);
 
-    DunaHousePortalEngine engine = new DunaHousePortalEngine();
+    DunaHousePortalEngine engine = TestFixtures.dhEngine();
     PortalScrapeResult result = engine.scrape(fixture.criteria(), url -> doc);
 
     assertScrapeResultMatches(fixture, result);
@@ -90,7 +91,7 @@ class PortalGoldenDatasetRegressionTest {
     PortalFixture fixture = loadFixture("oc", "source.html");
     Document doc = Jsoup.parse(fixture.sourceContent(), OtthonCentrumUrlBuilder.BASE_URL);
 
-    OtthonCentrumPortalEngine engine = new OtthonCentrumPortalEngine();
+    OtthonCentrumPortalEngine engine = TestFixtures.ocEngine();
     PortalScrapeResult result = engine.scrape(fixture.criteria(), url -> doc);
 
     assertScrapeResultMatches(fixture, result);
@@ -102,7 +103,7 @@ class PortalGoldenDatasetRegressionTest {
     PortalFixture fixture = loadFixture("jofogas", "source.html");
     Document doc = Jsoup.parse(fixture.sourceContent(), JofogasUrlBuilder.BASE_URL);
 
-    JofogasPortalEngine engine = new JofogasPortalEngine();
+    JofogasPortalEngine engine = TestFixtures.jofogasEngine();
     PortalScrapeResult result = engine.scrape(fixture.criteria(), url -> doc);
 
     assertScrapeResultMatches(fixture, result);
@@ -113,7 +114,7 @@ class PortalGoldenDatasetRegressionTest {
   void testIngatlanBazarGoldenDataset() throws IOException {
     PortalFixture fixture = loadFixture("ingatlanbazar", "source.json");
 
-    IngatlanBazarPortalEngine engine = new IngatlanBazarPortalEngine();
+    IngatlanBazarPortalEngine engine = TestFixtures.ingatlanBazarEngine();
     PortalScrapeResult result = engine.scrape(fixture.criteria(), url -> fixture.sourceContent());
 
     assertScrapeResultMatches(fixture, result);
@@ -125,7 +126,7 @@ class PortalGoldenDatasetRegressionTest {
     PortalFixture fixture = loadFixture("koltozzbe", "source.html");
     Document doc = Jsoup.parse(fixture.sourceContent(), KoltozzbeUrlBuilder.BASE_URL);
 
-    KoltozzbePortalEngine engine = new KoltozzbePortalEngine();
+    KoltozzbePortalEngine engine = TestFixtures.koltozzbeEngine();
     PortalScrapeResult result = engine.scrape(fixture.criteria(), url -> doc);
 
     assertScrapeResultMatches(fixture, result);
@@ -137,7 +138,7 @@ class PortalGoldenDatasetRegressionTest {
     PortalFixture fixture = loadFixture("ingatlancom", "source.html");
     Document doc = Jsoup.parse(fixture.sourceContent(), IngatlanComUrlBuilder.BASE_URL);
 
-    IngatlanComPortalEngine engine = new IngatlanComPortalEngine();
+    IngatlanComPortalEngine engine = TestFixtures.ingatlanComEngine();
     PortalScrapeResult result = engine.scrape(fixture.criteria(), url -> doc);
 
     assertScrapeResultMatches(fixture, result);

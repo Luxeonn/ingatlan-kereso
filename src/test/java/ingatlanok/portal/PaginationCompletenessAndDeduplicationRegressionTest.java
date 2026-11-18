@@ -63,7 +63,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("Duna House: 3 oldalas lapozás (?page=N) hiánytalan rekordkészlettel és pontos URL-sorrenddel")
     void dunaHouseThreePagePagination() {
-      DunaHousePortalEngine engine = new DunaHousePortalEngine();
+      DunaHousePortalEngine engine = TestFixtures.dhEngine();
       List<String> requestedUrls = new ArrayList<>();
 
       PortalScrapeResult result = engine.scrape(criteria, url -> {
@@ -91,7 +91,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("Otthon Centrum: 3 oldalas lapozás (?page=N) hiánytalan rekordkészlettel és pontos URL-sorrenddel")
     void otthonCentrumThreePagePagination() {
-      OtthonCentrumPortalEngine engine = new OtthonCentrumPortalEngine();
+      OtthonCentrumPortalEngine engine = TestFixtures.ocEngine();
       List<String> requestedUrls = new ArrayList<>();
 
       PortalScrapeResult result = engine.scrape(criteria, url -> {
@@ -118,7 +118,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("Jófogás: 3 oldalas lapozás (&o=N) hiánytalan rekordkészlettel és pontos URL-sorrenddel")
     void jofogasThreePagePagination() {
-      JofogasPortalEngine engine = new JofogasPortalEngine();
+      JofogasPortalEngine engine = TestFixtures.jofogasEngine();
       List<String> requestedUrls = new ArrayList<>();
 
       PortalScrapeResult result = engine.scrape(criteria, url -> {
@@ -145,7 +145,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("Költözzbe: 3 oldalas lapozás (?page=N) HTML + JSON-LD + rel=next / pagination linkek alapján")
     void koltozzbeThreePagePaginationAndSubStrategies() {
-      KoltozzbePortalEngine engine = new KoltozzbePortalEngine();
+      KoltozzbePortalEngine engine = TestFixtures.koltozzbeEngine();
       List<String> requestedUrls = new ArrayList<>();
       SearchCriteria filteredCriteria = new SearchCriteria();
       filteredCriteria.setCity("Debrecen");
@@ -195,7 +195,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("Ingatlanbazár REST API: 3 oldalas lapozás (limit=50&page=N) pontos kéréssorrenddel")
     void ingatlanBazarThreePageApiPagination() {
-      IngatlanBazarPortalEngine engine = new IngatlanBazarPortalEngine();
+      IngatlanBazarPortalEngine engine = TestFixtures.ingatlanBazarEngine();
       List<String> requestedUrls = new ArrayList<>();
 
       PortalScrapeResult result = engine.scrape(criteria, url -> {
@@ -230,7 +230,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @DisplayName("Üres 1. oldal esetén azonnal megáll (FIRST_PAGE_EMPTY) és nem kér le 2. oldalt")
     void emptyFirstPageStopsImmediatelyWithoutRequestingPageTwo() {
       List<String> dhUrls = new ArrayList<>();
-      PortalScrapeResult dhRes = new DunaHousePortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult dhRes = TestFixtures.dhEngine().scrape(criteria, url -> {
         dhUrls.add(url);
         return Jsoup.parse("<html><body><div>Nincs találat</div></body></html>", url);
       }, 3);
@@ -238,7 +238,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertEquals(1, dhUrls.size(), "DH should not request page 2 when page 1 is empty");
 
       List<String> ocUrls = new ArrayList<>();
-      PortalScrapeResult ocRes = new OtthonCentrumPortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult ocRes = TestFixtures.ocEngine().scrape(criteria, url -> {
         ocUrls.add(url);
         return Jsoup.parse("<html><body><div>0 találat</div></body></html>", url);
       }, 3);
@@ -246,7 +246,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertEquals(1, ocUrls.size(), "OC should not request page 2 when page 1 is empty");
 
       List<String> jfUrls = new ArrayList<>();
-      PortalScrapeResult jfRes = new JofogasPortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult jfRes = TestFixtures.jofogasEngine().scrape(criteria, url -> {
         jfUrls.add(url);
         return Jsoup.parse("<html><body><div>Nincs találat</div></body></html>", url);
       }, 3);
@@ -254,7 +254,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertEquals(1, jfUrls.size(), "Jófogás should not request page 2 when page 1 is empty");
 
       List<String> kbUrls = new ArrayList<>();
-      PortalScrapeResult kbRes = new KoltozzbePortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult kbRes = TestFixtures.koltozzbeEngine().scrape(criteria, url -> {
         kbUrls.add(url);
         return Jsoup.parse("<html><body><div>Nincs találat</div></body></html>", url);
       }, 3);
@@ -262,7 +262,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertEquals(1, kbUrls.size(), "Költözzbe should not request page 2 when page 1 is empty");
 
       List<String> ibUrls = new ArrayList<>();
-      IngatlanBazarPortalEngine ibEngine = new IngatlanBazarPortalEngine();
+      IngatlanBazarPortalEngine ibEngine = TestFixtures.ingatlanBazarEngine();
       PortalScrapeResult ibRes = ibEngine.scrape(criteria, url -> {
         ibUrls.add(url);
         return "{\"hits\":[]}";
@@ -275,7 +275,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @DisplayName("Üres 2. oldal esetén megőrzi az 1. oldal találatait és nem kér le 3. oldalt (EMPTY_PAGE)")
     void emptySecondPageStopsWithoutRequestingPageThree() {
       List<String> dhUrls = new ArrayList<>();
-      PortalScrapeResult dhRes = new DunaHousePortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult dhRes = TestFixtures.dhEngine().scrape(criteria, url -> {
         dhUrls.add(url);
         if (url.endsWith("?page=2")) {
           return Jsoup.parse("<html><body><div>Üres oldal</div></body></html>", url);
@@ -288,7 +288,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertTrue(dhRes.getTechnicalDetails().contains("stopReason=EMPTY_PAGE"));
 
       List<String> ibUrls = new ArrayList<>();
-      IngatlanBazarPortalEngine ibEngine = new IngatlanBazarPortalEngine();
+      IngatlanBazarPortalEngine ibEngine = TestFixtures.ingatlanBazarEngine();
       PortalScrapeResult ibRes = ibEngine.scrape(criteria, url -> {
         ibUrls.add(url);
         if (url.contains("&page=2")) {
@@ -306,7 +306,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @DisplayName("Költözzbe: egyoldalas találati lista (.pagination elem nélkül) nem kér le 2. oldalt")
     void koltozzbeSinglePageWithoutPaginationElementDoesNotFetchSecondPage() {
       List<String> requestedUrls = new ArrayList<>();
-      PortalScrapeResult result = new KoltozzbePortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult result = TestFixtures.koltozzbeEngine().scrape(criteria, url -> {
         requestedUrls.add(url);
         return Jsoup.parse(koltozzbePageHtml("101", 43, 49, null), url);
       }, 3);
@@ -327,7 +327,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     void repeatedPageContentStopsEarlyWithoutFetchingFurtherPages() {
       String identicalDhHtml = dhPageHtml("LK000101", 45, 52, "LK000102", 49, 58);
       List<String> dhUrls = new ArrayList<>();
-      PortalScrapeResult dhRes = new DunaHousePortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult dhRes = TestFixtures.dhEngine().scrape(criteria, url -> {
         dhUrls.add(url);
         return Jsoup.parse(identicalDhHtml, url);
       }, 5);
@@ -339,7 +339,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
 
       String identicalKbHtml = koltozzbePageHtml("101", 45, 52, 99);
       List<String> kbUrls = new ArrayList<>();
-      PortalScrapeResult kbRes = new KoltozzbePortalEngine().scrape(criteria, url -> {
+      PortalScrapeResult kbRes = TestFixtures.koltozzbeEngine().scrape(criteria, url -> {
         kbUrls.add(url);
         return Jsoup.parse(identicalKbHtml, url);
       }, 5);
@@ -392,7 +392,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("Portálon belüli oldalak közötti URL-variánsok (?ref=..., #fragment) és azonos nativeId-k kiszűrése")
     void crossPageDuplicateIdsAndTrackingUrlsAreDeduplicatedWithoutLosingDistinctListings() {
-      OtthonCentrumPortalEngine ocEngine = new OtthonCentrumPortalEngine();
+      OtthonCentrumPortalEngine ocEngine = TestFixtures.ocEngine();
       PortalScrapeResult ocResult = ocEngine.scrape(criteria, url -> {
         if (url.endsWith("?page=2")) {
           String html = "<html><body>"
@@ -412,7 +412,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertEquals(3, ocResult.getItems().size(),
           "H500101 appearing on both page 1 and page 2 with different query/fragment must be deduplicated");
 
-      IngatlanBazarPortalEngine ibEngine = new IngatlanBazarPortalEngine();
+      IngatlanBazarPortalEngine ibEngine = TestFixtures.ingatlanBazarEngine();
       PortalScrapeResult ibResult = ibEngine.scrape(criteria, url -> {
         if (url.contains("&page=2")) {
           return ibJsonPage(
@@ -432,7 +432,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("DeduplicationEngine: többoldalas portál-találatok egyesítésekor a duplikáltak összevonásra kerülnek")
     void deduplicationEnginePreservesDistinctMultiPageListingsAndMergesDuplicates() {
-      DeduplicationEngine deduplicationEngine = new DeduplicationEngine(null);
+      DeduplicationEngine deduplicationEngine = TestFixtures.deduplicationEngine();
 
       IngatlanItem page1ItemA = TestFixtures.validResidentialItem(
           "LK000101", "Debrecen", 45_000_000L, 52.0, 2.0);
@@ -473,7 +473,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("1. oldal sikeres, 2. oldal hiba: részleges eredmény megmarad, 1. oldal hiba esetén FAILED")
     void intermediatePageFailurePreservesPartialResultsAndDistinguishesFromTotalFailure() {
-      DunaHousePortalEngine dhEngine = new DunaHousePortalEngine();
+      DunaHousePortalEngine dhEngine = TestFixtures.dhEngine();
 
       PortalScrapeResult partialOnNull = dhEngine.scrape(criteria, url -> {
         if (url.endsWith("?page=2")) {
@@ -505,7 +505,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertEquals(PortalScrapeStatus.FAILED, totalFailureOnPageOneNull.getStatus(),
           "Page 1 null response must be FAILED, not EMPTY");
 
-      JofogasPortalEngine jfEngine = new JofogasPortalEngine();
+      JofogasPortalEngine jfEngine = TestFixtures.jofogasEngine();
       PortalScrapeResult jfTotalFailure = jfEngine.scrape(criteria, url -> null, 2);
       assertEquals(PortalScrapeStatus.FAILED, jfTotalFailure.getStatus(),
           "Jófogás Page 1 null response must be FAILED, not EMPTY");

@@ -3,10 +3,13 @@ package ingatlanok.portal.oc;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.PortalUrlBuilder;
 
+@Component
 public class OtthonCentrumUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://www.oc.hu";
@@ -36,12 +39,9 @@ public class OtthonCentrumUrlBuilder implements PortalUrlBuilder {
     return BASE_URL + "/ingatlanok/lista/" + String.join(";", segments);
   }
 
+  @Override
   public String buildPageUrl(String searchUrl, int page) {
-    if (searchUrl == null || page <= 1) {
-      return searchUrl;
-    }
-    String separator = searchUrl.contains("?") ? "&" : "?";
-    return searchUrl + separator + "page=" + page;
+    return PortalUrlBuilder.appendPageQueryParam(searchUrl, "page", page);
   }
 
   private String buildRangeSegment(String key, Integer min, Integer max) {

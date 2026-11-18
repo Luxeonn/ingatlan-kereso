@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
@@ -18,6 +20,7 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 import ingatlanok.persistence.ConfigStorage;
 
+@Component
 public class SearchResultAggregator {
 
   private static final Comparator<IngatlanItem> ITEM_COMPARATOR =

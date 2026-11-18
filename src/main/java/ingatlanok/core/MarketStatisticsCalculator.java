@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.MarketSegmentStats;
 import ingatlanok.model.PriceDropItem;
@@ -17,6 +19,7 @@ import ingatlanok.model.PropertyDetails;
 /**
  * Pure statistical math and segment calculation helper for {@link MarketAnalyticsEngine}.
  */
+@Component
 public class MarketStatisticsCalculator {
 
   static final int MIN_SAMPLE_SIZE = 5;

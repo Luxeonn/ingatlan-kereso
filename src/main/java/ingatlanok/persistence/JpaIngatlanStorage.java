@@ -37,10 +37,8 @@ import ingatlanok.persistence.repository.PortalCountProjection;
 import ingatlanok.persistence.repository.PriceHistoryRepository;
 import ingatlanok.persistence.repository.PropertyRepository;
 import ingatlanok.persistence.repository.StatusLogRepository;
-import ingatlanok.persistence.service.PriceHistoryTracker;
 import ingatlanok.persistence.service.PropertyPersistenceHelper;
 import ingatlanok.persistence.service.SearchPresetPersistenceHelper;
-import ingatlanok.persistence.service.StatusLogTracker;
 import ingatlanok.persistence.specification.PropertySpecifications;
 
 @Service
@@ -61,8 +59,7 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
   private final ListingObservationRepository listingObservationRepo;
   private final PropertyPersistenceHelper persistenceHelper;
   private final SearchPresetPersistenceHelper presetHelper;
-  @Autowired(required = false)
-  private DedupOverrideStorage dedupOverrideStorage;
+  private final DedupOverrideStorage dedupOverrideStorage;
 
   @Autowired
   public JpaIngatlanStorage(
@@ -72,10 +69,10 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
       ConfigRepository configRepo,
       JpaEntityMapper mapper,
       ObjectMapper objectMapper,
-      PriceHistoryTracker priceTracker,
-      StatusLogTracker statusTracker,
       ListingObservationRepository listingObservationRepo,
-      SearchPresetPersistenceHelper presetHelper) {
+      PropertyPersistenceHelper persistenceHelper,
+      SearchPresetPersistenceHelper presetHelper,
+      @Autowired(required = false) DedupOverrideStorage dedupOverrideStorage) {
     this.propertyRepo = propertyRepo;
     this.priceHistoryRepo = priceHistoryRepo;
     this.statusLogRepo = statusLogRepo;
@@ -83,16 +80,9 @@ public class JpaIngatlanStorage implements ListingStorage, ConfigStorage {
     this.mapper = mapper;
     this.objectMapper = objectMapper;
     this.listingObservationRepo = listingObservationRepo;
+    this.persistenceHelper = persistenceHelper;
     this.presetHelper = presetHelper;
-    this.persistenceHelper =
-        new PropertyPersistenceHelper(
-            propertyRepo,
-            priceHistoryRepo,
-            statusLogRepo,
-            listingObservationRepo,
-            mapper,
-            priceTracker,
-            statusTracker);
+    this.dedupOverrideStorage = dedupOverrideStorage;
   }
 
   @Override

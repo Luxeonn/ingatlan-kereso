@@ -47,6 +47,7 @@ Key automated checks performed by `verify-pr-compliance.mjs`:
 - Presence and non-empty content of the 2 mandatory sections (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`).
 - Issue closing reference (`Closes #<id>`, `Fixes #<id>`, or `Resolves #<id>`).
 - Cross-Layer presentation DTO & OpenAPI contract drift check: modifying `presentation/*Dto.java` requires `openapi/api-spec.yaml` and `frontend/src/types/generated-api.ts` synchronization or explicit justification in the PR description.
+- Automated exemptions: `dependabot[bot]` / `app/dependabot` PRs are exempt from the Hungarian 2-section body and issue-link checks, and `develop -> main` release PRs are exempt from the issue-link check.
 
 ### 3.2. Governance & Specialist Skill Validator (`validate-skills.sh`)
 Deterministic offline validator enforcing 7 sequential phases:
@@ -57,8 +58,8 @@ bash scripts/validate-skills.sh -v
 ### 3.3. GitHub Actions PR Compliance Workflow (`.github/workflows/pr-compliance.yml`)
 Runs automatically on PR open, edit (`edited`), or commit push:
 - Validates the 2 mandatory sections, issue linking, and OpenAPI contract drift.
-- Runs validator unit tests.
-- Executes `validate-skills.sh` if governance or documentation files changed.
+- Runs validator unit tests (`node --test scripts/test-verify-pr-compliance.mjs`).
+- Executes `bash scripts/validate-skills.sh -v` unconditionally on every PR.
 
 ---
 
@@ -90,7 +91,7 @@ Recommended Required Status Checks on GitHub Branch Protection / Rulesets:
 
 Before opening any Pull Request or marking an implementation task complete, every AI agent must execute a two-phase workflow: first as an **Implementer**, then as an **Adversarial Reviewer** auditing their own diff against four mandatory invariant pillars:
 
-1. **Multi-Source Domain Invariant:** Verify that deduplicated clusters (`IngatlanItem`) with multiple source listings are handled canonically. No UI component, hook, or filter may access `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` directly; canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` (`src/utils/formatters.ts`) must be used (enforced by ESLint AST rule `no-restricted-syntax`).
+1. **Multi-Source Domain Invariant:** Verify that deduplicated clusters (`IngatlanItem`) with multiple source listings are handled canonically. No UI component, hook, or filter may access `item.priceInfo.amountHuf` or `item.detailsInfo.pricePerSquareMeter` directly; canonical helpers `getEffectivePrice(item)` and `getEffectiveSqmPrice(item)` (`frontend/src/utils/formatters.ts`) must be used (enforced by ESLint AST rule `no-restricted-syntax`).
 2. **Multi-City & Partial Failure Invariant:** Verify that search aggregation and portal cards properly support mixed statuses (`SUCCESS`, `PARTIAL_SUCCESS`, `TOTAL_FAILURE`, `BOT_PROTECTED`) across multiple queried cities without throwing unhandled exceptions or showing empty states.
 3. **End-to-End Contract Traceability:** Verify that every backend DTO change propagates across `openapi/api-spec.yaml` -> `PresentationMapper` -> `generated-api.ts` -> UI components (enforced by `OpenApiSpecIntegrityTest.java` and `verify-pr-compliance.mjs`).
 4. **Hermetic Test Isolation & Virtual Thread Concurrency:** Verify that tests run completely offline and order-independently without `app.test-mode` flags leaking into production code (`src/main/java`). Production code must contain zero `synchronized` methods or blocks to eliminate Java 25 virtual thread carrier pinning (enforced by Checkstyle `noSynchronized`, ArchUnit, and `validate-skills.sh`).

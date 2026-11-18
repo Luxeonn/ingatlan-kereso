@@ -21,28 +21,37 @@ An exception is permitted **only** when:
 
 ---
 
-## 2. Machine-Verified Type-Safety Exception Allowlist
+## 2. Machine-Verified Active Type-Safety Exception Allowlist
 
-`scripts/validate-skills.sh` parses the table below (rows starting with `| ALLOW-`) to verify that no undocumented bypasses exist in the codebase.
+`scripts/validate-skills.sh` parses the active table below (rows starting with `| ALLOW-`) to verify that no undocumented bypasses exist in the codebase.
 
 | Allowlist ID | Scope (File Path) | Construct / Rule | Audit Finding / Issue | Expiration / Target Removal | Explicit Technical Justification |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `ALLOW-TS-001` | `frontend/src/types/property.ts` | `CanonicalPropertyType \| string` | `TS-001` (#400, #402) | Issue #400 / #402 | Transitional legacy union compatibility until OpenAPI `SearchCriteria.propertyType` and frontend filter types are unified in #402 and #400. |
-| `ALLOW-TS-002` | `frontend/src/api/client.ts` | `as unknown as T` | `TS-020` (#400, #402, #403) | Issue #402 / #403 | Transitional generic REST client text fallback prior to OpenAPI-typed client (`openapi-fetch`) and runtime boundary validation in #402/#403. |
-| `ALLOW-TS-003` | `frontend/src/components/analytics/CityComparisonChart.tsx` | `as unknown as CityStat` | `TS-022` (#400) | Issue #400 | Recharts 3 `Bar` `onClick` callback types the first parameter loosely; scheduled for replacement with a runtime type guard (`isCityStat`) in #400. |
-| `ALLOW-TS-004` | `frontend/src/components/analytics/PriceDistributionChart.tsx` | `as unknown as HistogramBin` | `TS-022` (#400) | Issue #400 | Recharts 3 `Bar` `onClick` callback types payload loosely; scheduled for replacement with a runtime type guard (`isHistogramBin`) in #400. |
 | `ALLOW-TS-005` | `frontend/src/hooks/useSearch.ts` | `eslint-disable-line react-hooks/exhaustive-deps` | Tech Infra | Permanent (Scoped) | Intentional trigger of `historyQuery.refetch()` strictly on `dashboardTab` / `listingSubView` transition without re-running on `historyQuery` object identity changes. |
 | `ALLOW-JAVA-001` | `config/checkstyle/checkstyle.xml` | `SuppressionSingleFilter (noSynchronized)` | Arch Negative Test | Permanent (Test Fixture) | Allows `FixtureCoreViolatingSynchronized.java` in `src/test/` to compile so `ArchitectureRulesNegativeTest` can deterministically prove that ArchUnit rejects `synchronized` methods. |
 
 ---
 
-## 3. Zero-Tolerance Banned Constructs (Never Allowlisted in Production)
+## 3. Resolved Historical Entries (No Longer Active)
+
+The following transitional exceptions from `#399`–`#403` have been **resolved and removed from source code** (retained below for audit traceability without active `ALLOW-*` row prefixes):
+
+| Finding | Scope (File Path) | Resolved Construct | Resolution Summary |
+| :--- | :--- | :--- | :--- |
+| `TS-001` (formerly `ALLOW-TS-001`) | `frontend/src/types/property.ts` | `CanonicalPropertyType \| string` | Unified `PropertyType` strictly to `CanonicalPropertyType` (`components['schemas']['PropertyType']`). |
+| `TS-020` (formerly `ALLOW-TS-002`) | `frontend/src/api/client.ts` | `as unknown as T` | Replaced with `openapi-fetch` (`createClient<paths>`) and `unwrapApiResponse`. |
+| `TS-022` (formerly `ALLOW-TS-003`) | `frontend/src/components/analytics/CityComparisonChart.tsx` | `as unknown as CityStat` | Replaced with runtime type guard `isCityStat(entry)`. |
+| `TS-022` (formerly `ALLOW-TS-004`) | `frontend/src/components/analytics/PriceDistributionChart.tsx` | `as unknown as HistogramBin` | Replaced with runtime type guard `isHistogramBin(entry)`. |
+
+---
+
+## 4. Zero-Tolerance Banned Constructs (Never Allowlisted in Production)
 
 The following constructs have **zero** active exceptions in production code and will immediately fail CI:
 
-1. **Java `@SuppressWarnings` in `src/main/java/`**: 0 occurrences permitted (enforced by Checkstyle & `validate-skills.sh`).
-2. **Java Raw `Map<String, Object>`, `List<Object[]>`, or wildcard `ResponseEntity<?>` in Web/Persistence/Core**: 0 occurrences permitted (enforced by ArchUnit `ArchitectureRulesTest.java`).
-3. **Java Stringly-Typed Closed Domain Enums in `model/` and `persistence/entity/`**: `PropertyType`, `ListingStatus`, and `ListingObservation.StatusEvent` must be strongly typed enums (`@Enumerated(EnumType.STRING)` in JPA entities), never `String` (enforced by ArchUnit).
-4. **Java Reflective Class Loading (`Class.forName`) in `src/main/java/`**: 0 occurrences permitted (enforced by ArchUnit & Checkstyle).
+1. **Java `@SuppressWarnings` in `src/main/java/`**: 0 occurrences permitted (enforced by Checkstyle `noSuppressWarnings` & `validate-skills.sh`).
+2. **Java Raw `Map<String, Object>`, `List<Object[]>`, or wildcard `ResponseEntity<?>` in Controllers & Repositories**: 0 occurrences permitted (enforced by ArchUnit `ArchitectureRulesTest.java`: `CONTROLLERS_DO_NOT_RETURN_OBJECT_MAPS_OR_WILDCARDS` and `REPOSITORIES_DO_NOT_RETURN_OBJECT_ARRAYS`).
+3. **Java Stringly-Typed Closed Domain Enums in `model/` and `persistence/entity/`**: `PropertyType`, `ListingStatus`, `ListingObservation.StatusEvent`, `PortalId`, `PortalScrapeStatus`, `SearchExecutionStatus`, `ListingSortOption`, `CurrencyCode`, `QualityDeductionRule`, `SidecarStatus`, and `DedupOverrideType` must be strongly typed enums (`@Enumerated(EnumType.STRING)` on JPA entities such as `PropertyEntity`, `StatusLogEntity`, `ListingObservationEntity`, and `DedupOverrideEntity`), never `String` (enforced by ArchUnit `DOMAIN_AND_ENTITY_CLOSED_SETS_USE_ENUMS`).
+4. **Java Reflective Class Loading (`Class.forName`) in `src/main/java/`**: 0 occurrences permitted (enforced by ArchUnit `NO_REFLECTIVE_CLASS_LOADING_IN_PRODUCTION` & Checkstyle `noReflectiveClassLoading`).
 5. **TypeScript `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error` in `frontend/src/` and `frontend/e2e/`**: 0 occurrences permitted (enforced by ESLint `@typescript-eslint/ban-ts-comment: error` & `validate-skills.sh`).
 6. **TypeScript explicit `any` (`: any`, `as any`)**: 0 occurrences permitted (enforced by ESLint `@typescript-eslint/no-explicit-any: error`).

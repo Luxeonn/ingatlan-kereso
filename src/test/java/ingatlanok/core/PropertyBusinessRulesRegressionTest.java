@@ -30,8 +30,6 @@ import ingatlanok.model.SearchResult;
 import ingatlanok.model.SourceListing;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngineRegistry;
-import ingatlanok.portal.dh.DunaHousePortalEngine;
-import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.testsupport.TestFixtures;
 
 /**
@@ -253,7 +251,7 @@ class PropertyBusinessRulesRegressionTest {
   @DisplayName("4. Alkalmi Vétel (Bargain) és Minőségi Pontszám Szabályok")
   class BargainAndQualityRulesTests {
 
-    private final MarketAnalyticsEngine analyticsEngine = new MarketAnalyticsEngine();
+    private final MarketAnalyticsEngine analyticsEngine = TestFixtures.marketAnalyticsEngine();
 
     @Test
     @DisplayName("Alkalmi vétel szigorú 20%-os küszöbértéke a mediánhoz viszonyítva")
@@ -400,7 +398,7 @@ class PropertyBusinessRulesRegressionTest {
   @DisplayName("6. Új Építésű Besorolás és Többforrásos Kluszterezés")
   class NewConstructionAndMultiSourceTests {
 
-    private final DeduplicationEngine dedupEngine = new DeduplicationEngine(null);
+    private final DeduplicationEngine dedupEngine = TestFixtures.deduplicationEngine();
 
     @Test
     @DisplayName("Új építésű kulcsszavak azonosítása címben, leírásban és URL-ben")
@@ -456,8 +454,8 @@ class PropertyBusinessRulesRegressionTest {
 
       SearchPersistenceSynchronizer sync = new SearchPersistenceSynchronizer(
           new PortalEngineRegistry(List.of(
-              new DunaHousePortalEngine(),
-              new OtthonCentrumPortalEngine())),
+              TestFixtures.dhEngine(),
+              TestFixtures.ocEngine())),
           Mockito.mock(ListingStorage.class));
 
       Map<String, Integer> counts = new LinkedHashMap<>();
@@ -486,7 +484,7 @@ class PropertyBusinessRulesRegressionTest {
   @DisplayName("7. Határértékek, Nullok és Ellentmondó Rekordok Kezelése")
   class EdgeCasesAndConflictTests {
 
-    private final DeduplicationEngine dedupEngine = new DeduplicationEngine(null);
+    private final DeduplicationEngine dedupEngine = TestFixtures.deduplicationEngine();
 
     @Test
     @DisplayName("Ellentmondó adatok (pl. eltérő szobaszám vagy túl nagy árkülönbség) nem vonhatók össze")

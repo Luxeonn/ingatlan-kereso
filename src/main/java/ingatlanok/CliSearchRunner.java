@@ -1,5 +1,6 @@
 package ingatlanok;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -13,17 +14,13 @@ import ingatlanok.persistence.ConfigStorage;
 
 @Component
 @ConditionalOnProperty(name = "cli")
+@RequiredArgsConstructor
 public class CliSearchRunner implements ApplicationRunner {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CliSearchRunner.class);
 
   private final SearchExecutionEngine searchEngine;
   private final ConfigStorage configStorage;
-
-  public CliSearchRunner(SearchExecutionEngine searchEngine, ConfigStorage configStorage) {
-    this.searchEngine = searchEngine;
-    this.configStorage = configStorage;
-  }
 
   @Override
   public void run(ApplicationArguments args) {

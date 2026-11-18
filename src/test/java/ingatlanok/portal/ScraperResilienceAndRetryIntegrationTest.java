@@ -25,9 +25,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.common.HttpFetcher;
-import ingatlanok.core.DeduplicationEngine;
-import ingatlanok.core.MarketAnalyticsEngine;
-import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
@@ -56,6 +53,7 @@ import ingatlanok.portal.koltozzbe.KoltozzbeHtmlStrategy;
 import ingatlanok.portal.koltozzbe.KoltozzbeJsonLdStrategy;
 import ingatlanok.portal.koltozzbe.KoltozzbeRawParser;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
+import ingatlanok.testsupport.TestFixtures;
 
 class ScraperResilienceAndRetryIntegrationTest {
 
@@ -418,10 +416,9 @@ class ScraperResilienceAndRetryIntegrationTest {
     };
 
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
-    SearchExecutionEngine search = new SearchExecutionEngine(
-        new PortalEngineRegistry(List.of(goodEngine, failingEngine)),
-        storage, storage, new PropertyFilterEngine(), new DeduplicationEngine(storage), analytics);
+    SearchExecutionEngine search =
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(goodEngine, failingEngine)), storage, storage);
 
     SearchResult result = search.executeSearch(criteria);
     assertNotNull(result);
@@ -467,10 +464,9 @@ class ScraperResilienceAndRetryIntegrationTest {
     };
 
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
-    SearchExecutionEngine search = new SearchExecutionEngine(
-        new PortalEngineRegistry(List.of(engineA, engineB)),
-        storage, storage, new PropertyFilterEngine(), new DeduplicationEngine(storage), analytics);
+    SearchExecutionEngine search =
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(engineA, engineB)), storage, storage);
 
     SearchResult result = search.executeSearch(criteria);
     assertNotNull(result);
@@ -499,10 +495,9 @@ class ScraperResilienceAndRetryIntegrationTest {
     };
 
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
-    SearchExecutionEngine search = new SearchExecutionEngine(
-        new PortalEngineRegistry(List.of(engineA)),
-        storage, storage, new PropertyFilterEngine(), new DeduplicationEngine(storage), analytics);
+    SearchExecutionEngine search =
+        TestFixtures.searchExecutionEngine(
+            new PortalEngineRegistry(List.of(engineA)), storage, storage);
 
     SearchResult result = search.executeSearch(criteria);
     assertNotNull(result);

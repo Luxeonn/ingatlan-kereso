@@ -3,6 +3,7 @@ package ingatlanok.portal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -12,12 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import ingatlanok.model.SearchCriteria;
-import ingatlanok.portal.dh.DunaHousePortalEngine;
-import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
-import ingatlanok.portal.ingatlancom.IngatlanComPortalEngine;
-import ingatlanok.portal.jofogas.JofogasPortalEngine;
-import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
-import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
+import ingatlanok.testsupport.TestFixtures;
 
 class PortalEngineRegistryTest {
 
@@ -77,14 +73,39 @@ class PortalEngineRegistryTest {
     assertFalse(active.stream().anyMatch(e -> "jofogas".equals(e.getId())));
   }
 
+  @Test
+  @DisplayName("Duplikált portál-ID injektálása fail-fast IllegalStateException hibát dob")
+  void testDuplicatePortalIdThrowsIllegalState() {
+    List<PortalEngine> duplicateEngines =
+        List.of(TestFixtures.dhEngine(), TestFixtures.dhEngine());
+    IllegalStateException ex =
+        assertThrows(
+            IllegalStateException.class,
+            () -> new PortalEngineRegistry(duplicateEngines));
+    assertTrue(ex.getMessage().contains("dh"));
+  }
+
+  @Test
+  @DisplayName("Null vagy üres portállista biztonságosan üres regisztert hoz létre és determinisztikusan rendez")
+  void testNullListAndDeterministicDescriptorOrder() {
+    PortalEngineRegistry emptyRegistry = new PortalEngineRegistry(null);
+    assertTrue(emptyRegistry.getAllEngines().isEmpty());
+
+    List<String> ids =
+        createRegistry().getAllDescriptors().stream().map(PortalDescriptor::id).toList();
+    assertEquals(
+        List.of("dh", "ingatlanbazar", "ingatlancom", "jofogas", "koltozzbe", "oc"),
+        ids);
+  }
+
   private PortalEngineRegistry createRegistry() {
     return new PortalEngineRegistry(
         List.of(
-            new DunaHousePortalEngine(),
-            new OtthonCentrumPortalEngine(),
-            new JofogasPortalEngine(),
-            new IngatlanBazarPortalEngine(),
-            new KoltozzbePortalEngine(),
-            new IngatlanComPortalEngine()));
+            TestFixtures.dhEngine(),
+            TestFixtures.ocEngine(),
+            TestFixtures.jofogasEngine(),
+            TestFixtures.ingatlanBazarEngine(),
+            TestFixtures.koltozzbeEngine(),
+            TestFixtures.ingatlanComEngine()));
   }
 }

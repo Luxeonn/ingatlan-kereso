@@ -17,8 +17,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.filter.CorsFilter;
 
-import ingatlanok.config.GlobalCorsFilter;
+import ingatlanok.config.RequestLoggingFilter;
+import ingatlanok.config.SecurityHeadersFilter;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.testsupport.TestFixtures;
@@ -31,7 +33,11 @@ class RestApiControllerHideTest {
 
   @Autowired private ListingStorage listingStorage;
 
-  @Autowired private GlobalCorsFilter globalCorsFilter;
+  @Autowired private SecurityHeadersFilter securityHeadersFilter;
+
+  @Autowired private RequestLoggingFilter requestLoggingFilter;
+
+  @Autowired private CorsFilter corsFilter;
 
   private MockMvc mockMvc;
 
@@ -39,7 +45,7 @@ class RestApiControllerHideTest {
   void setupMockMvc() {
     mockMvc =
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilters(globalCorsFilter)
+            .addFilters(securityHeadersFilter, requestLoggingFilter, corsFilter)
             .build();
   }
 

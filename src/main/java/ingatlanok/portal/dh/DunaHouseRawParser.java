@@ -11,12 +11,14 @@ import org.jsoup.select.Elements;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.portal.HtmlListingParser;
 import ingatlanok.portal.PortalSupport;
 
-public class DunaHouseRawParser {
+public class DunaHouseRawParser implements HtmlListingParser {
 
   private static final Pattern ID_PATTERN = Pattern.compile("/ingatlan/([A-Za-z0-9\\-]+)");
 
+  @Override
   public List<RawPropertyListing> parseRawListings(Document document) {
     List<RawPropertyListing> items = new ArrayList<>();
     if (document == null) {

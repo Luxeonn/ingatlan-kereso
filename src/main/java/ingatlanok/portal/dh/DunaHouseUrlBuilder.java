@@ -2,11 +2,14 @@ package ingatlanok.portal.dh;
 
 import java.util.Optional;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.PortalUrlBuilder;
 
+@Component
 public class DunaHouseUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://dh.hu";
@@ -41,11 +44,7 @@ public class DunaHouseUrlBuilder implements PortalUrlBuilder {
 
   @Override
   public String buildPageUrl(String baseSearchUrl, int page) {
-    if (baseSearchUrl == null || page <= 1) {
-      return baseSearchUrl;
-    }
-    String separator = baseSearchUrl.contains("?") ? "&" : "?";
-    return baseSearchUrl + separator + "page=" + page;
+    return PortalUrlBuilder.appendPageQueryParam(baseSearchUrl, "page", page);
   }
 
   private String buildPriceSlug(SearchCriteria criteria) {

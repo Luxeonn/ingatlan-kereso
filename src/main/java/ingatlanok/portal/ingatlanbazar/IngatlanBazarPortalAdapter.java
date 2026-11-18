@@ -3,12 +3,12 @@ package ingatlanok.portal.ingatlanbazar;
 import java.util.List;
 
 import ingatlanok.model.PropertyType;
+import ingatlanok.portal.AbstractPortalAdapter;
 import ingatlanok.portal.ExtractionStrategy;
-import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalUrlBuilder;
 
-public class IngatlanBazarPortalAdapter implements PortalAdapter {
+public class IngatlanBazarPortalAdapter extends AbstractPortalAdapter {
 
   private static final PortalDescriptor DESCRIPTOR =
       new PortalDescriptor(
@@ -20,31 +20,15 @@ public class IngatlanBazarPortalAdapter implements PortalAdapter {
           List.of(PropertyType.LAKAS, PropertyType.HAZ, PropertyType.TELEK),
           true);
 
-  private final IngatlanBazarQueryBuilder queryBuilder;
-  private final List<ExtractionStrategy> strategies;
-
   public IngatlanBazarPortalAdapter() {
     this(new IngatlanBazarQueryBuilder(), List.of(new IngatlanBazarApiStrategy()));
   }
 
   public IngatlanBazarPortalAdapter(
-      IngatlanBazarQueryBuilder queryBuilder, List<ExtractionStrategy> strategies) {
-    this.queryBuilder = queryBuilder != null ? queryBuilder : new IngatlanBazarQueryBuilder();
-    this.strategies = strategies != null ? List.copyOf(strategies) : List.of();
-  }
-
-  @Override
-  public PortalDescriptor getDescriptor() {
-    return DESCRIPTOR;
-  }
-
-  @Override
-  public PortalUrlBuilder getUrlBuilder() {
-    return queryBuilder;
-  }
-
-  @Override
-  public List<ExtractionStrategy> getStrategies() {
-    return strategies;
+      PortalUrlBuilder queryBuilder, List<ExtractionStrategy> strategies) {
+    super(
+        DESCRIPTOR,
+        queryBuilder != null ? queryBuilder : new IngatlanBazarQueryBuilder(),
+        strategies);
   }
 }

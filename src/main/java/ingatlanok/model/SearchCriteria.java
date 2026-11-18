@@ -4,6 +4,10 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,13 +19,28 @@ import ingatlanok.common.SlugUtils;
 @Setter
 public class SearchCriteria implements Serializable {
 
+  @Size(max = 200, message = "A település neve túl hosszú (max. 200 karakter)!")
   private String city = "Hajdúszoboszló";
-  private List<String> cities = new ArrayList<>();
+
+  @Size(max = 50, message = "Túl sok település lett megadva (max. 50 megengedett)!")
+  private List<@Size(max = 200, message = "A település neve túl hosszú (max. 200 karakter)!") String>
+      cities = new ArrayList<>();
+
   private PropertyType propertyType = PropertyType.HAZ;
+
+  @PositiveOrZero(message = "A minimum ár nem lehet negatív")
   private Integer minPriceMillion = 70;
+
+  @PositiveOrZero(message = "A maximum ár nem lehet negatív")
   private Integer maxPriceMillion = 120;
+
+  @PositiveOrZero(message = "A minimum alapterület nem lehet negatív")
   private Integer minArea = 90;
+
+  @PositiveOrZero(message = "A maximum alapterület nem lehet negatív")
   private Integer maxArea = 200;
+
+  @PositiveOrZero(message = "A minimum szobaszám nem lehet negatív")
   private Integer minRooms;
   private List<String> portals = new ArrayList<>();
   private boolean autoOpenBrowser = false;
@@ -122,66 +141,30 @@ public class SearchCriteria implements Serializable {
     this.propertyType = PropertyType.fromString(raw);
   }
 
-  public void validate() {
-    validatePriceRanges();
-    validateAreaRanges();
-    if (minRooms != null && minRooms < 0) {
-      throw new IllegalArgumentException("A minimum szobaszám nem lehet negatív: " + minRooms);
-    }
-    validateCities();
-    validatePortals();
+  @JsonIgnore
+  @AssertTrue(message = "A minimum ár nem lehet nagyobb a maximum árnál")
+  public boolean isPriceRangeValid() {
+    return minPriceMillion == null || maxPriceMillion == null || minPriceMillion <= maxPriceMillion;
   }
 
-  private void validatePriceRanges() {
-    if (minPriceMillion != null && minPriceMillion < 0) {
-      throw new IllegalArgumentException("A minimum ár nem lehet negatív: " + minPriceMillion);
-    }
-    if (maxPriceMillion != null && maxPriceMillion < 0) {
-      throw new IllegalArgumentException("A maximum ár nem lehet negatív: " + maxPriceMillion);
-    }
-    if (minPriceMillion != null && maxPriceMillion != null && minPriceMillion > maxPriceMillion) {
-      throw new IllegalArgumentException(
-          "A minimum ár nem lehet nagyobb a maximum árnál: " + minPriceMillion + " > " + maxPriceMillion);
-    }
+  @JsonIgnore
+  @AssertTrue(message = "A minimum alapterület nem lehet nagyobb a maximum alapterületnél")
+  public boolean isAreaRangeValid() {
+    return minArea == null || maxArea == null || minArea <= maxArea;
   }
 
-  private void validateAreaRanges() {
-    if (minArea != null && minArea < 0) {
-      throw new IllegalArgumentException("A minimum alapterület nem lehet negatív: " + minArea);
+  @JsonIgnore
+  @AssertTrue(message = "Ismeretlen portál azonosító a keresési feltételekben")
+  public boolean isPortalsValid() {
+    if (portals == null) {
+      return true;
     }
-    if (maxArea != null && maxArea < 0) {
-      throw new IllegalArgumentException("A maximum alapterület nem lehet negatív: " + maxArea);
-    }
-    if (minArea != null && maxArea != null && minArea > maxArea) {
-      throw new IllegalArgumentException(
-          "A minimum alapterület nem lehet nagyobb a maximum alapterületnél: " + minArea + " > " + maxArea);
-    }
-  }
-
-  private void validateCities() {
-    if (city != null && city.length() > 200) {
-      throw new IllegalArgumentException("A település neve túl hosszú (max. 200 karakter)!");
-    }
-    if (cities != null) {
-      if (cities.size() > 50) {
-        throw new IllegalArgumentException("Túl sok település lett megadva (max. 50 megengedett)!");
-      }
-      for (String c : cities) {
-        if (c != null && c.length() > 200) {
-          throw new IllegalArgumentException("A település neve túl hosszú: " + c);
-        }
+    for (String p : portals) {
+      if (p != null && !p.isBlank() && PortalId.fromString(p) == PortalId.UNKNOWN) {
+        return false;
       }
     }
-  }
-
-  private void validatePortals() {
-    if (portals != null) {
-      for (String p : portals) {
-        if (p != null && !p.isBlank() && PortalId.fromString(p) == PortalId.UNKNOWN) {
-          throw new IllegalArgumentException("Ismeretlen portál azonosító a keresési feltételekben: " + p);
-        }
-      }
-    }
+    return true;
   }
 
   public boolean isPortalEnabled(String portalKey) {

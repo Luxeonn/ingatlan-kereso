@@ -9,9 +9,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import ingatlanok.core.DeduplicationEngine;
 import ingatlanok.core.MarketAnalyticsEngine;
-import ingatlanok.core.PropertyFilterEngine;
 import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceInfo;
@@ -23,6 +21,7 @@ import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.MarketStatsDto;
 import ingatlanok.presentation.PresentationMapper;
 import ingatlanok.presentation.PriceDropItemDto;
+import ingatlanok.testsupport.TestFixtures;
 
 class DashboardPresentationServiceTest {
 
@@ -70,7 +69,7 @@ class DashboardPresentationServiceTest {
 
   @Test
   void testPresentationMapperNullAndFallbackBranches() {
-    PresentationMapper mapper = PresentationMapper.INSTANCE;
+    PresentationMapper mapper = TestFixtures.presentationMapper();
     assertNull(mapper.toPortalStatusDto(null));
     assertNull(mapper.toDashboardResponseDto(null, null, null));
     assertNull(mapper.toPriceDropItemDto(null, null));
@@ -94,11 +93,9 @@ class DashboardPresentationServiceTest {
 
   private DashboardPresentationService createService() {
     InMemoryListingStorage storage = new InMemoryListingStorage();
-    MarketAnalyticsEngine analytics = new MarketAnalyticsEngine();
+    MarketAnalyticsEngine analytics = TestFixtures.marketAnalyticsEngine();
     SearchExecutionEngine search =
-        new SearchExecutionEngine(
-            new PortalEngineRegistry(List.of()), storage, storage,
-            new PropertyFilterEngine(), new DeduplicationEngine(storage), analytics);
-    return new DashboardPresentationService(search, analytics);
+        TestFixtures.searchExecutionEngine(new PortalEngineRegistry(List.of()), storage, storage);
+    return TestFixtures.dashboardPresentationService(search, analytics);
   }
 }

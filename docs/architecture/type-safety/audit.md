@@ -7,6 +7,9 @@
 - **Parent Milestone**: GitHub Issue #399 (Umbrella Issue #398 — Fullstack Type Safety & Boundary Hardening)
 - **Target Implementation Issues**: GitHub Issues #400, #401, #402, #403, and #404
 
+> [!NOTE]
+> **Historical Baseline Record (#399, `2026-11-08`):** This document is preserved intact as the point-in-time baseline audit anchored to commit `e0da7f01556a000da9d0c91fd3a4b3801a0ef1f7`. All downstream baseline findings (`TS-001`–`TS-032`, `JAVA-001`–`JAVA-027`, `API-001`–`API-015`) were subsequently implemented in `#400`–`#404` (see [allowlist.md](allowlist.md) for the current exception registry). In addition, `CoreEngineConfig` (referenced in historical line 948 below) was replaced by `@Component`/`@Service` Spring component scanning in `#479`, and the codebase has since expanded beyond the 42 frontend files / 58 Java classes / 18 OpenAPI operations audited at baseline (see [docs/architecture.md](../../architecture.md) for current inventory).
+
 ---
 
 ## 1. Executive Summary & Audited Scope

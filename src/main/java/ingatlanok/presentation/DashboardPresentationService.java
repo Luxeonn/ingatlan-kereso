@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import ingatlanok.core.IngatlanComHtmlImportService;
 import ingatlanok.core.MarketAnalyticsEngine;
 import ingatlanok.core.SearchExecutionEngine;
@@ -12,24 +15,23 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchResult;
 
+@Service
 public class DashboardPresentationService {
 
   private final SearchExecutionEngine searchEngine;
   private final MarketAnalyticsEngine analyticsEngine;
   private final IngatlanComHtmlImportService htmlImportService;
-
-  public DashboardPresentationService(
-      SearchExecutionEngine searchEngine, MarketAnalyticsEngine analyticsEngine) {
-    this(searchEngine, analyticsEngine, null);
-  }
+  private final PresentationMapper presentationMapper;
 
   public DashboardPresentationService(
       SearchExecutionEngine searchEngine,
       MarketAnalyticsEngine analyticsEngine,
-      IngatlanComHtmlImportService htmlImportService) {
+      @Autowired(required = false) IngatlanComHtmlImportService htmlImportService,
+      PresentationMapper presentationMapper) {
     this.searchEngine = Objects.requireNonNull(searchEngine);
     this.analyticsEngine = Objects.requireNonNull(analyticsEngine);
     this.htmlImportService = htmlImportService;
+    this.presentationMapper = Objects.requireNonNull(presentationMapper);
   }
 
   public IngatlanComHtmlImportResponseDto importIngatlanComHtml(
@@ -57,12 +59,12 @@ public class DashboardPresentationService {
     MarketStatsDto marketStats = calculateMarketStats(searchResult.getItems());
     List<PortalStatusDto> portalStatuses = buildPortalStatuses(searchResult);
 
-    return PresentationMapper.INSTANCE.toDashboardResponseDto(
+    return presentationMapper.toDashboardResponseDto(
         searchResult, marketStats, portalStatuses);
   }
 
   public MarketStatsDto calculateMarketStats(List<IngatlanItem> items) {
-    return PresentationMapper.INSTANCE.toMarketStatsDto(analyticsEngine.calculateMarketStats(items));
+    return presentationMapper.toMarketStatsDto(analyticsEngine.calculateMarketStats(items));
   }
 
   private List<PortalStatusDto> buildPortalStatuses(SearchResult searchResult) {
@@ -73,7 +75,7 @@ public class DashboardPresentationService {
     List<PortalStatusDto> statuses = new ArrayList<>(searchResult.getPortalResults().size());
     for (PortalScrapeResult pr : searchResult.getPortalResults()) {
       if (pr != null) {
-        statuses.add(PresentationMapper.INSTANCE.toPortalStatusDto(pr));
+        statuses.add(presentationMapper.toPortalStatusDto(pr));
       }
     }
     return statuses;

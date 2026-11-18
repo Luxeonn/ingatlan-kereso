@@ -16,13 +16,14 @@ import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
+import ingatlanok.testsupport.TestFixtures;
 
 /**
  * Adversarial stress tests for {@link DeduplicationEngine} clustering logic.
  */
 class DeduplicationEngineAdversarialTest {
 
-  private final DeduplicationEngine engine = new DeduplicationEngine(null);
+  private final DeduplicationEngine engine = TestFixtures.deduplicationEngine();
 
   @Test
   @DisplayName("Floor area boundary: exact 5.0% diff matches, 5.1% diff fails to match")

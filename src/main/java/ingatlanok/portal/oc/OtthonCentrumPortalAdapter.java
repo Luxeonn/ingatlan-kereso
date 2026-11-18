@@ -3,12 +3,12 @@ package ingatlanok.portal.oc;
 import java.util.List;
 
 import ingatlanok.model.PropertyType;
+import ingatlanok.portal.AbstractPortalAdapter;
 import ingatlanok.portal.ExtractionStrategy;
-import ingatlanok.portal.PortalAdapter;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalUrlBuilder;
 
-public class OtthonCentrumPortalAdapter implements PortalAdapter {
+public class OtthonCentrumPortalAdapter extends AbstractPortalAdapter {
 
   private static final PortalDescriptor DESCRIPTOR =
       new PortalDescriptor(
@@ -20,31 +20,12 @@ public class OtthonCentrumPortalAdapter implements PortalAdapter {
           List.of(PropertyType.LAKAS, PropertyType.HAZ, PropertyType.TELEK),
           true);
 
-  private final OtthonCentrumUrlBuilder urlBuilder;
-  private final List<ExtractionStrategy> strategies;
-
   public OtthonCentrumPortalAdapter() {
     this(new OtthonCentrumUrlBuilder(), List.of(new OtthonCentrumHtmlStrategy()));
   }
 
   public OtthonCentrumPortalAdapter(
-      OtthonCentrumUrlBuilder urlBuilder, List<ExtractionStrategy> strategies) {
-    this.urlBuilder = urlBuilder != null ? urlBuilder : new OtthonCentrumUrlBuilder();
-    this.strategies = strategies != null ? List.copyOf(strategies) : List.of();
-  }
-
-  @Override
-  public PortalDescriptor getDescriptor() {
-    return DESCRIPTOR;
-  }
-
-  @Override
-  public PortalUrlBuilder getUrlBuilder() {
-    return urlBuilder;
-  }
-
-  @Override
-  public List<ExtractionStrategy> getStrategies() {
-    return strategies;
+      PortalUrlBuilder urlBuilder, List<ExtractionStrategy> strategies) {
+    super(DESCRIPTOR, urlBuilder != null ? urlBuilder : new OtthonCentrumUrlBuilder(), strategies);
   }
 }

@@ -6,7 +6,6 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
-import org.mapstruct.factory.Mappers;
 
 import ingatlanok.model.DedupOverride;
 import ingatlanok.model.IngatlanItem;
@@ -22,8 +21,6 @@ import ingatlanok.model.SourceListing;
     unmappedTargetPolicy = ReportingPolicy.ERROR,
     imports = ArrayList.class)
 public interface PresentationMapper {
-
-  PresentationMapper INSTANCE = Mappers.getMapper(PresentationMapper.class);
 
   @Mapping(target = "status", source = "status")
   @Mapping(target = "foundCount", expression = "java(pr.getItems() != null ? pr.getItems().size() : 0)")

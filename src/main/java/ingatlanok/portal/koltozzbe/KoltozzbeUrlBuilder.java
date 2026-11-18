@@ -3,10 +3,13 @@ package ingatlanok.portal.koltozzbe;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.PortalUrlBuilder;
 
+@Component
 public class KoltozzbeUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://koltozzbe.hu";
@@ -41,9 +44,6 @@ public class KoltozzbeUrlBuilder implements PortalUrlBuilder {
 
   @Override
   public String buildPageUrl(String baseSearchUrl, int page) {
-    if (page <= 1) {
-      return baseSearchUrl;
-    }
-    return baseSearchUrl + (baseSearchUrl.contains("?") ? "&" : "?") + "page=" + page;
+    return PortalUrlBuilder.appendPageQueryParam(baseSearchUrl, "page", page);
   }
 }

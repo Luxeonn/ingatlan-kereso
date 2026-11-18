@@ -5,12 +5,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.stereotype.Component;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.PortalUrlBuilder;
 
+@Component
 public class JofogasUrlBuilder implements PortalUrlBuilder {
 
   public static final String BASE_URL = "https://ingatlan.jofogas.hu";
@@ -32,12 +35,9 @@ public class JofogasUrlBuilder implements PortalUrlBuilder {
     return BASE_URL + route + "?" + String.join("&", queryParams);
   }
 
+  @Override
   public String buildPageUrl(String searchUrl, int page) {
-    if (searchUrl == null || page <= 1) {
-      return searchUrl;
-    }
-    String separator = searchUrl.contains("?") ? "&" : "?";
-    return searchUrl + separator + "o=" + page;
+    return PortalUrlBuilder.appendPageQueryParam(searchUrl, "o", page);
   }
 
   private String resolveLocationSegment(String city) {

@@ -1,185 +1,80 @@
-# Contributing Guide
+# Közreműködői útmutató
 
-This document covers the internal development workflow for **ingatlan-kereso** — branch strategy, Git worktrees, CI pipeline checks, issue tracking, and AppSec/CodeQL requirements.
+Ez az útmutató foglalja össze az **ingatlan-kereso** fejlesztési munkafolyamatát: az ágkezelést, commit-konvenciókat, kötelező helyi ellenőrzéseket, PR-szabályokat és az aktív CI/CD folyamatokat.
 
----
+## 1. Branch-stratégia és Git Worktree
 
-## 1. Branch Strategy & Git Worktrees
-
-**Direct pushes to `main` or `develop` are strictly prohibited.** Every change ships through a dedicated feature branch.
-
-### Create a Branch via Git Worktree
-
-Always isolate work in a separate worktree to keep the working directory clean:
+Közvetlen push a `main` és `develop` ágakra **tilos**. Minden fejlesztés a `develop` ágról induló saját ágon vagy izolált worktree-ben készül:
 
 ```bash
-git worktree add -b <branch-name> ../worktrees/<branch-name> develop
+git worktree add -b <ág-neve> ../worktrees/<ág-neve> develop
 ```
 
-### Branch Naming Convention
-
-All branches must start from `develop` and follow one of these prefixes:
-
-| Prefix | Use for |
+| Ág-előtag | Mire használjuk |
 | :--- | :--- |
-| `feature/<short-desc>` | New functionality |
-| `fix/<short-desc>` | Bug fixes |
-| `refactor/<short-desc>` | Code restructuring without functional change |
-| `docs/<short-desc>` | Documentation-only updates |
-| `chore/<short-desc>` | Build system, dependency, or tooling changes |
+| `feature/<rövid-leírás>` | Új funkció vagy képesség |
+| `fix/<rövid-leírás>` | Hibajavítás |
+| `refactor/<rövid-leírás>` | Szerkezeti átalakítás funkcionális változtatás nélkül |
+| `docs/<rövid-leírás>` | Csak dokumentációt érintő módosítás |
+| `chore/<rövid-leírás>` | Build, függőségek, CI vagy eszközkarbantartás |
 
----
+## 2. Commit üzenetek
 
-## 2. Commit Messages
+Minden commit angol nyelvű **Conventional Commits** formátumot követ:
 
-Use **Conventional Commits** format for every commit. The subject must be in English.
-
-```
+```text
 <type>(<scope>): <short imperative description>
 ```
 
-**Examples:**
+Példák: `feat(search): add area filter`, `fix(portal): handle missing price on Jófogás`, `refactor(dedup): extract helper`, `docs: update README`.
 
-```
-feat(search): add area filter to search criteria
-fix(portal): handle missing price on Jófogás listings
-refactor(dedup): extract O(1) key generation to helper
-docs: update architecture diagram in docs/architecture.md
-chore(deps): bump Spring Boot to 4.1.2
-```
+Logikai egységenként commitolj, és csak helyben ellenőrzött, tiszta állapotot pusholj (ne publikálj hibakereső „fixup” láncokat).
 
-Commit each logical increment separately. Do not squash unrelated changes and do not publish trial-and-error debug commits to the remote branch — fix locally first, then push once.
+## 3. Lokális ellenőrzés (push előtt kötelező)
 
----
-
-## 3. CI Pipeline & Checks
-
-Every pull request must pass **all** required CI checks before it is considered mergeable.
-
-### Required CI Workflows
-
-| Workflow | Trigger | What it checks |
-| :--- | :--- | :--- |
-| `ci.yml` — **CI Build** | Push / PR | Backend Checkstyle, JUnit 5 tests, JaCoCo 80% threshold, frontend lint + typecheck + Vitest + build |
-| `pr-build.yml` — **PR Title Check** | PR open / edit | Conventional Commit format on PR title |
-| `images.yml` — **Docker Build** | Push to `develop` | Multi-stage Temurin JRE 25 image build and GHCR publish |
-
-### Local Pre-Push Verification (Mandatory)
-
-Run the full local check suite **before every push**. Never rely on CI to discover basic errors.
-
-**Backend:**
+**Gyors összevont ellenőrzés:**
 
 ```bash
-./gradlew checkstyleMain checkstyleTest test jacocoTestReport
+bash scripts/ai-verify.sh --all
 ```
 
-**Frontend:**
+**Teljes backend kapu** *(Java 25, Checkstyle, ArchUnit, JUnit 5, JaCoCo ≥ 80%, javasolt ≥ 82%)*:
 
 ```bash
-cd frontend
-npm run lint && npm run typecheck && npm run test && npm run build
+./gradlew checkstyleMain checkstyleTest test jacocoTestReport jacocoTestCoverageVerification check bootJar
 ```
 
-Resolve all findings in a single local pass, then push once.
+**Teljes frontend kapu** *(OpenAPI típusgenerálás, TypeScript, ESLint, Vitest, Vite build, Playwright E2E)*:
 
-### JaCoCo Coverage
+```bash
+cd frontend && npm run generate-api && npm run typecheck && npm run lint && npm run test && npm run build
+npm run test:e2e
+```
 
-CI enforces a strict **80.00% minimum line coverage** threshold. Aim for **≥ 82%** locally to have a safety buffer against regressions. When adding or refactoring business logic, include both happy-path and error-path unit tests in the same commit.
+**Guardrail és PR-megfelelőség ellenőrzése:**
 
----
+```bash
+bash scripts/validate-skills.sh -v
+node scripts/verify-pr-compliance.mjs --body-file pr_body.md --diff-base origin/develop -v
+```
 
-## 4. Pull Request Workflow
+## 4. Pull Request és Issue folyamat
 
-### PR Title
+- **PR cím és címke:** Angol nyelvű Conventional Commit cím + megfelelő címke (`enhancement`, `bug`, `documentation`).
+- **PR leírás:** Tömör magyar szöveg **BOM nélküli UTF-8** fájlban (`gh pr create --body-file ...`), a [`.github/pull_request_template.md`](.github/pull_request_template.md) két szekciójával (`## 🎯 Miért készült?`, `## 🛠️ Mit módosít / Mit javít?`) és záró hivatkozással (`Closes #<id>` / `Fixes #<id>`). Ha `presentation/*Dto.java` változik, az [`openapi/api-spec.yaml`](openapi/api-spec.yaml) és a `frontend/src/types/generated-api.ts` fájlokat is frissíteni kell.
+- **Review és merge:** Mindig kérj `@copilot` reviewt (`gh pr edit <id> --add-reviewer "@copilot"`). Saját PR merge-elése (`gh pr merge`) tilos; az összevonást a karbantartó végzi zöld CI után.
+- **Issue sablonok:** Hibákhoz [`.github/ISSUE_TEMPLATE/bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml) (`fix: ...`, `bug`), fejlesztésekhez [`.github/ISSUE_TEMPLATE/feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml) (`feat: ...`, `enhancement`).
 
-Must be in **English** and follow the Conventional Commits format (e.g., `feat(dashboard): add market analytics KPI cards`).
+## 5. Aktív CI/CD Workflow-k és AppSec
 
-### PR Labels
-
-Apply at least one label when opening the PR:
-
-- `enhancement` — new feature or improvement
-- `bug` — defect fix
-- `documentation` — documentation-only changes
-
-### PR Description
-
-Write the description in **concise, high-signal Hungarian** using these two sections from the [pull request template](.github/pull_request_template.md):
-
-1. **🎯 Miért készült?** — Context and goal (1–2 sentences)
-2. **🛠️ Mit módosít / Mit javít?** — Key technical changes (bullet list)
-
-Always close the description with a linking keyword: `Closes #<id>` or `Fixes #<id>`.
-
-> [!CAUTION]
-> Save the PR body to a UTF-8 (no BOM) file and use `gh pr create --body-file <file>` to prevent character corruption on Windows/PowerShell.
-
-### Merging
-
-**Never merge your own PR.** Merging is reserved for the repository owner. Do not run `gh pr merge`.
-
----
-
-## 5. Issue Tracking
-
-Use the repository issue templates as the single source of truth.
-
-### Bug Reports
-
-Template: [`.github/ISSUE_TEMPLATE/bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml)
-
-- Title format: `fix: <short description>`
-- Label: `bug`
-- Required sections: problem description, expected vs actual behavior, reproduction steps, affected component, environment, logs
-
-### Feature / Enhancement Requests
-
-Template: [`.github/ISSUE_TEMPLATE/feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml)
-
-- Title format: `feat: <short description>`
-- Label: `enhancement`
-- Required sections: user problem/need, proposed solution, affected specialist component/agent, alternatives
-
-> [!NOTE]
-> For CLI issue creation, mirror every required section from the YAML template in the markdown body.
-
----
-
-## 6. Security & CodeQL (AppSec)
-
-### SSRF Prevention (CWE-918)
-
-CodeQL taint-tracking flags any `HttpClient` or raw socket sink that receives input tainted by request parameters, even through indirect sanitizers. Follow these rules:
-
-- **Always route outbound portal requests through [`HttpFetcher`](src/main/java/ingatlanok/common/HttpFetcher.java).** It integrates `PortalRateLimiter`, `PortalCircuitBreaker`, and domain whitelisting.
-- If a direct HTTP call is unavoidable, use a compile-time literal prefix guard immediately before the sink:
-
-  ```java
-  if (!url.startsWith("https://exact-portal.hu/")) {
-      throw new IllegalArgumentException("Blocked: non-whitelisted URL");
-  }
-  ```
-
-### Input Sanitization
-
-Search parameters (city, price range, floor area) must be processed through the validated utility chain before reaching any network or persistence sink:
-
-- [`SlugUtils`](src/main/java/ingatlanok/common/SlugUtils.java) — diacritic removal, slug normalization
-- [`CityUtils`](src/main/java/ingatlanok/common/CityUtils.java) — city name normalization and preset resolution
-- [`PropertyParser`](src/main/java/ingatlanok/common/PropertyParser.java) — price/area regex parsing
-
-### Vulnerability Reporting
-
-Do **not** open a public issue for security vulnerabilities. Follow the procedure in [`SECURITY.md`](SECURITY.md).
-
----
-
-## 7. Docker Releases
-
-| Workflow | Trigger | Description |
+| Workflow | Esemény | Ellenőrzés / Feladat |
 | :--- | :--- | :--- |
-| `images.yml` — Docker Build | Push to `develop` | Publishes `latest` backend and frontend images to GHCR automatically |
-| `release.yml` — Docker Release | Manual from a branch | Publishes versioned (`1.x.y`) images, creates Git tag and GitHub Release |
+| `ci.yml` (**CI Build**) | Push / PR (`develop`, `main`) | Gitleaks, OpenAPI drift, frontend + Playwright E2E, backend (Checkstyle, ArchUnit, JUnit 5, JaCoCo ≥ 80%, smoke test), Trivy, `validate-skills.sh` |
+| `pr-build.yml` (**PR build**) | PR (`develop`, `main`) | Conventional Commit / verziószám alapú PR cím ellenőrzése |
+| `pr-compliance.yml` (**PR Compliance**) | PR (`develop`, `main`) | 2 magyar szekció, `Closes #`, OpenAPI DTO szinkron (`verify-pr-compliance.mjs`), `validate-skills.sh` |
+| `pr-guards.yml` (**PR Guards**) | PR (`develop`) | Ellenőrzi, hogy a PR ág naprakész-e a `develop` ághoz képest |
+| `images.yml` (**Docker Build**) | Push (`develop`) | Teljes `ci.yml` futtatás után `:latest` képek publikálása GHCR-re |
+| `release.yml` (**Docker Release**) | Manuális, **kizárólag `main`** | Verziózott SemVer képek (`:x.y.z`), `v*` Git tag és GitHub Release létrehozása |
+| `dependency-submission.yml` | Push / Manuális | Gradle függőségi gráf beküldése a GitHub Dependency Graph felé |
 
-Release versions derive from the latest Git tag plus a `patch` / `minor` / `major` / custom input. Images are tagged with clean numeric SemVer (e.g., `1.2.0`) — no `v` prefix.
+- **AppSec alapszabály:** Minden kimenő portál HTTP hívást a [`HttpFetcher`](src/main/java/ingatlanok/common/HttpFetcher.java) osztályon keresztül kell futtatni. Sérülékenységet tilos nyilvános issue-ban közölni — kövesd a [`SECURITY.md`](SECURITY.md) eljárását.

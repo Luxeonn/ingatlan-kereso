@@ -18,6 +18,7 @@ import ingatlanok.core.normalization.ListingNormalizer;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.testsupport.TestFixtures;
 
 class IngatlanBazarParserEdgeCasesTest {
 
@@ -47,7 +48,7 @@ class IngatlanBazarParserEdgeCasesTest {
 
     assertNull(raw.priceHuf());
     IngatlanItem item = normalizer.normalize(
-        raw, new IngatlanBazarPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ingatlanBazarEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item, "A null árú hirdetés nem kerülhet elutasításra");
     assertNull(item.getPriceInfo().getAmountHuf());
@@ -66,7 +67,7 @@ class IngatlanBazarParserEdgeCasesTest {
 
     assertNull(raw.priceHuf(), "A 0 ár nem maradhat numerikus 0L");
     IngatlanItem item = normalizer.normalize(
-        raw, new IngatlanBazarPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        raw, TestFixtures.ingatlanBazarEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
     assertNull(item.getPriceInfo().getAmountHuf());
@@ -90,7 +91,7 @@ class IngatlanBazarParserEdgeCasesTest {
     assertNull(zeroAreaRaw.areaSquareMeters(), "A 0 alapterület nem maradhat numerikus 0.0");
 
     IngatlanItem item = normalizer.normalize(
-        zeroAreaRaw, new IngatlanBazarPortalEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
+        zeroAreaRaw, TestFixtures.ingatlanBazarEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
     assertNotNull(item);
     assertNull(item.getDetailsInfo().getAreaSquareMeters());
   }

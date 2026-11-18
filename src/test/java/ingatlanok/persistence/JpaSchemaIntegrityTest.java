@@ -17,9 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import ingatlanok.persistence.entity.ConfigEntity;
+import ingatlanok.persistence.entity.DedupOverrideEntity;
 import ingatlanok.persistence.entity.ListingObservationEntity;
 import ingatlanok.persistence.entity.PriceHistoryEntity;
 import ingatlanok.persistence.entity.PropertyEntity;
+import ingatlanok.persistence.entity.SearchPresetEntity;
 import ingatlanok.persistence.entity.StatusLogEntity;
 
 @SpringBootTest
@@ -31,7 +33,9 @@ class JpaSchemaIntegrityTest {
           ListingObservationEntity.class,
           PriceHistoryEntity.class,
           StatusLogEntity.class,
-          ConfigEntity.class);
+          ConfigEntity.class,
+          SearchPresetEntity.class,
+          DedupOverrideEntity.class);
 
   @Autowired
   private EntityManager entityManager;

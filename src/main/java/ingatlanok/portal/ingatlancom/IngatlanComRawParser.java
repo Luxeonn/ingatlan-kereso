@@ -13,9 +13,10 @@ import org.jsoup.select.Elements;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
+import ingatlanok.portal.HtmlListingParser;
 import ingatlanok.portal.PortalSupport;
 
-public class IngatlanComRawParser {
+public class IngatlanComRawParser implements HtmlListingParser {
 
   private static final Pattern ID_PATTERN =
       Pattern.compile("/(?:ingatlan/)?(\\d{5,12})(?:[/?#]|$)");
@@ -26,6 +27,7 @@ public class IngatlanComRawParser {
   private static final Pattern LABELED_ROOMS_PATTERN =
       Pattern.compile("(?iuU)Szobák\\s*(\\d+(?:[.,]\\d+)?)");
 
+  @Override
   public List<RawPropertyListing> parseRawListings(Document document) {
     List<RawPropertyListing> items = new ArrayList<>();
     if (document == null) {

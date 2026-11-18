@@ -29,6 +29,7 @@ import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
 import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
+import ingatlanok.testsupport.TestFixtures;
 
 class PortalEngineNormalizerRegressionTest {
 
@@ -113,14 +114,14 @@ class PortalEngineNormalizerRegressionTest {
   }
 
   @Test
-  @DisplayName("Minden portál motor rendelkezik működőképes normalizálóval a default konstruktorában is")
+  @DisplayName("Minden portál motor rendelkezik működőképes normalizálóval a DI konstruktorában")
   void testAllPortalEnginesHaveWorkingNormalizer() {
-    DunaHousePortalEngine dh = new DunaHousePortalEngine();
-    OtthonCentrumPortalEngine oc = new OtthonCentrumPortalEngine();
-    JofogasPortalEngine jofogas = new JofogasPortalEngine();
-    KoltozzbePortalEngine koltozzbe = new KoltozzbePortalEngine();
-    IngatlanBazarPortalEngine bazar = new IngatlanBazarPortalEngine();
-    IngatlanComPortalEngine icom = new IngatlanComPortalEngine();
+    DunaHousePortalEngine dh = TestFixtures.dhEngine();
+    OtthonCentrumPortalEngine oc = TestFixtures.ocEngine();
+    JofogasPortalEngine jofogas = TestFixtures.jofogasEngine();
+    KoltozzbePortalEngine koltozzbe = TestFixtures.koltozzbeEngine();
+    IngatlanBazarPortalEngine bazar = TestFixtures.ingatlanBazarEngine();
+    IngatlanComPortalEngine icom = TestFixtures.ingatlanComEngine();
 
     assertNotNull(dh.getNormalizer(), "DH normalizer nem lehet null");
     assertNotNull(oc.getNormalizer(), "OC normalizer nem lehet null");
@@ -153,7 +154,7 @@ class PortalEngineNormalizerRegressionTest {
     OtthonCentrumPortalEngine oc = new OtthonCentrumPortalEngine(new OtthonCentrumUrlBuilder(), normalizer);
     JofogasPortalEngine jofogas = new JofogasPortalEngine(new JofogasUrlBuilder(), normalizer);
     KoltozzbePortalEngine koltozzbe = new KoltozzbePortalEngine(
-        new KoltozzbeUrlBuilder(), 2, normalizer);
+        new KoltozzbeUrlBuilder(), normalizer);
     IngatlanBazarPortalEngine bazar = new IngatlanBazarPortalEngine(new IngatlanBazarQueryBuilder(), normalizer);
     IngatlanComPortalEngine icom = new IngatlanComPortalEngine(new IngatlanComUrlBuilder(), normalizer);
 

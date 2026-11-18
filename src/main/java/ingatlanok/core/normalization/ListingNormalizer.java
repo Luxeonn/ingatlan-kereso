@@ -5,6 +5,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalSource;
@@ -17,6 +21,7 @@ import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.RawListingNormalizer;
 
+@Service
 public class ListingNormalizer implements RawListingNormalizer {
 
   private static final Pattern OC_CATEGORY_PATTERN =
@@ -94,8 +99,14 @@ public class ListingNormalizer implements RawListingNormalizer {
     this(new ListingValidator());
   }
 
+  @Autowired
   public ListingNormalizer(ListingValidator validator) {
     this.validator = validator != null ? validator : new ListingValidator();
+  }
+
+  @PostConstruct
+  void registerAsDefaultNormalizer() {
+    RawListingNormalizer.setDefault(this);
   }
 
   @Override
