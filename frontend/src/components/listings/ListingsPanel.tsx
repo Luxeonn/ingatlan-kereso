@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import type { FC, ReactNode } from 'react'
 import { LayoutGrid, Star } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
@@ -58,7 +58,7 @@ const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
   return (
     <div
       data-testid="multi-source-summary-notice"
-      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-700 tabular-nums"
+      className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs text-indigo-700 tabular-nums"
     >
       <span>
         <strong className="font-bold text-indigo-700">{itemsCount} egyedi ingatlan</strong>
@@ -82,6 +82,7 @@ interface ListingsSubViewNavProps {
   activeFavoritesCount: number
   activeArchiveCount?: number
   onSubViewChange: (newSubView: ListingSubView) => void
+  summaryNotice?: ReactNode
 }
 
 const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
@@ -89,11 +90,12 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
   activeSearchCount,
   activeFavoritesCount,
   onSubViewChange,
+  summaryNotice,
 }) => (
   <nav
     data-testid="listings-subview-nav"
     aria-label="Hirdetés nézetek"
-    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-2.5 shadow-sm"
+    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-2.5 shadow-xs"
   >
     <div className="flex flex-wrap items-center gap-2">
       <button
@@ -102,10 +104,10 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
         aria-pressed={activeMode === 'listings'}
         onClick={() => onSubViewChange('listings')}
         className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
           activeMode === 'listings'
             ? 'bg-blue-600 text-white shadow-sm'
-            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
+            : 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-700',
         )}
       >
         <LayoutGrid className="h-3.5 w-3.5" />
@@ -118,16 +120,18 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
         aria-pressed={activeMode === 'favorites'}
         onClick={() => onSubViewChange('favorites')}
         className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
           activeMode === 'favorites'
             ? 'bg-amber-600 text-white shadow-sm'
-            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
+            : 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-amber-500/40 hover:text-amber-700',
         )}
       >
         <Star className="h-3.5 w-3.5" />
         <span>⭐ Kedvencek ({activeFavoritesCount})</span>
       </button>
     </div>
+
+    {summaryNotice}
   </nav>
 )
 
@@ -175,24 +179,27 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   // Multi-source grouped count calculation (#260, #261, #358, #432)
   const totalSourceListingsCount = getTotalSourceListingsCount(items)
 
+  const summaryNotice =
+    activeMode === 'listings' ? (
+      <MultiSourceNotice
+        itemsCount={items.length}
+        totalSourceListingsCount={totalSourceListingsCount}
+        serverFilteredCount={serverFilteredCount}
+        medianPricePerSqm={medianPricePerSqm}
+      />
+    ) : null
+
   return (
     <section className="space-y-4" data-testid="listings-panel">
-      {/* Sub-view navigation toolbar (#R2) */}
-      <ListingsSubViewNav
-        activeMode={activeMode}
-        activeSearchCount={activeSearchCount}
-        activeFavoritesCount={activeFavoritesCount}
-        activeArchiveCount={activeArchiveCount}
-        onSubViewChange={handleSubViewChange}
-      />
-
-      {/* Multi-source clustering summary notice if present in listings mode */}
-      {activeMode === 'listings' && (
-        <MultiSourceNotice
-          itemsCount={items.length}
-          totalSourceListingsCount={totalSourceListingsCount}
-          serverFilteredCount={serverFilteredCount}
-          medianPricePerSqm={medianPricePerSqm}
+      {/* Sub-view navigation toolbar (hidden in Archive & Trash tab) */}
+      {activeMode !== 'archive' && (
+        <ListingsSubViewNav
+          activeMode={activeMode}
+          activeSearchCount={activeSearchCount}
+          activeFavoritesCount={activeFavoritesCount}
+          activeArchiveCount={activeArchiveCount}
+          onSubViewChange={handleSubViewChange}
+          summaryNotice={summaryNotice}
         />
       )}
 

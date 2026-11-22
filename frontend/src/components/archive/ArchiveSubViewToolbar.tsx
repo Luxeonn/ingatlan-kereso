@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { Archive, Trash2, TrendingDown, Database } from 'lucide-react'
+import { Archive, Trash2, TrendingDown, MapPin } from 'lucide-react'
 import { useUiStore, type ArchiveSubMode } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
@@ -7,12 +7,14 @@ export interface ArchiveSubViewToolbarProps {
   allCount: number
   hiddenCount?: number
   discountedCount?: number
+  cities?: string[]
 }
 
 export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
   allCount,
   hiddenCount = 0,
   discountedCount = 0,
+  cities,
 }) => {
   const { archiveSubMode, setArchiveSubMode } = useUiStore()
 
@@ -23,14 +25,17 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
     icon: FC<{ className?: string }>
   }> = [
     { id: 'all', label: 'Mentett Előzmények', count: allCount, icon: Archive },
-    { id: 'discounted', label: 'Globális Leárazás Radar', count: discountedCount, icon: TrendingDown },
-    { id: 'hidden', label: 'Globális Elrejtettek (Kuka)', count: hiddenCount, icon: Trash2 },
+    { id: 'discounted', label: 'Leárazás Radar', count: discountedCount, icon: TrendingDown },
+    { id: 'hidden', label: 'Elrejtettek (Kuka)', count: hiddenCount, icon: Trash2 },
   ]
+
+  const cityScopeLabel =
+    cities && cities.length > 0 ? `Település: ${cities.join(', ')}` : 'Minden mentett település'
 
   return (
     <div
       data-testid="archive-subview-toolbar"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-3 shadow-sm"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 px-3.5 py-3 shadow-xs"
     >
       <div className="flex flex-wrap items-center gap-2">
         {tabs.map((tab) => {
@@ -44,10 +49,10 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
               aria-pressed={isActive}
               onClick={() => setArchiveSubMode(tab.id)}
               className={cn(
-                'flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer tabular-nums',
+                'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer tabular-nums',
                 isActive
                   ? 'border-blue-500/40 bg-blue-600 text-white shadow-sm'
-                  : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                  : 'border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-700',
               )}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -55,7 +60,7 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
               <span
                 className={cn(
                   'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
-                  isActive ? 'bg-white/20 text-white' : 'bg-[var(--bg-card)] text-[var(--text-secondary)]',
+                  isActive ? 'bg-white/20 text-white' : 'bg-[var(--bg-input)] text-[var(--text-primary)]',
                 )}
               >
                 {tab.count}
@@ -65,9 +70,9 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
         })}
       </div>
 
-      <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
-        <Database className="h-3.5 w-3.5 text-indigo-700" />
-        <span>Adatbázis-nézet: közvetlenül a mentett helyi tárolóból</span>
+      <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)]">
+        <MapPin className="h-3.5 w-3.5 text-indigo-700 shrink-0" />
+        <span>{cityScopeLabel}</span>
       </span>
     </div>
   )

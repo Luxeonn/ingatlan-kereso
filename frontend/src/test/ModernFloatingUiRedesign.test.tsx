@@ -11,6 +11,8 @@ import { Header } from '../components/layout/Header'
 import { WorkspaceHeaderNav } from '../components/layout/WorkspaceChrome'
 import { BargainHunterTable } from '../components/analytics/BargainHunterTable'
 import { PropertyCard } from '../components/listings/PropertyCard'
+import { ListingsPanel } from '../components/listings/ListingsPanel'
+import { filterItemsByCities } from '../utils/listingFilters'
 import { sanitizeHistoryQuery } from '../hooks/useArchiveQueries'
 import { useUiStore } from '../store/useUiStore'
 import { useFilterStore } from '../store/useFilterStore'
@@ -306,6 +308,33 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       expect(archiveTab.getAttribute('aria-selected')).toBe('true')
       expect(archiveTab.getAttribute('aria-pressed')).toBe('true')
       expect(archiveTab.className).toContain('rounded-t-xl')
+    })
+
+    it('hides ListingsSubViewNav in archive mode and scopes archive items by selected cities', () => {
+      render(
+        <ListingsPanel
+          items={[]}
+          totalRawCount={0}
+          isLoading={false}
+          hasSearched={true}
+          mode="archive"
+          subView="archive"
+          onMarkViewed={vi.fn()}
+          onOpenAll={vi.fn()}
+          onTriggerSearch={vi.fn()}
+        />,
+      )
+
+      expect(screen.queryByTestId('listings-subview-nav')).toBeNull()
+
+      const scoped = filterItemsByCities(
+        [
+          createMockIngatlanItem({ id: 'h-1', city: 'Hajdúszoboszló', location: 'Hajdúszoboszló' }),
+          createMockIngatlanItem({ id: 'd-1', city: 'Debrecen', location: 'Debrecen' }),
+        ],
+        ['Hajdúszoboszló'],
+      )
+      expect(scoped.map((x) => x.id)).toEqual(['h-1'])
     })
   })
 })

@@ -163,18 +163,18 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
 
   return (
     <>
-      <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
+      <div className="space-y-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
+        <div className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
           <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
           {items.length !== totalRawCount && (
-            <span className="text-[11px] font-normal text-[var(--text-secondary)]">
+            <span className="text-[11px] font-semibold text-blue-700">
               (szűrve)
             </span>
           )}
         </div>
 
-        <div className="relative flex-1 min-w-[200px] max-w-sm sm:max-w-md">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
           <input
             type="text"
@@ -182,7 +182,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
             onChange={(e) => setQuickSearchQuery(e.target.value)}
             placeholder="Gyorskeresés a találatok között (cím, ár, m², szoba)..."
             aria-label="Gyorskeresés a találatok között"
-            className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] py-1.5 pl-8 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] py-1.5 pl-8 pr-8 text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:outline-none"
           />
           {quickSearchQuery && (
             <button

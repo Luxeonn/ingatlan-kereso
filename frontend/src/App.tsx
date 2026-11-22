@@ -19,6 +19,7 @@ import { DEFAULT_PORTALS, useFilterStore } from './store/useFilterStore'
 import { useUiStore, type DashboardTab, type ListingSubView, type ArchiveSubMode } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
+import { filterItemsByCities } from './utils/listingFilters'
 import { extractIngatlanComFetchedPages, findPartialIngatlanComStatus } from './utils/ingatlanComUrl'
 import type { IngatlanItem } from './types/property'
 import type { DashboardResponseDto } from './types/api'
@@ -193,6 +194,23 @@ export const App: FC = () => {
     searchState.search()
   }
 
+  const scopedArchiveItems = useMemo(
+    () => filterItemsByCities(searchState.archiveItems, criteria.cities),
+    [searchState.archiveItems, criteria.cities],
+  )
+  const scopedRawArchiveItems = useMemo(
+    () => filterItemsByCities(searchState.rawArchiveItems, criteria.cities),
+    [searchState.rawArchiveItems, criteria.cities],
+  )
+  const scopedHiddenItems = useMemo(
+    () => filterItemsByCities(globalHiddenData ?? [], criteria.cities),
+    [globalHiddenData, criteria.cities],
+  )
+  const scopedDiscountedItems = useMemo(
+    () => filterItemsByCities(globalDiscountedData ?? [], criteria.cities),
+    [globalDiscountedData, criteria.cities],
+  )
+
   const slice = resolveActiveListingsSlice({
     listingSubView: ui.listingSubView,
     archiveSubMode: ui.archiveSubMode,
@@ -201,10 +219,10 @@ export const App: FC = () => {
     rawCount: searchState.rawCount,
     favoriteItems: searchState.favoriteItems,
     rawFavoriteItems: searchState.rawFavoriteItems,
-    archiveItems: searchState.archiveItems,
-    rawArchiveItems: searchState.rawArchiveItems,
-    globalHiddenItems: globalHiddenData,
-    globalDiscountedItems: globalDiscountedData,
+    archiveItems: scopedArchiveItems,
+    rawArchiveItems: scopedRawArchiveItems,
+    globalHiddenItems: scopedHiddenItems,
+    globalDiscountedItems: scopedDiscountedItems,
     isLoading: searchState.isLoading,
     isArchiveLoading: searchState.isArchiveLoading,
   })
@@ -266,9 +284,10 @@ export const App: FC = () => {
           >
             {isArchiveView && (
               <ArchiveSubViewToolbar
-                allCount={searchState.rawArchiveItems.length}
-                hiddenCount={globalHiddenData?.length}
-                discountedCount={globalDiscountedData?.length}
+                allCount={scopedRawArchiveItems.length}
+                hiddenCount={scopedHiddenItems.length}
+                discountedCount={scopedDiscountedItems.length}
+                cities={criteria.cities}
               />
             )}
 

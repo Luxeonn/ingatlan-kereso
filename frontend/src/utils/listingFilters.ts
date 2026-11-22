@@ -228,3 +228,16 @@ export function filterAndSortItems(
   items.sort((a, b) => compareItems(a, b, sortOption))
   return items
 }
+
+export function filterItemsByCities(items: IngatlanItem[], cities?: string[] | null): IngatlanItem[] {
+  if (!cities || cities.length === 0) return items
+  const normalizedTargets = cities.map((c) => normalizeSearchText(c).trim()).filter(Boolean)
+  if (normalizedTargets.length === 0) return items
+  return items.filter((item) => {
+    const cityText = normalizeSearchText(item.city)
+    const locationText = normalizeSearchText(item.location)
+    return normalizedTargets.some(
+      (target) => cityText === target || cityText.includes(target) || locationText.includes(target),
+    )
+  })
+}
