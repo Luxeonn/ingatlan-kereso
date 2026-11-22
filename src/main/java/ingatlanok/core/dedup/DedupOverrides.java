@@ -1,10 +1,13 @@
 package ingatlanok.core.dedup;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import ingatlanok.model.DedupOverride;
@@ -24,6 +27,7 @@ public final class DedupOverrides {
   private final Set<String> splitUrls;
   private final Set<String> mergedUrls;
   private final List<UrlPair> forceMergePairs;
+  private final Map<String, Integer> forceMergeComponentId;
 
   private DedupOverrides(Collection<DedupOverride> overrides) {
     Map<UrlPair, DedupOverrideType> map = buildPairMap(overrides);
@@ -38,6 +42,45 @@ public final class DedupOverrides {
             .filter(e -> e.getValue() == DedupOverrideType.FORCE_MERGE)
             .map(Map.Entry::getKey)
             .toList();
+    this.forceMergeComponentId = buildForceMergeComponents(this.forceMergePairs);
+  }
+
+  private static Map<String, Integer> buildForceMergeComponents(List<UrlPair> mergePairs) {
+    if (mergePairs.isEmpty()) {
+      return Map.of();
+    }
+    Map<String, List<String>> adjacency = new HashMap<>();
+    for (UrlPair pair : mergePairs) {
+      adjacency.computeIfAbsent(pair.urlA(), ignored -> new ArrayList<>()).add(pair.urlB());
+      adjacency.computeIfAbsent(pair.urlB(), ignored -> new ArrayList<>()).add(pair.urlA());
+    }
+    Map<String, Integer> componentByUrl = new HashMap<>();
+    int componentSeq = 0;
+    for (String start : adjacency.keySet()) {
+      if (!componentByUrl.containsKey(start)) {
+        assignComponentBfs(start, componentSeq++, adjacency, componentByUrl);
+      }
+    }
+    return Map.copyOf(componentByUrl);
+  }
+
+  private static void assignComponentBfs(
+      String start,
+      int componentId,
+      Map<String, List<String>> adjacency,
+      Map<String, Integer> componentByUrl) {
+    Queue<String> queue = new ArrayDeque<>();
+    queue.add(start);
+    componentByUrl.put(start, componentId);
+    while (!queue.isEmpty()) {
+      String current = queue.poll();
+      for (String neighbor : adjacency.getOrDefault(current, List.of())) {
+        if (!componentByUrl.containsKey(neighbor)) {
+          componentByUrl.put(neighbor, componentId);
+          queue.add(neighbor);
+        }
+      }
+    }
   }
 
   private static Map<UrlPair, DedupOverrideType> buildPairMap(
@@ -99,6 +142,26 @@ public final class DedupOverrides {
     return getType(url1, url2) == DedupOverrideType.FORCE_MERGE;
   }
 
+  public boolean isTransitivelyForceMerged(String url1, String url2) {
+    if (forceMergeComponentId.isEmpty() || url1 == null || url2 == null) {
+      return false;
+    }
+    String a = url1.trim();
+    String b = url2.trim();
+    if (a.isEmpty() || b.isEmpty() || a.equals(b) || isForceSplit(a, b)) {
+      return false;
+    }
+    Integer compA = forceMergeComponentId.get(a);
+    return compA != null && compA.equals(forceMergeComponentId.get(b));
+  }
+
+  public Integer getForceMergeComponentId(String url) {
+    if (url == null || forceMergeComponentId.isEmpty()) {
+      return null;
+    }
+    return forceMergeComponentId.get(url.trim());
+  }
+
   public boolean hasAnySplit(String url) {
     return url != null && splitUrls.contains(url.trim());
   }
@@ -118,7 +181,9 @@ public final class DedupOverrides {
       }
       for (int j = i + 1; j < cluster.size(); j++) {
         IngatlanItem b = cluster.get(j);
-        if (b != null && isForceMerge(a.getUrl(), b.getUrl())) {
+        if (b != null
+            && (isForceMerge(a.getUrl(), b.getUrl())
+                || isTransitivelyForceMerged(a.getUrl(), b.getUrl()))) {
           return true;
         }
       }

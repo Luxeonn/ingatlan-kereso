@@ -3,6 +3,7 @@ package ingatlanok.core.dedup;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,12 @@ public final class ClusterMatchScorer {
   private record MatchEdge(int indexA, int indexB, double score) {}
 
   private record BucketKey(String normalizedCity, PropertyType propertyType) {}
+
+  private record ForceMergeContext(
+      List<IngatlanItem> items,
+      BiPredicate<IngatlanItem, IngatlanItem> matcher,
+      Set<Long> addedPairs,
+      List<MatchEdge> edges) {}
 
   /**
    * Groups compatible items into clusters by merging highest-scoring pairs first
@@ -137,6 +144,19 @@ public final class ClusterMatchScorer {
     if (overrides.isEmpty()) {
       return;
     }
+    Map<String, Integer> urlToIndex = indexItemsByUrl(items);
+    ForceMergeContext ctx = new ForceMergeContext(items, matcher, new HashSet<>(), edges);
+    for (UrlPair pair : overrides.getForceMergePairs()) {
+      Integer idxA = urlToIndex.get(pair.urlA());
+      Integer idxB = urlToIndex.get(pair.urlB());
+      if (idxA != null && idxB != null && !idxA.equals(idxB)) {
+        tryAddForceMergeEdge(ctx, idxA, idxB);
+      }
+    }
+    addTransitiveComponentEdges(ctx, overrides);
+  }
+
+  private static Map<String, Integer> indexItemsByUrl(List<IngatlanItem> items) {
     Map<String, Integer> urlToIndex = new HashMap<>(items.size());
     for (int i = 0; i < items.size(); i++) {
       IngatlanItem item = items.get(i);
@@ -144,18 +164,60 @@ public final class ClusterMatchScorer {
         urlToIndex.putIfAbsent(item.getUrl().trim(), i);
       }
     }
-    for (UrlPair pair : overrides.getForceMergePairs()) {
-      Integer idxA = urlToIndex.get(pair.urlA());
-      Integer idxB = urlToIndex.get(pair.urlB());
-      if (idxA == null || idxB == null || idxA.equals(idxB)) {
+    return urlToIndex;
+  }
+
+  private static void addTransitiveComponentEdges(
+      ForceMergeContext ctx, DedupOverrides overrides) {
+    Map<Integer, List<Integer>> byComponent = new LinkedHashMap<>();
+    for (int i = 0; i < ctx.items().size(); i++) {
+      IngatlanItem item = ctx.items().get(i);
+      if (item == null || item.getUrl() == null) {
         continue;
       }
-      int minIdx = Math.min(idxA, idxB);
-      int maxIdx = Math.max(idxA, idxB);
-      if (matcher.test(items.get(minIdx), items.get(maxIdx))) {
-        edges.add(new MatchEdge(minIdx, maxIdx, FORCE_MERGE_SCORE));
+      Integer compId = overrides.getForceMergeComponentId(item.getUrl());
+      if (compId != null) {
+        byComponent.computeIfAbsent(compId, ignored -> new ArrayList<>()).add(i);
       }
     }
+    for (List<Integer> group : byComponent.values()) {
+      linkTransitiveGroup(ctx, group);
+    }
+  }
+
+  private static void linkTransitiveGroup(ForceMergeContext ctx, List<Integer> group) {
+    if (group.size() < 2) {
+      return;
+    }
+    int anchor = group.get(0);
+    for (int k = 1; k < group.size(); k++) {
+      int candidate = group.get(k);
+      if (!tryAddForceMergeEdge(ctx, anchor, candidate)) {
+        linkToFirstCompatiblePeer(ctx, group, k, candidate);
+      }
+    }
+  }
+
+  private static void linkToFirstCompatiblePeer(
+      ForceMergeContext ctx, List<Integer> group, int limitExclusive, int candidate) {
+    for (int j = 1; j < limitExclusive; j++) {
+      if (tryAddForceMergeEdge(ctx, group.get(j), candidate)) {
+        return;
+      }
+    }
+  }
+
+  private static boolean tryAddForceMergeEdge(ForceMergeContext ctx, int idxA, int idxB) {
+    int minIdx = Math.min(idxA, idxB);
+    int maxIdx = Math.max(idxA, idxB);
+    if (!ctx.matcher().test(ctx.items().get(minIdx), ctx.items().get(maxIdx))) {
+      return false;
+    }
+    long key = (((long) minIdx) << 32) | (maxIdx & 0xFFFFFFFFL);
+    if (ctx.addedPairs().add(key)) {
+      ctx.edges().add(new MatchEdge(minIdx, maxIdx, FORCE_MERGE_SCORE));
+    }
+    return true;
   }
 
   private static Map<BucketKey, List<Integer>> groupByCityAndType(List<IngatlanItem> items) {

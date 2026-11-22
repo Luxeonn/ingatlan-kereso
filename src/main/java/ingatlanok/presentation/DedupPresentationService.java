@@ -3,6 +3,7 @@ package ingatlanok.presentation;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -61,10 +62,13 @@ public class DedupPresentationService {
 
     Map<String, IngatlanItem> found = fetchAndVerifyExistingUrls(allUrls);
     String normCity = resolveNormalizedCity(found.get(sourceUrl));
+    List<DedupOverride> existingOverrides = overrideStorage.getOverridesForUrls(allUrls);
+    List<String> relinkedPeers = collectForceMergedPeers(sourceUrl, peerUrls, existingOverrides);
 
     for (String peerUrl : peerUrls) {
       overrideStorage.saveOverride(sourceUrl, peerUrl, DedupOverrideType.FORCE_SPLIT, normCity);
     }
+    preserveMergedPeersAfterHubSplit(relinkedPeers, existingOverrides, normCity);
 
     List<IngatlanItem> reclustered = reclusterAffectedItems(allUrls);
     List<DedupOverrideDto> overrides = toOverrideDtos(overrideStorage.getOverridesForUrls(allUrls));
@@ -79,12 +83,7 @@ public class DedupPresentationService {
     Map<String, IngatlanItem> found = fetchAndVerifyExistingUrls(urls);
     String normCity = validateSameNormalizedCity(urls, found);
 
-    for (int i = 0; i < urls.size(); i++) {
-      for (int j = i + 1; j < urls.size(); j++) {
-        overrideStorage.saveOverride(
-            urls.get(i), urls.get(j), DedupOverrideType.FORCE_MERGE, normCity);
-      }
-    }
+    persistMinimalSpanningMergeEdges(urls, normCity);
 
     List<IngatlanItem> reclustered = reclusterAffectedItems(urls);
     List<DedupOverrideDto> overrides = toOverrideDtos(overrideStorage.getOverridesForUrls(urls));
@@ -92,10 +91,29 @@ public class DedupPresentationService {
   }
 
   public List<DedupOverrideDto> getOverridesForUrl(String url) {
-    if (url == null || url.isBlank()) {
+    return getOverridesForQuery(url, null);
+  }
+
+  public List<DedupOverrideDto> getOverridesForQuery(String url, List<String> urls) {
+    Set<String> queryUrls = new LinkedHashSet<>();
+    if (url != null && !url.isBlank()) {
+      queryUrls.add(url.trim());
+    }
+    if (urls != null) {
+      for (String candidate : urls) {
+        if (candidate != null && !candidate.isBlank()) {
+          queryUrls.add(candidate.trim());
+        }
+      }
+    }
+    if (queryUrls.isEmpty()) {
       throw new IllegalArgumentException("A lekérdezett URL paraméter kötelező");
     }
-    return toOverrideDtos(overrideStorage.getOverridesForUrl(url.trim()));
+    if (queryUrls.size() > MAX_BATCH_URLS) {
+      throw new IllegalArgumentException(
+          "Egyszerre legfeljebb " + MAX_BATCH_URLS + " URL kérdezhető le");
+    }
+    return toOverrideDtos(overrideStorage.getOverridesForUrls(queryUrls));
   }
 
   public DedupActionResponseDto deleteOverride(Long id) {
@@ -205,6 +223,108 @@ public class DedupPresentationService {
       }
     }
     return expanded;
+  }
+
+  private void persistMinimalSpanningMergeEdges(List<String> urls, String normCity) {
+    Set<String> urlSet = new LinkedHashSet<>(urls);
+    List<DedupOverride> existingOverrides = overrideStorage.getOverridesForUrls(urls);
+    deleteInternalForceSplits(urlSet, existingOverrides);
+
+    Map<String, String> parent = initUnionFind(urls, urlSet, existingOverrides);
+    String anchor = urls.get(0);
+    for (int i = 1; i < urls.size(); i++) {
+      String candidate = urls.get(i);
+      if (!findRoot(parent, anchor).equals(findRoot(parent, candidate))) {
+        overrideStorage.saveOverride(anchor, candidate, DedupOverrideType.FORCE_MERGE, normCity);
+        unionRoots(parent, anchor, candidate);
+      }
+    }
+  }
+
+  private void deleteInternalForceSplits(
+      Set<String> urlSet, List<DedupOverride> existingOverrides) {
+    for (DedupOverride ov : existingOverrides) {
+      if (ov.type() == DedupOverrideType.FORCE_SPLIT
+          && ov.id() != null
+          && urlSet.contains(ov.urlA())
+          && urlSet.contains(ov.urlB())) {
+        overrideStorage.deleteOverrideById(ov.id());
+      }
+    }
+  }
+
+  private List<String> collectForceMergedPeers(
+      String sourceUrl, List<String> peerUrls, List<DedupOverride> existingOverrides) {
+    List<String> linked = new ArrayList<>();
+    for (String peer : peerUrls) {
+      if (hasDirectOverride(existingOverrides, sourceUrl, peer, DedupOverrideType.FORCE_MERGE)) {
+        linked.add(peer);
+      }
+    }
+    return linked;
+  }
+
+  private void preserveMergedPeersAfterHubSplit(
+      List<String> relinkedPeers, List<DedupOverride> existingOverrides, String normCity) {
+    if (relinkedPeers.size() < 2) {
+      return;
+    }
+    Set<String> peerSet = new LinkedHashSet<>(relinkedPeers);
+    Map<String, String> parent = initUnionFind(relinkedPeers, peerSet, existingOverrides);
+    String anchor = relinkedPeers.get(0);
+    for (int i = 1; i < relinkedPeers.size(); i++) {
+      String candidate = relinkedPeers.get(i);
+      if (!findRoot(parent, anchor).equals(findRoot(parent, candidate))
+          && !hasDirectOverride(
+              existingOverrides, anchor, candidate, DedupOverrideType.FORCE_SPLIT)) {
+        overrideStorage.saveOverride(anchor, candidate, DedupOverrideType.FORCE_MERGE, normCity);
+        unionRoots(parent, anchor, candidate);
+      }
+    }
+  }
+
+  private boolean hasDirectOverride(
+      List<DedupOverride> overrides, String url1, String url2, DedupOverrideType type) {
+    for (DedupOverride ov : overrides) {
+      if (ov.type() == type && ov.matchesPair(url1, url2)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private Map<String, String> initUnionFind(
+      List<String> urls, Set<String> allowedSet, List<DedupOverride> existingOverrides) {
+    Map<String, String> parent = new HashMap<>(urls.size());
+    for (String u : urls) {
+      parent.put(u, u);
+    }
+    for (DedupOverride ov : existingOverrides) {
+      if (ov.type() == DedupOverrideType.FORCE_MERGE
+          && allowedSet.contains(ov.urlA())
+          && allowedSet.contains(ov.urlB())) {
+        unionRoots(parent, ov.urlA(), ov.urlB());
+      }
+    }
+    return parent;
+  }
+
+  private String findRoot(Map<String, String> parent, String url) {
+    String root = url;
+    while (!root.equals(parent.get(root))) {
+      String grand = parent.get(parent.get(root));
+      parent.put(root, grand);
+      root = grand;
+    }
+    return root;
+  }
+
+  private void unionRoots(Map<String, String> parent, String a, String b) {
+    String rootA = findRoot(parent, a);
+    String rootB = findRoot(parent, b);
+    if (!rootA.equals(rootB)) {
+      parent.put(rootB, rootA);
+    }
   }
 
   private List<DedupOverrideDto> toOverrideDtos(List<DedupOverride> overrides) {

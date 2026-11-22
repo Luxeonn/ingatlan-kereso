@@ -439,7 +439,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Egy hirdetéshez tartozó kézi deduplikációs felülbírálások lekérdezése */
+        /** Egy vagy több hirdetéshez tartozó kézi deduplikációs felülbírálások lekérdezése */
         get: operations["getDedupOverrides"];
         put?: never;
         post?: never;
@@ -1746,9 +1746,11 @@ export interface operations {
     };
     getDedupOverrides: {
         parameters: {
-            query: {
-                /** @description A hirdetés URL-je */
-                url: string;
+            query?: {
+                /** @description A hirdetés URL-je (opcionális, ha az urls paraméter meg van adva) */
+                url?: string;
+                /** @description Lekérdezett hirdetés URL-ek listája egyetlen kötegelt kérésben */
+                urls?: string[];
             };
             header?: never;
             path?: never;

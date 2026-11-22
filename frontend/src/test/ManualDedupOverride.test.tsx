@@ -248,4 +248,111 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     expect(onAfterMerge).not.toHaveBeenCalled()
     expect(useUiStore.getState().selectedCardUrls).toEqual(['https://dh.hu/a', 'https://oc.hu/b'])
   })
+
+  it('PropertyDetailsDrawer: azonos előtagú Költözzbe URL-ek megkülönböztethető ID-val és egyetlen API-kéréssel jelennek meg (#488)', async () => {
+    const urls = [
+      'https://koltozzbe.hu/elado-ikerhaz-hajduszoboszlo/h10984132',
+      'https://koltozzbe.hu/elado-ikerhaz-hajduszoboszlo/h10861728',
+      'https://ingatlanbazar.hu/elado-haz/3a6d8d7e',
+    ]
+    const getOverridesMock = vi.mocked(dedupApi.getDedupOverrides)
+    getOverridesMock.mockClear()
+    getOverridesMock.mockResolvedValue([
+      {
+        id: 101,
+        urlA: urls[0]!,
+        urlB: urls[1]!,
+        type: 'FORCE_MERGE',
+        normalizedCity: 'hajduszoboszlo',
+        createdAt: '2026-11-22 12:00:00',
+      },
+      {
+        id: 102,
+        urlA: urls[0]!,
+        urlB: urls[2]!,
+        type: 'FORCE_MERGE',
+        normalizedCity: 'hajduszoboszlo',
+        createdAt: '2026-11-22 12:00:00',
+      },
+      {
+        id: 999,
+        urlA: urls[0]!,
+        urlB: 'https://koltozzbe.hu/elado-ikerhaz-hajduszoboszlo/outside-cluster',
+        type: 'FORCE_MERGE',
+        normalizedCity: 'hajduszoboszlo',
+        createdAt: '2026-11-22 12:00:00',
+      },
+    ])
+
+    const item = createMockIngatlanItem({
+      id: 'kb-cluster',
+      url: urls[0]!,
+      manuallyMerged: true,
+      sourcesCount: 3,
+      sourceListings: [
+        { portal: 'Költözzbe', url: urls[0]!, priceHuf: 45_000_000 },
+        { portal: 'Költözzbe', url: urls[1]!, priceHuf: 46_000_000 },
+        { portal: 'Ingatlanbazár', url: urls[2]!, priceHuf: 47_000_000 },
+      ],
+    })
+
+    render(<PropertyDetailsDrawer item={item} onUndoOverride={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('dedup-override-row')).toHaveLength(2)
+    })
+
+    // Single batch request instead of N parallel requests
+    expect(getOverridesMock).toHaveBeenCalledTimes(1)
+    expect(getOverridesMock).toHaveBeenCalledWith(urls)
+
+    // Compact summary header + distinguishable labels + full URLs in tooltip
+    expect(screen.getByText('Kézzel összevonva · 3 forrás')).toBeTruthy()
+    const rows = screen.getAllByTestId('dedup-override-row')
+    expect(rows[0]!.textContent).toContain('Költözzbe #h10984132 ↔ Költözzbe #h10861728')
+    expect(rows[1]!.textContent).toContain('Költözzbe #h10984132 ↔ Ingatlanbazár #3a6d8d7e')
+    expect(rows[0]!.querySelector('span')?.getAttribute('title')).toBe(`${urls[0]} ↔ ${urls[1]}`)
+    expect(screen.queryByTestId('undo-override-999')).toBeNull()
+  })
+
+  it('PropertyDetailsDrawer: 3 feletti override esetén összecsukva jelenik meg és lenyitható, undo működik (#488)', async () => {
+    const urls = Array.from(
+      { length: 6 },
+      (_, idx) => `https://koltozzbe.hu/elado-ikerhaz-hajduszoboszlo/h1000${idx}`,
+    )
+    const overrides = urls.slice(1).map((u, idx) => ({
+      id: 200 + idx,
+      urlA: urls[0]!,
+      urlB: u,
+      type: 'FORCE_MERGE' as const,
+      normalizedCity: 'hajduszoboszlo',
+      createdAt: '2026-11-22 12:00:00',
+    }))
+
+    vi.mocked(dedupApi.getDedupOverrides).mockResolvedValue(overrides)
+    const onUndoOverride = vi.fn().mockResolvedValue(true)
+
+    const item = createMockIngatlanItem({
+      id: 'kb-6',
+      url: urls[0]!,
+      manuallyMerged: true,
+      sourcesCount: 6,
+      sourceListings: urls.map((u) => ({ portal: 'Költözzbe', url: u, priceHuf: 50_000_000 })),
+    })
+
+    render(<PropertyDetailsDrawer item={item} onUndoOverride={onUndoOverride} />)
+
+    const toggleBtn = await screen.findByTestId('toggle-all-overrides-button')
+    expect(toggleBtn.textContent).toBe('Összes (5) kapcsolat megjelenítése')
+    expect(screen.getAllByTestId('dedup-override-row')).toHaveLength(3)
+
+    fireEvent.click(toggleBtn)
+    expect(screen.getAllByTestId('dedup-override-row')).toHaveLength(5)
+    expect(toggleBtn.textContent).toBe('Kevesebb megjelenítése')
+
+    fireEvent.click(screen.getByTestId('undo-override-204'))
+    await waitFor(() => {
+      expect(onUndoOverride).toHaveBeenCalledWith(204)
+    })
+  })
 })

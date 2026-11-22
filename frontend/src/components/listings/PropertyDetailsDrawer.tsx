@@ -34,6 +34,24 @@ function buildFallbackSources(item: IngatlanItem): SourceListing[] {
   ]
 }
 
+function filterRelevantOverrides(
+  overrides: DedupOverrideDto[],
+  clusterUrls: string[],
+): DedupOverrideDto[] {
+  const clusterSet = new Set(clusterUrls)
+  const byId = new Map<number, DedupOverrideDto>()
+  for (const ov of overrides) {
+    const isRelevant =
+      ov.type === 'FORCE_MERGE'
+        ? clusterSet.has(ov.urlA) && clusterSet.has(ov.urlB)
+        : clusterSet.has(ov.urlA) || clusterSet.has(ov.urlB)
+    if (isRelevant) {
+      byId.set(ov.id, ov)
+    }
+  }
+  return Array.from(byId.values())
+}
+
 export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
   item,
   onMarkViewed,
@@ -54,14 +72,11 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
     const urls = clusterUrlKey ? clusterUrlKey.split('\0') : item.url ? [item.url] : []
     if (urls.length === 0) return undefined
     let cancelled = false
-    Promise.all(urls.map((u) => getDedupOverrides(u).catch(() => [] as DedupOverrideDto[])))
-      .then((results) => {
-        if (cancelled) return
-        const byId = new Map<number, DedupOverrideDto>()
-        for (const list of results) {
-          for (const ov of list) byId.set(ov.id, ov)
+    getDedupOverrides(urls)
+      .then((list) => {
+        if (!cancelled) {
+          setOverrides(filterRelevantOverrides(list, urls))
         }
-        setOverrides(Array.from(byId.values()))
       })
       .catch(() => {
         if (!cancelled) setOverrides([])
@@ -210,6 +225,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
       <ManualDedupStatusSection
         manuallyMerged={item.manuallyMerged}
         manuallySplit={item.manuallySplit}
+        sourcesCount={sources.length}
         overrides={displayedOverrides}
         isMutating={isMutating}
         onUndoOverride={onUndoOverride ? (id) => void handleUndo(id) : undefined}

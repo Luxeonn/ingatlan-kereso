@@ -2,7 +2,13 @@ import { useState, type FC } from 'react'
 import { ExternalLink, Clock, Unlink, RotateCcw } from 'lucide-react'
 import type { SourceListing } from '../../types/property'
 import type { DedupOverrideDto } from '../../api/dedupApi'
-import { formatPriceMillion, formatPriceFt, formatDate, getPortalStyle } from '../../utils/formatters'
+import {
+  formatPriceMillion,
+  formatPriceFt,
+  formatDate,
+  getPortalStyle,
+  formatOverrideEndpointLabel,
+} from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 interface SourceThumbnailPreviewProps {
@@ -222,49 +228,111 @@ const SplitSourceControl: FC<SplitSourceControlProps> = ({
 export interface ManualDedupStatusSectionProps {
   manuallyMerged?: boolean
   manuallySplit?: boolean
+  sourcesCount?: number
   overrides: DedupOverrideDto[]
   isMutating: boolean
   onUndoOverride?: (overrideId: number) => void
 }
 
+const DEFAULT_VISIBLE_OVERRIDES = 3
+
+interface OverrideRowProps {
+  overrideItem: DedupOverrideDto
+  isMutating: boolean
+  onUndoOverride?: (overrideId: number) => void
+}
+
+const OverrideRow: FC<OverrideRowProps> = ({ overrideItem, isMutating, onUndoOverride }) => {
+  const actionLabel = overrideItem.type === 'FORCE_MERGE' ? 'Összevonás' : 'Szétválasztás'
+  const shortPair = `${formatOverrideEndpointLabel(overrideItem.urlA)} ↔ ${formatOverrideEndpointLabel(overrideItem.urlB)}`
+  const fullPair = `${overrideItem.urlA} ↔ ${overrideItem.urlB}`
+
+  return (
+    <div
+      data-testid="dedup-override-row"
+      className="flex items-center justify-between gap-2 text-[10px] text-indigo-300"
+    >
+      <span className="truncate" title={fullPair}>
+        {actionLabel}: {shortPair}
+      </span>
+      {onUndoOverride && (
+        <button
+          type="button"
+          data-testid={`undo-override-${overrideItem.id}`}
+          disabled={isMutating}
+          onClick={() => onUndoOverride(overrideItem.id)}
+          className="inline-flex shrink-0 items-center gap-1 rounded border border-indigo-400/40 bg-indigo-500/20 px-2 py-0.5 font-semibold text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
+        >
+          <RotateCcw className="h-3 w-3" aria-hidden="true" />
+          <span>Visszavonás</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
 export const ManualDedupStatusSection: FC<ManualDedupStatusSectionProps> = ({
   manuallyMerged,
   manuallySplit,
+  sourcesCount,
   overrides,
   isMutating,
   onUndoOverride,
 }) => {
+  const [showAllOverrides, setShowAllOverrides] = useState(false)
+
   if (!manuallyMerged && !manuallySplit && overrides.length === 0) {
     return null
   }
+
+  const hasOverflow = overrides.length > DEFAULT_VISIBLE_OVERRIDES
+  const visibleOverrides =
+    showAllOverrides || !hasOverflow ? overrides : overrides.slice(0, DEFAULT_VISIBLE_OVERRIDES)
+  const mergedHeader =
+    sourcesCount && sourcesCount > 1
+      ? `Kézzel összevonva · ${sourcesCount} forrás`
+      : 'Kézzel összevonva'
+
   return (
     <div
       data-testid="manual-dedup-status"
       className="flex flex-col gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-2.5 text-[11px] text-indigo-200"
     >
       <div className="flex flex-wrap items-center gap-2 font-semibold">
-        {manuallyMerged && <span>Kézzel összevonva</span>}
+        {manuallyMerged && <span>{mergedHeader}</span>}
         {manuallySplit && <span>Kézzel szétválasztott forrás</span>}
       </div>
-      {overrides.map((ov) => (
-        <div key={ov.id} className="flex items-center justify-between gap-2 text-[10px] text-indigo-300">
-          <span className="truncate">
-            {ov.type === 'FORCE_MERGE' ? 'Összevonás' : 'Szétválasztás'}: {ov.urlA} ↔ {ov.urlB}
-          </span>
-          {onUndoOverride && (
-            <button
-              type="button"
-              data-testid={`undo-override-${ov.id}`}
-              disabled={isMutating}
-              onClick={() => onUndoOverride(ov.id)}
-              className="inline-flex shrink-0 items-center gap-1 rounded border border-indigo-400/40 bg-indigo-500/20 px-2 py-0.5 font-semibold text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
-            >
-              <RotateCcw className="h-3 w-3" aria-hidden="true" />
-              <span>Visszavonás</span>
-            </button>
+
+      {visibleOverrides.length > 0 && (
+        <div
+          className={cn(
+            'flex flex-col gap-1',
+            showAllOverrides && hasOverflow && 'max-h-48 overflow-y-auto pr-1',
           )}
+        >
+          {visibleOverrides.map((ov) => (
+            <OverrideRow
+              key={ov.id}
+              overrideItem={ov}
+              isMutating={isMutating}
+              onUndoOverride={onUndoOverride}
+            />
+          ))}
         </div>
-      ))}
+      )}
+
+      {hasOverflow && (
+        <button
+          type="button"
+          data-testid="toggle-all-overrides-button"
+          onClick={() => setShowAllOverrides((prev) => !prev)}
+          className="self-start text-[10px] font-semibold text-indigo-300 underline decoration-indigo-400/50 hover:text-indigo-100 cursor-pointer"
+        >
+          {showAllOverrides
+            ? 'Kevesebb megjelenítése'
+            : `Összes (${overrides.length}) kapcsolat megjelenítése`}
+        </button>
+      )}
     </div>
   )
 }
