@@ -116,8 +116,8 @@ export const CitySelector: FC<CitySelectorProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-1.5" ref={containerRef}>
-      <label className="text-xs font-semibold text-[var(--text-secondary)]">
+    <div className="flex flex-col gap-2" ref={containerRef}>
+      <label className="text-sm font-bold text-[var(--text-primary)]">
         Keresési Települések (Többvárosos Szűrés)
       </label>
 

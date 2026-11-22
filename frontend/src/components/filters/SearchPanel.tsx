@@ -239,58 +239,67 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
         {/* Main filters content */}
         {!isFiltersCollapsed && (
           <div className="space-y-4 pt-4">
-            {/* City selector */}
-            <CitySelector
-              selectedCities={criteria.cities}
-              onAddCity={addCity}
-              onRemoveCity={removeCity}
-              onSetCities={setCities}
-            />
-
-            {/* Property type tabs */}
-            <PropertyTypeTabs
-              value={criteria.propertyType || 'haz'}
-              onChange={setPropertyType}
-            />
-
-            {/* Steppers grid */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <PriceStepper
-                label="Minimális ár"
-                value={criteria.minPriceMillion}
-                onChange={setMinPriceMillion}
-                min={0}
-                step={1}
-              />
-              <PriceStepper
-                label="Maximális ár"
-                value={criteria.maxPriceMillion}
-                onChange={setMaxPriceMillion}
-                min={0}
-                step={1}
-              />
-              <AreaStepper
-                label="Minimális alapterület"
-                value={criteria.minArea}
-                onChange={setMinArea}
-                min={1}
-                step={1}
-              />
-              <AreaStepper
-                label="Maximális alapterület"
-                value={criteria.maxArea}
-                onChange={setMaxArea}
-                min={1}
-                step={1}
+            {/* Section 1: City selector & quick presets */}
+            <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 sm:p-4">
+              <CitySelector
+                selectedCities={criteria.cities}
+                onAddCity={addCity}
+                onRemoveCity={removeCity}
+                onSetCities={setCities}
               />
             </div>
 
-            {/* Portal toggles */}
-            <PortalToggleGroup
-              selectedPortals={criteria.portals}
-              onToggle={togglePortal}
-              onSelectAll={setAllPortals}
-            />
+            {/* Section 2: Property type + Price & Area steppers */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+              <div className="lg:col-span-4 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 sm:p-4">
+                <PropertyTypeTabs
+                  value={criteria.propertyType || 'haz'}
+                  onChange={setPropertyType}
+                />
+              </div>
+
+              <div className="lg:col-span-8 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 sm:p-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <PriceStepper
+                    label="Minimális ár"
+                    value={criteria.minPriceMillion}
+                    onChange={setMinPriceMillion}
+                    min={0}
+                    step={1}
+                  />
+                  <PriceStepper
+                    label="Maximális ár"
+                    value={criteria.maxPriceMillion}
+                    onChange={setMaxPriceMillion}
+                    min={0}
+                    step={1}
+                  />
+                  <AreaStepper
+                    label="Minimális alapterület"
+                    value={criteria.minArea}
+                    onChange={setMinArea}
+                    min={1}
+                    step={1}
+                  />
+                  <AreaStepper
+                    label="Maximális alapterület"
+                    value={criteria.maxArea}
+                    onChange={setMaxArea}
+                    min={1}
+                    step={1}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Portal toggles */}
+            <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 sm:p-4">
+              <PortalToggleGroup
+                selectedPortals={criteria.portals}
+                onToggle={togglePortal}
+                onSelectAll={setAllPortals}
+              />
+            </div>
           </div>
         )}
 
