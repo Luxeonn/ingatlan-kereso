@@ -107,7 +107,6 @@ describe('UI State Management & Interaction Regression (#378)', () => {
     localStorage.clear()
     useFilterStore.getState().resetToDefaults()
     useUiStore.setState({
-      theme: 'dark',
       viewMode: 'grid',
       dashboardTab: 'listings',
       listingSubView: 'listings',
@@ -186,11 +185,9 @@ describe('UI State Management & Interaction Regression (#378)', () => {
 
       // Set custom independent preferences
       act(() => {
-        useUiStore.getState().toggleTheme() // 'dark' -> 'light'
         useUiStore.getState().setViewMode('list')
         useUiStore.getState().toggleStarred(sampleItem1)
       })
-      expect(useUiStore.getState().theme).toBe('light')
       expect(useUiStore.getState().viewMode).toBe('list')
       expect(useUiStore.getState().isStarred(sampleItem1.url)).toBe(true)
 
@@ -219,7 +216,6 @@ describe('UI State Management & Interaction Regression (#378)', () => {
       expect(useFilterStore.getState().onlyBargain).toBe(false)
 
       // Independent preferences MUST be preserved!
-      expect(useUiStore.getState().theme).toBe('light')
       expect(useUiStore.getState().viewMode).toBe('list')
       expect(useUiStore.getState().isStarred(sampleItem1.url)).toBe(true)
     })

@@ -121,7 +121,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     fireEvent.click(bargainBtn)
     expect(useFilterStore.getState().onlyBargain).toBe(true)
 
-    const onlyNewBtn = screen.getByRole('button', { name: /Csak új találatok/i })
+    const onlyNewBtn = screen.getByRole('button', { name: /Új találatok/i })
     expect(onlyNewBtn).toBeTruthy()
     fireEvent.click(onlyNewBtn)
     expect(useFilterStore.getState().onlyNew).toBe(true)
@@ -192,11 +192,11 @@ describe('UI Completeness (#157, #202, #227)', () => {
     const filterChipsRow = screen.getByTestId('filter-chips-row')
     expect(filterChipsRow).toBeTruthy()
     expect(screen.getByTestId('bargain-filter-toggle')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Csak új találatok/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Új találatok/i })).toBeTruthy()
     expect(screen.getByTestId('hidden-filter-toggle')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Csak új építésű/i })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Megtekintettek rejtése/i })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Több forrásosak rejtése/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Új építésű/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Megtekintettek/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Összevontak/i })).toBeNull()
     expect(screen.getByTestId('quick-filter-selector-btn')).toBeTruthy()
     expect(screen.queryByTestId('quality-filter-select')).toBeNull()
 
@@ -245,7 +245,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     const chipsRow2 = within(screen.getByTestId('portal-quick-filter-chips'))
     const ocChip = chipsRow2.getByRole('button', { name: /Otthon Centrum/i })
     expect(ocChip).toBeTruthy()
-    expect(ocChip.className).toContain('bg-blue-600')
+    expect(ocChip.className).toContain('bg-blue-500/15')
     expect(chipsRow2.queryByRole('button', { name: /Összes/i })).toBeNull()
     expect(chipsRow2.queryByRole('button', { name: /Duna House/i })).toBeNull()
 

@@ -74,49 +74,49 @@ const BargainPopover: React.FC<BargainPopoverProps> = ({
     aria-label="Alkalmi vétel részletei"
     data-testid="bargain-popover"
     onClick={(e) => e.stopPropagation()}
-    className="absolute top-full left-0 mt-1.5 z-50 w-72 max-w-[calc(100vw-2.5rem)] rounded-xl border border-emerald-500/30 bg-slate-900/95 dark:bg-slate-900/95 p-3.5 shadow-2xl backdrop-blur-md text-slate-200 animate-in fade-in zoom-in-95 duration-150"
+    className="absolute top-full left-0 mt-1.5 z-50 w-72 max-w-[calc(100vw-2.5rem)] rounded-xl border border-emerald-500/30 bg-[var(--bg-elevated)] p-3.5 shadow-2xl backdrop-blur-md text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150"
   >
-    <div className="flex items-center justify-between pb-2 mb-2 border-b border-emerald-500/20">
-      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-        <Sparkles className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+    <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-hairline)]">
+      <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--status-bargain-fg)]">
+        <Sparkles className="h-3.5 w-3.5 text-[var(--status-bargain-fg)]" aria-hidden="true" />
         <span>Piaci Árelemzés • Alkalmi Vétel</span>
       </div>
-      <span className="text-[10px] text-slate-400 font-mono">
+      <span className="text-[10px] text-[var(--text-secondary)] font-mono">
         {city}
       </span>
     </div>
 
-    <div className="space-y-1.5 text-xs">
+    <div className="space-y-1.5 text-xs tabular-nums">
       <div className="flex justify-between items-center">
-        <span className="text-slate-400">Kínálati m² ár:</span>
-        <span className="font-bold text-emerald-400 font-mono">
+        <span className="text-[var(--text-secondary)]">Kínálati m² ár:</span>
+        <span className="font-bold text-[var(--status-bargain-fg)] font-mono">
           {formatPricePerSqm(currentPricePerSqm)}
         </span>
       </div>
 
       {refMedian !== null && refMedian !== undefined && (
         <div className="flex justify-between items-center">
-          <span className="text-slate-400">Városi medián m² ár:</span>
-          <span className="font-semibold text-slate-300 font-mono">
+          <span className="text-[var(--text-secondary)]">Városi medián m² ár:</span>
+          <span className="font-semibold text-[var(--text-primary)] font-mono">
             {formatPricePerSqm(refMedian)}
           </span>
         </div>
       )}
 
-      <div className="flex justify-between items-center pt-1 border-t border-slate-700/50">
-        <span className="text-slate-400">Eltérés a mediántól:</span>
-        <span className="font-extrabold text-emerald-400 font-mono">
+      <div className="flex justify-between items-center pt-1 border-t border-[var(--border-hairline)]">
+        <span className="text-[var(--text-secondary)]">Eltérés a mediántól:</span>
+        <span className="font-extrabold text-[var(--status-bargain-fg)] font-mono">
           -{roundedPct}%
         </span>
       </div>
 
-      <div className="flex justify-between items-center text-[11px] text-slate-400">
+      <div className="flex justify-between items-center text-[11px] text-[var(--text-secondary)]">
         <span>Minta elemszáma:</span>
-        <span className="font-medium text-slate-300">{sampleSize} hirdetés</span>
+        <span className="font-medium text-[var(--text-primary)]">{sampleSize} hirdetés</span>
       </div>
     </div>
 
-    <div className="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 italic">
+    <div className="mt-2.5 pt-2 border-t border-[var(--border-hairline)] text-[10px] text-[var(--text-secondary)] italic">
       Legalább 5 azonos típusú helyi hirdetésből számított medián alapján.
     </div>
   </div>
@@ -168,13 +168,13 @@ export const BargainBadge: React.FC<BargainBadgeProps> = ({ item, className = ''
         onFocus={() => setIsOpen(true)}
         onBlur={() => setIsOpen(false)}
         onKeyDown={handleKeyDown}
-        className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400 hover:bg-emerald-500/25 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 cursor-pointer"
+        className="inline-flex items-center gap-1.5 rounded-md bg-[var(--status-bargain-bg)] border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-[var(--status-bargain-fg)] hover:opacity-90 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 cursor-pointer tabular-nums"
       >
-        <TrendingDown className="h-3 w-3 shrink-0 text-emerald-400" aria-hidden="true" />
+        <TrendingDown className="h-3 w-3 shrink-0 text-[var(--status-bargain-fg)]" aria-hidden="true" />
         <span>Alkalmi vétel</span>
         <span
           data-testid="bargain-discount-pill"
-          className="ml-0.5 rounded bg-emerald-500/25 px-1 py-0.2 text-[10px] font-extrabold text-emerald-300"
+          className="ml-0.5 rounded bg-emerald-500/20 px-1 py-0.2 text-[10px] font-extrabold text-[var(--status-bargain-fg)]"
         >
           -{roundedPct}%
         </span>

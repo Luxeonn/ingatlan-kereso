@@ -3,9 +3,10 @@ import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { Inbox, Search, Star, Archive } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { PropertyCard } from './PropertyCard'
+import { ListingsTableView } from './ListingsTableView'
 import { ListingSkeleton } from './ListingSkeleton'
 import { BulkActionBar } from './BulkActionBar'
-import { useUiStore } from '../../store/useUiStore'
+import { useUiStore, type ViewMode } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
 interface ListingsGridProps {
@@ -41,24 +42,19 @@ function calculateColumnCount(viewMode: string, width: number): number {
   return 1
 }
 
-interface EmptyStateProps {
-  mode: 'listings' | 'favorites' | 'archive'
-  hasSearched: boolean
-  totalRawCount: number
-  onTriggerSearch: () => void
-}
-
-function renderEmptyState(props: EmptyStateProps): ReactNode {
-  const { mode, hasSearched, totalRawCount, onTriggerSearch } = props
+function renderEmptyState(
+  mode: 'listings' | 'favorites' | 'archive',
+  hasSearched: boolean,
+  totalRawCount: number,
+  onTriggerSearch: () => void,
+): ReactNode {
   if (mode === 'listings' && !hasSearched) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/50 p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 mb-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 mb-4">
           <Search className="h-8 w-8" />
         </div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
-          Készen állsz a keresésre?
-        </h3>
+        <h3 className="text-base font-bold text-[var(--text-primary)]">Készen állsz a keresésre?</h3>
         <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
           Állítsd be a kívánt településeket, árhatárokat és portálokat, majd kattints az Ingatlanok Keresése gombra!
         </p>
@@ -75,7 +71,7 @@ function renderEmptyState(props: EmptyStateProps): ReactNode {
   if (mode === 'favorites' && totalRawCount === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 mb-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 mb-4">
           <Star className="h-8 w-8" />
         </div>
         <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -90,12 +86,10 @@ function renderEmptyState(props: EmptyStateProps): ReactNode {
   if (mode === 'archive' && totalRawCount === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 mb-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-700 mb-4">
           <Archive className="h-8 w-8" />
         </div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
-          Az archívum jelenleg üres
-        </h3>
+        <h3 className="text-base font-bold text-[var(--text-primary)]">Az archívum jelenleg üres</h3>
         <p className="mt-1 max-w-md text-xs text-[var(--text-secondary)]">
           A korábbi keresések során megtalált és mentett hirdetések automatikusan itt jelennek meg.
         </p>
@@ -127,25 +121,103 @@ interface ResetToken {
 }
 
 function shouldResetBatchToken(prev: ResetToken, current: ResetToken): 'none' | 'preserve' | 'reset' {
-  if (prev.mode !== current.mode || prev.initialBatchSize !== current.initialBatchSize) {
-    return 'reset'
-  }
-  if (prev.itemsSignature === current.itemsSignature) {
-    return 'none'
-  }
+  if (prev.mode !== current.mode || prev.initialBatchSize !== current.initialBatchSize) return 'reset'
+  if (prev.itemsSignature === current.itemsSignature) return 'none'
   return hasSignificantUrlOverlap(prev.itemUrls, current.itemUrls) ? 'preserve' : 'reset'
 }
 
-function resolveNextVisibleLimit(
-  action: 'none' | 'preserve' | 'reset',
-  prevLimit: number,
-  initialLimit: number,
-  totalLength: number,
-): number {
-  if (action === 'reset') {
-    return initialLimit
-  }
-  return Math.min(Math.max(prevLimit, initialLimit), totalLength)
+interface ListingsViewportBodyProps {
+  viewMode: ViewMode
+  visibleItems: IngatlanItem[]
+  totalItemsCount: number
+  hasMore: boolean
+  columns: number
+  scrollMargin: number
+  listRef: React.RefObject<HTMLDivElement | null>
+  sentinelRef: React.RefObject<HTMLButtonElement | null>
+  onLoadMore: () => void
+  onMarkViewed: (url: string) => void
+  onHide?: (item: IngatlanItem) => void
+  onRestore?: (item: IngatlanItem) => void
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
+}
+
+const ListingsViewportBody: FC<ListingsViewportBodyProps> = (props) => {
+  const { viewMode, visibleItems, totalItemsCount, hasMore, columns, scrollMargin, listRef, sentinelRef, onLoadMore } = props
+  const rowCount = Math.ceil(visibleItems.length / columns)
+  const virtualizer = useWindowVirtualizer({
+    count: rowCount,
+    estimateSize: () => (viewMode === 'list' ? 160 : 320),
+    overscan: 1,
+    scrollMargin,
+  })
+
+  return (
+    <div className="space-y-4">
+      {viewMode === 'table' ? (
+        <ListingsTableView
+          items={visibleItems}
+          onMarkViewed={props.onMarkViewed}
+          onHide={props.onHide}
+          onRestore={props.onRestore}
+          onSplitSource={props.onSplitSource}
+          onUndoOverride={props.onUndoOverride}
+        />
+      ) : (
+        <div ref={listRef} className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const rowItems = visibleItems.slice(virtualRow.index * columns, (virtualRow.index + 1) * columns)
+            return (
+              <div
+                key={virtualRow.key}
+                ref={virtualizer.measureElement}
+                data-index={virtualRow.index}
+                className={cn(
+                  viewMode === 'grid' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-3',
+                )}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                }}
+              >
+                {rowItems.map((item) => (
+                  <PropertyCard
+                    key={item.url || item.id}
+                    item={item}
+                    onMarkViewed={props.onMarkViewed}
+                    onHide={props.onHide}
+                    onRestore={props.onRestore}
+                    onSplitSource={props.onSplitSource}
+                    onUndoOverride={props.onUndoOverride}
+                    viewMode={viewMode}
+                  />
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {hasMore && (
+        <button
+          type="button"
+          ref={sentinelRef}
+          data-testid="infinite-scroll-sentinel"
+          onClick={onLoadMore}
+          className="flex w-full items-center justify-center py-6 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+            <span>További ingatlanok betöltése... ({visibleItems.length} / {totalItemsCount} db)</span>
+          </div>
+        </button>
+      )}
+    </div>
+  )
 }
 
 export const ListingsGrid: FC<ListingsGridProps> = ({
@@ -186,16 +258,12 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLButtonElement>(null)
 
-  // Reset pagination limit only on mode/batch change or genuinely new search (#278, #459, #461)
-  const resetAction = shouldResetBatchToken(prevResetToken, {
-    itemsSignature,
-    itemUrls,
-    mode,
-    initialBatchSize,
-  })
+  const resetAction = shouldResetBatchToken(prevResetToken, { itemsSignature, itemUrls, mode, initialBatchSize })
   if (resetAction !== 'none') {
     setPrevResetToken({ itemsSignature, itemUrls, mode, initialBatchSize })
-    setVisibleLimit((prev) => resolveNextVisibleLimit(resetAction, prev, initialLimit, items.length))
+    setVisibleLimit((prev) =>
+      resetAction === 'reset' ? initialLimit : Math.min(Math.max(prev, initialLimit), items.length),
+    )
   }
 
   const handleLoadMore = useCallback(() => {
@@ -204,39 +272,29 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
 
   const hasMore = visibleLimit < items.length
 
-  // Progressive batching via IntersectionObserver (#278)
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel || !hasMore) return
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const first = entries[0]
-        if (first && first.isIntersecting) {
-          handleLoadMore()
-        }
+        if (entries[0]?.isIntersecting) handleLoadMore()
       },
-      { rootMargin: '400px 0px' }
+      { rootMargin: '400px 0px' },
     )
-
     observer.observe(sentinel)
 
     if (typeof window !== 'undefined' && sentinel.getBoundingClientRect) {
       const rect = sentinel.getBoundingClientRect()
-      if (rect.bottom > 0 && rect.top <= window.innerHeight + 400) {
-        handleLoadMore()
-      }
+      if (rect.bottom > 0 && rect.top <= window.innerHeight + 400) handleLoadMore()
     }
-
     return () => observer.disconnect()
   }, [hasMore, visibleLimit, handleLoadMore])
 
   const visibleItems = items.slice(0, visibleLimit)
 
   useEffect(() => {
-    const updateColumns = () => {
-      setColumns(calculateColumnCount(viewMode, window.innerWidth))
-    }
+    const updateColumns = () => setColumns(calculateColumnCount(viewMode, window.innerWidth))
     updateColumns()
     window.addEventListener('resize', updateColumns)
     return () => window.removeEventListener('resize', updateColumns)
@@ -244,25 +302,13 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
 
   useEffect(() => {
     const updateScrollMargin = () => {
-      if (listRef.current) {
-        setScrollMargin(listRef.current.getBoundingClientRect().top + window.scrollY)
-      }
+      if (listRef.current) setScrollMargin(listRef.current.getBoundingClientRect().top + window.scrollY)
     }
     updateScrollMargin()
     window.addEventListener('resize', updateScrollMargin)
     return () => window.removeEventListener('resize', updateScrollMargin)
   }, [hasSearched, visibleItems.length, mode])
 
-  const rowCount = Math.ceil(visibleItems.length / columns)
-  const estimatedRowHeight = viewMode === 'list' ? 160 : 320
-  const virtualizer = useWindowVirtualizer({
-    count: rowCount,
-    estimateSize: () => estimatedRowHeight,
-    overscan: 1,
-    scrollMargin,
-  })
-
-  // 1. Loading skeletons
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -276,24 +322,17 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
     )
   }
 
-  // 2, 3, 4. Empty states before search / favorites / archive
-  const emptyState = renderEmptyState({ mode, hasSearched, totalRawCount, onTriggerSearch })
-  if (emptyState) {
-    return emptyState
-  }
+  const emptyState = renderEmptyState(mode, hasSearched, totalRawCount, onTriggerSearch)
+  if (emptyState) return emptyState
 
-  // 5. Render toolbar + listings (or filtered empty message while keeping BulkActionBar accessible)
   return (
     <div className="space-y-4">
-      {/* Bulk action toolbar with Quick Search & Portal filter chips */}
       <BulkActionBar
         items={items}
         rawItems={rawItems}
         totalRawCount={totalRawCount}
         onOpenAll={onOpenAll}
-        onMarkAllViewed={(allItems) => {
-          allItems.forEach((i) => onMarkViewed(i.url))
-        }}
+        onMarkAllViewed={(allItems) => allItems.forEach((i) => onMarkViewed(i.url))}
         onClearHistory={mode === 'archive' ? onClearHistory : undefined}
         isClearingHistory={isClearingHistory}
         onMergeSelected={onMergeSelected}
@@ -304,7 +343,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 mb-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 mb-4">
             <Inbox className="h-8 w-8" />
           </div>
           <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -315,61 +354,22 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div ref={listRef} className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              const rowItems = visibleItems.slice(virtualRow.index * columns, (virtualRow.index + 1) * columns)
-              return (
-                <div
-                  key={virtualRow.key}
-                  ref={virtualizer.measureElement}
-                  data-index={virtualRow.index}
-                  className={cn(
-                    viewMode === 'grid'
-                      ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
-                      : 'flex flex-col gap-3'
-                  )}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-                  }}
-                >
-                  {rowItems.map((item) => (
-                    <PropertyCard
-                      key={item.url || item.id}
-                      item={item}
-                      onMarkViewed={onMarkViewed}
-                      onHide={onHide}
-                      onRestore={onRestore}
-                      onSplitSource={onSplitSource}
-                      onUndoOverride={onUndoOverride}
-                      viewMode={viewMode}
-                    />
-                  ))}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Infinite Scroll Sentinel / Progressive loader (#278) */}
-          {hasMore && (
-            <button
-              type="button"
-              ref={sentinelRef}
-              data-testid="infinite-scroll-sentinel"
-              onClick={handleLoadMore}
-              className="flex w-full items-center justify-center py-6 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-                <span>További ingatlanok betöltése... ({visibleItems.length} / {items.length} db)</span>
-              </div>
-            </button>
-          )}
-        </div>
+        <ListingsViewportBody
+          viewMode={viewMode}
+          visibleItems={visibleItems}
+          totalItemsCount={items.length}
+          hasMore={hasMore}
+          columns={columns}
+          scrollMargin={scrollMargin}
+          listRef={listRef}
+          sentinelRef={sentinelRef}
+          onLoadMore={handleLoadMore}
+          onMarkViewed={onMarkViewed}
+          onHide={onHide}
+          onRestore={onRestore}
+          onSplitSource={onSplitSource}
+          onUndoOverride={onUndoOverride}
+        />
       )}
     </div>
   )

@@ -39,7 +39,7 @@ function buildCategoryCards(kpi: MarketAnalyticsData['kpi']): CategoryCardDef[] 
       testId: 'kpi-card-lakas',
       title: 'Lakás Medián Fajlagos Ár',
       Icon: Building2,
-      iconColor: 'bg-indigo-500/10 text-indigo-400',
+      iconColor: 'bg-indigo-500/10 text-indigo-700',
       highlightBorder: 'border-indigo-500/50 ring-1 ring-indigo-500/30 bg-indigo-500/5',
       value:
         kpi.lakasMedianPricePerSqm !== null && kpi.lakasMedianPricePerSqm !== undefined
@@ -53,7 +53,7 @@ function buildCategoryCards(kpi: MarketAnalyticsData['kpi']): CategoryCardDef[] 
       testId: 'kpi-card-haz',
       title: 'Ház Medián Fajlagos Ár',
       Icon: Home,
-      iconColor: 'bg-amber-500/10 text-amber-400',
+      iconColor: 'bg-amber-500/10 text-amber-700',
       highlightBorder: 'border-amber-500/50 ring-1 ring-amber-500/30 bg-amber-500/5',
       value:
         kpi.hazMedianPricePerSqm !== null && kpi.hazMedianPricePerSqm !== undefined
@@ -67,7 +67,7 @@ function buildCategoryCards(kpi: MarketAnalyticsData['kpi']): CategoryCardDef[] 
       testId: 'kpi-card-telek',
       title: 'Telek Medián Telekár (m²)',
       Icon: Trees,
-      iconColor: 'bg-emerald-500/10 text-emerald-400',
+      iconColor: 'bg-emerald-500/10 text-emerald-700',
       highlightBorder: 'border-emerald-500/50 ring-1 ring-emerald-500/30 bg-emerald-500/5',
       value:
         kpi.telekMedianPricePerSqm !== null && kpi.telekMedianPricePerSqm !== undefined
@@ -116,7 +116,7 @@ export const MarketKpiGrid: FC<MarketKpiGridProps> = ({ totalCount, cityCount, k
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-[var(--text-primary)]">{card.title}</span>
                 {isHighlighted && (
-                  <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-bold text-blue-400 border border-blue-500/30">
+                  <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 border border-blue-500/30">
                     Kiemelt
                   </span>
                 )}
@@ -142,7 +142,7 @@ export const MarketKpiGrid: FC<MarketKpiGridProps> = ({ totalCount, cityCount, k
         >
           <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
             <span className="font-semibold">Medián Fajlagos Ár</span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-700">
               <Building2 className="h-4 w-4" aria-hidden="true" />
             </div>
           </div>
@@ -163,7 +163,7 @@ export const MarketKpiGrid: FC<MarketKpiGridProps> = ({ totalCount, cityCount, k
       >
         <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
           <span className="font-semibold">Átlagos Kínálati Ár</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
             <DollarSign className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
@@ -181,7 +181,7 @@ export const MarketKpiGrid: FC<MarketKpiGridProps> = ({ totalCount, cityCount, k
       >
         <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
           <span className="font-semibold">Minta Elemszám</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500/10 text-teal-700">
             <TrendingUp className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
@@ -189,7 +189,7 @@ export const MarketKpiGrid: FC<MarketKpiGridProps> = ({ totalCount, cityCount, k
           {totalCount} db
         </p>
         <div className="mt-1.5 flex items-center justify-between text-[11px] text-[var(--text-secondary)] border-t border-[var(--border-color)]/50 pt-1.5">
-          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+          <span className="flex items-center gap-1 text-emerald-700 font-semibold">
             <Sparkles className="h-3 w-3" /> {kpi.newCount} db új ({kpi.newPercent}%)
           </span>
           <span>{cityCount} város</span>
@@ -202,11 +202,11 @@ export const MarketKpiGrid: FC<MarketKpiGridProps> = ({ totalCount, cityCount, k
       >
         <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
           <span className="font-semibold">Árcsökkenések Száma</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-400">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-700">
             <TrendingDown className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
-        <p className="text-lg font-extrabold text-rose-400 font-mono">
+        <p className="text-lg font-extrabold text-rose-700 font-mono">
           {kpi.discountedCount} db
         </p>
         <p className="mt-1.5 text-[11px] text-[var(--text-secondary)] border-t border-[var(--border-color)]/50 pt-1.5">
@@ -234,7 +234,7 @@ export const TopPriceDropsSection: FC<TopPriceDropsSectionProps> = ({
   >
     <div className="flex items-center justify-between border-b border-[var(--border-color)]/50 pb-3">
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-400">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-700">
           <TrendingDown className="h-4 w-4" aria-hidden="true" />
         </div>
         <div>
@@ -246,7 +246,7 @@ export const TopPriceDropsSection: FC<TopPriceDropsSectionProps> = ({
           </p>
         </div>
       </div>
-      <span className="text-xs font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full">
+      <span className="text-xs font-semibold text-rose-700 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full">
         {topPriceDrops.length} találat
       </span>
     </div>
@@ -274,7 +274,7 @@ export const TopPriceDropsSection: FC<TopPriceDropsSectionProps> = ({
                   </span>
                   <PropertyTypeBadge propertyType={item.propertyType} />
                 </div>
-                <span className="text-xs font-extrabold text-rose-400 font-mono">
+                <span className="text-xs font-extrabold text-rose-700 font-mono">
                   {item.priceChangePercent !== null && item.priceChangePercent !== undefined
                     ? `${Math.round(item.priceChangePercent)}%`
                     : '-'}
@@ -292,7 +292,7 @@ export const TopPriceDropsSection: FC<TopPriceDropsSectionProps> = ({
             <div className="mt-3 pt-2.5 border-t border-[var(--border-color)]/50 flex items-end justify-between">
               <div>
                 {originalPrice && originalPrice > 0 && (
-                  <p className="text-[10px] text-slate-400 line-through">
+                  <p className="text-[10px] text-slate-600 line-through">
                     {formatPriceFt(originalPrice)}
                   </p>
                 )}
@@ -300,7 +300,7 @@ export const TopPriceDropsSection: FC<TopPriceDropsSectionProps> = ({
                   {item.price}
                 </p>
                 {priceDelta < 0 && (
-                  <p className="text-[11px] font-semibold text-rose-400">
+                  <p className="text-[11px] font-semibold text-rose-700">
                     -{formatPriceFt(Math.abs(priceDelta))}
                   </p>
                 )}
@@ -314,7 +314,7 @@ export const TopPriceDropsSection: FC<TopPriceDropsSectionProps> = ({
                   onMarkViewed?.(item.url)
                   onOpenListing?.(item.url)
                 }}
-                className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 px-2 py-1 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-500/20 transition-all cursor-pointer"
               >
                 <span>Megnyitás</span>
                 <ExternalLink className="h-3 w-3" aria-hidden="true" />

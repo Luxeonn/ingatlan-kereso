@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FC } from 'react'
 import {
   LayoutGrid,
   List,
+  Table2,
   Search,
   X,
   Trash2,
@@ -162,18 +163,18 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
 
   return (
     <>
-      <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
+      <div className="space-y-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
+        <div className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
           <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
           {items.length !== totalRawCount && (
-            <span className="text-[11px] font-normal text-[var(--text-secondary)]">
+            <span className="text-[11px] font-semibold text-blue-700">
               (szűrve)
             </span>
           )}
         </div>
 
-        <div className="relative flex-1 min-w-[200px] max-w-sm sm:max-w-md">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
           <input
             type="text"
@@ -181,7 +182,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
             onChange={(e) => setQuickSearchQuery(e.target.value)}
             placeholder="Gyorskeresés a találatok között (cím, ár, m², szoba)..."
             aria-label="Gyorskeresés a találatok között"
-            className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] py-1.5 pl-8 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] py-1.5 pl-8 pr-8 text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-blue-500 focus:outline-none"
           />
           {quickSearchQuery && (
             <button
@@ -247,7 +248,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
               <button
                 type="button"
                 onClick={() => setConfirmClear(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-400 transition-colors hover:bg-rose-500/20 shrink-0"
+                className="flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-500/20 shrink-0"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>Előzmények törlése</span>
@@ -281,6 +282,20 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
               )}
             >
               <List className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              data-testid="view-mode-table"
+              onClick={() => setViewMode('table')}
+              title="Táblázat nézet"
+              className={cn(
+                'rounded-md p-1 transition-colors',
+                viewMode === 'table'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+              )}
+            >
+              <Table2 className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

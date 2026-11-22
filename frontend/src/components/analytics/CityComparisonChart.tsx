@@ -55,7 +55,7 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
               Település-összehasonlító Diagram
             </h3>
-            <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold text-indigo-400">
+            <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
               Városok
             </span>
           </div>
@@ -107,7 +107,7 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
 
       {/* Selected notification */}
       {selectedCity && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/30 text-emerald-700 text-xs font-semibold">
           <MapPin className="h-3.5 w-3.5" />
           <span>Kiválasztott város: {selectedCity}</span>
         </div>
@@ -153,7 +153,7 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
                     return (
                       <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-xl backdrop-blur-md text-xs">
                         <p className="font-bold text-[var(--text-primary)] flex items-center gap-1.5 mb-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-indigo-400" />
+                          <MapPin className="h-3.5 w-3.5 text-indigo-700" />
                           <span>{data.city}</span>
                         </p>
                         <div className="space-y-1 text-[var(--text-secondary)]">
@@ -171,10 +171,10 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
                           </p>
                           <p className="flex justify-between gap-4">
                             <span>Kínálati volumen:</span>
-                            <span className="font-bold text-indigo-400">{data.count} db</span>
+                            <span className="font-bold text-indigo-700">{data.count} db</span>
                           </p>
                           {data.newCount > 0 && (
-                            <p className="flex justify-between gap-4 text-emerald-400">
+                            <p className="flex justify-between gap-4 text-emerald-700">
                               <span>Új hirdetés:</span>
                               <span className="font-bold">{data.newCount} db</span>
                             </p>

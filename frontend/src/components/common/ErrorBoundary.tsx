@@ -31,19 +31,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   override render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-body,#0f172a)] p-6 text-[var(--text-primary,#f8fafc)]">
-          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[var(--bg-card,#1e293b)] p-8 text-center shadow-2xl backdrop-blur-md">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-400">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-body,#f6f8fb)] p-6 text-[var(--text-primary,#0f172a)]">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[var(--bg-card,#ffffff)] p-8 text-center shadow-2xl backdrop-blur-md">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-700">
               <AlertTriangle className="h-8 w-8" />
             </div>
-            <h2 className="text-lg font-bold text-[var(--text-primary,#f8fafc)]">
+            <h2 className="text-lg font-bold text-[var(--text-primary,#0f172a)]">
               Váratlan hiba történt a felületen
             </h2>
-            <p className="mt-2 text-xs text-[var(--text-secondary,#94a3b8)]">
+            <p className="mt-2 text-xs text-[var(--text-secondary,#475569)]">
               Az alkalmazás futása közben váratlan hiba lépett fel. Próbáld meg újratölteni az oldalt!
             </p>
             {this.state.error?.message && (
-              <div className="mt-4 rounded-lg bg-black/40 p-3 text-left font-mono text-[11px] text-red-300 overflow-x-auto">
+              <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-left font-mono text-[11px] text-red-700 overflow-x-auto">
                 {this.state.error.message}
               </div>
             )}

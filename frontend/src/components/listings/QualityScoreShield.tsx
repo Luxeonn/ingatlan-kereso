@@ -15,9 +15,14 @@ export type { QualityConfig, QualityTierKey }
 export interface QualityScoreShieldProps {
   item: IngatlanItem
   className?: string
+  popoverPlacement?: 'top-right' | 'bottom-left'
 }
 
-export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, className = '' }) => {
+export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({
+  item,
+  className = '',
+  popoverPlacement = 'bottom-left',
+}) => {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const popoverId = useId()
@@ -67,7 +72,7 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
         onBlur={() => setIsOpen(false)}
         onKeyDown={handleKeyDown}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-bold transition-all shadow-sm focus:outline-none focus:ring-2 cursor-pointer',
+          'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-bold transition-all shadow-sm focus:outline-none focus:ring-2 cursor-pointer tabular-nums',
           config.buttonClasses,
         )}
       >
@@ -89,7 +94,8 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
           data-testid="quality-score-popover"
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            'absolute top-full left-0 mt-1.5 z-50 w-72 sm:w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border bg-slate-900/95 dark:bg-slate-900/95 p-3.5 shadow-2xl backdrop-blur-md text-slate-200 animate-in fade-in zoom-in-95 duration-150',
+            'absolute z-50 w-72 sm:w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border bg-[var(--bg-elevated)] p-3.5 shadow-2xl backdrop-blur-md text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150',
+            popoverPlacement === 'top-right' ? 'bottom-full right-0 mb-2' : 'top-full left-0 mt-1.5',
             config.popoverBorderClass,
           )}
         >
@@ -100,18 +106,18 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
             </div>
             <span
               data-testid="popover-score-badge"
-              className={cn('rounded px-1.5 py-0.5 text-[11px] font-mono font-extrabold', config.pillClass)}
+              className={cn('rounded px-1.5 py-0.5 text-[11px] font-mono font-extrabold tabular-nums', config.pillClass)}
             >
               {clampedScore}/100 pont
             </span>
           </div>
 
           <div className="mb-3 space-y-1">
-            <div className="flex justify-between text-[10px] text-slate-400">
+            <div className="flex justify-between text-[10px] text-[var(--text-secondary)]">
               <span>Megbízhatósági index</span>
-              <span className="font-mono font-semibold">{clampedScore}%</span>
+              <span className="font-mono font-semibold tabular-nums">{clampedScore}%</span>
             </div>
-            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-[var(--bg-input)] rounded-full overflow-hidden">
               <div
                 className={cn('h-full transition-all duration-300 rounded-full', config.barClass)}
                 style={{ width: `${clampedScore}%` }}
@@ -120,19 +126,19 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
           </div>
 
           <div className="space-y-1.5 text-xs">
-            <div className="text-[11px] font-semibold text-slate-300">Értékelési szempontok:</div>
+            <div className="text-[11px] font-semibold text-[var(--text-primary)]">Értékelési szempontok:</div>
             {deductions.length > 0 ? (
-              <ul className="space-y-1 text-[11px] text-slate-300 pl-1" data-testid="deductions-list">
+              <ul className="space-y-1 text-[11px] text-[var(--text-secondary)] pl-1" data-testid="deductions-list">
                 {deductions.map((deduction, idx) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-rose-300/90">
-                    <span className="text-rose-400 font-bold shrink-0">•</span>
+                  <li key={idx} className="flex items-start gap-1.5 text-[var(--status-danger-fg)]">
+                    <span className="font-bold shrink-0">•</span>
                     <span>{deduction}</span>
                   </li>
                 ))}
               </ul>
             ) : (
               <div
-                className="flex items-center gap-1.5 text-[11px] text-emerald-400"
+                className="flex items-center gap-1.5 text-[11px] text-[var(--status-bargain-fg)]"
                 data-testid="no-deductions-message"
               >
                 <Check className="h-3.5 w-3.5 shrink-0" />
@@ -144,9 +150,9 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
           {clampedScore < 70 && (
             <div
               data-testid="outlier-warning"
-              className="mt-2.5 pt-2 border-t border-rose-500/20 text-[10px] text-rose-300/90 flex items-start gap-1.5"
+              className="mt-2.5 pt-2 border-t border-rose-500/20 text-[10px] text-[var(--status-danger-fg)] flex items-start gap-1.5"
             >
-              <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <span>
                 70 pont alatti minőség: a hirdetés ki van zárva a piaci mediánár-számításból a statisztikai pontosság
                 érdekében (#267).
@@ -154,7 +160,7 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
             </div>
           )}
 
-          <div className="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 italic">
+          <div className="mt-2.5 pt-2 border-t border-[var(--border-hairline)] text-[10px] text-[var(--text-secondary)] italic">
             Automatikus szabályalapú minőségellenőrzés (0–100 pont).
           </div>
         </div>

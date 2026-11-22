@@ -288,7 +288,7 @@ export function buildScatterAndBargainData(
     }
   })
 
-  belowMarketDeals.sort((a, b) => b.discountPercent - a.discountPercent)
+  belowMarketDeals.sort((a, b) => b.discountPercent - a.discountPercent || b.sqmDiffFt - a.sqmDiffFt)
 
   return {
     scatterData,

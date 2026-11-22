@@ -232,7 +232,11 @@ export function useMarketAnalytics(
 
     const topPriceDrops = items
       .filter(hasPriceDrop)
-      .sort((a, b) => Math.abs(b.priceDelta ?? 0) - Math.abs(a.priceDelta ?? 0))
+      .sort((a, b) => {
+        const pctDiff = Math.abs(b.priceChangePercent ?? 0) - Math.abs(a.priceChangePercent ?? 0)
+        if (pctDiff !== 0) return pctDiff
+        return Math.abs(b.priceDelta ?? 0) - Math.abs(a.priceDelta ?? 0)
+      })
 
     const kpi = calculateKpiStats({
       totalCount: items.length,

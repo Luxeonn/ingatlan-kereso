@@ -1,7 +1,9 @@
 import type { SortOption } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
 import {
+  formatPricePerSqm,
   getEffectivePrice,
+  getEffectiveSqmPrice,
   getPrimaryPortalKey,
   getItemSourceListingsCount,
   hasListingImage,
@@ -21,6 +23,14 @@ export function isItemBargain(item: IngatlanItem): boolean {
       (item.percentageBelowMedian !== null &&
         item.percentageBelowMedian !== undefined &&
         item.percentageBelowMedian >= 20),
+  )
+}
+
+export function hasItemPriceDrop(item: IngatlanItem): boolean {
+  if (!item) return false
+  return Boolean(
+    item.status === 'PRICE_DROP' ||
+      (item.priceDelta !== null && item.priceDelta !== undefined && item.priceDelta < 0),
   )
 }
 
@@ -92,6 +102,8 @@ function buildSearchableText(item: IngatlanItem): string {
   const areaStr = area ? `${Math.round(area)} m2 ${Math.round(area)} m²` : ''
   const roomsStr = item.detailsInfo?.roomCount ? `${item.detailsInfo.roomCount} szoba` : ''
   const priceStr = item.priceInfo?.amountMillion ? `${item.priceInfo.amountMillion} m ft` : ''
+  const sqm = getEffectiveSqmPrice(item)
+  const sqmStr = sqm ? `${Math.round(sqm)} ${formatPricePerSqm(sqm)}` : ''
   return normalizeSearchText(
     [
       item.title,
@@ -103,6 +115,7 @@ function buildSearchableText(item: IngatlanItem): string {
       item.details,
       areaStr,
       roomsStr,
+      sqmStr,
       item.newConstruction ? 'uj epitesu' : '',
     ].join(' '),
   )
@@ -115,13 +128,20 @@ function matchesQuickSearch(item: IngatlanItem, tokens: string[]): boolean {
 
 export interface ItemFilterOptions {
   onlyNew?: boolean
+  excludeNew?: boolean
   excludeViewed?: boolean
+  onlyViewed?: boolean
   sessionViewedUrls?: ReadonlySet<string>
   onlyNewConstruction?: boolean
+  excludeNewConstruction?: boolean
+  onlyDiscounted?: boolean
+  minRooms?: number
   onlyBargain?: boolean
+  excludeBargain?: boolean
   excludeMultiSource?: boolean
   onlyMultiSource?: boolean
   excludeNoImage?: boolean
+  onlyNoImage?: boolean
   minQualityScore?: number
   selectedPortalFilter?: string
   quickSearchQuery?: string
@@ -141,16 +161,45 @@ function isSessionViewed(item: IngatlanItem, sessionViewedUrls?: ReadonlySet<str
 function matchesSourceAndImageFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
   if (options.excludeMultiSource && getItemSourceListingsCount(item) !== 1) return false
   if (options.onlyMultiSource && getItemSourceListingsCount(item) <= 1) return false
-  if (options.excludeNoImage && !hasListingImage(item)) return false
+  const hasImg = hasListingImage(item)
+  if (options.excludeNoImage && !hasImg) return false
+  if (options.onlyNoImage && hasImg) return false
+  return true
+}
+
+function matchesRoomsAndDiscountFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
+  if (options.onlyDiscounted && !hasItemPriceDrop(item)) return false
+  if (options.minRooms && options.minRooms > 0) {
+    const rooms = item.detailsInfo?.roomCount ?? 0
+    if (rooms < options.minRooms) return false
+  }
+  return true
+}
+
+function matchesNewAndViewedFlags(item: IngatlanItem, options: ItemFilterOptions, sessionViewed: boolean): boolean {
+  const isNew = isListingNew(item) || sessionViewed
+  if (options.onlyNew && !isNew) return false
+  if (options.excludeNew && isNew) return false
+  const isViewed = Boolean(item.viewed) && !sessionViewed
+  if (options.excludeViewed && isViewed) return false
+  if (options.onlyViewed && !item.viewed) return false
+  return true
+}
+
+function matchesConstructionAndBargainFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
+  if (options.onlyNewConstruction && !item.newConstruction) return false
+  if (options.excludeNewConstruction && item.newConstruction) return false
+  const isBargain = isItemBargain(item)
+  if (options.onlyBargain && !isBargain) return false
+  if (options.excludeBargain && isBargain) return false
   return true
 }
 
 function matchesItemFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
   const sessionViewed = isSessionViewed(item, options.sessionViewedUrls)
-  if (options.onlyNew && !isListingNew(item) && !sessionViewed) return false
-  if (options.excludeViewed && item.viewed && !sessionViewed) return false
-  if (options.onlyNewConstruction && !item.newConstruction) return false
-  if (options.onlyBargain && !isItemBargain(item)) return false
+  if (!matchesNewAndViewedFlags(item, options, sessionViewed)) return false
+  if (!matchesConstructionAndBargainFlags(item, options)) return false
+  if (!matchesRoomsAndDiscountFlags(item, options)) return false
   return matchesSourceAndImageFlags(item, options)
 }
 
@@ -207,4 +256,17 @@ export function filterAndSortItems(
   const sortOption = options.sortOption || 'price_asc'
   items.sort((a, b) => compareItems(a, b, sortOption))
   return items
+}
+
+export function filterItemsByCities(items: IngatlanItem[], cities?: string[] | null): IngatlanItem[] {
+  if (!cities || cities.length === 0) return items
+  const normalizedTargets = cities.map((c) => normalizeSearchText(c).trim()).filter(Boolean)
+  if (normalizedTargets.length === 0) return items
+  return items.filter((item) => {
+    const cityText = normalizeSearchText(item.city)
+    const locationText = normalizeSearchText(item.location)
+    return normalizedTargets.some(
+      (target) => cityText === target || cityText.includes(target) || locationText.includes(target),
+    )
+  })
 }

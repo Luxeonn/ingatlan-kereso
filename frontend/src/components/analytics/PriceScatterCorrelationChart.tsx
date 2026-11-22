@@ -70,7 +70,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
               Ár vs. Alapterület Korreláció (Szórásdiagram)
             </h3>
-            <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-400">
+            <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
               Szórásdiagram
             </span>
           </div>
@@ -102,7 +102,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
               className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-semibold transition-all ${
                 filterSegment === 'bargain'
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-emerald-400 hover:text-emerald-300'
+                  : 'text-emerald-700 hover:text-emerald-700'
               }`}
             >
               <TrendingDown className="h-3 w-3" />
@@ -115,7 +115,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
               className={`rounded-lg px-2.5 py-1 font-semibold transition-all ${
                 filterSegment === 'fair'
                   ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-blue-400 hover:text-blue-300'
+                  : 'text-blue-600 hover:text-blue-600'
               }`}
             >
               Piaci átlag
@@ -127,7 +127,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
               className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-semibold transition-all ${
                 filterSegment === 'premium'
                   ? 'bg-amber-600 text-white shadow-sm'
-                  : 'text-amber-400 hover:text-amber-300'
+                  : 'text-amber-700 hover:text-amber-700'
               }`}
             >
               <Sparkles className="h-3 w-3" />
@@ -145,11 +145,11 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
               data-testid="category-help-button"
               className={`flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 isHelpOpen
-                  ? 'border-purple-500 bg-purple-500/20 text-purple-300 shadow-sm'
+                  ? 'border-purple-500 bg-purple-500/20 text-purple-700 shadow-sm'
                   : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-purple-500/40'
               }`}
             >
-              <HelpCircle className="h-3.5 w-3.5 text-purple-400" />
+              <HelpCircle className="h-3.5 w-3.5 text-purple-700" />
               <span>Kategória súgó</span>
             </button>
 
@@ -161,7 +161,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
               >
                 <div className="flex items-center justify-between border-b border-[var(--border-color)]/60 pb-2">
                   <h4 className="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
-                    <HelpCircle className="h-4 w-4 text-purple-400" />
+                    <HelpCircle className="h-4 w-4 text-purple-700" />
                     Kategória besorolási szabályok
                   </h4>
                   <button
@@ -178,7 +178,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                   <div className="flex items-start gap-2.5 rounded-lg bg-emerald-500/10 p-2.5 border border-emerald-500/20">
                     <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0" />
                     <div>
-                      <span className="font-bold text-emerald-400">Alkalmi:</span>
+                      <span className="font-bold text-emerald-700">Alkalmi:</span>
                       <p className="mt-0.5 text-[11px] text-[var(--text-secondary)] leading-relaxed">
                         A helyi piaci mediánnál/átlagnál legalább 15%-kal olcsóbb fajlagos árú vagy jelentős árcsökkenésen átesett hirdetések.
                       </p>
@@ -188,7 +188,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                   <div className="flex items-start gap-2.5 rounded-lg bg-blue-500/10 p-2.5 border border-blue-500/20">
                     <span className="mt-1 h-2.5 w-2.5 rounded-full bg-blue-400 shrink-0" />
                     <div>
-                      <span className="font-bold text-blue-400">Piaci átlag:</span>
+                      <span className="font-bold text-blue-600">Piaci átlag:</span>
                       <p className="mt-0.5 text-[11px] text-[var(--text-secondary)] leading-relaxed">
                         A reális piaci sávba tartozó (referenciaár -15% és +25% közötti) ingatlanok.
                       </p>
@@ -198,7 +198,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                   <div className="flex items-start gap-2.5 rounded-lg bg-amber-500/10 p-2.5 border border-amber-500/20">
                     <span className="mt-1 h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0" />
                     <div>
-                      <span className="font-bold text-amber-400">Prémium:</span>
+                      <span className="font-bold text-amber-700">Prémium:</span>
                       <p className="mt-0.5 text-[11px] text-[var(--text-secondary)] leading-relaxed">
                         A helyi piaci referenciaárnál legalább 25%-kal magasabb fajlagos négyzetméterárú felsőkategóriás ingatlanok.
                       </p>
@@ -218,7 +218,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
           title="A helyi piaci mediánnál/átlagnál legalább 15%-kal olcsóbb fajlagos árú vagy jelentős árcsökkenésen átesett hirdetések."
         >
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0" />
-          <span className="font-semibold text-emerald-400">Alkalmi:</span>
+          <span className="font-semibold text-emerald-700">Alkalmi:</span>
           <span>Helyi mediánnál ≥15%-kal olcsóbb vagy leárazott</span>
         </div>
         <div
@@ -226,7 +226,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
           title="A reális piaci sávba tartozó (referenciaár -15% és +25% közötti) ingatlanok."
         >
           <span className="h-2.5 w-2.5 rounded-full bg-blue-400 shrink-0" />
-          <span className="font-semibold text-blue-400">Piaci átlag:</span>
+          <span className="font-semibold text-blue-600">Piaci átlag:</span>
           <span>Reális piaci sáv (-15% és +25% között)</span>
         </div>
         <div
@@ -234,7 +234,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
           title="A helyi piaci referenciaárnál legalább 25%-kal magasabb fajlagos négyzetméterárú felsőkategóriás ingatlanok."
         >
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0" />
-          <span className="font-semibold text-amber-400">Prémium:</span>
+          <span className="font-semibold text-amber-700">Prémium:</span>
           <span>Helyi referenciaárnál ≥25%-kal magasabb fajlagos ár</span>
         </div>
       </div>
@@ -287,7 +287,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <p className="font-bold text-[var(--text-primary)] line-clamp-1">{data.title}</p>
                           {data.isNew && (
-                            <span className="flex items-center gap-0.5 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 shrink-0">
+                            <span className="flex items-center gap-0.5 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 shrink-0">
                               <Sparkles className="h-3 w-3" /> Új
                             </span>
                           )}
@@ -307,12 +307,12 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                           </p>
                           <p className="flex justify-between gap-4">
                             <span>Fajlagos ár:</span>
-                            <span className={`font-bold ${data.isBargain ? 'text-emerald-400' : 'text-blue-400'}`}>
+                            <span className={`font-bold ${data.isBargain ? 'text-emerald-700' : 'text-blue-600'}`}>
                               {formatPricePerSqm(data.sqmPrice)}
                             </span>
                           </p>
                           {data.priceDelta !== null && data.priceDelta !== undefined && data.priceDelta < 0 && (
-                            <p className="flex justify-between gap-4 text-emerald-400 font-semibold">
+                            <p className="flex justify-between gap-4 text-emerald-700 font-semibold">
                               <span>Leárazás:</span>
                               <span>{data.priceDelta.toLocaleString('hu-HU')} Ft</span>
                             </p>
@@ -324,7 +324,7 @@ export const PriceScatterCorrelationChart: FC<PriceScatterCorrelationChartProps>
                             e.stopPropagation()
                             handlePointClick(data)
                           }}
-                          className="mt-2.5 flex items-center justify-center gap-1.5 w-full rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 font-semibold py-1.5 px-2 text-[11px] transition-colors border border-blue-500/20"
+                          className="mt-2.5 flex items-center justify-center gap-1.5 w-full rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 font-semibold py-1.5 px-2 text-[11px] transition-colors border border-blue-500/20"
                         >
                           <span>Hirdetés megnyitása</span>
                           <ExternalLink className="h-3.5 w-3.5" />

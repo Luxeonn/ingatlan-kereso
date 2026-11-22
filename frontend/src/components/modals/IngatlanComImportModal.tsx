@@ -141,7 +141,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-700">
               <FileCode2 className="h-5 w-5" />
             </div>
             <div>
@@ -166,7 +166,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <div className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-3.5 space-y-2.5">
-            <p className="text-xs font-semibold text-sky-300">
+            <p className="text-xs font-semibold text-sky-700">
               1. Nyisd meg a következő oldalakat a böngésződben ({activeCity}):
             </p>
             <div className="flex flex-wrap gap-2">
@@ -188,7 +188,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
                     type="button"
                     data-testid={`open-ingatlancom-page-${pageNum}`}
                     onClick={() => openExternalUrl(pageUrl)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/30 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-200 hover:bg-sky-500/25 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/30 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-500/25 transition-colors cursor-pointer"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     <span>{pageNum}. oldal megnyitása</span>
@@ -205,7 +205,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
                 onClick={handleCopySnippet}
                 className="inline-flex items-center gap-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-input)] px-2 py-1 text-[11px] font-mono text-[var(--text-primary)] hover:border-sky-400/40"
               >
-                {copiedSnippet ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                {copiedSnippet ? <Check className="h-3 w-3 text-emerald-700" /> : <Copy className="h-3 w-3" />}
                 <span>{copiedSnippet ? 'Másolva!' : CONSOLE_COPY_SNIPPET}</span>
               </button>
             </div>
@@ -216,7 +216,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
               htmlFor="ingatlancom-html-file"
               className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-input)] px-4 py-3 text-xs font-semibold text-[var(--text-primary)] hover:border-sky-500/50 transition-colors"
             >
-              <Upload className="h-4 w-4 text-sky-400" />
+              <Upload className="h-4 w-4 text-sky-700" />
               <span>Mentett .html fájl(ok) kiválasztása (több oldal egyszerre is)</span>
               <input
                 id="ingatlancom-html-file"
@@ -257,9 +257,9 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
           {errorMsg && (
             <div
               role="alert"
-              className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200"
+              className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-700"
             >
-              <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+              <AlertCircle className="h-4 w-4 text-red-700 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -268,9 +268,9 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
             <div
               data-testid="ingatlancom-import-summary"
               role="status"
-              className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200"
+              className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700"
             >
-              <Sparkles className="h-4 w-4 text-emerald-400 shrink-0" />
+              <Sparkles className="h-4 w-4 text-emerald-700 shrink-0" />
               <span>
                 {summary.parsedCount > 0
                   ? `${summary.city}: ${summary.parsedCount} kártya beolvasva -> ${summary.savedCount} egyedi (${summary.newlyAddedCount} új, ${summary.duplicateCount} frissítve). A lista frissült!`

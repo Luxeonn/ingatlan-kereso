@@ -21,8 +21,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Lakás',
     icon: Building2,
     colorClasses: {
-      badge: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-      icon: 'text-indigo-400',
+      badge: 'bg-indigo-500/15 text-indigo-700 border-indigo-500/30',
+      icon: 'text-indigo-700',
     },
   },
   HAZ: {
@@ -30,8 +30,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Ház',
     icon: Home,
     colorClasses: {
-      badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-      icon: 'text-amber-400',
+      badge: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
+      icon: 'text-amber-700',
     },
   },
   TELEK: {
@@ -39,8 +39,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Telek',
     icon: Trees,
     colorClasses: {
-      badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-      icon: 'text-emerald-400',
+      badge: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30',
+      icon: 'text-emerald-700',
     },
   },
   GARAZS: {
@@ -48,8 +48,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Garázs',
     icon: Warehouse,
     colorClasses: {
-      badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
-      icon: 'text-cyan-400',
+      badge: 'bg-cyan-500/15 text-cyan-700 border-cyan-500/30',
+      icon: 'text-cyan-700',
     },
   },
   IPARI_KERESKEDELMI: {
@@ -57,8 +57,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Ipari / Kereskedelmi',
     icon: Factory,
     colorClasses: {
-      badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-      icon: 'text-purple-400',
+      badge: 'bg-purple-500/15 text-purple-700 border-purple-500/30',
+      icon: 'text-purple-700',
     },
   },
   EGYEB_ISMERETLEN: {
@@ -66,8 +66,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Egyéb',
     icon: HelpCircle,
     colorClasses: {
-      badge: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
-      icon: 'text-slate-400',
+      badge: 'bg-slate-500/15 text-slate-600 border-slate-500/30',
+      icon: 'text-slate-600',
     },
   },
 }
@@ -132,13 +132,13 @@ export function getQualityConfig(score: number): QualityConfig {
       ratingLabel: 'Kiváló adatminőség',
       icon: ShieldCheck,
       buttonClasses:
-        'bg-emerald-500/15 border-emerald-500/30 hover:bg-emerald-500/25 text-emerald-400 focus:ring-emerald-400/50',
-      badgeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
-      textClass: 'text-emerald-400',
-      pillClass: 'bg-emerald-500/25 text-emerald-300',
+        'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-emerald-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-emerald-400/50',
+      badgeClass: 'bg-[var(--status-bargain-bg)] border-emerald-500/25 text-[var(--status-bargain-fg)]',
+      textClass: 'text-[var(--status-bargain-fg)]',
+      pillClass: 'bg-[var(--status-bargain-bg)] text-[var(--status-bargain-fg)] border border-emerald-500/25',
       popoverBorderClass: 'border-emerald-500/30',
-      headerTextClass: 'text-emerald-400',
-      barClass: 'bg-emerald-400',
+      headerTextClass: 'text-[var(--status-bargain-fg)]',
+      barClass: 'bg-emerald-500',
     }
   }
   if (score >= 70) {
@@ -147,13 +147,13 @@ export function getQualityConfig(score: number): QualityConfig {
       ratingLabel: 'Elfogadható adatminőség',
       icon: ShieldAlert,
       buttonClasses:
-        'bg-amber-500/15 border-amber-500/30 hover:bg-amber-500/25 text-amber-400 focus:ring-amber-400/50',
-      badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
-      textClass: 'text-amber-400',
-      pillClass: 'bg-amber-500/25 text-amber-300',
+        'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-amber-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-amber-400/50',
+      badgeClass: 'bg-[var(--status-warn-bg)] border-amber-500/25 text-[var(--status-warn-fg)]',
+      textClass: 'text-[var(--status-warn-fg)]',
+      pillClass: 'bg-[var(--status-warn-bg)] text-[var(--status-warn-fg)] border border-amber-500/25',
       popoverBorderClass: 'border-amber-500/30',
-      headerTextClass: 'text-amber-400',
-      barClass: 'bg-amber-400',
+      headerTextClass: 'text-[var(--status-warn-fg)]',
+      barClass: 'bg-amber-500',
     }
   }
   return {
@@ -161,12 +161,12 @@ export function getQualityConfig(score: number): QualityConfig {
     ratingLabel: 'Gyanús / hiányos adat',
     icon: ShieldX,
     buttonClasses:
-      'bg-rose-500/15 border-rose-500/30 hover:bg-rose-500/25 text-rose-400 focus:ring-rose-400/50',
-    badgeClass: 'bg-rose-500/15 border-rose-500/30 text-rose-400',
-    textClass: 'text-rose-400',
-    pillClass: 'bg-rose-500/25 text-rose-300',
+      'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-rose-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-rose-400/50',
+    badgeClass: 'bg-[var(--status-danger-bg)] border-rose-500/25 text-[var(--status-danger-fg)]',
+    textClass: 'text-[var(--status-danger-fg)]',
+    pillClass: 'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-rose-500/25',
     popoverBorderClass: 'border-rose-500/30',
-    headerTextClass: 'text-rose-400',
+    headerTextClass: 'text-[var(--status-danger-fg)]',
     barClass: 'bg-rose-500',
   }
 }
@@ -302,12 +302,12 @@ const PORTAL_DOMAINS: Array<{ domain: string; portalId: string; portalName: stri
 ]
 
 export const PORTAL_COLORS: Record<PortalId, { bg: string; text: string; border: string }> = {
-  dh: { bg: 'bg-orange-500/10 text-orange-400 border-orange-500/30', text: 'text-orange-400', border: 'border-orange-500/40' },
-  oc: { bg: 'bg-red-500/10 text-red-400 border-red-500/30', text: 'text-red-400', border: 'border-red-500/40' },
-  jofogas: { bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', text: 'text-emerald-400', border: 'border-emerald-500/40' },
-  ingatlanbazar: { bg: 'bg-purple-500/10 text-purple-400 border-purple-500/30', text: 'text-purple-400', border: 'border-purple-500/40' },
-  koltozzbe: { bg: 'bg-teal-500/10 text-teal-400 border-teal-500/30', text: 'text-teal-400', border: 'border-teal-500/40' },
-  ingatlancom: { bg: 'bg-sky-500/10 text-sky-400 border-sky-500/30', text: 'text-sky-400', border: 'border-sky-500/40' },
+  dh: { bg: 'bg-orange-500/10 text-orange-700 border-orange-500/30', text: 'text-orange-700', border: 'border-orange-500/40' },
+  oc: { bg: 'bg-red-500/10 text-red-700 border-red-500/30', text: 'text-red-700', border: 'border-red-500/40' },
+  jofogas: { bg: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30', text: 'text-emerald-700', border: 'border-emerald-500/40' },
+  ingatlanbazar: { bg: 'bg-purple-500/10 text-purple-700 border-purple-500/30', text: 'text-purple-700', border: 'border-purple-500/40' },
+  koltozzbe: { bg: 'bg-teal-500/10 text-teal-700 border-teal-500/30', text: 'text-teal-700', border: 'border-teal-500/40' },
+  ingatlancom: { bg: 'bg-sky-500/10 text-sky-700 border-sky-500/30', text: 'text-sky-700', border: 'border-sky-500/40' },
 }
 
 const PORTAL_MATCHERS: ReadonlyArray<readonly [PortalId, readonly string[]]> = [
@@ -369,7 +369,7 @@ export function getPortalStyle(portalId: string): { bg: string; text: string; bo
     const style = PORTAL_COLORS[key as PortalId]
     if (style) return style
   }
-  return { bg: 'bg-blue-500/10 text-blue-400 border-blue-500/30', text: 'text-blue-400', border: 'border-blue-500/40' }
+  return { bg: 'bg-blue-500/10 text-blue-600 border-blue-500/30', text: 'text-blue-600', border: 'border-blue-500/40' }
 }
 
 export function detectPortalFromUrl(url: string): { portalId: string; portalName: string } {
@@ -387,4 +387,4 @@ export function detectPortalFromUrl(url: string): { portalId: string; portalName
   return { portalId: 'egyeb', portalName: 'Hirdetés' }
 }
 
-export { formatOverrideEndpointLabel } from './dedupFormatters'
+export { formatOverrideEndpointLabel, getCrossPortalSpread } from './dedupFormatters'

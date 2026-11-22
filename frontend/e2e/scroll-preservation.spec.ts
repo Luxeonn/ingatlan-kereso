@@ -88,8 +88,11 @@ test.describe('Ingatlan Kereső - Scroll Position Preservation (#459)', () => {
     }
 
     await expect(targetTitle).toBeVisible()
-    await targetTitle.scrollIntoViewIfNeeded()
-    await page.waitForTimeout(150)
+    await targetTitle.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }))
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+    )
+    await page.waitForTimeout(350)
 
     const scrollBefore = await page.evaluate(() => window.scrollY)
     expect(scrollBefore).toBeGreaterThan(300)

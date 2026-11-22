@@ -17,11 +17,11 @@ const TYPES: Array<{ id: PropertyType; label: string }> = [
 
 export const PropertyTypeTabs: FC<PropertyTypeTabsProps> = ({ value, onChange }) => {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-[var(--text-secondary)]">
+    <div className="flex flex-col gap-2.5 h-full justify-between">
+      <label className="text-sm font-bold text-[var(--text-primary)]">
         Ingatlan Típusa
       </label>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-3 gap-2">
         {TYPES.map((t) => {
           const isActive = (value || '').toUpperCase() === t.id
           return (
@@ -30,10 +30,10 @@ export const PropertyTypeTabs: FC<PropertyTypeTabsProps> = ({ value, onChange })
               type="button"
               onClick={() => onChange(t.id)}
               className={cn(
-                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150',
+                'flex h-10 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all duration-150 cursor-pointer',
                 isActive
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                  : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-blue-500/50 hover:text-[var(--text-primary)]'
+                  : 'border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/50 hover:text-blue-600'
               )}
             >
               {t.label}

@@ -1,3 +1,4 @@
+import type { CrossPortalSpreadInfo, IngatlanItem } from '../types/property'
 import { detectPortalFromUrl } from './formatters'
 
 const MAX_ENDPOINT_SEGMENT_LENGTH = 20
@@ -33,4 +34,48 @@ export function formatOverrideEndpointLabel(url: string): string {
       ? `…${rawSegment.slice(-TAIL_KEEP_LENGTH)}`
       : rawSegment
   return `${portalName} #${shortSegment}`
+}
+
+export function getCrossPortalSpread(item: IngatlanItem): CrossPortalSpreadInfo | null {
+  const activeWithPrice = (item.sourceListings ?? []).filter(
+    (s) =>
+      (!s.status || s.status.toUpperCase() === 'ACTIVE') &&
+      typeof s.priceHuf === 'number' &&
+      !Number.isNaN(s.priceHuf) &&
+      s.priceHuf > 0,
+  )
+  if (activeWithPrice.length < 2) return null
+
+  let minActivePriceHuf = Infinity
+  let maxActivePriceHuf = -Infinity
+  let cheapestPortal = ''
+
+  for (const src of activeWithPrice) {
+    const price = src.priceHuf!
+    if (price < minActivePriceHuf) {
+      minActivePriceHuf = price
+      cheapestPortal = src.portal || (src.url ? detectPortalFromUrl(src.url).portalName : 'Forrás')
+    }
+    if (price > maxActivePriceHuf) {
+      maxActivePriceHuf = price
+    }
+  }
+
+  const spreadAmountHuf = maxActivePriceHuf - minActivePriceHuf
+  if (spreadAmountHuf <= 0 || !Number.isFinite(spreadAmountHuf)) {
+    return null
+  }
+
+  const spreadMillion = Number((spreadAmountHuf / 1_000_000).toFixed(1))
+  const spreadPercent = Math.round((spreadAmountHuf / maxActivePriceHuf) * 100)
+
+  return {
+    activeSourcesCount: activeWithPrice.length,
+    minActivePriceHuf,
+    maxActivePriceHuf,
+    spreadAmountHuf,
+    spreadMillion,
+    spreadPercent,
+    cheapestPortal,
+  }
 }
