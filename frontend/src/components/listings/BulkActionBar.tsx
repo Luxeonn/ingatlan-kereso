@@ -36,12 +36,12 @@ function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
   for (const item of sourceItems) {
     if (isItemBargain(item)) counts.bargain += 1
     if (isListingNew(item)) counts.onlyNew += 1
-    if (!item.viewed) counts.excludeViewed += 1
+    if (item.viewed) counts.excludeViewed += 1
     if (item.newConstruction) counts.onlyNewConstruction += 1
     const sourceCount = getItemSourceListingsCount(item)
     if (sourceCount === 1) counts.excludeMultiSource += 1
     if (sourceCount > 1) counts.onlyMultiSource += 1
-    if (hasListingImage(item)) counts.excludeNoImage += 1
+    if (!hasListingImage(item)) counts.excludeNoImage += 1
   }
   return counts
 }
