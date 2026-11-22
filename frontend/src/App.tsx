@@ -160,6 +160,11 @@ function hasExecutedOrNonLiveView(listingSubView: ListingSubView, data: Dashboar
   return listingSubView !== 'listings' || Boolean(data)
 }
 
+function resolveMedianSqmPrice(data: DashboardResponseDto | null | undefined): number | undefined {
+  const stats = data?.marketStats
+  return stats?.medianPricePerM2 ?? stats?.residentialMedianPricePerM2 ?? stats?.plotMedianPricePerM2
+}
+
 export const App: FC = () => {
   const searchState = useSearch()
   const { criteria, setCriteria, setAllPortals } = useFilterStore()
@@ -206,6 +211,7 @@ export const App: FC = () => {
 
   const hasSearched = hasExecutedOrNonLiveView(ui.listingSubView, searchState.data)
   const clearHistoryFn = isArchiveView ? () => void searchState.clearArchiveHistory() : undefined
+  const medianPricePerSqm = resolveMedianSqmPrice(searchState.data)
 
   const handleSelectListings = () => {
     ui.setDashboardTab('listings')
@@ -272,6 +278,7 @@ export const App: FC = () => {
                 rawItems={slice.activeRawItems}
                 totalRawCount={slice.activeRawCount}
                 serverFilteredCount={searchState.data?.filteredCount}
+                medianPricePerSqm={medianPricePerSqm}
                 isLoading={slice.activeLoading}
                 hasSearched={hasSearched}
                 mode={ui.listingSubView}

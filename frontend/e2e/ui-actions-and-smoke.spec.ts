@@ -286,12 +286,16 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     const filterSelectorBtn = filterChipsRow.getByTestId('quick-filter-selector-btn')
     await expect(filterSelectorBtn).toBeVisible()
 
-    // Verify static MarketStatsBar cards (#R3)
+    // Verify interactive MarketStatsBar filter cards
     const statsBar = page.getByTestId('market-stats-bar')
     await expect(statsBar).toBeVisible()
-    const bargainCard = statsBar.getByText('Alkalmi Vételek')
+    const bargainCard = statsBar.getByTestId('kpi-filter-bargain')
     await bargainCard.click()
+    await expect(bargainCard).toHaveAttribute('aria-pressed', 'true')
     await expect(headerBar.getByTestId('tab-listings')).toHaveAttribute('aria-pressed', 'true')
+    const allCard = statsBar.getByTestId('kpi-filter-all')
+    await allCard.click()
+    await expect(allCard).toHaveAttribute('aria-pressed', 'true')
 
     // Switch between embedded Favorites and Listings sub-views (#157)
     const listingsPanel = page.getByTestId('listings-panel')

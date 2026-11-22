@@ -4,7 +4,7 @@ import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
 import type { ListingSubView } from '../../store/useUiStore'
 import { useUiStore } from '../../store/useUiStore'
-import { getTotalSourceListingsCount } from '../../utils/formatters'
+import { formatPricePerSqm, getTotalSourceListingsCount } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 export interface ListingsPanelProps {
@@ -12,6 +12,7 @@ export interface ListingsPanelProps {
   rawItems?: IngatlanItem[]
   totalRawCount: number
   serverFilteredCount?: number
+  medianPricePerSqm?: number | null
   isLoading: boolean
   hasSearched: boolean
   mode?: ListingSubView
@@ -40,21 +41,24 @@ interface MultiSourceNoticeProps {
   itemsCount: number
   totalSourceListingsCount: number
   serverFilteredCount?: number
+  medianPricePerSqm?: number | null
 }
 
 const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
   itemsCount,
   totalSourceListingsCount,
   serverFilteredCount,
+  medianPricePerSqm,
 }) => {
   const mergedDuplicatesCount = Math.max(0, totalSourceListingsCount - itemsCount)
   const hasFiltered = serverFilteredCount !== undefined && serverFilteredCount > 0
-  if (mergedDuplicatesCount === 0 && !hasFiltered) return null
+  const hasMedian = medianPricePerSqm !== null && medianPricePerSqm !== undefined && medianPricePerSqm > 0
+  if (mergedDuplicatesCount === 0 && !hasFiltered && !hasMedian) return null
 
   return (
     <div
       data-testid="multi-source-summary-notice"
-      className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-700"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-700 tabular-nums"
     >
       <span>
         <strong className="font-bold text-indigo-700">{itemsCount} egyedi ingatlan</strong>
@@ -63,6 +67,9 @@ const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
         )}
         {hasFiltered && (
           <> · <strong className="font-bold text-indigo-700">{serverFilteredCount} szűrt</strong></>
+        )}
+        {hasMedian && (
+          <> · Medián m² ár: <strong className="font-bold text-indigo-700">{formatPricePerSqm(medianPricePerSqm)}</strong></>
         )}
       </span>
     </div>
@@ -129,6 +136,7 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   rawItems,
   totalRawCount,
   serverFilteredCount,
+  medianPricePerSqm,
   isLoading,
   hasSearched,
   mode,
@@ -184,6 +192,7 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
           itemsCount={items.length}
           totalSourceListingsCount={totalSourceListingsCount}
           serverFilteredCount={serverFilteredCount}
+          medianPricePerSqm={medianPricePerSqm}
         />
       )}
 
