@@ -7,11 +7,18 @@ import {
   Trash2,
   Layers,
   ImageOff,
+  ArrowLeftRight,
 } from 'lucide-react'
-import { PORTAL_CHIPS, normalizePortalKey } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { useUiStore, type QuickFilterId } from '../../store/useUiStore'
+import { useFilterStore } from '../../store/useFilterStore'
 import { QuickFilterPopover } from './QuickFilterPopover'
+export { PortalFilterChipsRow, type PortalFilterChipsRowProps } from './PortalFilterChipsRow'
+import {
+  cycleTriStateMode,
+  getTriStateMode,
+  resolveTriStateChipLabel,
+} from './quickFilterTriState'
 
 interface QuickFilterCountBadgeProps {
   count?: number
@@ -43,6 +50,7 @@ const QuickFilterCountBadge: FC<QuickFilterCountBadgeProps> = ({
 }
 
 interface QuickFilterToggleButtonProps {
+  filterId: QuickFilterId
   testId?: string
   isActive?: boolean
   onClick: () => void
@@ -59,6 +67,7 @@ interface QuickFilterToggleButtonProps {
 }
 
 const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
+  filterId,
   testId,
   isActive,
   onClick,
@@ -72,30 +81,67 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
   countTestId,
   activeBadgeClass = 'bg-white/20 text-white',
   inactiveBadgeClass = 'bg-[var(--bg-input)] text-[var(--text-primary)]',
-}) => (
-  <button
-    type="button"
-    data-testid={testId}
-    aria-pressed={isActive}
-    aria-label={ariaLabel}
-    onClick={onClick}
-    title={title}
-    className={cn(
-      'flex h-8 flex-1 min-w-[130px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition-all cursor-pointer',
-      isActive ? activeClassName : inactiveClassName,
-    )}
-  >
-    {icon}
-    <span className="truncate">{label}</span>
-    <QuickFilterCountBadge
-      count={count}
-      testId={countTestId}
-      isActive={isActive}
-      activeClass={activeBadgeClass}
-      inactiveClass={inactiveBadgeClass}
-    />
-  </button>
-)
+}) => {
+  const mode = getTriStateMode(filterId)
+  const effectiveLabel = resolveTriStateChipLabel(filterId, mode, label)
+  const isInverseMode =
+    (filterId === 'hidden' && mode === 'all') ||
+    (filterId !== 'hidden' &&
+      filterId !== 'excludeMultiSource' &&
+      filterId !== 'onlyMultiSource' &&
+      !isActive &&
+      mode !== 'all')
+
+  const containerClass = isInverseMode
+    ? mode === 'only'
+      ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/25'
+      : 'border border-rose-500/50 bg-rose-500/15 text-rose-700 ring-1 ring-rose-500/25'
+    : isActive
+      ? activeClassName
+      : inactiveClassName
+
+  return (
+    <div
+      className={cn(
+        'flex h-8 flex-1 min-w-[150px] items-stretch overflow-hidden rounded-lg transition-all',
+        containerClass,
+      )}
+    >
+      <button
+        type="button"
+        data-testid={testId}
+        aria-pressed={Boolean(isActive || isInverseMode)}
+        aria-label={ariaLabel}
+        onClick={onClick}
+        title={title}
+        className="flex flex-1 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-bold cursor-pointer"
+      >
+        {icon}
+        <span className="truncate">{effectiveLabel}</span>
+        <QuickFilterCountBadge
+          count={count}
+          testId={countTestId}
+          isActive={isActive}
+          activeClass={activeBadgeClass}
+          inactiveClass={inactiveBadgeClass}
+        />
+      </button>
+      <button
+        type="button"
+        data-testid={`quick-filter-cycle-${filterId}`}
+        aria-label="Szűrőmód váltása (Mind / Csak / Kizár)"
+        title="Állapot váltása: Mind ↔ Csak ez ↔ Kizárva"
+        onClick={(e) => {
+          e.stopPropagation()
+          cycleTriStateMode(filterId)
+        }}
+        className="flex items-center justify-center border-l border-current/20 px-1.5 opacity-70 hover:opacity-100 hover:bg-black/5 transition-opacity cursor-pointer shrink-0"
+      >
+        <ArrowLeftRight className="h-3 w-3" />
+      </button>
+    </div>
+  )
+}
 
 export interface QuickFilterChipsRowProps {
   onlyNew: boolean
@@ -151,6 +197,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
   hiddenCount,
 }) => {
   const { pinnedQuickFilters, togglePinnedQuickFilter } = useUiStore()
+  useFilterStore()
   const isPinned = (id: QuickFilterId) => pinnedQuickFilters.includes(id)
 
   return (
@@ -161,6 +208,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
       <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
         {isPinned('bargain') && (
           <QuickFilterToggleButton
+            filterId="bargain"
             testId="bargain-filter-toggle"
             isActive={onlyBargain}
             onClick={() => setOnlyBargain(!onlyBargain)}
@@ -178,6 +226,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
 
         {isPinned('onlyNew') && (
           <QuickFilterToggleButton
+            filterId="onlyNew"
             isActive={onlyNew}
             onClick={() => setOnlyNew(!onlyNew)}
             activeClassName="border border-emerald-500/40 bg-emerald-500/15 text-emerald-700 shadow-sm"
@@ -191,6 +240,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
 
         {isPinned('hidden') && setShowHidden && (
           <QuickFilterToggleButton
+            filterId="hidden"
             testId="hidden-filter-toggle"
             isActive={showHidden}
             onClick={() => setShowHidden(!showHidden)}
@@ -208,6 +258,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
 
         {isPinned('excludeViewed') && (
           <QuickFilterToggleButton
+            filterId="excludeViewed"
             isActive={excludeViewed}
             onClick={() => setExcludeViewed(!excludeViewed)}
             activeClassName="border border-blue-500/40 bg-blue-500/15 text-blue-600 shadow-sm"
@@ -221,6 +272,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
 
         {isPinned('onlyNewConstruction') && (
           <QuickFilterToggleButton
+            filterId="onlyNewConstruction"
             isActive={onlyNewConstruction}
             ariaLabel="Csak új építésű ingatlanok"
             onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
@@ -235,6 +287,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
 
         {isPinned('excludeMultiSource') && setExcludeMultiSource && (
           <QuickFilterToggleButton
+            filterId="excludeMultiSource"
             testId="exclude-multi-source-toggle"
             isActive={excludeMultiSource}
             onClick={() => setExcludeMultiSource(!excludeMultiSource)}
@@ -250,6 +303,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
 
         {isPinned('onlyMultiSource') && setOnlyMultiSource && (
           <QuickFilterToggleButton
+            filterId="onlyMultiSource"
             testId="only-multi-source-toggle"
             isActive={onlyMultiSource}
             onClick={() => setOnlyMultiSource(!onlyMultiSource)}
@@ -266,6 +320,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
 
         {isPinned('excludeNoImage') && setExcludeNoImage && (
           <QuickFilterToggleButton
+            filterId="excludeNoImage"
             testId="exclude-no-image-filter"
             isActive={excludeNoImage}
             onClick={() => setExcludeNoImage(!excludeNoImage)}
@@ -286,73 +341,6 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
           onToggleFilter={togglePinnedQuickFilter}
         />
       </div>
-    </div>
-  )
-}
-
-export interface PortalFilterChipsRowProps {
-  selectedPortalFilter: string
-  setSelectedPortalFilter: (id: string) => void
-  portalCounts: Record<string, number>
-  searchedPortals?: string[]
-}
-
-export const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
-  selectedPortalFilter,
-  setSelectedPortalFilter,
-  portalCounts,
-  searchedPortals,
-}) => {
-  const activePortalSet =
-    searchedPortals && searchedPortals.length > 0
-      ? new Set(searchedPortals.map(normalizePortalKey).filter(Boolean))
-      : null
-
-  const visibleChips = PORTAL_CHIPS.filter((chip) => {
-    if (!activePortalSet) return true
-    if (chip.id === 'all') return activePortalSet.size > 1
-    return activePortalSet.has(chip.id)
-  })
-
-  const effectiveSelectedId =
-    activePortalSet && activePortalSet.size === 1
-      ? Array.from(activePortalSet)[0]
-      : selectedPortalFilter
-
-  return (
-    <div
-      data-testid="portal-quick-filter-chips"
-      className="flex flex-wrap items-center gap-2 border-t border-[var(--border-hairline)] pt-2.5"
-    >
-      {visibleChips.map((chip) => {
-        const count = portalCounts[chip.id] || 0
-        const isActive = effectiveSelectedId === chip.id
-        return (
-          <button
-            key={chip.id}
-            type="button"
-            onClick={() => setSelectedPortalFilter(chip.id)}
-            className={cn(
-              'flex h-9 flex-1 min-w-[115px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-bold transition-all duration-150 cursor-pointer',
-              isActive
-                ? 'border-blue-500/40 bg-blue-500/15 text-blue-700 shadow-sm'
-                : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] opacity-80 hover:opacity-100 hover:border-blue-500/40',
-            )}
-          >
-            <span className="truncate">{chip.label}</span>
-            <span
-              className={cn(
-                'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums shrink-0',
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-[var(--bg-input)] text-[var(--text-primary)]',
-              )}
-            >
-              {count}
-            </span>
-          </button>
-        )
-      })}
     </div>
   )
 }

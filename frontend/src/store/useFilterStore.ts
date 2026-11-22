@@ -1,9 +1,6 @@
 import { create } from 'zustand'
 import type { SearchCriteria } from '../types/api'
-import type { PropertyType } from '../types/property'
-import type { PortalId, PortalFilterOption } from '../types/portal'
-import { normalizePortalKey, normalizePropertyType } from '../utils/formatters'
-import { safeParseSortOption, safeParseStorageBoolean } from '../utils/validation'
+import { normalizePropertyType } from '../utils/formatters'
 import {
   parseUrlParams,
   appendCriteriaParams,
@@ -12,129 +9,22 @@ import {
   DEFAULT_PORTALS,
   type SortOption,
 } from './filterUrlSync'
+import {
+  SORT_OPTIONS,
+  isSortOption,
+  safeSetStorageItem,
+  getStoredSortOption,
+  getStoredExcludeViewed,
+  getStoredExcludeMultiSource,
+  getStoredOnlyMultiSource,
+  getStoredExcludeNoImage,
+  DEFAULT_CRITERIA,
+  resolvePortalFilterForPortals,
+  sanitizeCriteriaPartial,
+  type FilterState,
+} from './filterStoreHelpers'
 
-export { DEFAULT_PORTALS, computeCriteriaHash, type SortOption }
-
-export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
-  { value: 'price_asc', label: 'Ár: Növekvő (alapértelmezett)' },
-  { value: 'price_desc', label: 'Ár: Csökkenő' },
-  { value: 'area_desc', label: 'Méret: Legnagyobb elöl' },
-  { value: 'date_desc', label: 'Felfedezés: Legfrissebb' },
-  { value: 'bargain_desc', label: 'Alkalmi vétel: Legnagyobb kedvezmény elöl' },
-]
-
-const VALID_SORTS: SortOption[] = SORT_OPTIONS.map((o) => o.value)
-
-function safeGetStorageItem(key: string): string | null {
-  if (typeof window === 'undefined') return null
-  try {
-    return localStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-
-function safeSetStorageItem(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value)
-  } catch {
-    // ignore storage errors
-  }
-}
-
-export function isSortOption(val: unknown): val is SortOption {
-  return typeof val === 'string' && VALID_SORTS.includes(val as SortOption)
-}
-
-function getStoredSortOption(): SortOption {
-  const saved = safeGetStorageItem('preferred_sort_option')
-  return safeParseSortOption(saved)
-}
-
-function getStoredExcludeViewed(): boolean {
-  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_viewed'))
-}
-
-function getStoredExcludeMultiSource(): boolean {
-  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_multi_source'))
-}
-
-function getStoredOnlyMultiSource(): boolean {
-  return safeParseStorageBoolean(safeGetStorageItem('preferred_only_multi_source'))
-}
-
-function getStoredExcludeNoImage(): boolean {
-  return safeParseStorageBoolean(safeGetStorageItem('preferred_exclude_no_image'))
-}
-
-const DEFAULT_CRITERIA: SearchCriteria = {
-  cities: ['Hajdúszoboszló'],
-  city: 'Hajdúszoboszló',
-  propertyType: 'HAZ',
-  minPriceMillion: 70,
-  maxPriceMillion: 120,
-  minArea: 90,
-  maxArea: 200,
-  portals: [...DEFAULT_PORTALS],
-  autoOpenBrowser: false,
-  excludeViewed: false,
-  onlyDiscounted: false,
-  onlyNewConstruction: false,
-}
-
-interface FilterState {
-  criteria: SearchCriteria
-  sortOption: SortOption
-  onlyNew: boolean
-  onlyBargain: boolean
-  excludeMultiSource: boolean
-  onlyMultiSource: boolean
-  excludeNoImage: boolean
-  minQualityScore: number
-  quickSearchQuery: string
-  selectedPortalFilter: PortalFilterOption | string
-  showHidden: boolean
-  lastExecutedCriteriaHash: string | null
-
-  setCriteria: (criteria: Partial<SearchCriteria>) => void
-  addCity: (city: string) => void
-  removeCity: (city: string) => void
-  setCities: (cities: string[]) => void
-  setPropertyType: (type: PropertyType | string) => void
-  setMinPriceMillion: (min: number) => void
-  setMaxPriceMillion: (max: number) => void
-  setMinArea: (min: number) => void
-  setMaxArea: (max: number) => void
-  setMinRooms: (minRooms: number | undefined) => void
-  togglePortal: (portalId: PortalId | string) => void
-  setAllPortals: (portals: (PortalId | string)[]) => void
-  setAutoOpen: (auto: boolean) => void
-  setExcludeViewed: (exclude: boolean) => void
-  setOnlyDiscounted: (onlyDiscounted: boolean) => void
-  setOnlyNewConstruction: (onlyNewConstruction: boolean) => void
-  setSortOption: (sort: SortOption) => void
-  setOnlyNew: (onlyNew: boolean) => void
-  setOnlyBargain: (onlyBargain: boolean) => void
-  setExcludeMultiSource: (excludeMultiSource: boolean) => void
-  setOnlyMultiSource: (onlyMultiSource: boolean) => void
-  setExcludeNoImage: (excludeNoImage: boolean) => void
-  setMinQualityScore: (score: number) => void
-  setQuickSearchQuery: (query: string) => void
-  setSelectedPortalFilter: (portal: PortalFilterOption | string) => void
-  setShowHidden: (show: boolean) => void
-  markCriteriaExecuted: (executedCriteria?: SearchCriteria) => void
-  resetToDefaults: () => void
-  syncFromUrl: () => void
-  syncToUrl: (historyMode?: 'replace' | 'push') => void
-}
-
-function resolvePortalFilterForPortals(portals: string[] | undefined, currentFilter: string): string {
-  const normalized = (portals || []).map(normalizePortalKey).filter((k): k is PortalId => Boolean(k) && k !== 'egyeb')
-  const firstNorm = normalized[0]
-  if (firstNorm && normalized.length === 1) return firstNorm
-  if (currentFilter !== 'all' && !normalized.includes(currentFilter as PortalId)) return 'all'
-  return currentFilter
-}
+export { DEFAULT_PORTALS, computeCriteriaHash, SORT_OPTIONS, isSortOption, type SortOption }
 
 export const useFilterStore = create<FilterState>((set, get) => {
   const initial = parseUrlParams()
@@ -146,22 +36,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
   const updateCriteria = (partial: Partial<SearchCriteria>) => {
     set((state) => {
-      const sanitized = { ...partial }
-      if (sanitized.minPriceMillion !== undefined) {
-        sanitized.minPriceMillion = Number.isFinite(sanitized.minPriceMillion) ? Math.max(0, sanitized.minPriceMillion) : 0
-      }
-      if (sanitized.maxPriceMillion !== undefined) {
-        sanitized.maxPriceMillion = Number.isFinite(sanitized.maxPriceMillion) ? Math.max(0, sanitized.maxPriceMillion) : 0
-      }
-      if (sanitized.minArea !== undefined) {
-        sanitized.minArea = Number.isFinite(sanitized.minArea) ? Math.max(0, sanitized.minArea) : 0
-      }
-      if (sanitized.maxArea !== undefined) {
-        sanitized.maxArea = Number.isFinite(sanitized.maxArea) ? Math.max(0, sanitized.maxArea) : 0
-      }
-      if (sanitized.minRooms !== undefined) {
-        sanitized.minRooms = Number.isFinite(sanitized.minRooms) ? Math.max(0, Math.floor(sanitized.minRooms)) : 0
-      }
+      const sanitized = sanitizeCriteriaPartial(partial)
       const nextCriteria = { ...state.criteria, ...sanitized }
       const nextPortalFilter =
         sanitized.portals !== undefined
@@ -181,10 +56,16 @@ export const useFilterStore = create<FilterState>((set, get) => {
     criteria: initialCriteria,
     sortOption: initial.sort || getStoredSortOption(),
     onlyNew: initial.onlyNew || false,
+    excludeNew: false,
     onlyBargain: initial.onlyBargain || false,
+    excludeBargain: false,
+    onlyViewed: false,
+    excludeNewConstruction: false,
     excludeMultiSource: initialExcludeMulti,
     onlyMultiSource: initialOnlyMulti,
     excludeNoImage: initial.excludeNoImage ?? getStoredExcludeNoImage(),
+    onlyNoImage: false,
+    includeHidden: false,
     minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
     selectedPortalFilter: resolvePortalFilterForPortals(initialCriteria.portals, 'all'),
@@ -235,11 +116,28 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     setExcludeViewed: (excludeViewed) => {
       safeSetStorageItem('preferred_exclude_viewed', String(excludeViewed))
+      if (excludeViewed) set({ onlyViewed: false })
       updateCriteria({ excludeViewed })
     },
 
+    setOnlyViewed: (onlyViewed) => {
+      if (onlyViewed) {
+        safeSetStorageItem('preferred_exclude_viewed', 'false')
+        updateCriteria({ excludeViewed: false })
+      }
+      set({ onlyViewed })
+    },
+
     setOnlyDiscounted: (onlyDiscounted) => updateCriteria({ onlyDiscounted }),
-    setOnlyNewConstruction: (onlyNewConstruction) => updateCriteria({ onlyNewConstruction }),
+    setOnlyNewConstruction: (onlyNewConstruction) => {
+      if (onlyNewConstruction) set({ excludeNewConstruction: false })
+      updateCriteria({ onlyNewConstruction })
+    },
+
+    setExcludeNewConstruction: (excludeNewConstruction) => {
+      if (excludeNewConstruction) updateCriteria({ onlyNewConstruction: false })
+      set({ excludeNewConstruction })
+    },
 
     setSortOption: (sortOption) => {
       safeSetStorageItem('preferred_sort_option', sortOption)
@@ -248,13 +146,21 @@ export const useFilterStore = create<FilterState>((set, get) => {
     },
 
     setOnlyNew: (onlyNew) => {
-      set({ onlyNew })
+      set(onlyNew ? { onlyNew: true, excludeNew: false } : { onlyNew: false })
       get().syncToUrl('replace')
     },
 
+    setExcludeNew: (excludeNew) => {
+      set(excludeNew ? { excludeNew: true, onlyNew: false } : { excludeNew: false })
+    },
+
     setOnlyBargain: (onlyBargain) => {
-      set({ onlyBargain })
+      set(onlyBargain ? { onlyBargain: true, excludeBargain: false } : { onlyBargain: false })
       get().syncToUrl('replace')
+    },
+
+    setExcludeBargain: (excludeBargain) => {
+      set(excludeBargain ? { excludeBargain: true, onlyBargain: false } : { excludeBargain: false })
     },
 
     setExcludeMultiSource: (excludeMultiSource) => {
@@ -281,8 +187,13 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     setExcludeNoImage: (excludeNoImage) => {
       safeSetStorageItem('preferred_exclude_no_image', String(excludeNoImage))
-      set({ excludeNoImage })
+      set(excludeNoImage ? { excludeNoImage: true, onlyNoImage: false } : { excludeNoImage: false })
       get().syncToUrl('replace')
+    },
+
+    setOnlyNoImage: (onlyNoImage) => {
+      if (onlyNoImage) safeSetStorageItem('preferred_exclude_no_image', 'false')
+      set(onlyNoImage ? { onlyNoImage: true, excludeNoImage: false } : { onlyNoImage: false })
     },
 
     setMinQualityScore: (minQualityScore) => {
@@ -292,7 +203,9 @@ export const useFilterStore = create<FilterState>((set, get) => {
 
     setQuickSearchQuery: (quickSearchQuery) => set({ quickSearchQuery }),
     setSelectedPortalFilter: (selectedPortalFilter) => set({ selectedPortalFilter }),
-    setShowHidden: (showHidden) => set({ showHidden }),
+    setShowHidden: (showHidden) => set(showHidden ? { showHidden: true, includeHidden: false } : { showHidden: false }),
+    setIncludeHidden: (includeHidden) =>
+      set(includeHidden ? { includeHidden: true, showHidden: false } : { includeHidden: false }),
 
     markCriteriaExecuted: (executedCriteria) => {
       const target = executedCriteria ?? get().criteria
@@ -310,10 +223,16 @@ export const useFilterStore = create<FilterState>((set, get) => {
         criteria: { ...DEFAULT_CRITERIA, excludeViewed: false },
         sortOption: 'price_asc',
         onlyNew: false,
+        excludeNew: false,
         onlyBargain: false,
+        excludeBargain: false,
+        onlyViewed: false,
+        excludeNewConstruction: false,
         excludeMultiSource: false,
         onlyMultiSource: false,
         excludeNoImage: false,
+        onlyNoImage: false,
+        includeHidden: false,
         minQualityScore: 0,
         quickSearchQuery: '',
         selectedPortalFilter: 'all',

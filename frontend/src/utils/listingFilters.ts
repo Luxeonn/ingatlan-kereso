@@ -128,15 +128,20 @@ function matchesQuickSearch(item: IngatlanItem, tokens: string[]): boolean {
 
 export interface ItemFilterOptions {
   onlyNew?: boolean
+  excludeNew?: boolean
   excludeViewed?: boolean
+  onlyViewed?: boolean
   sessionViewedUrls?: ReadonlySet<string>
   onlyNewConstruction?: boolean
+  excludeNewConstruction?: boolean
   onlyDiscounted?: boolean
   minRooms?: number
   onlyBargain?: boolean
+  excludeBargain?: boolean
   excludeMultiSource?: boolean
   onlyMultiSource?: boolean
   excludeNoImage?: boolean
+  onlyNoImage?: boolean
   minQualityScore?: number
   selectedPortalFilter?: string
   quickSearchQuery?: string
@@ -156,7 +161,9 @@ function isSessionViewed(item: IngatlanItem, sessionViewedUrls?: ReadonlySet<str
 function matchesSourceAndImageFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
   if (options.excludeMultiSource && getItemSourceListingsCount(item) !== 1) return false
   if (options.onlyMultiSource && getItemSourceListingsCount(item) <= 1) return false
-  if (options.excludeNoImage && !hasListingImage(item)) return false
+  const hasImg = hasListingImage(item)
+  if (options.excludeNoImage && !hasImg) return false
+  if (options.onlyNoImage && hasImg) return false
   return true
 }
 
@@ -169,12 +176,29 @@ function matchesRoomsAndDiscountFlags(item: IngatlanItem, options: ItemFilterOpt
   return true
 }
 
+function matchesNewAndViewedFlags(item: IngatlanItem, options: ItemFilterOptions, sessionViewed: boolean): boolean {
+  const isNew = isListingNew(item) || sessionViewed
+  if (options.onlyNew && !isNew) return false
+  if (options.excludeNew && isNew) return false
+  const isViewed = Boolean(item.viewed) && !sessionViewed
+  if (options.excludeViewed && isViewed) return false
+  if (options.onlyViewed && !item.viewed) return false
+  return true
+}
+
+function matchesConstructionAndBargainFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
+  if (options.onlyNewConstruction && !item.newConstruction) return false
+  if (options.excludeNewConstruction && item.newConstruction) return false
+  const isBargain = isItemBargain(item)
+  if (options.onlyBargain && !isBargain) return false
+  if (options.excludeBargain && isBargain) return false
+  return true
+}
+
 function matchesItemFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
   const sessionViewed = isSessionViewed(item, options.sessionViewedUrls)
-  if (options.onlyNew && !isListingNew(item) && !sessionViewed) return false
-  if (options.excludeViewed && item.viewed && !sessionViewed) return false
-  if (options.onlyNewConstruction && !item.newConstruction) return false
-  if (options.onlyBargain && !isItemBargain(item)) return false
+  if (!matchesNewAndViewedFlags(item, options, sessionViewed)) return false
+  if (!matchesConstructionAndBargainFlags(item, options)) return false
   if (!matchesRoomsAndDiscountFlags(item, options)) return false
   return matchesSourceAndImageFlags(item, options)
 }

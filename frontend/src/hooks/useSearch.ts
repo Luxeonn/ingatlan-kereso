@@ -38,10 +38,16 @@ export function useSearch() {
     criteria,
     sortOption,
     onlyNew,
+    excludeNew,
     onlyBargain,
+    excludeBargain,
+    onlyViewed,
+    excludeNewConstruction,
     excludeMultiSource,
     onlyMultiSource,
     excludeNoImage,
+    onlyNoImage,
+    includeHidden,
     minQualityScore,
     quickSearchQuery,
     selectedPortalFilter,
@@ -194,7 +200,7 @@ export function useSearch() {
     openUrlsMutation.mutate(urls)
   }
 
-  const filterResetKey = `${criteria.excludeViewed}|${criteria.onlyNewConstruction}|${onlyNew}|${onlyBargain}|${excludeMultiSource}|${onlyMultiSource}|${excludeNoImage}|${minQualityScore}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
+  const filterResetKey = `${criteria.excludeViewed}|${onlyViewed}|${criteria.onlyNewConstruction}|${excludeNewConstruction}|${onlyNew}|${excludeNew}|${onlyBargain}|${excludeBargain}|${excludeMultiSource}|${onlyMultiSource}|${excludeNoImage}|${onlyNoImage}|${includeHidden}|${minQualityScore}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
   const [prevFilterResetKey, setPrevFilterResetKey] = useState(filterResetKey)
   if (prevFilterResetKey !== filterResetKey) {
     setPrevFilterResetKey(filterResetKey)
@@ -206,12 +212,16 @@ export function useSearch() {
   const sharedFilterOptions = useMemo(
     () => ({
       excludeViewed: criteria.excludeViewed,
+      onlyViewed,
       sessionViewedUrls,
       onlyNewConstruction: criteria.onlyNewConstruction,
+      excludeNewConstruction,
       onlyBargain,
+      excludeBargain,
       excludeMultiSource,
       onlyMultiSource,
       excludeNoImage,
+      onlyNoImage,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
@@ -219,12 +229,16 @@ export function useSearch() {
     }),
     [
       criteria.excludeViewed,
+      onlyViewed,
       sessionViewedUrls,
       criteria.onlyNewConstruction,
+      excludeNewConstruction,
       onlyBargain,
+      excludeBargain,
       excludeMultiSource,
       onlyMultiSource,
       excludeNoImage,
+      onlyNoImage,
       minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
@@ -251,8 +265,9 @@ export function useSearch() {
     if (showHidden) {
       return hiddenItems
     }
-    return filterAndSortItems(activeSearchItems, { ...sharedFilterOptions, onlyNew })
-  }, [showHidden, hiddenItems, activeSearchItems, sharedFilterOptions, onlyNew])
+    const baseItems = includeHidden ? [...activeSearchItems, ...hiddenSearchItems] : activeSearchItems
+    return filterAndSortItems(baseItems, { ...sharedFilterOptions, onlyNew, excludeNew })
+  }, [showHidden, includeHidden, hiddenItems, activeSearchItems, hiddenSearchItems, sharedFilterOptions, onlyNew, excludeNew])
 
   const archiveItems = useMemo(
     () => filterAndSortItems(historyQuery.data ?? [], { ...sharedFilterOptions, onlyNew: false }),

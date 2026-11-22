@@ -12,7 +12,8 @@ import { WorkspaceHeaderNav } from '../components/layout/WorkspaceChrome'
 import { BargainHunterTable } from '../components/analytics/BargainHunterTable'
 import { PropertyCard } from '../components/listings/PropertyCard'
 import { ListingsPanel } from '../components/listings/ListingsPanel'
-import { filterItemsByCities } from '../utils/listingFilters'
+import { BulkActionBar } from '../components/listings/BulkActionBar'
+import { applyItemFilters, filterItemsByCities } from '../utils/listingFilters'
 import { sanitizeHistoryQuery } from '../hooks/useArchiveQueries'
 import { useUiStore } from '../store/useUiStore'
 import { useFilterStore } from '../store/useFilterStore'
@@ -364,6 +365,46 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       const areaChip = screen.getByTestId('hot-filter-area')
       fireEvent.click(areaChip)
       expect(useFilterStore.getState().quickSearchQuery).toBe('230 m²')
+    })
+
+    it('supports 3-state (Mind / Csak / Kizár) quick filters including onlyNoImage and excludeBargain', () => {
+      const withImage = createMockIngatlanItem({
+        id: 'img-yes',
+        url: 'https://example.com/img-yes',
+        imageUrl: 'https://example.com/pic.jpg',
+        isBargain: true,
+      })
+      const withoutImage = createMockIngatlanItem({
+        id: 'img-no',
+        url: 'https://example.com/img-no',
+        imageUrl: undefined,
+        isBargain: false,
+      })
+
+      expect(applyItemFilters([withImage, withoutImage], { onlyNoImage: true }).map((i) => i.id)).toEqual([
+        'img-no',
+      ])
+      expect(applyItemFilters([withImage, withoutImage], { excludeNoImage: true }).map((i) => i.id)).toEqual([
+        'img-yes',
+      ])
+      expect(applyItemFilters([withImage, withoutImage], { excludeBargain: true }).map((i) => i.id)).toEqual([
+        'img-no',
+      ])
+
+      render(<BulkActionBar items={[withImage, withoutImage]} rawItems={[withImage, withoutImage]} totalRawCount={2} />)
+      fireEvent.click(screen.getByTestId('quick-filter-selector-btn'))
+
+      fireEvent.click(screen.getByTestId('tri-state-excludeNoImage-only'))
+      expect(useFilterStore.getState().onlyNoImage).toBe(true)
+      expect(useFilterStore.getState().excludeNoImage).toBe(false)
+
+      fireEvent.click(screen.getByTestId('tri-state-excludeNoImage-exclude'))
+      expect(useFilterStore.getState().excludeNoImage).toBe(true)
+      expect(useFilterStore.getState().onlyNoImage).toBe(false)
+
+      fireEvent.click(screen.getByTestId('tri-state-excludeNoImage-all'))
+      expect(useFilterStore.getState().excludeNoImage).toBe(false)
+      expect(useFilterStore.getState().onlyNoImage).toBe(false)
     })
   })
 })
