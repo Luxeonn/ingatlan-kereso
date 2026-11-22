@@ -311,14 +311,16 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     const analyticsTabBtn = headerBar.getByTestId('tab-analytics')
     await expect(analyticsTabBtn).toBeVisible()
     await analyticsTabBtn.click()
-    await expect(analyticsTabBtn).toHaveClass(/bg-indigo-600/)
+    await expect(analyticsTabBtn).toHaveAttribute('aria-selected', 'true')
+    await expect(analyticsTabBtn).toHaveClass(/border-t-indigo-500/)
     await expect(page.getByTestId('market-analytics-panel')).toBeVisible()
 
     // Switch back to Találatok top tab
     const talalatokTabBtn = headerBar.getByTestId('tab-listings')
     await expect(talalatokTabBtn).toBeVisible()
     await talalatokTabBtn.click()
-    await expect(talalatokTabBtn).toHaveClass(/bg-blue-600/)
+    await expect(talalatokTabBtn).toHaveAttribute('aria-selected', 'true')
+    await expect(talalatokTabBtn).toHaveClass(/border-t-blue-500/)
     await expect(page.getByTestId('listings-panel')).toBeVisible()
   })
 })

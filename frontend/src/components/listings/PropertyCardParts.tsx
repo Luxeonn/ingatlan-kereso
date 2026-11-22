@@ -353,7 +353,7 @@ export const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
       </div>
     </div>
     {item && item.qualityScore !== null && item.qualityScore !== undefined && (
-      <QualityScoreShield item={item} />
+      <QualityScoreShield item={item} popoverPlacement="top-right" />
     )}
   </div>
 )

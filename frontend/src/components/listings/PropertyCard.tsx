@@ -326,7 +326,7 @@ export const PropertyCard: FC<PropertyCardProps> = ({
         if (isSelectionModifier(e)) toggleFromEvent(e)
       }}
       className={cn(
-        'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
+        'group relative flex flex-col justify-between overflow-visible hover:z-30 focus-within:z-30 rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
         getCardBorderClass(isSelected, isStarred, item.viewed, sourcesCount > 1),
         isHiding ? 'opacity-0 scale-95 transition-all duration-150 pointer-events-none' : '',
       )}

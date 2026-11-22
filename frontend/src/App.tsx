@@ -246,62 +246,69 @@ export const App: FC = () => {
         <NewCitiesInitializedBanner cities={searchState.data?.newCitiesInitialized} />
         <MarketStatsBar data={searchState.data} />
 
-        <WorkspaceHeaderNav
-          dashboardTab={ui.dashboardTab}
-          listingSubView={ui.listingSubView}
-          onSelectListings={handleSelectListings}
-          onSelectArchive={handleSelectArchive}
-          onSelectAnalytics={() => ui.setDashboardTab('analytics')}
-        />
-
-        {isArchiveView && (
-          <ArchiveSubViewToolbar
-            allCount={searchState.rawArchiveItems.length}
-            hiddenCount={globalHiddenData?.length}
-            discountedCount={globalDiscountedData?.length}
+        <section aria-label="Munkaterület" className="space-y-0">
+          <WorkspaceHeaderNav
+            dashboardTab={ui.dashboardTab}
+            listingSubView={ui.listingSubView}
+            onSelectListings={handleSelectListings}
+            onSelectArchive={handleSelectArchive}
+            onSelectAnalytics={() => ui.setDashboardTab('analytics')}
           />
-        )}
 
-        {ui.dashboardTab === 'listings' ? (
-          <ListingsPanel
-            items={slice.activeItems}
-            rawItems={slice.activeRawItems}
-            totalRawCount={slice.activeRawCount}
-            serverFilteredCount={searchState.data?.filteredCount}
-            isLoading={slice.activeLoading}
-            hasSearched={hasSearched}
-            mode={ui.listingSubView}
-            subView={ui.listingSubView}
-            onSubViewChange={ui.setListingSubView}
-            searchCount={searchState.rawCount}
-            favoritesCount={searchState.favoritesCount}
-            archiveCount={searchState.rawArchiveItems.length}
-            onMarkViewed={searchState.markAsViewed}
-            onOpenAll={searchState.openAllTabs}
-            onTriggerSearch={handleSearch}
-            onClearHistory={clearHistoryFn}
-            isClearingHistory={searchState.isClearingHistory}
-            onHide={searchState.hideProperty}
-            onRestore={searchState.restoreProperty}
-            onSplitSource={searchState.splitSource}
-            onUndoOverride={searchState.undoDedupOverride}
-            onMergeSelected={searchState.mergeSelected}
-            isMerging={searchState.isMerging}
-            hiddenCount={searchState.hiddenCount}
-          />
-        ) : (
-          <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
-            <MarketAnalyticsPanel
-              items={searchState.items}
-              serverMarketStats={searchState.data?.marketStats}
-              onMarkViewed={searchState.markAsViewed}
-              onOpenListing={(url) => {
-                openExternalUrl(url)
-                searchState.markAsViewed(url)
-              }}
-            />
-          </Suspense>
-        )}
+          <div
+            role="tabpanel"
+            className="rounded-b-2xl rounded-tr-2xl border border-t-0 border-[var(--border-hairline)] bg-[var(--bg-surface)]/70 p-4 sm:p-5 shadow-sm space-y-4"
+          >
+            {isArchiveView && (
+              <ArchiveSubViewToolbar
+                allCount={searchState.rawArchiveItems.length}
+                hiddenCount={globalHiddenData?.length}
+                discountedCount={globalDiscountedData?.length}
+              />
+            )}
+
+            {ui.dashboardTab === 'listings' ? (
+              <ListingsPanel
+                items={slice.activeItems}
+                rawItems={slice.activeRawItems}
+                totalRawCount={slice.activeRawCount}
+                serverFilteredCount={searchState.data?.filteredCount}
+                isLoading={slice.activeLoading}
+                hasSearched={hasSearched}
+                mode={ui.listingSubView}
+                subView={ui.listingSubView}
+                onSubViewChange={ui.setListingSubView}
+                searchCount={searchState.rawCount}
+                favoritesCount={searchState.favoritesCount}
+                archiveCount={searchState.rawArchiveItems.length}
+                onMarkViewed={searchState.markAsViewed}
+                onOpenAll={searchState.openAllTabs}
+                onTriggerSearch={handleSearch}
+                onClearHistory={clearHistoryFn}
+                isClearingHistory={searchState.isClearingHistory}
+                onHide={searchState.hideProperty}
+                onRestore={searchState.restoreProperty}
+                onSplitSource={searchState.splitSource}
+                onUndoOverride={searchState.undoDedupOverride}
+                onMergeSelected={searchState.mergeSelected}
+                isMerging={searchState.isMerging}
+                hiddenCount={searchState.hiddenCount}
+              />
+            ) : (
+              <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
+                <MarketAnalyticsPanel
+                  items={searchState.items}
+                  serverMarketStats={searchState.data?.marketStats}
+                  onMarkViewed={searchState.markAsViewed}
+                  onOpenListing={(url) => {
+                    openExternalUrl(url)
+                    searchState.markAsViewed(url)
+                  }}
+                />
+              </Suspense>
+            )}
+          </div>
+        </section>
       </main>
 
       <GlobalUndoToast

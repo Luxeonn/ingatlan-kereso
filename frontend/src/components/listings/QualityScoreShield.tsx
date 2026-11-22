@@ -15,9 +15,14 @@ export type { QualityConfig, QualityTierKey }
 export interface QualityScoreShieldProps {
   item: IngatlanItem
   className?: string
+  popoverPlacement?: 'top-right' | 'bottom-left'
 }
 
-export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, className = '' }) => {
+export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({
+  item,
+  className = '',
+  popoverPlacement = 'bottom-left',
+}) => {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const popoverId = useId()
@@ -89,7 +94,8 @@ export const QualityScoreShield: React.FC<QualityScoreShieldProps> = ({ item, cl
           data-testid="quality-score-popover"
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            'absolute top-full left-0 mt-1.5 z-50 w-72 sm:w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border bg-[var(--bg-elevated)] p-3.5 shadow-2xl backdrop-blur-md text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150',
+            'absolute z-50 w-72 sm:w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border bg-[var(--bg-elevated)] p-3.5 shadow-2xl backdrop-blur-md text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150',
+            popoverPlacement === 'top-right' ? 'bottom-full right-0 mb-2' : 'top-full left-0 mt-1.5',
             config.popoverBorderClass,
           )}
         >

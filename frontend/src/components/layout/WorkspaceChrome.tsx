@@ -22,23 +22,30 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
   const isListingsActive = dashboardTab === 'listings' && listingSubView !== 'archive'
   const isArchiveActive = dashboardTab === 'listings' && listingSubView === 'archive'
   const isAnalyticsActive = dashboardTab === 'analytics'
-  const inactiveClass =
-    'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)]'
+
+  const baseTabClass =
+    'relative flex items-center gap-2 rounded-t-xl border px-4 py-2.5 text-xs font-bold transition-all cursor-pointer -mb-px select-none'
+  const inactiveTabClass =
+    'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/70 hover:text-[var(--text-primary)]'
 
   return (
     <div
       data-testid="listings-panel-header"
-      className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-hairline)] pb-3"
+      className="flex flex-wrap items-end justify-between gap-2 border-b border-[var(--border-hairline)] px-1"
     >
-      <nav aria-label="Fő nézetek" className="flex flex-wrap items-center gap-2">
+      <div role="tablist" aria-label="Fő nézetek" className="flex flex-wrap items-end gap-1">
         <button
           type="button"
+          role="tab"
           data-testid="tab-listings"
+          aria-selected={isListingsActive}
           aria-pressed={isListingsActive}
           onClick={onSelectListings}
           className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
-            isListingsActive ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : inactiveClass,
+            baseTabClass,
+            isListingsActive
+              ? 'border-[var(--border-hairline)] border-t-2 border-t-blue-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-blue-500 dark:text-blue-400 shadow-sm'
+              : inactiveTabClass,
           )}
         >
           <LayoutGrid className="h-4 w-4" />
@@ -47,12 +54,16 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
 
         <button
           type="button"
+          role="tab"
           data-testid="tab-archive"
+          aria-selected={isArchiveActive}
           aria-pressed={isArchiveActive}
           onClick={onSelectArchive}
           className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
-            isArchiveActive ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20' : inactiveClass,
+            baseTabClass,
+            isArchiveActive
+              ? 'border-[var(--border-hairline)] border-t-2 border-t-purple-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-purple-600 dark:text-purple-400 shadow-sm'
+              : inactiveTabClass,
           )}
         >
           <Archive className="h-4 w-4" />
@@ -61,18 +72,22 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
 
         <button
           type="button"
+          role="tab"
           data-testid="tab-analytics"
+          aria-selected={isAnalyticsActive}
           aria-pressed={isAnalyticsActive}
           onClick={onSelectAnalytics}
           className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer',
-            isAnalyticsActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : inactiveClass,
+            baseTabClass,
+            isAnalyticsActive
+              ? 'border-[var(--border-hairline)] border-t-2 border-t-indigo-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-indigo-600 dark:text-indigo-400 shadow-sm'
+              : inactiveTabClass,
           )}
         >
           <BarChart2 className="h-4 w-4" />
           <span>Piaci Elemzés</span>
         </button>
-      </nav>
+      </div>
     </div>
   )
 }

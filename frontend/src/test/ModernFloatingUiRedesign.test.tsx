@@ -9,6 +9,9 @@ import { MarketSegmentMatrixTable } from '../components/analytics/MarketSegmentM
 import { ArchiveSubViewToolbar } from '../components/archive/ArchiveSubViewToolbar'
 import { NewCitiesInitializedBanner } from '../components/layout/StatusBanners'
 import { Header } from '../components/layout/Header'
+import { WorkspaceHeaderNav } from '../components/layout/WorkspaceChrome'
+import { BargainHunterTable } from '../components/analytics/BargainHunterTable'
+import { PropertyCard } from '../components/listings/PropertyCard'
 import { sanitizeHistoryQuery } from '../hooks/useArchiveQueries'
 import { useUiStore } from '../store/useUiStore'
 import { useFilterStore } from '../store/useFilterStore'
@@ -231,6 +234,106 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
 
       useFilterStore.getState().setMinRooms(3)
       expect(useFilterStore.getState().criteria.minRooms).toBe(3)
+    })
+
+    it('renders PropertyCard with overflow-visible and top-right QualityScoreShield popover placement', () => {
+      const item = createMockIngatlanItem({
+        id: 'qual-1',
+        url: 'https://example.com/qual-1',
+        qualityScore: 100,
+        qualityDeductions: [],
+      })
+
+      render(<PropertyCard item={item} onMarkViewed={vi.fn()} />)
+      const card = screen.getByTestId('property-card')
+      expect(card.className).toContain('overflow-visible')
+
+      const qualityBtn = screen.getByTestId('quality-score-button')
+      fireEvent.click(qualityBtn)
+      const popover = screen.getByTestId('quality-score-popover')
+      expect(popover.className).toContain('bottom-full')
+      expect(popover.className).toContain('right-0')
+    })
+
+    it('sorts BargainHunterTable deals by percentage descending and shows thumbnail preview on hover', () => {
+      const dealLow = {
+        item: createMockIngatlanItem({
+          id: 'b-low',
+          url: 'https://example.com/b-low',
+          title: 'Alacsonyabb kedvezmény',
+          imageUrl: 'https://example.com/low.jpg',
+        }),
+        cityAvgSqmPrice: 900_000,
+        discountPercent: 18,
+        sqmDiffFt: 150_000,
+      }
+      const dealBest = {
+        item: createMockIngatlanItem({
+          id: 'b-best',
+          url: 'https://example.com/b-best',
+          title: 'Legjobb kedvezmény',
+          imageUrl: 'https://example.com/best.jpg',
+        }),
+        cityAvgSqmPrice: 900_000,
+        discountPercent: 39,
+        sqmDiffFt: 350_000,
+      }
+      const dropSmall = createMockIngatlanItem({
+        id: 'd-small',
+        url: 'https://example.com/d-small',
+        title: 'Kisebb leárazás',
+        priceDelta: -5_000_000,
+        priceChangePercent: -5,
+        imageUrl: 'https://example.com/d-small.jpg',
+      })
+      const dropLarge = createMockIngatlanItem({
+        id: 'd-large',
+        url: 'https://example.com/d-large',
+        title: 'Nagyobb százalékos leárazás',
+        priceDelta: -3_000_000,
+        priceChangePercent: -15,
+        imageUrl: 'https://example.com/d-large.jpg',
+      })
+
+      render(
+        <BargainHunterTable
+          belowMarketDeals={[dealLow, dealBest]}
+          topPriceDrops={[dropSmall, dropLarge]}
+        />,
+      )
+
+      const titles = screen.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)
+      expect(titles).toEqual(['Legjobb kedvezmény', 'Alacsonyabb kedvezmény'])
+
+      expect(screen.queryByTestId('bargain-hover-thumbnail')).toBeNull()
+      fireEvent.mouseEnter(screen.getByText('Legjobb kedvezmény'))
+      const preview = screen.getByTestId('bargain-hover-thumbnail')
+      expect(preview).toBeTruthy()
+      const img = preview.querySelector('img')
+      expect(img?.getAttribute('src')).toBe('https://example.com/best.jpg')
+
+      fireEvent.click(screen.getByRole('button', { name: /Leárazások/i }))
+      const dropTitles = screen.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)
+      expect(dropTitles).toEqual(['Nagyobb százalékos leárazás', 'Kisebb leárazás'])
+    })
+
+    it('renders WorkspaceHeaderNav as bookmark-style panel tabs with tablist and tab roles', () => {
+      render(
+        <WorkspaceHeaderNav
+          dashboardTab="listings"
+          listingSubView="archive"
+          onSelectListings={vi.fn()}
+          onSelectArchive={vi.fn()}
+          onSelectAnalytics={vi.fn()}
+        />,
+      )
+
+      expect(screen.getByRole('tablist')).toBeTruthy()
+      const archiveTab = screen.getByTestId('tab-archive')
+      expect(archiveTab.getAttribute('role')).toBe('tab')
+      expect(archiveTab.getAttribute('aria-selected')).toBe('true')
+      expect(archiveTab.getAttribute('aria-pressed')).toBe('true')
+      expect(archiveTab.className).toContain('rounded-t-xl')
     })
   })
 })

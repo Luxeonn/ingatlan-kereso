@@ -132,13 +132,13 @@ export function getQualityConfig(score: number): QualityConfig {
       ratingLabel: 'Kiváló adatminőség',
       icon: ShieldCheck,
       buttonClasses:
-        'bg-emerald-500/15 border-emerald-500/30 hover:bg-emerald-500/25 text-emerald-400 focus:ring-emerald-400/50',
-      badgeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
-      textClass: 'text-emerald-400',
-      pillClass: 'bg-emerald-500/25 text-emerald-300',
+        'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-emerald-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-emerald-400/50',
+      badgeClass: 'bg-[var(--status-bargain-bg)] border-emerald-500/25 text-[var(--status-bargain-fg)]',
+      textClass: 'text-[var(--status-bargain-fg)]',
+      pillClass: 'bg-[var(--status-bargain-bg)] text-[var(--status-bargain-fg)] border border-emerald-500/25',
       popoverBorderClass: 'border-emerald-500/30',
-      headerTextClass: 'text-emerald-400',
-      barClass: 'bg-emerald-400',
+      headerTextClass: 'text-[var(--status-bargain-fg)]',
+      barClass: 'bg-emerald-500',
     }
   }
   if (score >= 70) {
@@ -147,13 +147,13 @@ export function getQualityConfig(score: number): QualityConfig {
       ratingLabel: 'Elfogadható adatminőség',
       icon: ShieldAlert,
       buttonClasses:
-        'bg-amber-500/15 border-amber-500/30 hover:bg-amber-500/25 text-amber-400 focus:ring-amber-400/50',
-      badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
-      textClass: 'text-amber-400',
-      pillClass: 'bg-amber-500/25 text-amber-300',
+        'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-amber-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-amber-400/50',
+      badgeClass: 'bg-[var(--status-warn-bg)] border-amber-500/25 text-[var(--status-warn-fg)]',
+      textClass: 'text-[var(--status-warn-fg)]',
+      pillClass: 'bg-[var(--status-warn-bg)] text-[var(--status-warn-fg)] border border-amber-500/25',
       popoverBorderClass: 'border-amber-500/30',
-      headerTextClass: 'text-amber-400',
-      barClass: 'bg-amber-400',
+      headerTextClass: 'text-[var(--status-warn-fg)]',
+      barClass: 'bg-amber-500',
     }
   }
   return {
@@ -161,12 +161,12 @@ export function getQualityConfig(score: number): QualityConfig {
     ratingLabel: 'Gyanús / hiányos adat',
     icon: ShieldX,
     buttonClasses:
-      'bg-rose-500/15 border-rose-500/30 hover:bg-rose-500/25 text-rose-400 focus:ring-rose-400/50',
-    badgeClass: 'bg-rose-500/15 border-rose-500/30 text-rose-400',
-    textClass: 'text-rose-400',
-    pillClass: 'bg-rose-500/25 text-rose-300',
+      'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-rose-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-rose-400/50',
+    badgeClass: 'bg-[var(--status-danger-bg)] border-rose-500/25 text-[var(--status-danger-fg)]',
+    textClass: 'text-[var(--status-danger-fg)]',
+    pillClass: 'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-rose-500/25',
     popoverBorderClass: 'border-rose-500/30',
-    headerTextClass: 'text-rose-400',
+    headerTextClass: 'text-[var(--status-danger-fg)]',
     barClass: 'bg-rose-500',
   }
 }
