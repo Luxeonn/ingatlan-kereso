@@ -6,7 +6,6 @@ import {
   X,
   Trash2,
   ArrowUpDown,
-  GitMerge,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { useUiStore } from '../../store/useUiStore'
@@ -21,6 +20,7 @@ import {
 } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
+import { FloatingSelectionBar } from './FloatingSelectionBar'
 
 function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
   const counts = {
@@ -161,7 +161,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   }, [sourceItems])
 
   return (
-    <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
+    <>
+      <div className="space-y-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
           <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
@@ -312,43 +313,21 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
         hiddenCount={hiddenCount}
       />
 
-      <PortalFilterChipsRow
-        selectedPortalFilter={selectedPortalFilter}
-        setSelectedPortalFilter={setSelectedPortalFilter}
-        portalCounts={portalCounts}
-        searchedPortals={criteria.portals}
-      />
+        <PortalFilterChipsRow
+          selectedPortalFilter={selectedPortalFilter}
+          setSelectedPortalFilter={setSelectedPortalFilter}
+          portalCounts={portalCounts}
+          searchedPortals={criteria.portals}
+        />
+      </div>
 
-      {selectedItems.length > 0 && (
-        <div
-          data-testid="selection-action-bar"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs"
-        >
-          <div className="flex flex-wrap items-center gap-2 font-semibold text-blue-200">
-            <span data-testid="selection-count-label">{selectedItems.length} kijelölve</span>
-            <span aria-hidden="true">·</span>
-            <button
-              type="button"
-              data-testid="merge-selected-button"
-              disabled={selectedItems.length < 2 || isMerging || !onMergeSelected}
-              onClick={handleMergeClick}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1 font-bold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <GitMerge className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Összevonás</span>
-            </button>
-            <span aria-hidden="true">·</span>
-            <button
-              type="button"
-              data-testid="clear-selection-button"
-              onClick={clearCardSelection}
-              className="rounded-lg border border-blue-400/30 px-2.5 py-1 font-semibold text-blue-200 transition-colors hover:bg-blue-500/20"
-            >
-              Kijelölés törlése
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+      <FloatingSelectionBar
+        selectedCount={selectedItems.length}
+        isMerging={isMerging}
+        canMerge={Boolean(onMergeSelected)}
+        onMerge={handleMergeClick}
+        onClear={clearCardSelection}
+      />
+    </>
   )
 }

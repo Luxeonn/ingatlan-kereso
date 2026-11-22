@@ -8,11 +8,19 @@ import { useUiStore } from '../store/useUiStore'
 import { createMockIngatlanItem } from './testFixtures'
 import * as searchApi from '../api/searchApi'
 import * as propertyApi from '../api/propertyApi'
+import * as dedupApi from '../api/dedupApi'
 import * as formatters from '../utils/formatters'
 import type { DashboardResponseDto } from '../types/api'
 
 vi.mock('../api/searchApi', () => ({
   executeSearch: vi.fn(),
+}))
+
+vi.mock('../api/dedupApi', () => ({
+  splitCluster: vi.fn(),
+  mergeListings: vi.fn(),
+  getDedupOverrides: vi.fn(),
+  deleteDedupOverride: vi.fn(),
 }))
 
 vi.mock('../api/propertyApi', () => ({
@@ -514,5 +522,52 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
       expect(result.current.items).toHaveLength(1)
     })
     expect(result.current.items[0]?.id).toBe('item-2')
+  })
+
+  it('automatically triggers silent search refresh after mergeSelected in listings view (#487)', async () => {
+    const mergedItem = createMockIngatlanItem({
+      id: 'item-1',
+      url: mockItem1.url,
+      title: mockItem1.title,
+      city: 'Debrecen',
+      manuallyMerged: true,
+      sourcesCount: 2,
+      sourceListings: [
+        { portal: 'dh', url: mockItem1.url, priceHuf: 45_000_000 },
+        { portal: 'oc', url: mockItem2.url, priceHuf: 85_000_000 },
+      ],
+    })
+    const refreshedDashboard: DashboardResponseDto = {
+      items: [mergedItem],
+      newCount: 1,
+      totalFound: 1,
+    }
+
+    vi.mocked(searchApi.executeSearch)
+      .mockResolvedValueOnce(mockDashboard)
+      .mockResolvedValueOnce(refreshedDashboard)
+    vi.mocked(dedupApi.mergeListings).mockResolvedValueOnce({
+      items: [mergedItem],
+      overrides: [],
+      message: 'Hirdetések sikeresen összevonva',
+    })
+
+    const { result } = renderHook(() => useSearch(), { wrapper })
+
+    act(() => {
+      result.current.search({ city: 'Debrecen' })
+    })
+    await waitFor(() => expect(result.current.items).toHaveLength(2))
+
+    await act(async () => {
+      await result.current.mergeSelected([mockItem1.url, mockItem2.url])
+    })
+
+    await waitFor(() => {
+      expect(searchApi.executeSearch).toHaveBeenCalledTimes(2)
+      expect(result.current.data).toEqual(refreshedDashboard)
+    })
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.items).toHaveLength(1)
   })
 })

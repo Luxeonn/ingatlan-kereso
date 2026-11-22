@@ -85,6 +85,10 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     )
 
     expect(screen.getByTestId('selection-count-label').textContent).toBe('1 kijelölve')
+    const actionBar = screen.getByTestId('selection-action-bar')
+    expect(actionBar.className).toContain('fixed')
+    expect(actionBar.className).toContain('bottom-6')
+    expect(actionBar.className).toContain('z-40')
     expect((screen.getByTestId('merge-selected-button') as HTMLButtonElement).disabled).toBe(true)
 
     useUiStore.setState({ selectedCardUrls: ['https://dh.hu/b1', 'https://jofogas.hu/b2'] })
@@ -106,6 +110,19 @@ describe('Manual Dedup Overrides UI (#461)', () => {
       'https://oc.hu/b1b',
       'https://jofogas.hu/b2',
     ])
+
+    // While merging, merge button is disabled and marked busy
+    rerender(
+      <BulkActionBar
+        items={[item1, item2]}
+        totalRawCount={2}
+        onMergeSelected={onMergeSelected}
+        isMerging={true}
+      />,
+    )
+    const busyMergeBtn = screen.getByTestId('merge-selected-button') as HTMLButtonElement
+    expect(busyMergeBtn.disabled).toBe(true)
+    expect(busyMergeBtn.getAttribute('aria-busy')).toBe('true')
 
     // Escape clears selection
     fireEvent.keyDown(window, { key: 'Escape' })
@@ -168,19 +185,56 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     })
   })
 
-  it('useDedupActions: hiba esetén toastot jelenít meg és nem törli a kijelölést', async () => {
+  it('useDedupActions: sikeres összevonás után törli a kijelölést és meghívja az onAfterMerge callbacket (#487)', async () => {
+    const mergedItem = createMockIngatlanItem({
+      id: 'merged-1',
+      url: 'https://dh.hu/a',
+      manuallyMerged: true,
+      sourcesCount: 2,
+    })
+    vi.mocked(dedupApi.mergeListings).mockResolvedValueOnce({
+      items: [mergedItem],
+      overrides: [],
+      message: 'Hirdetések sikeresen összevonva',
+    })
+    useUiStore.setState({ selectedCardUrls: ['https://dh.hu/a', 'https://oc.hu/b'] })
+    const setData = vi.fn()
+    const setToastMessage = vi.fn()
+    const onAfterMerge = vi.fn()
+    const queryClient = new QueryClient()
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+
+    const { result } = renderHook(() => useDedupActions(setData, setToastMessage, onAfterMerge), {
+      wrapper,
+    })
+
+    let ok = false
+    await act(async () => {
+      ok = await result.current.mergeSelected(['https://dh.hu/a', 'https://oc.hu/b'])
+    })
+
+    expect(ok).toBe(true)
+    expect(useUiStore.getState().selectedCardUrls).toEqual([])
+    expect(setToastMessage).toHaveBeenCalledWith('Hirdetések sikeresen összevonva')
+    expect(onAfterMerge).toHaveBeenCalledTimes(1)
+  })
+
+  it('useDedupActions: hiba esetén toastot jelenít meg, nem hívja az onAfterMerge-et és nem törli a kijelölést', async () => {
     vi.mocked(dedupApi.mergeListings).mockRejectedValueOnce(
       new Error('Csak azonos településen belüli hirdetések vonhatók össze'),
     )
     useUiStore.setState({ selectedCardUrls: ['https://dh.hu/a', 'https://oc.hu/b'] })
     const setData = vi.fn()
     const setToastMessage = vi.fn()
+    const onAfterMerge = vi.fn()
     const queryClient = new QueryClient()
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     )
 
-    const { result } = renderHook(() => useDedupActions(setData, setToastMessage), { wrapper })
+    const { result } = renderHook(() => useDedupActions(setData, setToastMessage, onAfterMerge), { wrapper })
 
     let ok = true
     await act(async () => {
@@ -191,6 +245,7 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     expect(setToastMessage).toHaveBeenCalledWith(
       'Csak azonos településen belüli hirdetések vonhatók össze',
     )
+    expect(onAfterMerge).not.toHaveBeenCalled()
     expect(useUiStore.getState().selectedCardUrls).toEqual(['https://dh.hu/a', 'https://oc.hu/b'])
   })
 })
