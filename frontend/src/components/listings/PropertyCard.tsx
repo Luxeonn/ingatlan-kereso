@@ -1,16 +1,7 @@
 import { useState, type FC, type MouseEvent } from 'react'
-import {
-  MapPin,
-  Ruler,
-  BedDouble,
-  Check,
-} from 'lucide-react'
+import { MapPin, Check } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import {
-  formatPriceMillion,
-  formatPricePerSqm,
-  formatArea,
-  formatRooms,
   getPortalStyle,
   getEffectivePrice,
   getEffectiveSqmPrice,
@@ -18,7 +9,12 @@ import {
   openExternalUrl,
 } from '../../utils/formatters'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
-import { PropertyCardBadges, PropertyThumbnail } from './PropertyCardParts'
+import {
+  PropertyCardBadges,
+  PropertyParametersChips,
+  PropertyPriceSection,
+  PropertyThumbnail,
+} from './PropertyCardParts'
 import { PropertyDetailsModal } from './PropertyDetailsModal'
 import { isListingNew } from '../../utils/listingFilters'
 import { useUiStore } from '../../store/useUiStore'
@@ -67,40 +63,6 @@ function getSourcesCount(item: IngatlanItem): number {
   return item.sourcesCount ?? (item.sourceListings?.length || 1)
 }
 
-interface PropertyParametersChipsProps {
-  floorArea?: number | null
-  rooms?: number | null
-  sqmPrice?: number | null
-}
-
-const PropertyParametersChips: FC<PropertyParametersChipsProps> = ({
-  floorArea,
-  rooms,
-  sqmPrice,
-}) => (
-  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[var(--text-secondary)]">
-    {floorArea !== null && floorArea !== undefined && floorArea > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
-        <Ruler className="h-3.5 w-3.5 text-purple-400" />
-        <span>{formatArea(floorArea)}</span>
-      </span>
-    )}
-
-    {rooms !== null && rooms !== undefined && rooms > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
-        <BedDouble className="h-3.5 w-3.5 text-teal-400" />
-        <span>{formatRooms(rooms)}</span>
-      </span>
-    )}
-
-    {sqmPrice !== null && sqmPrice !== undefined && sqmPrice > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
-        <span>{formatPricePerSqm(sqmPrice)}</span>
-      </span>
-    )}
-  </div>
-)
-
 interface PropertyTitleAndLocationProps {
   title?: string
   city?: string
@@ -140,31 +102,6 @@ const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
   </>
 )
 
-interface PropertyPriceSectionProps {
-  priceMillion?: number | null
-  rawPrice?: string
-  viewMode: 'grid' | 'list'
-}
-
-const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
-  priceMillion,
-  rawPrice,
-  viewMode,
-}) => (
-  <div
-    className={cn(
-      'flex items-center justify-between border-t border-[var(--border-color)] pt-3',
-      viewMode === 'list' ? 'sm:border-t-0 sm:pt-0 sm:flex-col sm:items-end sm:justify-center sm:gap-1 shrink-0' : 'mt-4',
-    )}
-  >
-    <div className={cn(viewMode === 'list' ? 'sm:text-right' : '')}>
-      <div className="text-base font-extrabold text-blue-400">
-        {priceMillion !== null && priceMillion !== undefined ? formatPriceMillion(priceMillion) : rawPrice}
-      </div>
-    </div>
-  </div>
-)
-
 interface PropertyCardContentProps {
   item: IngatlanItem
   sourcesCount: number
@@ -179,6 +116,7 @@ interface PropertyCardContentProps {
   isStarred: boolean
   viewMode: 'grid' | 'list'
   onOpen: (e: MouseEvent<HTMLElement>) => void
+  onThumbnailClick: (e: MouseEvent<HTMLElement>) => void
   onImageError: () => void
   onToggleDrawer: () => void
   onToggleStarred: () => void
@@ -200,6 +138,7 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
   isStarred,
   viewMode,
   onOpen,
+  onThumbnailClick,
   onImageError,
   onToggleDrawer,
   onToggleStarred,
@@ -218,7 +157,10 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
       hasValidImage={hasValidImage}
       portalStyle={portalStyle}
       viewMode={viewMode}
+      isDrawerOpen={isDrawerOpen}
       onOpen={onOpen}
+      onThumbnailClick={onThumbnailClick}
+      onToggleDrawer={onToggleDrawer}
       onImageError={onImageError}
     />
 
@@ -300,6 +242,8 @@ export const PropertyCard: FC<PropertyCardProps> = ({
   const effectiveImageUrl = getEffectiveImageUrl(item)
   const hasValidImage = Boolean(effectiveImageUrl) && !imageError
 
+  const toggleDrawer = () => setIsDrawerOpen((prev) => !prev)
+
   const handleOpen = (e?: MouseEvent<HTMLElement>) => {
     if (isSelectionModifier(e)) {
       if (e) toggleFromEvent(e)
@@ -307,6 +251,19 @@ export const PropertyCard: FC<PropertyCardProps> = ({
     }
     openExternalUrl(item.url)
     if (!item.viewed) onMarkViewed(item.url)
+  }
+
+  const handleThumbnailClick = (e: MouseEvent<HTMLElement>) => {
+    if (isSelectionModifier(e)) {
+      toggleFromEvent(e)
+      return
+    }
+    if (viewMode === 'list') {
+      e.stopPropagation()
+      toggleDrawer()
+      return
+    }
+    handleOpen(e)
   }
 
   const handleCardClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -359,8 +316,9 @@ export const PropertyCard: FC<PropertyCardProps> = ({
         isStarred={isStarred}
         viewMode={viewMode}
         onOpen={handleOpen}
+        onThumbnailClick={handleThumbnailClick}
         onImageError={() => setImageError(true)}
-        onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
+        onToggleDrawer={toggleDrawer}
         onToggleStarred={() => toggleStarred(item)}
         onHide={handleHide}
         onRestore={handleRestore}
