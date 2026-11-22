@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import ingatlanok.common.AppLogger;
+import ingatlanok.common.CityUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawExtractionResult;
@@ -140,7 +141,7 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
               .title(sidecarItem.getTitle())
               .priceHuf(priceHuf)
               .priceText(sidecarItem.getPriceRaw())
-              .locationText(defaultCity)
+              .locationText(resolveLocationText(sidecarItem.getTitle(), defaultCity))
               .areaSquareMeters(sidecarItem.getAreaSquareMeters())
               .roomCount(sidecarItem.getRoomCount())
               .imageUrl(sidecarItem.getImageUrl())
@@ -153,6 +154,19 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
       rawListings.add(raw);
     }
     return rawListings;
+  }
+
+  /**
+   * Keeps the card's real settlement when its title starts with a different settlement than the
+   * searched one (Ingatlan.com mixes nearby/recommended cards into result pages), so downstream
+   * city filtering can exclude it instead of persisting it under the searched city.
+   */
+  static String resolveLocationText(String title, String defaultCity) {
+    String settlement = CityUtils.extractLeadingSettlement(title);
+    if (settlement == null || defaultCity == null || defaultCity.isBlank()) {
+      return defaultCity;
+    }
+    return CityUtils.isSameOrSubLocation(settlement, defaultCity) ? defaultCity : title.trim();
   }
 
   private String buildPaginationDetails(SidecarResponse resp) {
