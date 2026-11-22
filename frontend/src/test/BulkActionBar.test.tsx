@@ -469,4 +469,24 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
 
     expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('2')
   })
+
+  it('keeps onlyNew chip count in sync with sessionViewedUrls grace period (#502)', () => {
+    useUiStore.setState({ pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS] })
+    const items: IngatlanItem[] = [
+      createMockIngatlanItem({ id: 'n1', url: 'https://dh.hu/n1', isNew: true, viewed: false }),
+      createMockIngatlanItem({ id: 'n2', url: 'https://oc.hu/n2', isNew: false, viewed: true }),
+      createMockIngatlanItem({ id: 'n3', url: 'https://dh.hu/n3', isNew: false, viewed: false }),
+    ]
+
+    render(
+      <BulkActionBar
+        items={items}
+        rawItems={items}
+        totalRawCount={3}
+        sessionViewedUrls={new Set(['https://oc.hu/n2'])}
+      />,
+    )
+
+    expect(screen.getByTestId('only-new-filter-count').textContent).toBe('2')
+  })
 })

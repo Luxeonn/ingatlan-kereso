@@ -78,7 +78,7 @@ public class SearchPersistenceSynchronizer {
       return;
     }
     for (IngatlanItem item : relevantItems) {
-      if (item == null) {
+      if (item == null || item.isHidden()) {
         continue;
       }
       String key = resolvePortalCountKey(item);

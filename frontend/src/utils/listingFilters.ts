@@ -146,12 +146,18 @@ export interface ItemFilterOptions {
   quickSearchQuery?: string
 }
 
-export function isListingNew(item: IngatlanItem | null | undefined): boolean {
+export function isListingNew(
+  item: IngatlanItem | null | undefined,
+  sessionViewedUrls?: ReadonlySet<string>,
+): boolean {
   if (!item) return false
-  return Boolean(item.isNew)
+  return Boolean(item.isNew) || isSessionViewed(item, sessionViewedUrls)
 }
 
-function isSessionViewed(item: IngatlanItem, sessionViewedUrls?: ReadonlySet<string>): boolean {
+export function isSessionViewed(
+  item: IngatlanItem,
+  sessionViewedUrls?: ReadonlySet<string>,
+): boolean {
   if (!sessionViewedUrls || sessionViewedUrls.size === 0) return false
   if (item.url && sessionViewedUrls.has(item.url)) return true
   return Boolean(item.sourceListings?.some((sl) => sl.url && sessionViewedUrls.has(sl.url)))
@@ -176,7 +182,7 @@ function matchesRoomsAndDiscountFlags(item: IngatlanItem, options: ItemFilterOpt
 }
 
 function matchesNewAndViewedFlags(item: IngatlanItem, options: ItemFilterOptions, sessionViewed: boolean): boolean {
-  const isNew = isListingNew(item) || sessionViewed
+  const isNew = isListingNew(item, options.sessionViewedUrls)
   if (options.onlyNew && !isNew) return false
   if (options.excludeNew && isNew) return false
   const isViewed = Boolean(item.viewed) && !sessionViewed

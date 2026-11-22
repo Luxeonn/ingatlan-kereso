@@ -119,10 +119,9 @@ describe('useMarketAnalytics hook', () => {
     expect(result.current.bargains.topPriceDrops.length).toBe(1)
     expect(result.current.bargains.topPriceDrops[0]?.id).toBe('3')
 
-    // Below market deals check: Debrecen average sqm is 800k; 800k * 0.85 = 680k.
-    // Item 1 has 600k, which is < 680k -> detected as below market bargain!
-    expect(result.current.bargains.belowMarketDeals.length).toBeGreaterThan(0)
-    expect(result.current.bargains.belowMarketDeals[0]?.item.id).toBe('1')
+    // Bargains require >= 5 samples in bucket and >= 20% below median; price drop alone is not counted as bargain (#502)
+    expect(result.current.kpi.bargainCount).toBe(0)
+    expect(result.current.bargains.belowMarketDeals).toHaveLength(0)
 
     // Bins check
     expect(result.current.distribution.priceBins.length).toBeGreaterThan(0)
@@ -130,8 +129,65 @@ describe('useMarketAnalytics hook', () => {
 
     // Scatter data check
     expect(result.current.scatterData.length).toBe(4)
-    const scatterItem1 = result.current.scatterData.find((s) => s.id === '1')
-    expect(scatterItem1?.segment).toBe('bargain')
+    const scatterItem3 = result.current.scatterData.find((s) => s.id === '3')
+    expect(scatterItem3?.isDiscounted).toBe(true)
+    expect(scatterItem3?.segment).toBe('fair')
+  })
+
+  it('unifies bargainCount with >= 20% threshold (not priceDrops or 15% cityAvg) across 5+ items (#502)', () => {
+    const bucketItems: IngatlanItem[] = [
+      ...Array.from({ length: 5 }, (_, idx) => ({
+        id: `base-${idx}`,
+        portal: 'dh',
+        url: `https://dh.hu/base-${idx}`,
+        title: `Lakás ${idx}`,
+        price: '50 M Ft',
+        location: 'Debrecen',
+        city: 'Debrecen',
+        propertyType: 'LAKAS' as const,
+        sourcesCount: 1,
+        priceInfo: { amountMillion: 50, amountHuf: 50_000_000 },
+        detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 1_000_000 },
+      })),
+      {
+        id: 'real-bargain',
+        portal: 'oc',
+        url: 'https://oc.hu/real-bargain',
+        title: 'Valódi alkalmi vétel',
+        price: '39 M Ft',
+        location: 'Debrecen',
+        city: 'Debrecen',
+        propertyType: 'LAKAS' as const,
+        sourcesCount: 1,
+        isBargain: true,
+        percentageBelowMedian: 22.0,
+        priceInfo: { amountMillion: 39, amountHuf: 39_000_000 },
+        detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 780_000 },
+      },
+      {
+        id: 'drop-only',
+        portal: 'dh',
+        url: 'https://dh.hu/drop-only',
+        title: 'Csak leárazott, nem alkalmi',
+        price: '49 M Ft',
+        location: 'Debrecen',
+        city: 'Debrecen',
+        propertyType: 'LAKAS' as const,
+        sourcesCount: 1,
+        status: 'PRICE_DROP' as const,
+        priceDelta: -1_000_000,
+        priceChangePercent: -2.0,
+        isBargain: false,
+        percentageBelowMedian: 2.0,
+        priceInfo: { amountMillion: 49, amountHuf: 49_000_000 },
+        detailsInfo: { areaSquareMeters: 50, pricePerSquareMeter: 980_000 },
+      },
+    ]
+
+    const { result } = renderHook(() => useMarketAnalytics(bucketItems, 'LAKAS'))
+    expect(result.current.kpi.bargainCount).toBe(1)
+    expect(result.current.kpi.discountedCount).toBe(1)
+    expect(result.current.bargains.belowMarketDeals.map((d) => d.item.id)).toEqual(['real-bargain'])
   })
 
   it('accurately evaluates activeCategory and insufficientData for targeted category (#276)', () => {

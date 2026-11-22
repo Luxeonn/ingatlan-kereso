@@ -266,7 +266,7 @@ class PropertyBusinessRulesRegressionTest {
       items.add(exact20Bargain);
 
       IngatlanItem notBargain =
-          TestFixtures.validResidentialItem("NOT-BARGAIN", "Szeged", 40_010_000L, 50.0, 2.0);
+          TestFixtures.validResidentialItem("NOT-BARGAIN", "Szeged", 40_030_000L, 50.0, 2.0);
       items.add(notBargain);
 
       MarketStats stats = analyticsEngine.calculateMarketStats(items);
@@ -275,8 +275,8 @@ class PropertyBusinessRulesRegressionTest {
       assertTrue(exact20Bargain.getIsBargain(), "Pontosan 20.0% engedmény esetén alkalmi vételnek kell lennie");
       assertEquals(20.0, exact20Bargain.getPercentageBelowMedian());
 
-      assertFalse(notBargain.getIsBargain(), "20% alatti engedmény (19.98%) nem lehet alkalmi vétel");
-      assertEquals(20.0, notBargain.getPercentageBelowMedian());
+      assertFalse(notBargain.getIsBargain(), "20% alatti engedmény (19.94%) nem lehet alkalmi vétel");
+      assertEquals(19.9, notBargain.getPercentageBelowMedian());
     }
 
     @Test
@@ -399,6 +399,7 @@ class PropertyBusinessRulesRegressionTest {
   class NewConstructionAndMultiSourceTests {
 
     private final DeduplicationEngine dedupEngine = TestFixtures.deduplicationEngine();
+    private final MarketAnalyticsEngine analyticsEngine = TestFixtures.marketAnalyticsEngine();
 
     @Test
     @DisplayName("Új építésű kulcsszavak azonosítása címben, leírásban és URL-ben")
@@ -478,6 +479,96 @@ class PropertyBusinessRulesRegressionTest {
       assertEquals(PortalScrapeStatus.SUCCESS, agg.get(0).getStatus(),
           "A másodlagos forrásként beolvadt portál státusza nem eshet vissza EMPTY-re");
     }
+
+    @Test
+    @DisplayName(
+        "Rejtett (hidden=true) elemek nem torzítják a totalFound, newCount, portalCounts,"
+            + " cityCounts és MarketStats mutatókat (#502)")
+    void testHiddenItemsExcludedFromActiveCountsAndMarketAnalytics() {
+      List<IngatlanItem> mixed = new ArrayList<>();
+      for (int i = 1; i <= 5; i++) {
+        IngatlanItem active =
+            TestFixtures.validResidentialItem("ACT-" + i, "Debrecen", 50_000_000L, 50.0, 2.0);
+        active.setUrl("https://dh.hu/act-" + i);
+        active.setPortal("Duna House");
+        active.setSource(PortalSource.of("Duna House"));
+        active.setNew(i <= 2);
+        active.setHidden(false);
+        mixed.add(active);
+      }
+
+      // Active bargain (750k Ft/m2 -> 25% below 1M median)
+      IngatlanItem activeBargain =
+          TestFixtures.validResidentialItem("ACT-BARGAIN", "Debrecen", 37_500_000L, 50.0, 2.0);
+      activeBargain.setUrl("https://oc.hu/act-bargain");
+      activeBargain.setPortal("Otthon Centrum");
+      activeBargain.setSource(PortalSource.of("Otthon Centrum"));
+      activeBargain.setNew(true);
+      activeBargain.setHidden(false);
+      mixed.add(activeBargain);
+
+      // Hidden item with very cheap price (would be a bargain and lower median/avg if counted) and isNew=true
+      IngatlanItem hiddenBargain =
+          TestFixtures.validResidentialItem("HID-BARGAIN", "Debrecen", 25_000_000L, 50.0, 2.0);
+      hiddenBargain.setUrl("https://dh.hu/hid-bargain");
+      hiddenBargain.setPortal("Duna House");
+      hiddenBargain.setSource(PortalSource.of("Duna House"));
+      hiddenBargain.setNew(true);
+      hiddenBargain.setHidden(true);
+      hiddenBargain.setPriceDelta(-5_000_000L);
+      hiddenBargain.setPriceChangePercent(-16.7);
+      mixed.add(hiddenBargain);
+
+      // 1. MarketAnalyticsEngine excludes hidden item from counts, medians, bargains, and price drops
+      MarketStats stats = analyticsEngine.calculateMarketStats(mixed);
+      assertEquals(6, stats.getResidentialSampleSize());
+      assertEquals(1_000_000L, stats.getResidentialMedianPricePerM2());
+      assertEquals(1, stats.getBargainCount(), "Hidden item must not be counted in bargainCount");
+      assertEquals(0, stats.getPriceDropCount(), "Hidden item must not be counted in priceDropCount");
+      assertEquals(6, stats.getCityBreakdown().get("Debrecen"));
+      assertFalse(hiddenBargain.getIsBargain(), "Hidden item must not keep isBargain=true");
+      assertNull(hiddenBargain.getPercentageBelowMedian());
+
+      // 2. SearchResultAggregator counts only non-hidden items in totalFound and newCount while
+      // retaining hidden items in list
+      Map<String, Integer> portalCounts = new LinkedHashMap<>();
+      portalCounts.put("Duna House", 0);
+      portalCounts.put("Otthon Centrum", 0);
+      SearchPersistenceSynchronizer sync =
+          new SearchPersistenceSynchronizer(
+              new PortalEngineRegistry(List.of(TestFixtures.dhEngine(), TestFixtures.ocEngine())),
+              Mockito.mock(ListingStorage.class));
+      sync.recalculateRelevantPortalCounts(portalCounts, mixed);
+      assertEquals(5, portalCounts.get("Duna House"), "Hidden DH item must not inflate portalCounts");
+      assertEquals(1, portalCounts.get("Otthon Centrum"));
+
+      SearchResultAggregator agg = new SearchResultAggregator();
+      SearchResult result =
+          agg.aggregate(new ArrayList<>(mixed), new SearchCriteria(), null, portalCounts, null, null);
+      assertEquals(7, result.getItems().size(), "Hidden items remain in items for Trash/ShowHidden UI");
+      assertEquals(6, result.getTotalFound(), "totalFound must count only active (!hidden) items");
+      assertEquals(3, result.getNewCount(), "newCount must count only active (!hidden) new items");
+    }
+
+    @Test
+    @DisplayName("Alkalmi vétel 19.96% feletti kerekítési rés nélkül és multi-source Ft/m² összhanggal (#502)")
+    void testBargainRoundingGapAndMultiSourceSqmPriceAlignment() {
+      List<IngatlanItem> items = new ArrayList<>();
+      for (int i = 1; i <= 5; i++) {
+        items.add(TestFixtures.validResidentialItem("M-" + i, "Debrecen", 50_000_000L, 50.0, 2.0));
+      }
+      // 19.96% below 1,000,000 -> 800,400 Ft/m² (40,020,000 Ft / 50 m²)
+      // Rounds to 20.0 at 1 decimal -> must be consistent between isBargain and percentageBelowMedian
+      IngatlanItem edgeItem =
+          TestFixtures.validResidentialItem("EDGE-1996", "Debrecen", 40_020_000L, 50.0, 2.0);
+      items.add(edgeItem);
+
+      MarketStats stats = analyticsEngine.calculateMarketStats(items);
+      assertEquals(20.0, edgeItem.getPercentageBelowMedian());
+      assertTrue(edgeItem.getIsBargain(),
+          "19.96% rounds to 20.0% display value -> isBargain must match percentageBelowMedian >= 20.0");
+      assertEquals(1, stats.getBargainCount());
+    }
   }
 
   @Nested
@@ -485,6 +576,7 @@ class PropertyBusinessRulesRegressionTest {
   class EdgeCasesAndConflictTests {
 
     private final DeduplicationEngine dedupEngine = TestFixtures.deduplicationEngine();
+    private final MarketAnalyticsEngine analyticsEngine = TestFixtures.marketAnalyticsEngine();
 
     @Test
     @DisplayName("Ellentmondó adatok (pl. eltérő szobaszám vagy túl nagy árkülönbség) nem vonhatók össze")

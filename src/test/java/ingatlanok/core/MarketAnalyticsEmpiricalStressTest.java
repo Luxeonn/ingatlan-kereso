@@ -301,11 +301,11 @@ class MarketAnalyticsEmpiricalStressTest {
     // Candidate A: 800,000 -> 20.0% below 1,000,000 -> bargain!
     IngatlanItem item20 = createItem("c20", "Gyor", PropertyType.LAKAS, 40_000_000L, 50.0, 800_000L);
 
-    // Candidate B: 800,100 -> 19.99% below 1,000,000 -> NOT bargain!
-    IngatlanItem item1999 = createItem("c1999", "Gyor", PropertyType.LAKAS, 40_005_000L, 50.0, 800_100L);
+    // Candidate B: 800,600 -> 19.94% below 1,000,000 (rounds to 19.9) -> NOT bargain!
+    IngatlanItem item1994 = createItem("c1994", "Gyor", PropertyType.LAKAS, 40_030_000L, 50.0, 800_600L);
 
     items.add(item20);
-    items.add(item1999);
+    items.add(item1994);
 
     MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
@@ -313,8 +313,8 @@ class MarketAnalyticsEmpiricalStressTest {
     assertTrue(item20.isBargain(), "800,000 vs 1M (20.0% below) must be a bargain");
     assertEquals(20.0, item20.getPercentageBelowMedian());
 
-    assertFalse(item1999.isBargain(), "800,100 vs 1M (19.99% below) must NOT be a bargain");
-    assertEquals(20.0, item1999.getPercentageBelowMedian()); // rounded to 20.0 for display, but raw pctBelow is 19.99
+    assertFalse(item1994.isBargain(), "800,600 vs 1M (19.94% -> 19.9% below) must NOT be a bargain");
+    assertEquals(19.9, item1994.getPercentageBelowMedian());
 
     assertEquals(1, stats.getBargainCount());
     MarketSegmentStats segment = stats.getSegments().getFirst();

@@ -11,10 +11,12 @@ import java.util.function.Predicate;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.model.IngatlanItem;
+import ingatlanok.model.ListingStatus;
 import ingatlanok.model.MarketSegmentStats;
 import ingatlanok.model.PriceDropItem;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
+import ingatlanok.model.SourceListing;
 
 /**
  * Pure statistical math and segment calculation helper for {@link MarketAnalyticsEngine}.
@@ -60,25 +62,48 @@ public class MarketStatisticsCalculator {
       return null;
     }
     PropertyDetails details = item.getDetailsInfo();
-    if (details != null
-        && details.getPricePerSquareMeter() != null
-        && details.getPricePerSquareMeter() > 0) {
-      return details.getPricePerSquareMeter();
-    }
     PriceInfo price = item.getPriceInfo();
-    if (hasValidAmountAndArea(price, details)) {
-      return Math.round((double) price.getAmountHuf() / details.getAreaSquareMeters());
+    Long effectiveAmount = resolveEffectiveAmountHuf(item, price);
+    Double area = details != null ? details.getAreaSquareMeters() : null;
+    if (hasValidPositive(effectiveAmount, area) && differsFromPrimaryPrice(effectiveAmount, price)) {
+      return Math.round((double) effectiveAmount / area);
     }
-    return null;
+    Long directSqm = details != null ? details.getPricePerSquareMeter() : null;
+    if (directSqm != null && directSqm > 0) {
+      return directSqm;
+    }
+    return hasValidPositive(effectiveAmount, area)
+        ? Math.round((double) effectiveAmount / area)
+        : null;
   }
 
-  private boolean hasValidAmountAndArea(PriceInfo price, PropertyDetails details) {
-    if (price == null || price.getAmountHuf() == null || price.getAmountHuf() <= 0) {
+  private boolean hasValidPositive(Long amount, Double area) {
+    return amount != null && amount > 0 && area != null && area > 0;
+  }
+
+  private boolean differsFromPrimaryPrice(Long effectiveAmount, PriceInfo price) {
+    return price == null || price.getAmountHuf() == null || !effectiveAmount.equals(price.getAmountHuf());
+  }
+
+  private Long resolveEffectiveAmountHuf(IngatlanItem item, PriceInfo price) {
+    List<SourceListing> sources = item.getSourceListings();
+    if (sources == null || sources.isEmpty()) {
+      return price != null ? price.getAmountHuf() : null;
+    }
+    Long minActive = null;
+    for (SourceListing src : sources) {
+      if (isActivePositiveSource(src) && (minActive == null || src.getPriceHuf() < minActive)) {
+        minActive = src.getPriceHuf();
+      }
+    }
+    return minActive != null ? minActive : (price != null ? price.getAmountHuf() : null);
+  }
+
+  private boolean isActivePositiveSource(SourceListing src) {
+    if (src == null || src.getPriceHuf() == null || src.getPriceHuf() <= 0) {
       return false;
     }
-    return details != null
-        && details.getAreaSquareMeters() != null
-        && details.getAreaSquareMeters() > 0;
+    return src.getStatus() == null || src.getStatus() == ListingStatus.ACTIVE;
   }
 
   public List<IngatlanItem> deduplicateItems(List<IngatlanItem> items) {

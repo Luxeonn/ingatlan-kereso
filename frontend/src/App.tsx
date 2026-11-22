@@ -267,7 +267,7 @@ export const App: FC = () => {
         )}
 
         <NewCitiesInitializedBanner cities={searchState.data?.newCitiesInitialized} />
-        <MarketStatsBar data={searchState.data} />
+        <MarketStatsBar data={searchState.data} sessionViewedUrls={searchState.sessionViewedUrls} />
 
         <section aria-label="Munkaterület" className="space-y-0">
           <WorkspaceHeaderNav
@@ -298,6 +298,7 @@ export const App: FC = () => {
                 totalRawCount={slice.activeRawCount}
                 serverFilteredCount={searchState.data?.filteredCount}
                 medianPricePerSqm={medianPricePerSqm}
+                sessionViewedUrls={searchState.sessionViewedUrls}
                 isLoading={slice.activeLoading}
                 hasSearched={hasSearched}
                 mode={ui.listingSubView}
@@ -322,7 +323,7 @@ export const App: FC = () => {
             ) : (
               <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
                 <MarketAnalyticsPanel
-                  items={searchState.items}
+                  items={searchState.rawItems}
                   serverMarketStats={searchState.data?.marketStats}
                   onMarkViewed={searchState.markAsViewed}
                   onOpenListing={(url) => {
