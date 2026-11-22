@@ -1,7 +1,9 @@
 import type { SortOption } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
 import {
+  formatPricePerSqm,
   getEffectivePrice,
+  getEffectiveSqmPrice,
   getPrimaryPortalKey,
   getItemSourceListingsCount,
   hasListingImage,
@@ -100,6 +102,8 @@ function buildSearchableText(item: IngatlanItem): string {
   const areaStr = area ? `${Math.round(area)} m2 ${Math.round(area)} m²` : ''
   const roomsStr = item.detailsInfo?.roomCount ? `${item.detailsInfo.roomCount} szoba` : ''
   const priceStr = item.priceInfo?.amountMillion ? `${item.priceInfo.amountMillion} m ft` : ''
+  const sqm = getEffectiveSqmPrice(item)
+  const sqmStr = sqm ? `${Math.round(sqm)} ${formatPricePerSqm(sqm)}` : ''
   return normalizeSearchText(
     [
       item.title,
@@ -111,6 +115,7 @@ function buildSearchableText(item: IngatlanItem): string {
       item.details,
       areaStr,
       roomsStr,
+      sqmStr,
       item.newConstruction ? 'uj epitesu' : '',
     ].join(' '),
   )

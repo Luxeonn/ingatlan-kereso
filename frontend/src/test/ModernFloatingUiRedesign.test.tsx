@@ -336,5 +336,34 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       )
       expect(scoped.map((x) => x.id)).toEqual(['h-1'])
     })
+
+    it('toggles quickSearchQuery as hot filters when clicking parameter chips on PropertyCard', () => {
+      const item = createMockIngatlanItem({
+        id: 'hot-1',
+        url: 'https://example.com/hot-1',
+        detailsInfo: {
+          areaSquareMeters: 230,
+          roomCount: 5,
+          pricePerSquareMeter: 521304,
+        },
+      })
+
+      render(<PropertyCard item={item} onMarkViewed={vi.fn()} />)
+
+      const roomsChip = screen.getByTestId('hot-filter-rooms')
+      fireEvent.click(roomsChip)
+      expect(useFilterStore.getState().quickSearchQuery).toBe('5 szoba')
+      expect(roomsChip.getAttribute('aria-pressed')).toBe('true')
+
+      // Click again to reset
+      fireEvent.click(roomsChip)
+      expect(useFilterStore.getState().quickSearchQuery).toBe('')
+      expect(roomsChip.getAttribute('aria-pressed')).toBe('false')
+
+      // Click area chip
+      const areaChip = screen.getByTestId('hot-filter-area')
+      fireEvent.click(areaChip)
+      expect(useFilterStore.getState().quickSearchQuery).toBe('230 m²')
+    })
   })
 })

@@ -7,22 +7,18 @@ import {
   Info,
   Trash2,
   RotateCcw,
-  Ruler,
-  BedDouble,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import {
   getPropertyTypeConfig,
   getCrossPortalSpread,
   formatPriceMillion,
-  formatPricePerSqm,
-  formatArea,
-  formatRooms,
 } from '../../utils/formatters'
 import { BargainBadge } from './BargainBadge'
 import { QualityScoreShield } from './QualityScoreShield'
 import { cn } from '../../utils/cn'
 import { isListingNew } from '../../utils/listingFilters'
+export { PropertyParametersChips, type PropertyParametersChipsProps } from './PropertyParametersChips'
 
 export interface PropertyThumbnailProps {
   item: IngatlanItem
@@ -291,40 +287,6 @@ export const PropertyCardBadges: FC<PropertyCardBadgesProps> = (props) => {
     </div>
   )
 }
-
-export interface PropertyParametersChipsProps {
-  floorArea?: number | null
-  rooms?: number | null
-  sqmPrice?: number | null
-}
-
-export const PropertyParametersChips: FC<PropertyParametersChipsProps> = ({
-  floorArea,
-  rooms,
-  sqmPrice,
-}) => (
-  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[var(--text-secondary)] tabular-nums">
-    {floorArea !== null && floorArea !== undefined && floorArea > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-hairline)]">
-        <Ruler className="h-3.5 w-3.5 text-purple-700" />
-        <span>{formatArea(floorArea)}</span>
-      </span>
-    )}
-
-    {rooms !== null && rooms !== undefined && rooms > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-hairline)]">
-        <BedDouble className="h-3.5 w-3.5 text-teal-700" />
-        <span>{formatRooms(rooms)}</span>
-      </span>
-    )}
-
-    {sqmPrice !== null && sqmPrice !== undefined && sqmPrice > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-hairline)]">
-        <span>{formatPricePerSqm(sqmPrice)}</span>
-      </span>
-    )}
-  </div>
-)
 
 export interface PropertyPriceSectionProps {
   item?: IngatlanItem
