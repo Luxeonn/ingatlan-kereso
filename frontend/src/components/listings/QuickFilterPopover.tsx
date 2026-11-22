@@ -14,7 +14,7 @@ interface QuickFilterPopoverProps {
 
 const MODE_BUTTONS: Array<{ mode: TriStateMode; label: string; activeClass: string }> = [
   { mode: 'all', label: 'Mind', activeClass: 'bg-slate-700 text-white shadow-xs' },
-  { mode: 'only', label: 'Csak', activeClass: 'bg-emerald-600 text-white shadow-xs' },
+  { mode: 'only', label: 'Csak', activeClass: 'bg-blue-600 text-white shadow-xs' },
   { mode: 'exclude', label: 'Kizár', activeClass: 'bg-rose-600 text-white shadow-xs' },
 ]
 

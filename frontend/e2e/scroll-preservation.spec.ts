@@ -88,7 +88,7 @@ test.describe('Ingatlan Kereső - Scroll Position Preservation (#459)', () => {
     }
 
     await expect(targetTitle).toBeVisible()
-    await targetTitle.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    await targetTitle.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }))
     await page.waitForTimeout(150)
 
     const scrollBefore = await page.evaluate(() => window.scrollY)

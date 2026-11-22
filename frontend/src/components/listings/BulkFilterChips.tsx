@@ -66,6 +66,18 @@ interface QuickFilterToggleButtonProps {
   inactiveBadgeClass?: string
 }
 
+const TRI_STATE_CONTAINER_CLASSES: Record<'all' | 'only' | 'exclude', string> = {
+  all: 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40',
+  only: 'border border-blue-500/50 bg-blue-500/15 text-blue-700 shadow-sm ring-1 ring-blue-500/20',
+  exclude: 'border border-rose-500/50 bg-rose-500/15 text-rose-700 shadow-sm ring-1 ring-rose-500/20',
+}
+
+const TRI_STATE_BADGE_CLASSES: Record<'all' | 'only' | 'exclude', string> = {
+  all: 'bg-[var(--bg-input)] text-[var(--text-primary)]',
+  only: 'bg-blue-600 text-white',
+  exclude: 'bg-rose-600 text-white',
+}
+
 const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
   filterId,
   testId,
@@ -73,14 +85,10 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
   onClick,
   title,
   ariaLabel,
-  activeClassName,
-  inactiveClassName = 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-700',
   icon,
   label,
   count,
   countTestId,
-  activeBadgeClass = 'bg-white/20 text-white',
-  inactiveBadgeClass = 'bg-[var(--bg-input)] text-[var(--text-primary)]',
 }) => {
   const mode = getTriStateMode(filterId)
   const effectiveLabel = resolveTriStateChipLabel(filterId, mode, label)
@@ -92,13 +100,8 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
       !isActive &&
       mode !== 'all')
 
-  const containerClass = isInverseMode
-    ? mode === 'only'
-      ? 'border border-emerald-500/50 bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/25'
-      : 'border border-rose-500/50 bg-rose-500/15 text-rose-700 ring-1 ring-rose-500/25'
-    : isActive
-      ? activeClassName
-      : inactiveClassName
+  const containerClass = TRI_STATE_CONTAINER_CLASSES[mode]
+  const badgeClass = TRI_STATE_BADGE_CLASSES[mode]
 
   return (
     <div
@@ -121,9 +124,9 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
         <QuickFilterCountBadge
           count={count}
           testId={countTestId}
-          isActive={isActive}
-          activeClass={activeBadgeClass}
-          inactiveClass={inactiveBadgeClass}
+          isActive={mode !== 'all'}
+          activeClass={badgeClass}
+          inactiveClass={TRI_STATE_BADGE_CLASSES.all}
         />
       </button>
       <button
