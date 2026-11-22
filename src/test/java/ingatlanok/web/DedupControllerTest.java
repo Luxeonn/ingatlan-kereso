@@ -302,4 +302,62 @@ class DedupControllerTest {
     // Missing query params returns 400
     mockMvc.perform(get("/api/dedup/overrides")).andExpect(status().isBadRequest());
   }
+
+  @Test
+  @DisplayName(
+      "GET /api/properties/hidden, /api/history és /api/properties/discounted alkalmazza a"
+          + " FORCE_MERGE deduplikációt (#500)")
+  void testArchiveEndpointsDeduplicateWithOverrides() throws Exception {
+    String urlHiddenA = "https://dh.hu/hidden-merge-1";
+    String urlHiddenB = "https://oc.hu/hidden-merge-2";
+    seedListing("h1", "dh", urlHiddenA, "Debrecen", PropertyType.HAZ, 87_500_000L, 125.0);
+    seedListing("h2", "oc", urlHiddenB, "Debrecen", PropertyType.HAZ, 89_000_000L, 125.0);
+    // Hide both
+    listingStorage.hideProperty(urlHiddenA);
+    listingStorage.hideProperty(urlHiddenB);
+
+    // Seed two active history items (distinct areas so heuristic won't merge, only FORCE_MERGE)
+    String urlHistA = "https://dh.hu/hist-merge-1";
+    String urlHistB = "https://oc.hu/hist-merge-2";
+    seedListing("ha1", "dh", urlHistA, "Debrecen", PropertyType.LAKAS, 40_000_000L, 50.0);
+    seedListing("ha2", "oc", urlHistB, "Debrecen", PropertyType.LAKAS, 95_000_000L, 130.0);
+
+    // Seed two discounted active items
+    String urlDiscA = "https://jofogas.hu/disc-merge-1";
+    String urlDiscB = "https://koltozzbe.hu/disc-merge-2";
+    seedListing("da1", "jofogas", urlDiscA, "Debrecen", PropertyType.HAZ, 70_000_000L, 100.0);
+    seedListing("da2", "koltozzbe", urlDiscB, "Debrecen", PropertyType.HAZ, 75_000_000L, 160.0);
+    // Re-save with lower prices to produce priceDelta < 0 for /api/properties/discounted
+    seedListing("da1", "jofogas", urlDiscA, "Debrecen", PropertyType.HAZ, 65_000_000L, 100.0);
+    seedListing("da2", "koltozzbe", urlDiscB, "Debrecen", PropertyType.HAZ, 70_000_000L, 160.0);
+
+    // Force merge hidden pair, history pair, and discounted pair
+    overrideStorage.saveOverride(urlHiddenA, urlHiddenB, DedupOverrideType.FORCE_MERGE, "debrecen");
+    overrideStorage.saveOverride(urlHistA, urlHistB, DedupOverrideType.FORCE_MERGE, "debrecen");
+    overrideStorage.saveOverride(urlDiscA, urlDiscB, DedupOverrideType.FORCE_MERGE, "debrecen");
+
+    // 1. GET /api/properties/hidden returns 1 merged cluster with sourcesCount == 2
+    mockMvc
+        .perform(get("/api/properties/hidden"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].sourcesCount").value(2))
+        .andExpect(jsonPath("$[0].manuallyMerged").value(true));
+
+    // 2. GET /api/history merges history pair and discounted pair into 2 clusters (instead of 4)
+    mockMvc
+        .perform(get("/api/history").param("city", "Debrecen"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(2)))
+        .andExpect(jsonPath("$[0].sourcesCount").value(2))
+        .andExpect(jsonPath("$[1].sourcesCount").value(2));
+
+    // 3. GET /api/properties/discounted merges discounted pair into 1 cluster
+    mockMvc
+        .perform(get("/api/properties/discounted").param("city", "Debrecen"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].sourcesCount").value(2))
+        .andExpect(jsonPath("$[0].manuallyMerged").value(true));
+  }
 }
