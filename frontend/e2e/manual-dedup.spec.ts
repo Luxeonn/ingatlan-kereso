@@ -135,4 +135,111 @@ test.describe('Manual Dedup Overrides E2E (#461)', () => {
     await page.getByRole('button', { name: /Ingatlanok Keresése/i }).click()
     await expect(page.getByTestId('property-card')).toHaveCount(2)
   })
+
+  test('görgetés közben látható lebegő összevonás gomb és automatikus keresésfrissítés összevonás után (#487)', async ({
+    page,
+  }) => {
+    const items: IngatlanItem[] = Array.from({ length: 12 }, (_, idx) => ({
+      ...SAMPLE_PROPERTIES[0]!,
+      id: `scroll-${idx}`,
+      portal: idx % 2 === 0 ? 'Duna House' : 'Otthon Centrum',
+      url: `https://dh.hu/scroll-${idx}`,
+      title: `Görgethető lakás #${idx + 1}`,
+      sourcesCount: 1,
+      sourceListings: [
+        {
+          portal: idx % 2 === 0 ? 'Duna House' : 'Otthon Centrum',
+          url: `https://dh.hu/scroll-${idx}`,
+          priceHuf: 40_000_000 + idx * 1_000_000,
+        },
+      ],
+    }))
+
+    let isMerged = false
+    let searchRequestCount = 0
+
+    await setupStandardApiMocks(page, {
+      onSearchRequest: async (route) => {
+        searchRequestCount += 1
+        if (isMerged) {
+          const mergedItem: IngatlanItem = {
+            ...items[10]!,
+            manuallyMerged: true,
+            sourcesCount: 2,
+            sourceListings: [
+              ...(items[10]!.sourceListings ?? []),
+              ...(items[11]!.sourceListings ?? []),
+            ],
+          }
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(createMockSearchResponse([...items.slice(0, 10), mergedItem])),
+          })
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(createMockSearchResponse(items)),
+          })
+        }
+      },
+    })
+
+    await page.route('**/api/dedup/merge', async (route) => {
+      isMerged = true
+      const mergedItem: IngatlanItem = {
+        ...items[10]!,
+        manuallyMerged: true,
+        sourcesCount: 2,
+        sourceListings: [
+          ...(items[10]!.sourceListings ?? []),
+          ...(items[11]!.sourceListings ?? []),
+        ],
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [mergedItem],
+          overrides: [],
+          message: 'Hirdetések sikeresen összevonva',
+        }),
+      })
+    })
+
+    await page.route('**/api/dedup/overrides**', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+
+    await page.goto('/')
+    await page.getByRole('button', { name: /Ingatlanok Keresése/i }).click()
+    await expect(page.getByTestId('subview-listings')).toContainText('Hirdetések (12)')
+    expect(searchRequestCount).toBe(1)
+
+    // Scroll down to bottom cards so the top BulkActionBar is scrolled above viewport
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    const card11 = page.getByTestId('property-card').filter({ hasText: 'Görgethető lakás #11' })
+    const card12 = page.getByTestId('property-card').filter({ hasText: 'Görgethető lakás #12' })
+    await expect(card11).toBeVisible()
+    await expect(card12).toBeVisible()
+
+    await card11.click({ modifiers: ['Control'] })
+    await card12.click({ modifiers: ['Control'] })
+
+    const actionBar = page.getByTestId('selection-action-bar')
+    const mergeBtn = page.getByTestId('merge-selected-button')
+    await expect(actionBar).toBeInViewport()
+    await expect(mergeBtn).toBeInViewport()
+    await expect(page.getByTestId('selection-count-label')).toHaveText('2 kijelölve')
+
+    // Click merge while still scrolled down -> merge + automatic follow-up /api/search fires
+    await mergeBtn.click()
+    await expect.poll(() => searchRequestCount).toBe(2)
+    await expect(page.getByTestId('subview-listings')).toContainText('Hirdetések (11)')
+    await expect(
+      page.getByTestId('listings-panel').getByText('11 ingatlan (12 hirdetés)'),
+    ).toBeVisible()
+    await expect(actionBar).toHaveCount(0)
+  })
 })
