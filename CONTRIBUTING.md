@@ -4,19 +4,13 @@ Ez az útmutató foglalja össze az **ingatlan-kereso** fejlesztési munkafolyam
 
 ## 1. Branch-stratégia és Git Worktree
 
-Közvetlen push a `main` és `develop` ágakra **tilos**. Minden fejlesztés a `develop` ágról induló saját ágon vagy izolált worktree-ben készül:
+Közvetlen push a `main` és `develop` ágakra **tilos**. Minden fejlesztés a `develop` ágról induló saját ágon vagy izolált worktree-ben készül, kötelezően `ik-<issue-szám>` elnevezéssel (ahol az `ik` az *ingatlan-kereső* rövidítése, pl. `ik-503` a `#503`-as issue esetén):
 
 ```bash
-git worktree add -b <ág-neve> ../worktrees/<ág-neve> develop
+git worktree add -b ik-<id> ../worktrees/ik-<id> develop
 ```
 
-| Ág-előtag | Mire használjuk |
-| :--- | :--- |
-| `feature/<rövid-leírás>` | Új funkció vagy képesség |
-| `fix/<rövid-leírás>` | Hibajavítás |
-| `refactor/<rövid-leírás>` | Szerkezeti átalakítás funkcionális változtatás nélkül |
-| `docs/<rövid-leírás>` | Csak dokumentációt érintő módosítás |
-| `chore/<rövid-leírás>` | Build, függőségek, CI vagy eszközkarbantartás |
+Az ág típusát és leírását a Conventional Commits formátumú PR-cím, valamint a PR-leírás végén szereplő `Closes #<id>` hivatkozás hordozza.
 
 ## 2. Commit üzenetek
 

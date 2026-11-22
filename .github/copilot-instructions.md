@@ -66,5 +66,5 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 ## 6. Git & PR Conventions
 
 1. **Conventional Commits:** PR titles and commits must follow `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `chore: ...`.
-2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop`. Branch naming follows `feature/<name>`, `fix/<name>`, `refactor/<name>`, `docs/<name>`, `chore/<name>`.
+2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop` (`git worktree add -b ik-<id> ../worktrees/ik-<id> develop`). Branch naming follows the mandatory issue-based format `ik-<issue-number>` (e.g., `ik-503`).
 3. **Concise PR Description:** Every PR must follow `.github/pull_request_template.md` (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`, and `Closes #<id>` / `Fixes #<id>`). See `docs/pr-compliance.md` for details.

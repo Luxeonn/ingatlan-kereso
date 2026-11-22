@@ -142,7 +142,7 @@ ingatlan-kereso/
 
 > [!IMPORTANT]
 > 1. **Direct Pushes Prohibited:** Never push directly to `main` or `develop`.
-> 2. **Git Worktrees & Branch Naming:** Start all branches from `develop` (`feature/<short-desc>`, `fix/<short-desc>`, `docs/<short-desc>`, `refactor/<short-desc>`, `chore/<short-desc>`), using dedicated worktrees (`git worktree add -b <branch-name> ../worktrees/<branch-name> develop`) when isolating concurrent work.
+> 2. **Git Worktrees & Branch Naming:** Start all branches from `develop` using the mandatory issue-based format `ik-<issue-number>` (e.g., `ik-503` for issue `#503`), using dedicated worktrees (`git worktree add -b ik-<id> ../worktrees/ik-<id> develop`) when isolating concurrent work.
 > 3. **Atomic Commits:** Commit each coherent logical increment with a Conventional Commits message (`feat: ...`, `fix: ...`, `docs: ...`). Never squash unrelated work or push mechanical fixup chains.
 > 4. **Pipeline Concurrency:** Cancel obsolete workflow runs (`gh run cancel <run-id>`).
 > 5. **PR Conventions & UTF-8 Encoding:**
