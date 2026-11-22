@@ -41,48 +41,46 @@ RUN set -eu; \
       --output /opt/jre; \
     rm -rf /tmp/jar-extract
 
-# Stage 2: Minimal hardened Alpine runtime with Custom JRE 25 + Python curl_cffi sidecar
+# Stage 2: Minimal hardened Alpine runtime with Custom JRE 25 + Node.js Playwright Chromium sidecar
 FROM alpine:3.24
 
 ENV JAVA_HOME=/opt/jre \
     PATH="/opt/jre/bin:${PATH}" \
-    PYTHONDONTWRITEBYTECODE=1 \
     SERVER_HOST=0.0.0.0 \
     SERVER_PORT=8080 \
     NO_BROWSER=true \
+    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 # Copy minimal custom JRE built in Stage 1
 COPY --from=builder /opt/jre /opt/jre
 
-# Apply security patches, install Python sidecar deps, remove pip and unused Python stdlib/caches in one layer
-COPY tools/requirements.txt /tmp/requirements.txt
+# Apply security patches and install only runtime OS dependencies (Node.js + Chromium for Ingatlan.com Playwright sidecar)
 RUN set -eu; \
     apk upgrade --no-cache; \
-    apk add --no-cache ca-certificates tzdata python3; \
-    apk add --no-cache --virtual .pip-deps py3-pip; \
-    pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt; \
-    apk del --no-network .pip-deps; \
-    rm -rf /tmp/requirements.txt /root/.cache \
-      /usr/lib/python3.*/test /usr/lib/python3.*/tests \
-      /usr/lib/python3.*/idlelib /usr/lib/python3.*/tkinter \
-      /usr/lib/python3.*/turtledemo /usr/lib/python3.*/ensurepip \
-      /usr/lib/python3.*/pydoc_data /usr/lib/python3.*/lib2to3; \
-    find /usr/lib/python3.* -type d \( -name '__pycache__' -o -name 'tests' -o -name 'test' \) -exec rm -rf {} +; \
-    find /usr/lib/python3.* -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+    apk add --no-cache ca-certificates tzdata nodejs chromium
 
-# Create non-root system user (UID 10001) and app directories before COPY to avoid OverlayFS chown duplication
+# Create non-root system user (UID 10001) and app directories before COPY
 RUN addgroup -S -g 10001 appuser && \
     adduser -S -u 10001 -G appuser -h /app -s /sbin/nologin appuser && \
-    mkdir -p /app/data /app/logs /app/tools/scrapers && \
+    mkdir -p /app/data /app/logs /app/tools && \
     chown -R appuser:appuser /app
 
 WORKDIR /app
 
-# Copy executable Spring Boot jar and only runtime Python sidecar files
+# Install playwright-core without keeping npm or duplicating OverlayFS layers on chown
+COPY --chown=appuser:appuser tools/package.json tools/package-lock.json /app/tools/
+RUN set -eu; \
+    apk add --no-cache --virtual .npm-deps npm; \
+    cd /app/tools; \
+    npm ci --omit=dev --no-audit --no-fund; \
+    chown -R appuser:appuser /app/tools/node_modules; \
+    rm -rf /root/.npm /tmp/npm-*; \
+    apk del --no-network .npm-deps
+
+# Copy executable Spring Boot jar and only the runtime Playwright sidecar script
 COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-*.jar /app/app.jar
-COPY --chown=appuser:appuser tools/sidecar.py tools/models.py /app/tools/
-COPY --chown=appuser:appuser tools/scrapers/ /app/tools/scrapers/
+COPY --chown=appuser:appuser tools/sidecar-playwright.mjs /app/tools/
 
 USER appuser:appuser
 
