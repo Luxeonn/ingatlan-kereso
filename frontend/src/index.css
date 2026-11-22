@@ -2,28 +2,62 @@
 @config "../tailwind.config.js";
 
 :root {
-  --bg-body: #0b0f19;
-  --bg-card: #131b2e;
-  --bg-card-hover: #1a243d;
-  --bg-input: #1a2238;
-  --border-color: #263352;
+  --bg-body: #090d16;
+  --bg-canvas: #090d16;
+  --bg-card: #101726;
+  --bg-surface: #101726;
+  --bg-card-hover: #162033;
+  --bg-surface-hover: #162033;
+  --bg-elevated: #162033;
+  --bg-chrome: rgba(16, 23, 38, 0.86);
+  --bg-input: #151e30;
+  --border-color: rgba(255, 255, 255, 0.09);
+  --border-hairline: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.16);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
+  --text-muted: #64748b;
   --accent: #3b82f6;
+  --accent-soft: rgba(59, 130, 246, 0.14);
   --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   --success: #10b981;
+  --status-bargain-fg: #34d399;
+  --status-bargain-bg: rgba(16, 185, 129, 0.14);
+  --status-warn-fg: #fbbf24;
+  --status-warn-bg: rgba(245, 158, 11, 0.14);
+  --status-danger-fg: #fb7185;
+  --status-danger-bg: rgba(244, 63, 94, 0.14);
+  --status-info-fg: #818cf8;
+  --status-info-bg: rgba(99, 102, 241, 0.14);
 }
 
 html:not(.dark) {
-  --bg-body: #f8fafc;
+  --bg-body: #f6f8fb;
+  --bg-canvas: #f6f8fb;
   --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-surface-hover: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-chrome: rgba(255, 255, 255, 0.88);
   --bg-input: #f1f5f9;
-  --border-color: #e2e8f0;
+  --border-color: rgba(15, 23, 42, 0.10);
+  --border-hairline: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
   --text-primary: #0f172a;
-  --text-secondary: #64748b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
   --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.10);
   --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --status-bargain-fg: #047857;
+  --status-bargain-bg: rgba(5, 150, 105, 0.10);
+  --status-warn-fg: #b45309;
+  --status-warn-bg: rgba(217, 119, 6, 0.10);
+  --status-danger-fg: #be123c;
+  --status-danger-bg: rgba(225, 29, 72, 0.10);
+  --status-info-fg: #4338ca;
+  --status-info-bg: rgba(79, 70, 229, 0.10);
 }
 
 body {
@@ -31,6 +65,10 @@ body {
   color: var(--text-primary);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Custom scrollbars */
@@ -86,4 +124,11 @@ html:not(.dark) .animate-shimmer {
 
 .pulse-title {
   animation: pulse-title-anim 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer,
+  .pulse-title {
+    animation: none !important;
+  }
 }

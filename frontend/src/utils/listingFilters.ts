@@ -24,6 +24,14 @@ export function isItemBargain(item: IngatlanItem): boolean {
   )
 }
 
+export function hasItemPriceDrop(item: IngatlanItem): boolean {
+  if (!item) return false
+  return Boolean(
+    item.status === 'PRICE_DROP' ||
+      (item.priceDelta !== null && item.priceDelta !== undefined && item.priceDelta < 0),
+  )
+}
+
 function getPriceHuf(item: IngatlanItem, fallback: number): number {
   const { priceFt, priceMillion } = getEffectivePrice(item)
   if (typeof priceFt === 'number' && !Number.isNaN(priceFt) && priceFt > 0) {
@@ -118,6 +126,8 @@ export interface ItemFilterOptions {
   excludeViewed?: boolean
   sessionViewedUrls?: ReadonlySet<string>
   onlyNewConstruction?: boolean
+  onlyDiscounted?: boolean
+  minRooms?: number
   onlyBargain?: boolean
   excludeMultiSource?: boolean
   onlyMultiSource?: boolean
@@ -145,12 +155,22 @@ function matchesSourceAndImageFlags(item: IngatlanItem, options: ItemFilterOptio
   return true
 }
 
+function matchesRoomsAndDiscountFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
+  if (options.onlyDiscounted && !hasItemPriceDrop(item)) return false
+  if (options.minRooms && options.minRooms > 0) {
+    const rooms = item.detailsInfo?.roomCount ?? 0
+    if (rooms < options.minRooms) return false
+  }
+  return true
+}
+
 function matchesItemFlags(item: IngatlanItem, options: ItemFilterOptions): boolean {
   const sessionViewed = isSessionViewed(item, options.sessionViewedUrls)
   if (options.onlyNew && !isListingNew(item) && !sessionViewed) return false
   if (options.excludeViewed && item.viewed && !sessionViewed) return false
   if (options.onlyNewConstruction && !item.newConstruction) return false
   if (options.onlyBargain && !isItemBargain(item)) return false
+  if (!matchesRoomsAndDiscountFlags(item, options)) return false
   return matchesSourceAndImageFlags(item, options)
 }
 

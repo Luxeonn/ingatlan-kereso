@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FC } from 'react'
 import {
   LayoutGrid,
   List,
+  Table2,
   Search,
   X,
   Trash2,
@@ -281,6 +282,20 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
               )}
             >
               <List className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              data-testid="view-mode-table"
+              onClick={() => setViewMode('table')}
+              title="Táblázat nézet"
+              className={cn(
+                'rounded-md p-1 transition-colors',
+                viewMode === 'table'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+              )}
+            >
+              <Table2 className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

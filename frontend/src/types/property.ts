@@ -6,6 +6,14 @@ export type PortalSource = components['schemas']['PortalSource']
 export type CanonicalPropertyType = components['schemas']['PropertyType']
 export type PropertyType = CanonicalPropertyType
 export type SourceListing = components['schemas']['SourceListing']
+export type IngatlanItem = components['schemas']['IngatlanItem']
+
+export type PriceHistoryEntry = components['schemas']['PriceHistoryEntry']
+export type ListingObservation = components['schemas']['ListingObservation']
+export type ListingObservationEvent = NonNullable<ListingObservation['statusEvent']>
+export type StatusLogEntry = components['schemas']['StatusLogEntry']
+export type ListingStatus = components['schemas']['ListingStatus']
+export type ListingSortOption = components['schemas']['ListingSortOption']
 
 export interface BargainInfo {
   isBargain: boolean
@@ -18,5 +26,12 @@ export interface BargainInfo {
   referencePropertyType?: CanonicalPropertyType
 }
 
-export type IngatlanItem = components['schemas']['IngatlanItem']
-
+export interface CrossPortalSpreadInfo {
+  activeSourcesCount: number
+  minActivePriceHuf: number
+  maxActivePriceHuf: number
+  spreadAmountHuf: number
+  spreadMillion: number
+  spreadPercent: number
+  cheapestPortal: string
+}

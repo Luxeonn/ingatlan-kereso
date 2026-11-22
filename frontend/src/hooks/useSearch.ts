@@ -46,6 +46,7 @@ export function useSearch() {
     quickSearchQuery,
     selectedPortalFilter,
     showHidden,
+    markCriteriaExecuted,
   } = useFilterStore()
   const { dashboardTab, listingSubView, starredUrls, starredItemsCache } = useUiStore()
   const [data, setData] = useState<DashboardResponseDto | null>(null)
@@ -73,6 +74,8 @@ export function useSearch() {
     queryClient.invalidateQueries({ queryKey: ['portals'] })
     queryClient.invalidateQueries({ queryKey: ['cities'] })
     queryClient.invalidateQueries({ queryKey: ['history'] })
+    queryClient.invalidateQueries({ queryKey: ['system-status'] })
+    queryClient.invalidateQueries({ queryKey: ['properties'] })
   }
 
   const searchMutation = useMutation<DashboardResponseDto, Error, SearchMutationVariables>({
@@ -280,8 +283,10 @@ export function useSearch() {
     if (!silent) {
       setIsSearchPending(true)
     }
+    const effectiveCriteria = { ...criteria, ...(overrideCriteria || {}) }
+    markCriteriaExecuted(effectiveCriteria)
     searchMutation.mutate({
-      criteria: { ...criteria, ...(overrideCriteria || {}) },
+      criteria: effectiveCriteria,
       requestId: nextRequestId,
       silent,
     })

@@ -14,9 +14,11 @@ export const urlSchema = z.object({
   maxPrice: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
   minArea: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
   maxArea: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
+  minRooms: z.coerce.number().int().min(0).max(50).optional().catch(undefined),
   portals: z.string().max(500).optional().catch(undefined),
   autoOpen: z.enum(['true', 'false']).optional().catch(undefined),
   excludeViewed: z.enum(['true', 'false']).optional().catch(undefined),
+  onlyDiscounted: z.enum(['true', 'false']).optional().catch(undefined),
   onlyNewConstruction: z.enum(['true', 'false']).optional().catch(undefined),
   sort: z.enum(['price_asc', 'price_desc', 'area_desc', 'date_desc', 'bargain_desc']).optional().catch(undefined),
   onlyNew: z.enum(['true', 'false']).optional().catch(undefined),
@@ -69,11 +71,15 @@ function parseNumericRanges(params: ParsedUrlParams, result: Partial<SearchCrite
   if (params.maxPrice !== undefined) result.maxPriceMillion = params.maxPrice
   if (params.minArea !== undefined) result.minArea = params.minArea
   if (params.maxArea !== undefined) result.maxArea = params.maxArea
+  if (params.minRooms !== undefined && params.minRooms > 0) result.minRooms = params.minRooms
 }
 
 function parseBooleanFlags(params: ParsedUrlParams, result: Partial<SearchCriteria>): void {
   if (params.autoOpen !== null && params.autoOpen !== undefined) result.autoOpenBrowser = params.autoOpen === 'true'
   if (params.excludeViewed !== null && params.excludeViewed !== undefined) result.excludeViewed = params.excludeViewed === 'true'
+  if (params.onlyDiscounted !== null && params.onlyDiscounted !== undefined) {
+    result.onlyDiscounted = params.onlyDiscounted === 'true'
+  }
   if (params.onlyNewConstruction !== null && params.onlyNewConstruction !== undefined) {
     result.onlyNewConstruction = params.onlyNewConstruction === 'true'
   }
@@ -141,19 +147,24 @@ export function parseUrlParams(): ParsedUrlFilterResult {
   }
 }
 
+function setNumericParamIfNonDefault(
+  params: URLSearchParams,
+  key: string,
+  val: number | null | undefined,
+  defaultVal: number,
+): void {
+  if (val !== null && val !== undefined && val !== defaultVal) {
+    params.set(key, String(val))
+  }
+}
+
 function appendNumericRangeParams(params: URLSearchParams, criteria: SearchCriteria): void {
-  const { minPriceMillion, maxPriceMillion, minArea, maxArea } = criteria
-  if (minPriceMillion !== null && minPriceMillion !== undefined && minPriceMillion !== 70) {
-    params.set('minPrice', String(minPriceMillion))
-  }
-  if (maxPriceMillion !== null && maxPriceMillion !== undefined && maxPriceMillion !== 120) {
-    params.set('maxPrice', String(maxPriceMillion))
-  }
-  if (minArea !== null && minArea !== undefined && minArea !== 90) {
-    params.set('minArea', String(minArea))
-  }
-  if (maxArea !== null && maxArea !== undefined && maxArea !== 200) {
-    params.set('maxArea', String(maxArea))
+  setNumericParamIfNonDefault(params, 'minPrice', criteria.minPriceMillion, 70)
+  setNumericParamIfNonDefault(params, 'maxPrice', criteria.maxPriceMillion, 120)
+  setNumericParamIfNonDefault(params, 'minArea', criteria.minArea, 90)
+  setNumericParamIfNonDefault(params, 'maxArea', criteria.maxArea, 200)
+  if (criteria.minRooms !== null && criteria.minRooms !== undefined && criteria.minRooms > 0) {
+    params.set('minRooms', String(criteria.minRooms))
   }
 }
 
@@ -165,6 +176,7 @@ function appendFilterCategoryParams(params: URLSearchParams, criteria: SearchCri
   }
   if (criteria.autoOpenBrowser) params.set('autoOpen', 'true')
   if (criteria.excludeViewed) params.set('excludeViewed', 'true')
+  if (criteria.onlyDiscounted) params.set('onlyDiscounted', 'true')
   if (criteria.onlyNewConstruction) params.set('onlyNewConstruction', 'true')
 }
 
@@ -194,4 +206,21 @@ export function appendUiFilterParams(params: URLSearchParams, options: UiFilterP
   }
   if (options.excludeNoImage) params.set('excludeNoImage', 'true')
   if (options.minQualityScore > 0) params.set('minQuality', String(options.minQualityScore))
+}
+
+export function computeCriteriaHash(criteria: SearchCriteria): string {
+  const cities = [...(criteria.cities ?? [])].map((c) => c.trim().toLowerCase()).sort().join(',')
+  const portals = [...(criteria.portals ?? [])].map((p) => p.trim().toLowerCase()).sort().join(',')
+  return [
+    cities,
+    criteria.propertyType ?? 'HAZ',
+    criteria.minPriceMillion ?? 0,
+    criteria.maxPriceMillion ?? 0,
+    criteria.minArea ?? 0,
+    criteria.maxArea ?? 0,
+    criteria.minRooms ?? 0,
+    portals,
+    Boolean(criteria.onlyDiscounted),
+    Boolean(criteria.onlyNewConstruction),
+  ].join('|')
 }

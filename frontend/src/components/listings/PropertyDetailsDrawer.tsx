@@ -1,10 +1,19 @@
 import { useEffect, useState, type FC } from 'react'
-import { Layers, Tag, AlertTriangle, Check } from 'lucide-react'
+import { Layers, Tag, AlertTriangle, Check, TrendingDown } from 'lucide-react'
 import type { IngatlanItem, SourceListing } from '../../types/property'
 import { getDedupOverrides, type DedupOverrideDto } from '../../api/dedupApi'
-import { clampQualityScore, getQualityConfig, getEffectivePrice, openExternalUrl } from '../../utils/formatters'
+import {
+  clampQualityScore,
+  getQualityConfig,
+  getEffectivePrice,
+  getCrossPortalSpread,
+  formatPriceFt,
+  formatPricePerSqm,
+  openExternalUrl,
+} from '../../utils/formatters'
 import { PropertyTypeBadge } from './PropertyTypeBadge'
 import { ManualDedupStatusSection, SourceItemRow } from './PropertyDetailsDrawerParts'
+import { PropertyTimelineSection } from './PropertyTimelineSection'
 import { cn } from '../../utils/cn'
 
 export interface PropertyDetailsDrawerProps {
@@ -52,6 +61,114 @@ function filterRelevantOverrides(
   return Array.from(byId.values())
 }
 
+const DrawerCategoryHeader: FC<{ item: IngatlanItem }> = ({ item }) => {
+  const pct = item.percentageBelowMedian
+  const hasMarketPosition =
+    pct !== null && pct !== undefined && (item.referenceSampleSize ?? 0) >= 5
+  const isBelow = (pct ?? 0) >= 0
+
+  return (
+    <div className="flex flex-col gap-1.5 pb-3 border-b border-[var(--border-hairline)]">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
+          <Tag className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+          <span>Besorolás és Kategória</span>
+        </div>
+        {hasMarketPosition && (
+          <span
+            data-testid="drawer-market-position"
+            className={cn(
+              'rounded-md border px-2 py-0.5 text-[10px] font-bold tabular-nums',
+              isBelow
+                ? 'border-emerald-500/30 bg-[var(--status-bargain-bg)] text-[var(--status-bargain-fg)]'
+                : 'border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-secondary)]',
+            )}
+          >
+            {isBelow
+              ? `-${Math.round(pct ?? 0)}% medián alatt`
+              : `+${Math.abs(Math.round(pct ?? 0))}% medián felett`}
+            {item.referenceMedianPricePerSquareMeter
+              ? ` (Medián: ${formatPricePerSqm(item.referenceMedianPricePerSquareMeter)})`
+              : ''}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <PropertyTypeBadge propertyType={item.propertyType} />
+        {item.details && (
+          <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg-card)] px-2 py-0.5 rounded border border-[var(--border-hairline)] truncate max-w-full">
+            {item.details}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const DrawerQualitySection: FC<{ item: IngatlanItem; isMultiSource: boolean }> = ({
+  item,
+  isMultiSource,
+}) => {
+  const score = clampQualityScore(item.qualityScore)
+  if (score === null) return null
+  const qualityConfig = getQualityConfig(score)
+  const deductions = item.qualityDeductions ?? []
+
+  return (
+    <div
+      data-testid="drawer-quality-section"
+      className={cn(
+        'flex flex-col gap-2 pb-3',
+        isMultiSource && 'border-b border-[var(--border-hairline)]',
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
+          <qualityConfig.icon className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+          <span>Adatminőségi Értékelés</span>
+        </div>
+        <span
+          className={cn(
+            'px-2 py-0.5 rounded border text-[11px] font-bold flex items-center gap-1 tabular-nums',
+            qualityConfig.badgeClass,
+          )}
+        >
+          <span>{score}/100 pont</span>
+          <span className="text-[10px] font-normal opacity-80">({qualityConfig.ratingLabel})</span>
+        </span>
+      </div>
+
+      <div className="h-1.5 w-full bg-[var(--bg-card)] rounded-full overflow-hidden border border-[var(--border-hairline)]">
+        <div
+          className={cn('h-full transition-all duration-300 rounded-full', qualityConfig.barClass)}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+
+      {deductions.length > 0 ? (
+        <div className="mt-1 flex flex-col gap-1 rounded-lg bg-[var(--bg-card)] p-2 border border-[var(--border-hairline)]">
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--status-warn-fg)]">
+            <AlertTriangle className="h-3 w-3" />
+            <span>Levonási tételek ({deductions.length}):</span>
+          </div>
+          <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[var(--text-secondary)]">
+            {deductions.map((deduction, idx) => (
+              <li key={idx} className="leading-snug">
+                {deduction}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 text-[11px] text-[var(--status-bargain-fg)] font-medium pt-0.5">
+          <Check className="h-3.5 w-3.5 shrink-0" />
+          <span>Minden ellenőrzött adatmező hiánytalan és megbízható.</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
   item,
   onMarkViewed,
@@ -66,6 +183,8 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
   const sources = buildFallbackSources(item)
   const clusterUrls = sources.map((s) => s.url).filter((u): u is string => Boolean(u))
   const clusterUrlKey = clusterUrls.join('\0')
+  const spreadInfo = getCrossPortalSpread(item)
+  const isMultiSource = sources.length > 1
 
   useEffect(() => {
     if (!hasManualOverride) return undefined
@@ -74,9 +193,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
     let cancelled = false
     getDedupOverrides(urls)
       .then((list) => {
-        if (!cancelled) {
-          setOverrides(filterRelevantOverrides(list, urls))
-        }
+        if (!cancelled) setOverrides(filterRelevantOverrides(list, urls))
       })
       .catch(() => {
         if (!cancelled) setOverrides([])
@@ -91,12 +208,6 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
     openExternalUrl(url)
     onMarkViewed?.(url)
   }
-
-  const score = clampQualityScore(item.qualityScore)
-  const deductions = item.qualityDeductions ?? []
-  const qualityConfig = score !== null ? getQualityConfig(score) : null
-  const isMultiSource = sources.length > 1
-  const displayedOverrides = hasManualOverride ? overrides : []
 
   const handleSplit = async (sourceUrl: string) => {
     if (!onSplitSource || isMutating) return
@@ -129,71 +240,12 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
       data-testid="multi-source-drawer"
       data-drawer-component="property-details-drawer"
       className={cn(
-        'mt-3.5 flex flex-col gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)]/50 p-3.5 shadow-inner transition-all animate-in fade-in-50 duration-200 text-xs',
+        'mt-3.5 flex flex-col gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)]/60 p-3.5 shadow-inner transition-all animate-in fade-in-50 duration-200 text-xs',
         className,
       )}
     >
-      <div className="flex flex-col gap-1.5 pb-3 border-b border-[var(--border-color)]/50">
-        <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-          <Tag className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
-          <span>Besorolás és Kategória</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 pt-0.5">
-          <PropertyTypeBadge propertyType={item.propertyType} />
-          {item.details && (
-            <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg-card)] px-2 py-0.5 rounded border border-[var(--border-color)] truncate max-w-full">
-              {item.details}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {score !== null && qualityConfig && (
-        <div
-          data-testid="drawer-quality-section"
-          className={cn(
-            'flex flex-col gap-2 pb-3',
-            isMultiSource && 'border-b border-[var(--border-color)]/50',
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-              <qualityConfig.icon className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
-              <span>Adatminőségi Értékelés</span>
-            </div>
-            <span className={cn('px-2 py-0.5 rounded border text-[11px] font-bold flex items-center gap-1', qualityConfig.badgeClass)}>
-              <span>{score}/100 pont</span>
-              <span className="text-[10px] font-normal opacity-80">({qualityConfig.ratingLabel})</span>
-            </span>
-          </div>
-
-          <div className="h-1.5 w-full bg-[var(--bg-card)] rounded-full overflow-hidden border border-[var(--border-color)]/50">
-            <div
-              className={cn('h-full transition-all duration-300 rounded-full', qualityConfig.barClass)}
-              style={{ width: `${score}%` }}
-            />
-          </div>
-
-          {deductions.length > 0 ? (
-            <div className="mt-1 flex flex-col gap-1 rounded-lg bg-[var(--bg-card)] p-2 border border-[var(--border-color)]">
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-400">
-                <AlertTriangle className="h-3 w-3" />
-                <span>Levonási tételek ({deductions.length}):</span>
-              </div>
-              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[var(--text-secondary)]">
-                {deductions.map((deduction, idx) => (
-                  <li key={idx} className="leading-snug">{deduction}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium pt-0.5">
-              <Check className="h-3.5 w-3.5 shrink-0" />
-              <span>Minden ellenőrzött adatmező hiánytalan és megbízható.</span>
-            </div>
-          )}
-        </div>
-      )}
+      <DrawerCategoryHeader item={item} />
+      <DrawerQualitySection item={item} isMultiSource={isMultiSource} />
 
       {isMultiSource && (
         <div data-testid="sources-list-section" className="flex flex-col gap-2">
@@ -207,7 +259,24 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-col divide-y divide-[var(--border-color)]/40">
+          {spreadInfo && (
+            <div
+              data-testid="drawer-cross-portal-spread"
+              className="flex items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-[var(--status-bargain-bg)] px-2.5 py-1.5 text-[11px] text-[var(--status-bargain-fg)] tabular-nums"
+            >
+              <span className="flex items-center gap-1.5 font-bold">
+                <TrendingDown className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Portál árrés megtakarítás: -{formatPriceFt(spreadInfo.spreadAmountHuf)} (-{spreadInfo.spreadPercent}%)
+                </span>
+              </span>
+              <span className="text-[10px] font-semibold opacity-90">
+                Legjobb: {spreadInfo.cheapestPortal}
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-col divide-y divide-[var(--border-hairline)]">
             {sources.map((source, idx) => (
               <SourceItemRow
                 key={source.url || `${source.portal}-${idx}`}
@@ -222,11 +291,13 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
         </div>
       )}
 
+      <PropertyTimelineSection item={item} />
+
       <ManualDedupStatusSection
         manuallyMerged={item.manuallyMerged}
         manuallySplit={item.manuallySplit}
         sourcesCount={sources.length}
-        overrides={displayedOverrides}
+        overrides={hasManualOverride ? overrides : []}
         isMutating={isMutating}
         onUndoOverride={onUndoOverride ? (id) => void handleUndo(id) : undefined}
       />

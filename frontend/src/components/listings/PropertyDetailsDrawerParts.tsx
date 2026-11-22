@@ -195,7 +195,7 @@ const SplitSourceControl: FC<SplitSourceControlProps> = ({
           data-testid="confirm-split-button"
           disabled={isMutating}
           onClick={onConfirmSplit}
-          className="rounded-lg border border-rose-500/50 bg-rose-500/20 px-2 py-1 text-[11px] font-bold text-rose-200 hover:bg-rose-500/30 disabled:opacity-50"
+          className="rounded-lg border border-rose-500/40 bg-[var(--status-danger-bg)] px-2 py-1 text-[11px] font-bold text-[var(--status-danger-fg)] hover:opacity-90 disabled:opacity-50"
         >
           Megerősítés
         </button>
@@ -250,7 +250,7 @@ const OverrideRow: FC<OverrideRowProps> = ({ overrideItem, isMutating, onUndoOve
   return (
     <div
       data-testid="dedup-override-row"
-      className="flex items-center justify-between gap-2 text-[10px] text-indigo-300"
+      className="flex items-center justify-between gap-2 text-[10px] text-[var(--status-info-fg)]"
     >
       <span className="truncate" title={fullPair}>
         {actionLabel}: {shortPair}
@@ -261,7 +261,7 @@ const OverrideRow: FC<OverrideRowProps> = ({ overrideItem, isMutating, onUndoOve
           data-testid={`undo-override-${overrideItem.id}`}
           disabled={isMutating}
           onClick={() => onUndoOverride(overrideItem.id)}
-          className="inline-flex shrink-0 items-center gap-1 rounded border border-indigo-400/40 bg-indigo-500/20 px-2 py-0.5 font-semibold text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1 rounded border border-indigo-400/40 bg-[var(--bg-surface)] px-2 py-0.5 font-semibold text-[var(--status-info-fg)] hover:opacity-90 disabled:opacity-50"
         >
           <RotateCcw className="h-3 w-3" aria-hidden="true" />
           <span>Visszavonás</span>
@@ -296,7 +296,7 @@ export const ManualDedupStatusSection: FC<ManualDedupStatusSectionProps> = ({
   return (
     <div
       data-testid="manual-dedup-status"
-      className="flex flex-col gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-2.5 text-[11px] text-indigo-200"
+      className="flex flex-col gap-1.5 rounded-lg border border-indigo-500/30 bg-[var(--status-info-bg)] p-2.5 text-[11px] text-[var(--status-info-fg)]"
     >
       <div className="flex flex-wrap items-center gap-2 font-semibold">
         {manuallyMerged && <span>{mergedHeader}</span>}
@@ -326,7 +326,7 @@ export const ManualDedupStatusSection: FC<ManualDedupStatusSectionProps> = ({
           type="button"
           data-testid="toggle-all-overrides-button"
           onClick={() => setShowAllOverrides((prev) => !prev)}
-          className="self-start text-[10px] font-semibold text-indigo-300 underline decoration-indigo-400/50 hover:text-indigo-100 cursor-pointer"
+          className="self-start text-[10px] font-semibold text-[var(--status-info-fg)] underline decoration-indigo-400/50 hover:opacity-80 cursor-pointer"
         >
           {showAllOverrides
             ? 'Kevesebb megjelenítése'

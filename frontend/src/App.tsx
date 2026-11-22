@@ -1,19 +1,26 @@
 import { lazy, Suspense, useEffect, useRef, useMemo, type FC } from 'react'
-import { LayoutGrid, BarChart2 } from 'lucide-react'
 import { Header } from './components/layout/Header'
+import { WorkspaceHeaderNav, GlobalUndoToast } from './components/layout/WorkspaceChrome'
 import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
+import { ArchiveSubViewToolbar } from './components/archive/ArchiveSubViewToolbar'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { IngatlanComImportModal } from './components/modals/IngatlanComImportModal'
-import { SearchErrorBanner, PartialPortalWarningBanner } from './components/layout/StatusBanners'
+import { CommandPaletteModal } from './components/modals/CommandPaletteModal'
+import {
+  SearchErrorBanner,
+  PartialPortalWarningBanner,
+  NewCitiesInitializedBanner,
+} from './components/layout/StatusBanners'
 import { useSearch } from './hooks/useSearch'
+import { useSystemStatus } from './hooks/useSystemStatus'
+import { useHiddenProperties, useDiscountedProperties } from './hooks/useArchiveQueries'
 import { DEFAULT_PORTALS, useFilterStore } from './store/useFilterStore'
-import { useUiStore, type ListingSubView } from './store/useUiStore'
+import { useUiStore, type DashboardTab, type ListingSubView, type ArchiveSubMode } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
 import { extractIngatlanComFetchedPages, findPartialIngatlanComStatus } from './utils/ingatlanComUrl'
-import { cn } from './utils/cn'
 import type { IngatlanItem } from './types/property'
 import type { DashboardResponseDto } from './types/api'
 import type { PortalStatusDto } from './types/portal'
@@ -26,6 +33,7 @@ const MarketAnalyticsPanel = lazy(() =>
 
 interface ActiveSliceParams {
   listingSubView: ListingSubView
+  archiveSubMode: ArchiveSubMode
   items: IngatlanItem[]
   rawItems: IngatlanItem[]
   rawCount: number
@@ -33,335 +41,283 @@ interface ActiveSliceParams {
   rawFavoriteItems: IngatlanItem[]
   archiveItems: IngatlanItem[]
   rawArchiveItems: IngatlanItem[]
+  globalHiddenItems?: IngatlanItem[]
+  globalDiscountedItems?: IngatlanItem[]
   isLoading: boolean
   isArchiveLoading: boolean
 }
 
-function resolveActiveListingsSlice(params: ActiveSliceParams) {
-  switch (params.listingSubView) {
-    case 'favorites':
-      return {
-        activeItems: params.favoriteItems,
-        activeRawItems: params.rawFavoriteItems,
-        activeRawCount: params.rawFavoriteItems.length,
-        activeLoading: false,
-      }
-    case 'archive':
-      return {
-        activeItems: params.archiveItems,
-        activeRawItems: params.rawArchiveItems,
-        activeRawCount: params.rawArchiveItems.length,
-        activeLoading: params.isArchiveLoading,
-      }
-    case 'listings':
-      return {
-        activeItems: params.items,
-        activeRawItems: params.rawItems,
-        activeRawCount: params.rawCount,
-        activeLoading: params.isLoading,
-      }
-    default: {
-      const _exhaustive: never = params.listingSubView
-      return _exhaustive
+function resolveArchiveModeSlice(params: ActiveSliceParams) {
+  const hidden = params.globalHiddenItems ?? []
+  const discounted = params.globalDiscountedItems ?? []
+  if (params.archiveSubMode === 'hidden') {
+    return {
+      activeItems: hidden,
+      activeRawItems: hidden,
+      activeRawCount: hidden.length,
+      activeLoading: params.isArchiveLoading,
     }
+  }
+  if (params.archiveSubMode === 'discounted') {
+    return {
+      activeItems: discounted,
+      activeRawItems: discounted,
+      activeRawCount: discounted.length,
+      activeLoading: params.isArchiveLoading,
+    }
+  }
+  return {
+    activeItems: params.archiveItems,
+    activeRawItems: params.rawArchiveItems,
+    activeRawCount: params.rawArchiveItems.length,
+    activeLoading: params.isArchiveLoading,
   }
 }
 
-function extractPortalFailures(statuses?: PortalStatusDto[] | null): PortalStatusDto[] {
-  if (!statuses) return []
-  return statuses.filter((p) => p.status === 'FAILED' || p.status === 'BOT_PROTECTED')
+function resolveActiveListingsSlice(params: ActiveSliceParams) {
+  if (params.listingSubView === 'favorites') {
+    return {
+      activeItems: params.favoriteItems,
+      activeRawItems: params.rawFavoriteItems,
+      activeRawCount: params.rawFavoriteItems.length,
+      activeLoading: false,
+    }
+  }
+  if (params.listingSubView === 'archive') {
+    return resolveArchiveModeSlice(params)
+  }
+  return {
+    activeItems: params.items,
+    activeRawItems: params.rawItems,
+    activeRawCount: params.rawCount,
+    activeLoading: params.isLoading,
+  }
 }
 
-function checkIsTotalPortalFailure(
+interface PortalBannerState {
+  failures: PortalStatusDto[]
+  hasPartialIngatlanCom: boolean
+  ingatlanComMessage?: string | null
+  ingatlanComFetchedPages: number | null
+  isNarrowPortalSelection: boolean
+  showPortalBanner: boolean
+  isTotalPortalFailure: boolean
+}
+
+function computePortalBannerState(
   data: DashboardResponseDto | null | undefined,
-  failureCount: number,
-): boolean {
-  if (!data) return false
-  if (data.executionStatus === 'TOTAL_FAILURE') return true
-  const count = data.portalStatuses?.length ?? 0
-  return count > 0 && failureCount === count
-}
-
-function isNarrowPortalList(portals?: string[] | null): boolean {
-  const count = portals?.length ?? 0
-  return count > 0 && count <= 2
-}
-
-function canShowPortalBanner(
-  failureCount: number,
-  hasPartialIngatlanCom: boolean,
-  dashboardTab: string,
-  listingSubView: string,
-): boolean {
-  return (
-    (failureCount > 0 || hasPartialIngatlanCom) &&
+  portals: string[] | null | undefined,
+  dashboardTab: DashboardTab,
+  listingSubView: ListingSubView,
+): PortalBannerState {
+  const statuses = data?.portalStatuses ?? []
+  const failures = statuses.filter((p) => p.status === 'FAILED' || p.status === 'BOT_PROTECTED')
+  const partialIngatlan = findPartialIngatlanComStatus(statuses)
+  const hasPartialIngatlanCom = Boolean(partialIngatlan)
+  const ingatlanComFetchedPages = extractIngatlanComFetchedPages(partialIngatlan)
+  const portalCount = portals?.length ?? 0
+  const isNarrowPortalSelection = portalCount > 0 && portalCount <= 2
+  const showPortalBanner =
+    (failures.length > 0 || hasPartialIngatlanCom) &&
     dashboardTab === 'listings' &&
     listingSubView === 'listings'
+  const isTotalPortalFailure = Boolean(
+    data &&
+      (data.executionStatus === 'TOTAL_FAILURE' ||
+        (statuses.length > 0 && failures.length === statuses.length)),
   )
+
+  return {
+    failures,
+    hasPartialIngatlanCom,
+    ingatlanComMessage: partialIngatlan?.message,
+    ingatlanComFetchedPages,
+    isNarrowPortalSelection,
+    showPortalBanner,
+    isTotalPortalFailure,
+  }
 }
 
-export const App: FC = () => {
-  const {
-    data,
-    items,
-    rawItems,
-    rawCount,
-    archiveItems,
-    rawArchiveItems,
-    isArchiveLoading,
-    favoriteItems,
-    rawFavoriteItems,
-    favoritesCount,
-    isLoading,
-    isError,
-    error,
-    search,
-    markAsViewed,
-    clearArchiveHistory,
-    isClearingHistory,
-    hiddenCount,
-    toastMessage,
-    toastUndoItem,
-    clearToast,
-    hideProperty,
-    restoreProperty,
-    splitSource,
-    mergeSelected,
-    undoDedupOverride,
-    isMerging,
-    openAllTabs,
-  } = useSearch()
-  const { criteria, setCriteria, setAllPortals } = useFilterStore()
-  const {
-    dashboardTab,
-    setDashboardTab,
-    listingSubView,
-    setListingSubView,
-    setDiagnosticsModalOpen,
-    setIngatlanComImportModalOpen,
-  } = useUiStore()
+function useInitialSavedCriteriaLoad(setCriteria: (criteria: ReturnType<typeof useFilterStore.getState>['criteria']) => void) {
   const initialLoadDone = useRef(false)
-
-  const partialPortalFailures = useMemo(
-    () => extractPortalFailures(data?.portalStatuses),
-    [data?.portalStatuses],
-  )
-  const partialIngatlanComStatus = useMemo(
-    () => findPartialIngatlanComStatus(data?.portalStatuses),
-    [data?.portalStatuses],
-  )
-  const hasPartialIngatlanCom = Boolean(partialIngatlanComStatus)
-  const ingatlanComFetchedPages = extractIngatlanComFetchedPages(partialIngatlanComStatus)
-  const isNarrowPortalSelection = isNarrowPortalList(criteria.portals)
-  const showPortalBanner = canShowPortalBanner(
-    partialPortalFailures.length,
-    hasPartialIngatlanCom,
-    dashboardTab,
-    listingSubView,
-  )
-  const isTotalPortalFailure = checkIsTotalPortalFailure(data, partialPortalFailures.length)
-
-  // Load last saved criteria from backend on first mount
   useEffect(() => {
     if (initialLoadDone.current) return
     initialLoadDone.current = true
-
-    // Check if URL has params; if not, load from backend config
     if (!window.location.search) {
       getLastConfig()
         .then((saved) => {
-          if (saved) {
-            setCriteria(saved)
-          }
+          if (saved) setCriteria(saved)
         })
-        .catch(() => {
-          // ignore error, defaults already set in store
-        })
+        .catch(() => {})
     }
   }, [setCriteria])
+}
+
+function isArchiveWorkspace(dashboardTab: DashboardTab, listingSubView: ListingSubView): boolean {
+  return dashboardTab === 'listings' && listingSubView === 'archive'
+}
+
+function hasExecutedOrNonLiveView(listingSubView: ListingSubView, data: DashboardResponseDto | null | undefined): boolean {
+  return listingSubView !== 'listings' || Boolean(data)
+}
+
+export const App: FC = () => {
+  const searchState = useSearch()
+  const { criteria, setCriteria, setAllPortals } = useFilterStore()
+  const ui = useUiStore()
+  const { data: systemStatus } = useSystemStatus()
+  const isArchiveView = isArchiveWorkspace(ui.dashboardTab, ui.listingSubView)
+  const { data: globalHiddenData } = useHiddenProperties(isArchiveView)
+  const { data: globalDiscountedData } = useDiscountedProperties(undefined, isArchiveView)
+
+  useInitialSavedCriteriaLoad(setCriteria)
+
+  const bannerState = useMemo(
+    () =>
+      computePortalBannerState(
+        searchState.data,
+        criteria.portals,
+        ui.dashboardTab,
+        ui.listingSubView,
+      ),
+    [searchState.data, criteria.portals, ui.dashboardTab, ui.listingSubView],
+  )
 
   const handleSearch = () => {
-    if (dashboardTab !== 'listings') {
-      setDashboardTab('listings')
-    }
-    if (listingSubView !== 'listings') {
-      setListingSubView('listings')
-    }
-    search()
+    ui.setDashboardTab('listings')
+    ui.setListingSubView('listings')
+    searchState.search()
   }
 
-  const handleEnableAllPortalsAndSearch = () => {
-    setAllPortals([...DEFAULT_PORTALS])
-    handleSearch()
-  }
-
-  // Active listings data slice based on current listing sub-view
-  const { activeItems, activeRawItems, activeRawCount, activeLoading } = resolveActiveListingsSlice({
-    listingSubView,
-    items,
-    rawItems,
-    rawCount,
-    favoriteItems,
-    rawFavoriteItems,
-    archiveItems,
-    rawArchiveItems,
-    isLoading,
-    isArchiveLoading,
+  const slice = resolveActiveListingsSlice({
+    listingSubView: ui.listingSubView,
+    archiveSubMode: ui.archiveSubMode,
+    items: searchState.items,
+    rawItems: searchState.rawItems,
+    rawCount: searchState.rawCount,
+    favoriteItems: searchState.favoriteItems,
+    rawFavoriteItems: searchState.rawFavoriteItems,
+    archiveItems: searchState.archiveItems,
+    rawArchiveItems: searchState.rawArchiveItems,
+    globalHiddenItems: globalHiddenData,
+    globalDiscountedItems: globalDiscountedData,
+    isLoading: searchState.isLoading,
+    isArchiveLoading: searchState.isArchiveLoading,
   })
 
-  const hasSearched = listingSubView !== 'listings' || Boolean(data)
-  const handleClearHistory = listingSubView === 'archive'
-    ? () => { void clearArchiveHistory() }
-    : undefined
+  const hasSearched = hasExecutedOrNonLiveView(ui.listingSubView, searchState.data)
+  const clearHistoryFn = isArchiveView ? () => void searchState.clearArchiveHistory() : undefined
+
+  const handleSelectListings = () => {
+    ui.setDashboardTab('listings')
+    if (ui.listingSubView === 'archive') ui.setListingSubView('listings')
+  }
+
+  const handleSelectArchive = () => {
+    ui.setDashboardTab('listings')
+    ui.setListingSubView('archive')
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-body)] text-[var(--text-primary)] transition-colors duration-200">
-      {/* Sticky Header */}
-      <Header />
+      <Header totalInDb={systemStatus?.totalInDb} portalStatuses={searchState.data?.portalStatuses} />
 
-      {/* Main Container */}
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
-        {/* Filters and search controls */}
-        <SearchPanel onSearch={handleSearch} isLoading={isLoading} />
+      <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 space-y-5">
+        <SearchPanel onSearch={handleSearch} isLoading={searchState.isLoading} />
 
-        {/* API Error Alert Banner */}
-        {isError && <SearchErrorBanner error={error} onRetry={handleSearch} />}
+        {searchState.isError && <SearchErrorBanner error={searchState.error} onRetry={handleSearch} />}
 
-        {/* Partial or Total Portal Warning Banner */}
-        {showPortalBanner && (
+        {bannerState.showPortalBanner && (
           <PartialPortalWarningBanner
-            failures={partialPortalFailures}
-            isTotalFailure={isTotalPortalFailure}
-            hasIngatlanComPartial={hasPartialIngatlanCom}
-            ingatlanComMessage={partialIngatlanComStatus?.message}
-            showEnableAllPortals={isNarrowPortalSelection}
-            onOpenDiagnostics={() => setDiagnosticsModalOpen(true)}
-            onOpenImportModal={() => setIngatlanComImportModalOpen(true)}
-            onEnableAllPortals={handleEnableAllPortalsAndSearch}
+            failures={bannerState.failures}
+            isTotalFailure={bannerState.isTotalPortalFailure}
+            hasIngatlanComPartial={bannerState.hasPartialIngatlanCom}
+            ingatlanComMessage={bannerState.ingatlanComMessage}
+            showEnableAllPortals={bannerState.isNarrowPortalSelection}
+            onOpenDiagnostics={() => ui.setDiagnosticsModalOpen(true)}
+            onOpenImportModal={() => ui.setIngatlanComImportModalOpen(true)}
+            onEnableAllPortals={() => {
+              setAllPortals([...DEFAULT_PORTALS])
+              handleSearch()
+            }}
           />
         )}
 
-        {/* Market stats bar */}
-        <MarketStatsBar data={data} />
+        <NewCitiesInitializedBanner cities={searchState.data?.newCitiesInitialized} />
+        <MarketStatsBar data={searchState.data} />
 
-        {/* Dashboard View Switcher & Listings Header Controls (#157, #227, #264) */}
-        <div
-          data-testid="listings-panel-header"
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-color)] pb-3"
-        >
-          {/* Left: View Navigation Tabs (R1: strictly 2 primary tabs) */}
-          <nav aria-label="Fő nézetek" className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              data-testid="tab-listings"
-              aria-pressed={dashboardTab === 'listings'}
-              onClick={() => setDashboardTab('listings')}
-              className={cn(
-                'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all',
-                dashboardTab === 'listings'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span>Találatok</span>
-            </button>
+        <WorkspaceHeaderNav
+          dashboardTab={ui.dashboardTab}
+          listingSubView={ui.listingSubView}
+          onSelectListings={handleSelectListings}
+          onSelectArchive={handleSelectArchive}
+          onSelectAnalytics={() => ui.setDashboardTab('analytics')}
+        />
 
-            <button
-              type="button"
-              data-testid="tab-analytics"
-              aria-pressed={dashboardTab === 'analytics'}
-              onClick={() => setDashboardTab('analytics')}
-              className={cn(
-                'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all',
-                dashboardTab === 'analytics'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
-              )}
-            >
-              <BarChart2 className="h-4 w-4" />
-              <span>Piaci Elemzés</span>
-            </button>
-          </nav>
-        </div>
+        {isArchiveView && (
+          <ArchiveSubViewToolbar
+            allCount={searchState.rawArchiveItems.length}
+            hiddenCount={globalHiddenData?.length}
+            discountedCount={globalDiscountedData?.length}
+          />
+        )}
 
-        {/* Decoupled Panel Routing (#264) */}
-        {dashboardTab === 'listings' ? (
+        {ui.dashboardTab === 'listings' ? (
           <ListingsPanel
-            items={activeItems}
-            rawItems={activeRawItems}
-            totalRawCount={activeRawCount}
-            serverFilteredCount={data?.filteredCount}
-            isLoading={activeLoading}
+            items={slice.activeItems}
+            rawItems={slice.activeRawItems}
+            totalRawCount={slice.activeRawCount}
+            serverFilteredCount={searchState.data?.filteredCount}
+            isLoading={slice.activeLoading}
             hasSearched={hasSearched}
-            mode={listingSubView}
-            subView={listingSubView}
-            onSubViewChange={setListingSubView}
-            searchCount={rawCount}
-            favoritesCount={favoritesCount}
-            archiveCount={rawArchiveItems.length}
-            onMarkViewed={markAsViewed}
-            onOpenAll={openAllTabs}
+            mode={ui.listingSubView}
+            subView={ui.listingSubView}
+            onSubViewChange={ui.setListingSubView}
+            searchCount={searchState.rawCount}
+            favoritesCount={searchState.favoritesCount}
+            archiveCount={searchState.rawArchiveItems.length}
+            onMarkViewed={searchState.markAsViewed}
+            onOpenAll={searchState.openAllTabs}
             onTriggerSearch={handleSearch}
-            onClearHistory={handleClearHistory}
-            isClearingHistory={isClearingHistory}
-            onHide={hideProperty}
-            onRestore={restoreProperty}
-            onSplitSource={splitSource}
-            onUndoOverride={undoDedupOverride}
-            onMergeSelected={mergeSelected}
-            isMerging={isMerging}
-            hiddenCount={hiddenCount}
+            onClearHistory={clearHistoryFn}
+            isClearingHistory={searchState.isClearingHistory}
+            onHide={searchState.hideProperty}
+            onRestore={searchState.restoreProperty}
+            onSplitSource={searchState.splitSource}
+            onUndoOverride={searchState.undoDedupOverride}
+            onMergeSelected={searchState.mergeSelected}
+            isMerging={searchState.isMerging}
+            hiddenCount={searchState.hiddenCount}
           />
         ) : (
           <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
             <MarketAnalyticsPanel
-              items={items}
-              onMarkViewed={markAsViewed}
+              items={searchState.items}
+              serverMarketStats={searchState.data?.marketStats}
+              onMarkViewed={searchState.markAsViewed}
               onOpenListing={(url) => {
                 openExternalUrl(url)
-                markAsViewed(url)
+                searchState.markAsViewed(url)
               }}
             />
           </Suspense>
         )}
       </main>
 
-{/* Toast Notification */}
-      {toastMessage && (
-        <aside
-          role="status"
-          aria-live="polite"
-          data-testid="undo-hide-toast"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-3 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-200"
-        >
-          <span className="text-xs font-semibold text-[var(--text-primary)]">{toastMessage}</span>
-          {toastUndoItem && (
-            <button
-              type="button"
-              onClick={() => {
-                restoreProperty(toastUndoItem)
-                clearToast()
-              }}
-              className="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
-            >
-              Visszavonás
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={clearToast}
-            aria-label="Bezárás"
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs"
-          >
-            ✕
-          </button>
-        </aside>
-      )}
+      <GlobalUndoToast
+        toastMessage={searchState.toastMessage}
+        toastUndoItem={searchState.toastUndoItem}
+        hasSelectedCards={ui.selectedCardUrls.length > 0}
+        onRestoreUndo={searchState.restoreProperty}
+        onClear={searchState.clearToast}
+      />
 
-      {/* Modals */}
-      <DiagnosticsModal portalStatuses={data?.portalStatuses} />
-      <IngatlanComImportModal fetchedPages={ingatlanComFetchedPages} onImportSuccess={handleSearch} />
+      <DiagnosticsModal portalStatuses={searchState.data?.portalStatuses} />
+      <IngatlanComImportModal
+        fetchedPages={bannerState.ingatlanComFetchedPages}
+        onImportSuccess={handleSearch}
+      />
+      <CommandPaletteModal onTriggerSearch={handleSearch} />
     </div>
   )
 }

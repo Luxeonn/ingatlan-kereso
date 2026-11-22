@@ -8,11 +8,12 @@ import {
   parseUrlParams,
   appendCriteriaParams,
   appendUiFilterParams,
+  computeCriteriaHash,
   DEFAULT_PORTALS,
   type SortOption,
 } from './filterUrlSync'
 
-export { DEFAULT_PORTALS, type SortOption }
+export { DEFAULT_PORTALS, computeCriteriaHash, type SortOption }
 
 export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
   { value: 'price_asc', label: 'Ár: Növekvő (alapértelmezett)' },
@@ -81,7 +82,6 @@ const DEFAULT_CRITERIA: SearchCriteria = {
   onlyNewConstruction: false,
 }
 
-
 interface FilterState {
   criteria: SearchCriteria
   sortOption: SortOption
@@ -94,6 +94,7 @@ interface FilterState {
   quickSearchQuery: string
   selectedPortalFilter: PortalFilterOption | string
   showHidden: boolean
+  lastExecutedCriteriaHash: string | null
 
   setCriteria: (criteria: Partial<SearchCriteria>) => void
   addCity: (city: string) => void
@@ -104,10 +105,12 @@ interface FilterState {
   setMaxPriceMillion: (max: number) => void
   setMinArea: (min: number) => void
   setMaxArea: (max: number) => void
+  setMinRooms: (minRooms: number | undefined) => void
   togglePortal: (portalId: PortalId | string) => void
   setAllPortals: (portals: (PortalId | string)[]) => void
   setAutoOpen: (auto: boolean) => void
   setExcludeViewed: (exclude: boolean) => void
+  setOnlyDiscounted: (onlyDiscounted: boolean) => void
   setOnlyNewConstruction: (onlyNewConstruction: boolean) => void
   setSortOption: (sort: SortOption) => void
   setOnlyNew: (onlyNew: boolean) => void
@@ -119,11 +122,11 @@ interface FilterState {
   setQuickSearchQuery: (query: string) => void
   setSelectedPortalFilter: (portal: PortalFilterOption | string) => void
   setShowHidden: (show: boolean) => void
+  markCriteriaExecuted: (executedCriteria?: SearchCriteria) => void
   resetToDefaults: () => void
   syncFromUrl: () => void
-  syncToUrl: () => void
+  syncToUrl: (historyMode?: 'replace' | 'push') => void
 }
-
 
 function resolvePortalFilterForPortals(portals: string[] | undefined, currentFilter: string): string {
   const normalized = (portals || []).map(normalizePortalKey).filter((k): k is PortalId => Boolean(k) && k !== 'egyeb')
@@ -157,7 +160,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         sanitized.maxArea = Number.isFinite(sanitized.maxArea) ? Math.max(0, sanitized.maxArea) : 0
       }
       if (sanitized.minRooms !== undefined) {
-        sanitized.minRooms = Number.isFinite(sanitized.minRooms) ? Math.max(0, sanitized.minRooms) : 0
+        sanitized.minRooms = Number.isFinite(sanitized.minRooms) ? Math.max(0, Math.floor(sanitized.minRooms)) : 0
       }
       const nextCriteria = { ...state.criteria, ...sanitized }
       const nextPortalFilter =
@@ -166,7 +169,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
           : state.selectedPortalFilter
       return { criteria: nextCriteria, selectedPortalFilter: nextPortalFilter }
     })
-    get().syncToUrl()
+    get().syncToUrl('replace')
   }
 
   const initialOnlyMulti = initial.onlyMultiSource ?? getStoredOnlyMultiSource()
@@ -186,6 +189,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
     quickSearchQuery: '',
     selectedPortalFilter: resolvePortalFilterForPortals(initialCriteria.portals, 'all'),
     showHidden: false,
+    lastExecutedCriteriaHash: null,
 
     setCriteria: updateCriteria,
 
@@ -215,6 +219,8 @@ export const useFilterStore = create<FilterState>((set, get) => {
     setMaxPriceMillion: (maxPriceMillion) => updateCriteria({ maxPriceMillion }),
     setMinArea: (minArea) => updateCriteria({ minArea }),
     setMaxArea: (maxArea) => updateCriteria({ maxArea }),
+    setMinRooms: (minRooms) =>
+      updateCriteria({ minRooms: minRooms !== undefined && minRooms > 0 ? Math.floor(minRooms) : undefined }),
 
     togglePortal: (portalId) => {
       const current = get().criteria.portals || []
@@ -232,22 +238,23 @@ export const useFilterStore = create<FilterState>((set, get) => {
       updateCriteria({ excludeViewed })
     },
 
+    setOnlyDiscounted: (onlyDiscounted) => updateCriteria({ onlyDiscounted }),
     setOnlyNewConstruction: (onlyNewConstruction) => updateCriteria({ onlyNewConstruction }),
 
     setSortOption: (sortOption) => {
       safeSetStorageItem('preferred_sort_option', sortOption)
       set({ sortOption })
-      get().syncToUrl()
+      get().syncToUrl('replace')
     },
 
     setOnlyNew: (onlyNew) => {
       set({ onlyNew })
-      get().syncToUrl()
+      get().syncToUrl('replace')
     },
 
     setOnlyBargain: (onlyBargain) => {
       set({ onlyBargain })
-      get().syncToUrl()
+      get().syncToUrl('replace')
     },
 
     setExcludeMultiSource: (excludeMultiSource) => {
@@ -258,7 +265,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
       } else {
         set({ excludeMultiSource: false })
       }
-      get().syncToUrl()
+      get().syncToUrl('replace')
     },
 
     setOnlyMultiSource: (onlyMultiSource) => {
@@ -269,23 +276,29 @@ export const useFilterStore = create<FilterState>((set, get) => {
       } else {
         set({ onlyMultiSource: false })
       }
-      get().syncToUrl()
+      get().syncToUrl('replace')
     },
 
     setExcludeNoImage: (excludeNoImage) => {
       safeSetStorageItem('preferred_exclude_no_image', String(excludeNoImage))
       set({ excludeNoImage })
-      get().syncToUrl()
+      get().syncToUrl('replace')
     },
 
     setMinQualityScore: (minQualityScore) => {
-      set({ minQualityScore })
-      get().syncToUrl()
+      set({ minQualityScore: Math.max(0, Math.min(100, Math.round(minQualityScore))) })
+      get().syncToUrl('replace')
     },
 
     setQuickSearchQuery: (quickSearchQuery) => set({ quickSearchQuery }),
     setSelectedPortalFilter: (selectedPortalFilter) => set({ selectedPortalFilter }),
     setShowHidden: (showHidden) => set({ showHidden }),
+
+    markCriteriaExecuted: (executedCriteria) => {
+      const target = executedCriteria ?? get().criteria
+      set({ lastExecutedCriteriaHash: computeCriteriaHash(target) })
+      get().syncToUrl('push')
+    },
 
     resetToDefaults: () => {
       safeSetStorageItem('preferred_sort_option', 'price_asc')
@@ -305,6 +318,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
         quickSearchQuery: '',
         selectedPortalFilter: 'all',
         showHidden: false,
+        lastExecutedCriteriaHash: null,
       })
       if (typeof window !== 'undefined') {
         window.history.replaceState(null, '', window.location.pathname)
@@ -331,7 +345,7 @@ export const useFilterStore = create<FilterState>((set, get) => {
       }))
     },
 
-    syncToUrl: () => {
+    syncToUrl: (historyMode = 'replace') => {
       if (typeof window === 'undefined') return
       const {
         criteria,
@@ -358,7 +372,11 @@ export const useFilterStore = create<FilterState>((set, get) => {
       const queryString = params.toString()
       const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname
       if (`${window.location.pathname}${window.location.search}` !== newUrl) {
-        window.history.pushState(null, '', newUrl)
+        if (historyMode === 'push') {
+          window.history.pushState(null, '', newUrl)
+        } else {
+          window.history.replaceState(null, '', newUrl)
+        }
       }
     },
   }

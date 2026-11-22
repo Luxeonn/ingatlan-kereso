@@ -1,7 +1,19 @@
 import type { FC, FormEvent } from 'react'
-import { Search, Loader2, ChevronUp, ChevronDown, SlidersHorizontal, AlertTriangle } from 'lucide-react'
+import {
+  Search,
+  Loader2,
+  ChevronUp,
+  ChevronDown,
+  SlidersHorizontal,
+  AlertTriangle,
+  MapPin,
+  Home,
+  Coins,
+  Ruler,
+  Globe,
+} from 'lucide-react'
 import type { CanonicalPropertyType } from '../../types/property'
-import { useFilterStore, DEFAULT_PORTALS } from '../../store/useFilterStore'
+import { useFilterStore, DEFAULT_PORTALS, computeCriteriaHash } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
 import { CitySelector } from './CitySelector'
 import { PropertyTypeTabs } from './PropertyTypeTabs'
@@ -70,6 +82,7 @@ interface CollapsedFilterSummaryProps {
   minArea: number
   maxArea: number
   portalsCount: number
+  onExpand: () => void
 }
 
 const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
@@ -80,43 +93,65 @@ const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
   minArea,
   maxArea,
   portalsCount,
+  onExpand,
 }) => (
   <div
     data-testid="collapsed-filter-summary"
-    className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--text-secondary)]"
+    className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--text-secondary)] tabular-nums"
   >
-    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-semibold text-[var(--text-primary)]">
-      <span>📍</span>
+    <button
+      type="button"
+      onClick={onExpand}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-semibold text-[var(--text-primary)] hover:border-blue-500/40 transition-colors cursor-pointer"
+    >
+      <MapPin className="h-3.5 w-3.5 text-blue-400" />
       <span>{citiesSummary}</span>
-    </span>
-    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-      <span>🏠</span>
+    </button>
+    <button
+      type="button"
+      onClick={onExpand}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+    >
+      <Home className="h-3.5 w-3.5 text-amber-400" />
       <span>{typeLabel}</span>
-    </span>
-    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-      <span>💰</span>
+    </button>
+    <button
+      type="button"
+      onClick={onExpand}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+    >
+      <Coins className="h-3.5 w-3.5 text-emerald-400" />
       <span>
         {minPriceMillion} - {maxPriceMillion} M Ft
       </span>
-    </span>
-    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-      <span>📐</span>
+    </button>
+    <button
+      type="button"
+      onClick={onExpand}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+    >
+      <Ruler className="h-3.5 w-3.5 text-purple-400" />
       <span>
         {minArea} - {maxArea} m²
       </span>
-    </span>
-    <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 font-medium">
-      <span>🌐</span>
+    </button>
+    <button
+      type="button"
+      onClick={onExpand}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+    >
+      <Globe className="h-3.5 w-3.5 text-indigo-400" />
       <span>
         {portalsCount}/{DEFAULT_PORTALS.length} portál
       </span>
-    </span>
+    </button>
   </div>
 )
 
 export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   const {
     criteria,
+    lastExecutedCriteriaHash,
     addCity,
     removeCity,
     setCities,
@@ -139,6 +174,8 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   )
 
   const hasValidationErrors = validationWarnings.length > 0
+  const isCriteriaDirty =
+    lastExecutedCriteriaHash !== null && computeCriteriaHash(criteria) !== lastExecutedCriteriaHash
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -152,20 +189,29 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
   return (
     <div
       data-testid="search-panel-container"
-      className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-xl transition-all duration-200 sm:p-5"
+      className="rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-[0_12px_36px_-12px_rgba(2,6,23,0.3)] transition-colors duration-200 sm:p-5"
     >
       {/* Panel Header */}
-      <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+      <div className="flex items-center justify-between border-b border-[var(--border-hairline)] pb-3">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4 text-blue-400" />
           <h2 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
             Keresési Paraméterek & Szűrők
           </h2>
+          {isCriteriaDirty && (
+            <span
+              data-testid="dirty-filter-indicator"
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--status-warn-bg)] border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-[var(--status-warn-fg)]"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--status-warn-fg)]" />
+              <span>Szűrők módosultak</span>
+            </span>
+          )}
         </div>
         <button
           type="button"
           onClick={() => setFiltersCollapsed(!isFiltersCollapsed)}
-          className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
         >
           <span>{isFiltersCollapsed ? 'Kibontás' : 'Összecsukás'}</span>
           {isFiltersCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -176,7 +222,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
       <SearchPresetsBar onSearch={onSearch} />
 
       <form onSubmit={handleSubmit} noValidate>
-        {/* Collapsed summary bar (#157) */}
+        {/* Collapsed floating summary bar (#157) */}
         {isFiltersCollapsed && (
           <CollapsedFilterSummary
             citiesSummary={citiesSummary}
@@ -186,6 +232,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
             minArea={criteria.minArea}
             maxArea={criteria.maxArea}
             portalsCount={criteria.portals.length}
+            onExpand={() => setFiltersCollapsed(false)}
           />
         )}
 
@@ -248,14 +295,14 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
         )}
 
         {/* Submit button bar */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-color)] pt-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-hairline)] pt-3">
           {hasValidationErrors ? (
             <div
               role="alert"
               data-testid="search-validation-warning"
-              className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-400"
+              className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-[var(--status-warn-bg)] px-3 py-2 text-xs font-semibold text-[var(--status-warn-fg)]"
             >
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+              <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--status-warn-fg)]" />
               <span>{validationWarnings.join(' ')}</span>
             </div>
           ) : (
@@ -265,7 +312,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
           <button
             type="submit"
             disabled={isLoading || criteria.portals.length === 0 || hasValidationErrors}
-            className="flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <>

@@ -1,16 +1,19 @@
 import type { FC } from 'react'
 import { AlertCircle, Building2 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
+import type { MarketStatsDto } from '../../types/api'
 import { useMarketAnalytics } from '../../hooks/useMarketAnalytics'
 import { PriceDistributionChart } from './PriceDistributionChart'
 import { CityComparisonChart } from './CityComparisonChart'
 import { PriceScatterCorrelationChart } from './PriceScatterCorrelationChart'
 import { BargainHunterTable } from './BargainHunterTable'
 import { MarketKpiGrid, TopPriceDropsSection } from './MarketAnalyticsKpiSection'
+import { MarketSegmentMatrixTable } from './MarketSegmentMatrixTable'
 import { useFilterStore } from '../../store/useFilterStore'
 
 export interface MarketAnalyticsPanelProps {
   items: IngatlanItem[]
+  serverMarketStats?: MarketStatsDto | null
   onMarkViewed?: (url: string) => void
   onOpenListing?: (url: string) => void
   targetPropertyType?: string | null
@@ -25,11 +28,12 @@ function getCategoryLabel(activeCategory?: string | null): string | null {
 
 export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
   items,
+  serverMarketStats,
   onMarkViewed,
   onOpenListing,
   targetPropertyType,
 }) => {
-  const { criteria, setMinPriceMillion, setMaxPriceMillion, setCities } = useFilterStore()
+  const { criteria, setMinPriceMillion, setMaxPriceMillion, setCities, setPropertyType } = useFilterStore()
   const effectivePropertyType = targetPropertyType ?? criteria.propertyType
   const analytics = useMarketAnalytics(items, effectivePropertyType)
   const { kpi, distribution, cityComparison, scatterData, bargains } = analytics
@@ -49,12 +53,17 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
     }
   }
 
+  const handleSelectSegment = (city: string, propertyType?: string) => {
+    if (city) setCities([city])
+    if (propertyType) setPropertyType(propertyType)
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200" data-testid="market-analytics-panel">
       {analytics.totalCount === 0 && (
         <div
           data-testid="market-analytics-empty-state"
-          className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center"
+          className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-hairline)] bg-[var(--bg-surface)] p-12 text-center"
         >
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 mb-3">
             <Building2 className="h-7 w-7" aria-hidden="true" />
@@ -72,14 +81,14 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
         <div
           data-testid="insufficient-data-banner"
           role="status"
-          className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-300 shadow-sm"
+          className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-[var(--status-warn-bg)] p-4 text-[var(--status-warn-fg)] shadow-sm"
         >
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-amber-400" aria-hidden="true" />
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-[var(--status-warn-fg)]" aria-hidden="true" />
           <div className="text-xs">
-            <h4 className="font-bold text-amber-200">
+            <h4 className="font-bold text-[var(--status-warn-fg)]">
               Kevés minta az elemzéshez: a kiválasztott kategóriában legalább 5 hirdetés szükséges a megbízható statisztikához
             </h4>
-            <p className="mt-1 text-amber-300/80">
+            <p className="mt-1 text-[var(--text-secondary)]">
               A medián és fajlagos árak csak reprezentatív minta alapján jelennek meg, hogy elkerüljük a torzító átlagokat.
             </p>
           </div>
@@ -93,6 +102,11 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
           kpi={kpi}
         />
       )}
+
+      <MarketSegmentMatrixTable
+        segments={serverMarketStats?.segments}
+        onSelectSegment={handleSelectSegment}
+      />
 
       {bargains.topPriceDrops.length > 0 && (
         <TopPriceDropsSection

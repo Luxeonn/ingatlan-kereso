@@ -158,7 +158,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
       data-testid="filter-chips-row"
       className="flex items-center gap-2 border-t border-[var(--border-color)] pt-2.5 text-xs w-full"
     >
-      <div className="flex flex-1 items-center gap-2 min-w-0">
+      <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
         {isPinned('bargain') && (
           <QuickFilterToggleButton
             testId="bargain-filter-toggle"

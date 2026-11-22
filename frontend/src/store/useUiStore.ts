@@ -3,6 +3,10 @@ import type { IngatlanItem } from '../types/property'
 
 export type DashboardTab = 'listings' | 'analytics'
 export type ListingSubView = 'listings' | 'favorites' | 'archive'
+export type WorkspaceTab = 'listings' | 'favorites' | 'archive' | 'analytics'
+export type ViewMode = 'grid' | 'list' | 'table'
+export type ArchiveSubMode = 'all' | 'hidden' | 'discounted'
+
 export type QuickFilterId =
   | 'bargain'
   | 'onlyNew'
@@ -34,9 +38,14 @@ export const MAX_PINNED_QUICK_FILTERS = ALL_QUICK_FILTER_IDS.length
 
 interface UiState {
   theme: 'dark' | 'light'
-  viewMode: 'grid' | 'list'
+  viewMode: ViewMode
   dashboardTab: DashboardTab
   listingSubView: ListingSubView
+  workspaceTab: WorkspaceTab
+  archiveSubMode: ArchiveSubMode
+  activeInspectItemKey: string | null
+  isCommandPaletteOpen: boolean
+  isKpiStripCollapsed: boolean
   isDiagnosticsModalOpen: boolean
   isIngatlanComImportModalOpen: boolean
   isFiltersCollapsed: boolean
@@ -45,9 +54,17 @@ interface UiState {
   pinnedQuickFilters: QuickFilterId[]
   selectedCardUrls: string[]
   toggleTheme: () => void
-  setViewMode: (mode: 'grid' | 'list') => void
+  setViewMode: (mode: ViewMode) => void
   setDashboardTab: (tab: DashboardTab) => void
   setListingSubView: (subView: ListingSubView) => void
+  setWorkspaceTab: (tab: WorkspaceTab) => void
+  setArchiveSubMode: (mode: ArchiveSubMode) => void
+  setActiveInspectItemKey: (key: string | null) => void
+  inspectStep: (orderedKeys: readonly string[], direction: 1 | -1) => void
+  setCommandPaletteOpen: (open: boolean) => void
+  toggleCommandPalette: () => void
+  setKpiStripCollapsed: (collapsed: boolean) => void
+  toggleKpiStrip: () => void
   setDiagnosticsModalOpen: (open: boolean) => void
   setIngatlanComImportModalOpen: (open: boolean) => void
   setFiltersCollapsed: (collapsed: boolean) => void
@@ -136,6 +153,11 @@ export const useUiStore = create<UiState>((set, get) => {
     viewMode: 'grid',
     dashboardTab: 'listings',
     listingSubView: 'listings',
+    workspaceTab: 'listings',
+    archiveSubMode: 'all',
+    activeInspectItemKey: null,
+    isCommandPaletteOpen: false,
+    isKpiStripCollapsed: false,
     isDiagnosticsModalOpen: false,
     isIngatlanComImportModalOpen: false,
     isFiltersCollapsed: false,
@@ -158,13 +180,46 @@ export const useUiStore = create<UiState>((set, get) => {
       }),
     setViewMode: (mode) => set((state) => (state.viewMode === mode ? state : { viewMode: mode })),
     setDashboardTab: (tab) =>
-      set((state) => (state.dashboardTab === tab ? state : { dashboardTab: tab })),
+      set((state) => {
+        if (state.dashboardTab === tab) return state
+        const nextWorkspace: WorkspaceTab = tab === 'analytics' ? 'analytics' : state.listingSubView
+        return { dashboardTab: tab, workspaceTab: nextWorkspace }
+      }),
     setListingSubView: (subView) =>
       set((state) =>
-        state.listingSubView === subView && state.dashboardTab === 'listings'
+        state.listingSubView === subView && state.dashboardTab === 'listings' && state.workspaceTab === subView
           ? state
-          : { listingSubView: subView, dashboardTab: 'listings' },
+          : { listingSubView: subView, dashboardTab: 'listings', workspaceTab: subView },
       ),
+    setWorkspaceTab: (tab) =>
+      set((state) => {
+        if (tab === 'analytics') {
+          return state.dashboardTab === 'analytics' && state.workspaceTab === 'analytics'
+            ? state
+            : { dashboardTab: 'analytics', workspaceTab: 'analytics' }
+        }
+        return state.dashboardTab === 'listings' && state.listingSubView === tab && state.workspaceTab === tab
+          ? state
+          : { dashboardTab: 'listings', listingSubView: tab, workspaceTab: tab }
+      }),
+    setArchiveSubMode: (archiveSubMode) => set({ archiveSubMode }),
+    setActiveInspectItemKey: (activeInspectItemKey) => set({ activeInspectItemKey }),
+    inspectStep: (orderedKeys, direction) =>
+      set((state) => {
+        if (orderedKeys.length === 0) return state
+        const currentKey = state.activeInspectItemKey
+        const currentIndex = currentKey ? orderedKeys.indexOf(currentKey) : -1
+        if (currentIndex === -1) {
+          return { activeInspectItemKey: orderedKeys[0] ?? null }
+        }
+        const nextIndex = Math.max(0, Math.min(orderedKeys.length - 1, currentIndex + direction))
+        const nextKey = orderedKeys[nextIndex] ?? currentKey
+        return nextKey === currentKey ? state : { activeInspectItemKey: nextKey }
+      }),
+    setCommandPaletteOpen: (isCommandPaletteOpen) => set({ isCommandPaletteOpen }),
+    toggleCommandPalette: () => set((state) => ({ isCommandPaletteOpen: !state.isCommandPaletteOpen })),
+    setKpiStripCollapsed: (isKpiStripCollapsed) => set({ isKpiStripCollapsed }),
+    toggleKpiStrip: () => set((state) => ({ isKpiStripCollapsed: !state.isKpiStripCollapsed })),
     setDiagnosticsModalOpen: (open) => set({ isDiagnosticsModalOpen: open }),
     setIngatlanComImportModalOpen: (open) => set({ isIngatlanComImportModalOpen: open }),
     setFiltersCollapsed: (collapsed) => set({ isFiltersCollapsed: collapsed }),
@@ -189,7 +244,6 @@ export const useUiStore = create<UiState>((set, get) => {
           localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
           localStorage.setItem('starred_items_cache', JSON.stringify(nextCache))
         } catch {
-          // If storage quota exceeded, attempt to prune cached items not in nextUrls or trim oldest
           try {
             const prunedCache: Record<string, IngatlanItem> = {}
             nextUrls.slice(-30).forEach((u) => {
@@ -198,7 +252,6 @@ export const useUiStore = create<UiState>((set, get) => {
             localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
             localStorage.setItem('starred_items_cache', JSON.stringify(prunedCache))
           } catch {
-            // Still failing: ensure starred_urls alone is safely stored
             try {
               localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
             } catch {

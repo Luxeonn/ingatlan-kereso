@@ -1,12 +1,15 @@
 import { useRef, type FC } from 'react'
 import { createPortal } from 'react-dom'
-import { X, MapPin, Ruler, BedDouble } from 'lucide-react'
+import { X, MapPin, Ruler, BedDouble, ExternalLink } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import {
   formatPriceMillion,
+  formatPricePerSqm,
   formatArea,
   formatRooms,
   getEffectivePrice,
+  getEffectiveSqmPrice,
+  openExternalUrl,
 } from '../../utils/formatters'
 import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 import { PropertyDetailsDrawer } from './PropertyDetailsDrawer'
@@ -29,16 +32,26 @@ function formatModalPrice(priceMillion: number | null | undefined, rawPrice?: st
 interface PropertyModalHeaderSummaryProps {
   item: IngatlanItem
   priceLabel: string
+  sqmPrice?: number | null
 }
 
-const PropertyModalHeaderSummary: FC<PropertyModalHeaderSummaryProps> = ({ item, priceLabel }) => {
+const PropertyModalHeaderSummary: FC<PropertyModalHeaderSummaryProps> = ({
+  item,
+  priceLabel,
+  sqmPrice,
+}) => {
   const floorArea = item.detailsInfo?.areaSquareMeters
   const rooms = item.detailsInfo?.roomCount
 
   return (
-    <div className="min-w-0 flex-1 space-y-1.5">
+    <div className="min-w-0 flex-1 space-y-1.5 tabular-nums">
+      <div className="flex items-center gap-2">
+        <span className="rounded-md border border-blue-500/30 bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-400">
+          Side-Peek Inspector
+        </span>
+      </div>
       <h3
-        className="text-sm font-bold text-[var(--text-primary)] line-clamp-2"
+        className="text-sm sm:text-base font-bold text-[var(--text-primary)] line-clamp-2"
         title={item.title}
       >
         {item.title || 'Ingatlan hirdetés'}
@@ -53,6 +66,12 @@ const PropertyModalHeaderSummary: FC<PropertyModalHeaderSummaryProps> = ({ item,
         </span>
 
         <span className="font-extrabold text-blue-400">{priceLabel}</span>
+
+        {sqmPrice !== null && sqmPrice !== undefined && sqmPrice > 0 && (
+          <span className="rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]">
+            {formatPricePerSqm(sqmPrice)}
+          </span>
+        )}
 
         {Boolean(floorArea && floorArea > 0) && (
           <span className="flex items-center gap-1">
@@ -83,6 +102,7 @@ export const PropertyDetailsModal: FC<PropertyDetailsModalProps> = ({
   useOutsideDismiss(modalPanelRef, true, onClose, true)
 
   const { priceMillion } = getEffectivePrice(item)
+  const sqmPrice = getEffectiveSqmPrice(item)
   const priceLabel = formatModalPrice(priceMillion, item.price)
 
   const modalContent = (
@@ -94,7 +114,7 @@ export const PropertyDetailsModal: FC<PropertyDetailsModalProps> = ({
           onClose()
         }
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-stretch justify-end bg-black/45 backdrop-blur-[2px] animate-in fade-in duration-150"
     >
       <div
         ref={modalPanelRef}
@@ -103,27 +123,45 @@ export const PropertyDetailsModal: FC<PropertyDetailsModalProps> = ({
         aria-label={`Ingatlan részletei: ${item.title || 'Ingatlan hirdetés'}`}
         data-testid="property-details-modal"
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl animate-in zoom-in-95 duration-150"
+        className="flex h-full w-full max-w-xl flex-col overflow-hidden border-l border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-2xl animate-in slide-in-from-right duration-150"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-[var(--border-color)] px-4 py-3.5">
-          <PropertyModalHeaderSummary item={item} priceLabel={priceLabel} />
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--border-hairline)] bg-[var(--bg-chrome)] px-5 py-4 backdrop-blur-md">
+          <PropertyModalHeaderSummary item={item} priceLabel={priceLabel} sqmPrice={sqmPrice} />
 
-          <button
-            type="button"
-            aria-label="Bezárás"
-            title="Bezárás"
-            data-testid="property-details-modal-close"
-            onClick={(e) => {
-              e.stopPropagation()
-              onClose()
-            }}
-            className="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {item.url && (
+              <button
+                type="button"
+                aria-label="Hirdetés megnyitása új lapon"
+                title="Hirdetés megnyitása új lapon"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  openExternalUrl(item.url)
+                  onMarkViewed?.(item.url)
+                }}
+                className="flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:text-blue-400 transition-colors cursor-pointer"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+                <span className="hidden sm:inline">Megnyitás</span>
+              </button>
+            )}
+            <button
+              type="button"
+              aria-label="Bezárás"
+              title="Bezárás"
+              data-testid="property-details-modal-close"
+              onClick={(e) => {
+                e.stopPropagation()
+                onClose()
+              }}
+              className="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
-        <div className="overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-5">
           <PropertyDetailsDrawer
             item={item}
             onMarkViewed={onMarkViewed}
