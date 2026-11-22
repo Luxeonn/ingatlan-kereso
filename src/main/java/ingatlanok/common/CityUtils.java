@@ -3,12 +3,19 @@ package ingatlanok.common;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import ingatlanok.common.city.CityPresets;
 import ingatlanok.common.city.CountyDirectory;
 import ingatlanok.model.PredefinedCity;
 
 public final class CityUtils {
+
+  private static final int MAX_SETTLEMENT_TOKENS = 3;
+
+  private static final Set<String> NON_SETTLEMENT_TOKENS = Set.of(
+      "megye", "varmegye", "kerulet", "utca", "ut", "ter", "korut", "sor", "kozpont",
+      "belvaros", "lakotelep", "elado", "kiado", "haz", "lakas", "telek", "ingatlan");
 
   private CityUtils() {}
 
@@ -50,6 +57,32 @@ public final class CityUtils {
 
   public static boolean containsDifferentKnownCity(String textSlug, String targetCitySlug) {
     return CountyDirectory.containsDifferentKnownCity(textSlug, targetCitySlug);
+  }
+
+  /**
+   * Returns the leading settlement name of a comma-separated address (e.g. {@code "Ebes"} from
+   * {@code "Ebes, Kertész utca 4."}) when the first segment looks like a settlement name, or
+   * {@code null} when the text has no comma or the first segment is a street, district or county.
+   */
+  public static String extractLeadingSettlement(String text) {
+    if (text == null || text.indexOf(',') <= 0) {
+      return null;
+    }
+    String candidate = text.substring(0, text.indexOf(',')).trim();
+    String slug = SlugUtils.toSlug(candidate);
+    if (slug.isEmpty() || slug.chars().anyMatch(Character::isDigit)) {
+      return null;
+    }
+    String[] tokens = slug.split("[^a-z]+");
+    if (tokens.length > MAX_SETTLEMENT_TOKENS) {
+      return null;
+    }
+    for (String token : tokens) {
+      if (NON_SETTLEMENT_TOKENS.contains(token)) {
+        return null;
+      }
+    }
+    return candidate;
   }
 
   public static Map<String, List<String>> getPresets() {

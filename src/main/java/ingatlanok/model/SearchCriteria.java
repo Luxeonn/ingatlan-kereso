@@ -247,6 +247,9 @@ public class SearchCriteria implements Serializable {
     if (locDecision != null) {
       return locDecision;
     }
+    if (hasDifferentLeadingSettlement(item.getLocation(), targetSlug)) {
+      return false;
+    }
     Boolean cityDecision = evaluateSlugMatch(item.getCity(), targetSlug, true);
     if (cityDecision != null) {
       return cityDecision;
@@ -276,6 +279,15 @@ public class SearchCriteria implements Serializable {
       return false;
     }
     return null;
+  }
+
+  private static boolean hasDifferentLeadingSettlement(String location, String targetSlug) {
+    String settlement = CityUtils.extractLeadingSettlement(location);
+    if (settlement == null) {
+      return false;
+    }
+    String settlementSlug = SlugUtils.toSlug(settlement);
+    return !isDirectOrSubstringMatch(settlementSlug, targetSlug, true);
   }
 
   private static boolean isDirectOrSubstringMatch(
