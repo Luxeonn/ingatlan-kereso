@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { getCrossPortalSpread } from '../utils/formatters'
 import { PropertyTimelineSection } from '../components/listings/PropertyTimelineSection'
 import { ListingsTableView } from '../components/listings/ListingsTableView'
-import { CommandPaletteModal } from '../components/modals/CommandPaletteModal'
 import { MarketSegmentMatrixTable } from '../components/analytics/MarketSegmentMatrixTable'
 import { ArchiveSubViewToolbar } from '../components/archive/ArchiveSubViewToolbar'
 import { NewCitiesInitializedBanner } from '../components/layout/StatusBanners'
@@ -23,13 +22,11 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
     localStorage.clear()
     useFilterStore.getState().resetToDefaults()
     useUiStore.setState({
-      theme: 'dark',
       viewMode: 'grid',
       dashboardTab: 'listings',
       listingSubView: 'listings',
       workspaceTab: 'listings',
       archiveSubMode: 'all',
-      isCommandPaletteOpen: false,
       selectedCardUrls: [],
       starredUrls: [],
       starredItemsCache: {},
@@ -136,32 +133,7 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
     })
   })
 
-  describe('4. CommandPaletteModal (Cmd/Ctrl+K)', () => {
-    it('opens via Ctrl+K, filters commands, and executes view/workspace switches', () => {
-      const onTriggerSearch = vi.fn()
-      render(<CommandPaletteModal onTriggerSearch={onTriggerSearch} />)
-
-      // Initially closed
-      expect(screen.queryByTestId('command-palette-modal')).toBeNull()
-
-      // Open with Ctrl+K
-      fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
-      expect(useUiStore.getState().isCommandPaletteOpen).toBe(true)
-      expect(screen.getByTestId('command-palette-modal')).toBeTruthy()
-
-      // Filter for "Táblázat"
-      const input = screen.getByTestId('command-palette-input')
-      fireEvent.change(input, { target: { value: 'Táblázat' } })
-
-      const tableCmd = screen.getByTestId('command-item-vm-table')
-      fireEvent.click(tableCmd)
-
-      expect(useUiStore.getState().viewMode).toBe('table')
-      expect(useUiStore.getState().isCommandPaletteOpen).toBe(false)
-    })
-  })
-
-  describe('5. MarketSegmentMatrixTable, ArchiveSubViewToolbar, Header Telemetry & Dirty Filters', () => {
+  describe('4. MarketSegmentMatrixTable, ArchiveSubViewToolbar, Header Telemetry & Dirty Filters', () => {
     it('renders server-verified MarketSegmentMatrixTable and triggers segment filter callback', () => {
       const onSelectSegment = vi.fn()
       render(

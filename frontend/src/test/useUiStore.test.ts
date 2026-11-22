@@ -11,7 +11,6 @@ describe('useUiStore', () => {
   beforeEach(() => {
     localStorage.clear()
     useUiStore.setState({
-      theme: 'dark',
       viewMode: 'grid',
       dashboardTab: 'listings',
       listingSubView: 'listings',
@@ -22,22 +21,6 @@ describe('useUiStore', () => {
       pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS],
     })
     document.documentElement.classList.remove('dark')
-  })
-
-  describe('theme toggling', () => {
-    it('toggles theme between dark and light, updates DOM and localStorage', () => {
-      expect(useUiStore.getState().theme).toBe('dark')
-
-      useUiStore.getState().toggleTheme()
-      expect(useUiStore.getState().theme).toBe('light')
-      expect(localStorage.getItem('theme')).toBe('light')
-      expect(document.documentElement.classList.contains('dark')).toBe(false)
-
-      useUiStore.getState().toggleTheme()
-      expect(useUiStore.getState().theme).toBe('dark')
-      expect(localStorage.getItem('theme')).toBe('dark')
-      expect(document.documentElement.classList.contains('dark')).toBe(true)
-    })
   })
 
   describe('viewMode and layout', () => {

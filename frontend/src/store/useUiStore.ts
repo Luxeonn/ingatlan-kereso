@@ -37,14 +37,12 @@ export const DEFAULT_PINNED_QUICK_FILTERS: QuickFilterId[] = [
 export const MAX_PINNED_QUICK_FILTERS = ALL_QUICK_FILTER_IDS.length
 
 interface UiState {
-  theme: 'dark' | 'light'
   viewMode: ViewMode
   dashboardTab: DashboardTab
   listingSubView: ListingSubView
   workspaceTab: WorkspaceTab
   archiveSubMode: ArchiveSubMode
   activeInspectItemKey: string | null
-  isCommandPaletteOpen: boolean
   isKpiStripCollapsed: boolean
   isDiagnosticsModalOpen: boolean
   isIngatlanComImportModalOpen: boolean
@@ -53,7 +51,6 @@ interface UiState {
   starredItemsCache: Record<string, IngatlanItem>
   pinnedQuickFilters: QuickFilterId[]
   selectedCardUrls: string[]
-  toggleTheme: () => void
   setViewMode: (mode: ViewMode) => void
   setDashboardTab: (tab: DashboardTab) => void
   setListingSubView: (subView: ListingSubView) => void
@@ -61,8 +58,6 @@ interface UiState {
   setArchiveSubMode: (mode: ArchiveSubMode) => void
   setActiveInspectItemKey: (key: string | null) => void
   inspectStep: (orderedKeys: readonly string[], direction: 1 | -1) => void
-  setCommandPaletteOpen: (open: boolean) => void
-  toggleCommandPalette: () => void
   setKpiStripCollapsed: (collapsed: boolean) => void
   toggleKpiStrip: () => void
   setDiagnosticsModalOpen: (open: boolean) => void
@@ -75,16 +70,6 @@ interface UiState {
   toggleCardSelection: (url: string) => void
   clearCardSelection: () => void
   setSelectedCardUrls: (urls: string[]) => void
-}
-
-function getInitialTheme(): 'dark' | 'light' {
-  if (typeof window === 'undefined') return 'dark'
-  const saved = localStorage.getItem('theme')
-  if (saved === 'light' || saved === 'dark') return saved
-  if (typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-  }
-  return 'dark'
 }
 
 function getInitialStarredUrls(): string[] {
@@ -139,24 +124,17 @@ function savePinnedQuickFilters(ids: QuickFilterId[]): void {
 }
 
 export const useUiStore = create<UiState>((set, get) => {
-  const initialTheme = getInitialTheme()
   if (typeof document !== 'undefined') {
-    if (initialTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
+    document.documentElement.classList.remove('dark')
   }
 
   return {
-    theme: initialTheme,
     viewMode: 'grid',
     dashboardTab: 'listings',
     listingSubView: 'listings',
     workspaceTab: 'listings',
     archiveSubMode: 'all',
     activeInspectItemKey: null,
-    isCommandPaletteOpen: false,
     isKpiStripCollapsed: false,
     isDiagnosticsModalOpen: false,
     isIngatlanComImportModalOpen: false,
@@ -165,19 +143,6 @@ export const useUiStore = create<UiState>((set, get) => {
     starredItemsCache: getInitialStarredItemsCache(),
     pinnedQuickFilters: getInitialPinnedQuickFilters(),
     selectedCardUrls: [],
-    toggleTheme: () =>
-      set((state) => {
-        const next = state.theme === 'dark' ? 'light' : 'dark'
-        if (typeof document !== 'undefined') {
-          if (next === 'dark') {
-            document.documentElement.classList.add('dark')
-          } else {
-            document.documentElement.classList.remove('dark')
-          }
-        }
-        localStorage.setItem('theme', next)
-        return { theme: next }
-      }),
     setViewMode: (mode) => set((state) => (state.viewMode === mode ? state : { viewMode: mode })),
     setDashboardTab: (tab) =>
       set((state) => {
@@ -216,8 +181,6 @@ export const useUiStore = create<UiState>((set, get) => {
         const nextKey = orderedKeys[nextIndex] ?? currentKey
         return nextKey === currentKey ? state : { activeInspectItemKey: nextKey }
       }),
-    setCommandPaletteOpen: (isCommandPaletteOpen) => set({ isCommandPaletteOpen }),
-    toggleCommandPalette: () => set((state) => ({ isCommandPaletteOpen: !state.isCommandPaletteOpen })),
     setKpiStripCollapsed: (isKpiStripCollapsed) => set({ isKpiStripCollapsed }),
     toggleKpiStrip: () => set((state) => ({ isKpiStripCollapsed: !state.isKpiStripCollapsed })),
     setDiagnosticsModalOpen: (open) => set({ isDiagnosticsModalOpen: open }),

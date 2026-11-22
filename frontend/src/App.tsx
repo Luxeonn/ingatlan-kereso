@@ -7,7 +7,6 @@ import { ListingsPanel } from './components/listings/ListingsPanel'
 import { ArchiveSubViewToolbar } from './components/archive/ArchiveSubViewToolbar'
 import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
 import { IngatlanComImportModal } from './components/modals/IngatlanComImportModal'
-import { CommandPaletteModal } from './components/modals/CommandPaletteModal'
 import {
   SearchErrorBanner,
   PartialPortalWarningBanner,
@@ -324,7 +323,6 @@ export const App: FC = () => {
         fetchedPages={bannerState.ingatlanComFetchedPages}
         onImportSuccess={handleSearch}
       />
-      <CommandPaletteModal onTriggerSearch={handleSearch} />
     </div>
   )
 }
