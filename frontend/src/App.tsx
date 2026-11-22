@@ -256,7 +256,7 @@ export const App: FC = () => {
 
           <div
             role="tabpanel"
-            className="rounded-b-2xl rounded-tr-2xl border border-t-0 border-[var(--border-hairline)] bg-[var(--bg-surface)]/70 p-4 sm:p-5 shadow-sm space-y-4"
+            className="rounded-b-2xl rounded-tr-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 sm:p-5 shadow-sm space-y-4"
           >
             {isArchiveView && (
               <ArchiveSubViewToolbar

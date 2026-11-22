@@ -24,14 +24,14 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
   const isAnalyticsActive = dashboardTab === 'analytics'
 
   const baseTabClass =
-    'relative flex items-center gap-2 rounded-t-xl border px-4 py-2.5 text-xs font-bold transition-all cursor-pointer -mb-px select-none'
+    'relative flex items-center gap-2 rounded-t-xl border px-4 py-2.5 text-xs font-bold transition-colors cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40'
   const inactiveTabClass =
-    'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/70 hover:text-[var(--text-primary)]'
+    'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/80 hover:text-[var(--text-primary)]'
 
   return (
     <div
       data-testid="listings-panel-header"
-      className="flex flex-wrap items-end justify-between gap-2 border-b border-[var(--border-hairline)] px-1"
+      className="relative z-10 flex flex-wrap items-end justify-between gap-2"
     >
       <div role="tablist" aria-label="Fő nézetek" className="flex flex-wrap items-end gap-1">
         <button
@@ -44,7 +44,7 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
           className={cn(
             baseTabClass,
             isListingsActive
-              ? 'border-[var(--border-hairline)] border-t-2 border-t-blue-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-blue-500 dark:text-blue-600 shadow-sm'
+              ? '-mb-px border-[var(--border-hairline)] border-t-2 border-t-blue-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-blue-600'
               : inactiveTabClass,
           )}
         >
@@ -62,7 +62,7 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
           className={cn(
             baseTabClass,
             isArchiveActive
-              ? 'border-[var(--border-hairline)] border-t-2 border-t-purple-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-purple-600 dark:text-purple-700 shadow-sm'
+              ? '-mb-px border-[var(--border-hairline)] border-t-2 border-t-purple-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-purple-700'
               : inactiveTabClass,
           )}
         >
@@ -80,7 +80,7 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
           className={cn(
             baseTabClass,
             isAnalyticsActive
-              ? 'border-[var(--border-hairline)] border-t-2 border-t-indigo-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-indigo-600 dark:text-indigo-700 shadow-sm'
+              ? '-mb-px border-[var(--border-hairline)] border-t-2 border-t-indigo-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-indigo-700'
               : inactiveTabClass,
           )}
         >
