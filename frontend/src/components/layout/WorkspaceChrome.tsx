@@ -24,16 +24,16 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
   const isAnalyticsActive = dashboardTab === 'analytics'
 
   const baseTabClass =
-    'relative flex items-center gap-2 rounded-t-xl border px-4 py-2.5 text-xs font-bold transition-colors cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40'
+    'relative flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-t-xl border px-4 py-2.5 text-xs font-bold text-center transition-colors cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40'
   const inactiveTabClass =
     'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/80 hover:text-[var(--text-primary)]'
 
   return (
     <div
       data-testid="listings-panel-header"
-      className="relative z-10 flex flex-wrap items-end justify-between gap-2"
+      className="relative z-10 w-full"
     >
-      <div role="tablist" aria-label="Fő nézetek" className="flex flex-wrap items-end gap-1">
+      <div role="tablist" aria-label="Fő nézetek" className="flex w-full flex-wrap sm:flex-nowrap items-end gap-1.5">
         <button
           type="button"
           role="tab"

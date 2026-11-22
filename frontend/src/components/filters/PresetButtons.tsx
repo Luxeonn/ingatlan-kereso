@@ -16,8 +16,8 @@ export const PresetButtons: FC<PresetButtonsProps> = ({ onSelectPreset }) => {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border-hairline)] pt-3">
-      <span className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)]">
+    <div className="flex flex-wrap items-center justify-center gap-2 border-t border-[var(--border-hairline)] pt-3">
+      <span className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-primary)] shrink-0">
         <Sparkles className="h-3.5 w-3.5 text-amber-700" /> Gyorssablonok:
       </span>
       {Object.entries(presets).map(([name, cityList]) => (
@@ -25,7 +25,7 @@ export const PresetButtons: FC<PresetButtonsProps> = ({ onSelectPreset }) => {
           key={name}
           type="button"
           onClick={() => onSelectPreset(cityList)}
-          className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-blue-500 hover:text-blue-600 hover:bg-blue-500/5 cursor-pointer"
+          className="inline-flex flex-1 min-w-[160px] items-center justify-center rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-semibold text-center text-[var(--text-primary)] transition-colors hover:border-blue-500 hover:text-blue-600 hover:bg-blue-500/5 cursor-pointer"
         >
           {name}
         </button>

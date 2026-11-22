@@ -58,7 +58,7 @@ const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
   return (
     <div
       data-testid="multi-source-summary-notice"
-      className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs text-indigo-700 tabular-nums"
+      className="flex flex-1 min-w-[260px] flex-wrap items-center justify-center text-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs text-indigo-700 tabular-nums"
     >
       <span>
         <strong className="font-bold text-indigo-700">{itemsCount} egyedi ingatlan</strong>
@@ -95,16 +95,16 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
   <nav
     data-testid="listings-subview-nav"
     aria-label="Hirdetés nézetek"
-    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-2.5 shadow-xs"
+    className="flex flex-wrap items-center justify-center gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-2.5 shadow-xs"
   >
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-1 min-w-[280px] flex-wrap items-center gap-2">
       <button
         type="button"
         data-testid="subview-listings"
         aria-pressed={activeMode === 'listings'}
         onClick={() => onSubViewChange('listings')}
         className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
+          'flex flex-1 min-w-[130px] items-center justify-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
           activeMode === 'listings'
             ? 'bg-blue-600 text-white shadow-sm'
             : 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-700',
@@ -120,7 +120,7 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
         aria-pressed={activeMode === 'favorites'}
         onClick={() => onSubViewChange('favorites')}
         className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
+          'flex flex-1 min-w-[130px] items-center justify-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
           activeMode === 'favorites'
             ? 'bg-amber-600 text-white shadow-sm'
             : 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-amber-500/40 hover:text-amber-700',

@@ -146,13 +146,13 @@ export const PresetChip: FC<PresetChipProps> = ({
         onSelect(preset)
       }
     }}
-    className={`group inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
+    className={`group inline-flex flex-1 min-w-[200px] cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
       isActive
         ? 'border-blue-500 bg-blue-500/15 text-blue-700 ring-1 ring-blue-500/20 shadow-sm'
         : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/50 hover:text-blue-700 shadow-xs'
     }`}
   >
-    <span>{preset.name}</span>
+    <span className="flex-1 text-center truncate">{preset.name}</span>
     <div className="flex items-center gap-1.5 border-l border-[var(--border-hairline)] pl-2 opacity-65 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
       <button
         type="button"

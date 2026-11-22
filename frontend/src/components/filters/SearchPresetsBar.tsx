@@ -227,7 +227,7 @@ export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 pt-3 text-xs">
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-3 text-xs">
         {isLoading && (
           <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />

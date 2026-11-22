@@ -97,51 +97,51 @@ const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
 }) => (
   <div
     data-testid="collapsed-filter-summary"
-    className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--text-secondary)] tabular-nums"
+    className="flex flex-wrap items-center justify-center gap-2.5 pt-3 text-xs text-[var(--text-secondary)] tabular-nums"
   >
     <button
       type="button"
       onClick={onExpand}
-      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-semibold text-[var(--text-primary)] hover:border-blue-500/40 transition-colors cursor-pointer"
+      className="inline-flex flex-1 min-w-[140px] items-center justify-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-semibold text-[var(--text-primary)] hover:border-blue-500/40 transition-colors cursor-pointer"
     >
-      <MapPin className="h-3.5 w-3.5 text-blue-600" />
-      <span>{citiesSummary}</span>
+      <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+      <span className="truncate">{citiesSummary}</span>
     </button>
     <button
       type="button"
       onClick={onExpand}
-      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+      className="inline-flex flex-1 min-w-[140px] items-center justify-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Home className="h-3.5 w-3.5 text-amber-700" />
-      <span>{typeLabel}</span>
+      <Home className="h-3.5 w-3.5 shrink-0 text-amber-700" />
+      <span className="truncate">{typeLabel}</span>
     </button>
     <button
       type="button"
       onClick={onExpand}
-      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+      className="inline-flex flex-1 min-w-[140px] items-center justify-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Coins className="h-3.5 w-3.5 text-emerald-700" />
-      <span>
+      <Coins className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
+      <span className="truncate">
         {minPriceMillion} - {maxPriceMillion} M Ft
       </span>
     </button>
     <button
       type="button"
       onClick={onExpand}
-      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+      className="inline-flex flex-1 min-w-[140px] items-center justify-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Ruler className="h-3.5 w-3.5 text-purple-700" />
-      <span>
+      <Ruler className="h-3.5 w-3.5 shrink-0 text-purple-700" />
+      <span className="truncate">
         {minArea} - {maxArea} m²
       </span>
     </button>
     <button
       type="button"
       onClick={onExpand}
-      className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+      className="inline-flex flex-1 min-w-[140px] items-center justify-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Globe className="h-3.5 w-3.5 text-indigo-700" />
-      <span>
+      <Globe className="h-3.5 w-3.5 shrink-0 text-indigo-700" />
+      <span className="truncate">
         {portalsCount}/{DEFAULT_PORTALS.length} portál
       </span>
     </button>
@@ -304,24 +304,22 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
         )}
 
         {/* Submit button bar */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-hairline)] pt-3">
-          {hasValidationErrors ? (
+        <div className="mt-4 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 border-t border-[var(--border-hairline)] pt-3">
+          {hasValidationErrors && (
             <div
               role="alert"
               data-testid="search-validation-warning"
-              className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-[var(--status-warn-bg)] px-3 py-2 text-xs font-semibold text-[var(--status-warn-fg)]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-[var(--status-warn-bg)] px-3 py-2 text-xs font-semibold text-[var(--status-warn-fg)]"
             >
               <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--status-warn-fg)]" />
               <span>{validationWarnings.join(' ')}</span>
             </div>
-          ) : (
-            <div />
           )}
 
           <button
             type="submit"
             disabled={isLoading || criteria.portals.length === 0 || hasValidationErrors}
-            className="flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex h-11 w-full sm:w-auto sm:min-w-[260px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 font-bold text-white shadow-lg shadow-blue-500/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <>
