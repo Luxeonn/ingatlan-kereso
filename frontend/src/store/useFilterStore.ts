@@ -66,7 +66,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
     excludeNoImage: initial.excludeNoImage ?? getStoredExcludeNoImage(),
     onlyNoImage: false,
     includeHidden: false,
-    minQualityScore: initial.minQualityScore || 0,
     quickSearchQuery: '',
     selectedPortalFilter: resolvePortalFilterForPortals(initialCriteria.portals, 'all'),
     showHidden: false,
@@ -196,11 +195,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
       set(onlyNoImage ? { onlyNoImage: true, excludeNoImage: false } : { onlyNoImage: false })
     },
 
-    setMinQualityScore: (minQualityScore) => {
-      set({ minQualityScore: Math.max(0, Math.min(100, Math.round(minQualityScore))) })
-      get().syncToUrl('replace')
-    },
-
     setQuickSearchQuery: (quickSearchQuery) => set({ quickSearchQuery }),
     setSelectedPortalFilter: (selectedPortalFilter) => set({ selectedPortalFilter }),
     setShowHidden: (showHidden) => set(showHidden ? { showHidden: true, includeHidden: false } : { showHidden: false }),
@@ -233,7 +227,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
         excludeNoImage: false,
         onlyNoImage: false,
         includeHidden: false,
-        minQualityScore: 0,
         quickSearchQuery: '',
         selectedPortalFilter: 'all',
         showHidden: false,
@@ -259,7 +252,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
         excludeMultiSource: nextExcludeMulti,
         onlyMultiSource: nextOnlyMulti,
         excludeNoImage: parsed.excludeNoImage ?? getStoredExcludeNoImage(),
-        minQualityScore: parsed.minQualityScore ?? 0,
         selectedPortalFilter: resolvePortalFilterForPortals(nextCriteria.portals, state.selectedPortalFilter),
       }))
     },
@@ -274,7 +266,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
         excludeMultiSource,
         onlyMultiSource,
         excludeNoImage,
-        minQualityScore,
       } = get()
       const params = new URLSearchParams()
       appendCriteriaParams(params, criteria)
@@ -285,7 +276,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
         excludeMultiSource,
         onlyMultiSource,
         excludeNoImage,
-        minQualityScore,
       })
 
       const queryString = params.toString()

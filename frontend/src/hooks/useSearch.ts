@@ -48,7 +48,6 @@ export function useSearch() {
     excludeNoImage,
     onlyNoImage,
     includeHidden,
-    minQualityScore,
     quickSearchQuery,
     selectedPortalFilter,
     showHidden,
@@ -200,7 +199,7 @@ export function useSearch() {
     openUrlsMutation.mutate(urls)
   }
 
-  const filterResetKey = `${criteria.excludeViewed}|${onlyViewed}|${criteria.onlyNewConstruction}|${excludeNewConstruction}|${onlyNew}|${excludeNew}|${onlyBargain}|${excludeBargain}|${excludeMultiSource}|${onlyMultiSource}|${excludeNoImage}|${onlyNoImage}|${includeHidden}|${minQualityScore}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
+  const filterResetKey = `${criteria.excludeViewed}|${onlyViewed}|${criteria.onlyNewConstruction}|${excludeNewConstruction}|${onlyNew}|${excludeNew}|${onlyBargain}|${excludeBargain}|${excludeMultiSource}|${onlyMultiSource}|${excludeNoImage}|${onlyNoImage}|${includeHidden}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
   const [prevFilterResetKey, setPrevFilterResetKey] = useState(filterResetKey)
   if (prevFilterResetKey !== filterResetKey) {
     setPrevFilterResetKey(filterResetKey)
@@ -222,7 +221,6 @@ export function useSearch() {
       onlyMultiSource,
       excludeNoImage,
       onlyNoImage,
-      minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
       sortOption,
@@ -239,7 +237,6 @@ export function useSearch() {
       onlyMultiSource,
       excludeNoImage,
       onlyNoImage,
-      minQualityScore,
       selectedPortalFilter,
       quickSearchQuery,
       sortOption,

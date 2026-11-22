@@ -118,7 +118,6 @@ export interface FilterState {
   excludeNoImage: boolean
   onlyNoImage: boolean
   includeHidden: boolean
-  minQualityScore: number
   quickSearchQuery: string
   selectedPortalFilter: PortalFilterOption | string
   showHidden: boolean
@@ -151,7 +150,6 @@ export interface FilterState {
   setOnlyMultiSource: (onlyMultiSource: boolean) => void
   setExcludeNoImage: (excludeNoImage: boolean) => void
   setOnlyNoImage: (onlyNoImage: boolean) => void
-  setMinQualityScore: (score: number) => void
   setQuickSearchQuery: (query: string) => void
   setSelectedPortalFilter: (portal: PortalFilterOption | string) => void
   setShowHidden: (show: boolean) => void

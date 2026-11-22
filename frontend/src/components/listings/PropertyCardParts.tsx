@@ -15,7 +15,6 @@ import {
   formatPriceMillion,
 } from '../../utils/formatters'
 import { BargainBadge } from './BargainBadge'
-import { QualityScoreShield } from './QualityScoreShield'
 import { cn } from '../../utils/cn'
 import { isListingNew } from '../../utils/listingFilters'
 export { PropertyParametersChips, type PropertyParametersChipsProps } from './PropertyParametersChips'
@@ -289,14 +288,12 @@ export const PropertyCardBadges: FC<PropertyCardBadgesProps> = (props) => {
 }
 
 export interface PropertyPriceSectionProps {
-  item?: IngatlanItem
   priceMillion?: number | null
   rawPrice?: string
   viewMode: 'grid' | 'list'
 }
 
 export const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
-  item,
   priceMillion,
   rawPrice,
   viewMode,
@@ -314,8 +311,5 @@ export const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
         {priceMillion !== null && priceMillion !== undefined ? formatPriceMillion(priceMillion) : rawPrice}
       </div>
     </div>
-    {item && item.qualityScore !== null && item.qualityScore !== undefined && (
-      <QualityScoreShield item={item} popoverPlacement="top-right" />
-    )}
   </div>
 )

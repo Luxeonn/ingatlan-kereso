@@ -307,7 +307,7 @@ describe('PropertyCard component (#270)', () => {
     expect(screen.queryByText('60 M Ft')).toBeNull()
   })
 
-  it('renders details drawer with metadata and quality score when opened (#270)', () => {
+  it('renders details drawer with metadata without quality section when opened (#270, #501)', () => {
     const itemWithScore: IngatlanItem = {
       ...mockItem,
       qualityScore: 89,
@@ -321,10 +321,9 @@ describe('PropertyCard component (#270)', () => {
 
     // Details drawer content
     expect(screen.getByTestId('multi-source-drawer')).toBeTruthy()
-    expect(screen.getByTestId('drawer-quality-section')).toBeTruthy()
-    expect(screen.getByText('89/100 pont')).toBeTruthy()
-    expect(screen.getByText(/Kiváló adatminőség/i)).toBeTruthy()
-    expect(screen.getByText('-11 pont: Enyhe adateltérés')).toBeTruthy()
+    expect(screen.queryByTestId('drawer-quality-section')).toBeNull()
+    expect(screen.queryByTestId('quality-score-button')).toBeNull()
+    expect(screen.queryByText('89/100 pont')).toBeNull()
     expect(screen.getByTestId('property-type-badge')).toBeTruthy()
     expect(screen.getByText('Lakás')).toBeTruthy()
     // In single-source item, redundant portal and price are removed from drawer (#301)
@@ -439,9 +438,9 @@ describe('PropertyCard component (#270)', () => {
     expect(modal.contains(drawer)).toBe(true)
     expect(card.contains(drawer)).toBe(false)
 
-    // AC2: Modal displays Besorolás és Kategória, Adatminőségi Értékelés, Elérhető források, and supports opening external source links
+    // AC2: Modal displays Besorolás és Kategória and Elérhető források without removed quality section (#501)
     expect(screen.getByText('Besorolás és Kategória')).toBeTruthy()
-    expect(screen.getByTestId('drawer-quality-section')).toBeTruthy()
+    expect(screen.queryByTestId('drawer-quality-section')).toBeNull()
     expect(screen.getByText('Elérhető források (2)')).toBeTruthy()
 
     const ocLink = screen.getByLabelText('Megnyitás: Otthon Centrum')

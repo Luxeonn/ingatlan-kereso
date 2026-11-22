@@ -118,7 +118,7 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
   })
 
   describe('filterAndSortItems filtering logic', () => {
-    it('returns all items when bargain and quality filters are not active', () => {
+    it('returns all items when bargain filter is not active', () => {
       const results = filterAndSortItems(mockListings, {
         sortOption: 'price_asc',
       })
@@ -132,39 +132,6 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
       })
       expect(results).toHaveLength(2)
       expect(results.map((r) => r.id)).toEqual(['prop-3', 'prop-1']) // 15M, then 85M
-    })
-
-    it('filters out listings below quality score threshold (minQualityScore = 70)', () => {
-      const results = filterAndSortItems(mockListings, {
-        minQualityScore: 70,
-        sortOption: 'price_asc',
-      })
-      // prop-1 (92) and prop-2 (72) should remain. prop-3 (55) and prop-4 (undefined) should be excluded
-      expect(results).toHaveLength(2)
-      expect(results.map((r) => r.id)).toEqual(['prop-2', 'prop-1'])
-    })
-
-    it('filters for excellent quality listings only (minQualityScore = 85)', () => {
-      const results = filterAndSortItems(mockListings, {
-        minQualityScore: 85,
-        sortOption: 'price_asc',
-      })
-      // Only prop-1 has score 92 >= 85
-      expect(results).toHaveLength(1)
-      expect(results[0]?.id).toBe('prop-1')
-    })
-
-    it('combines onlyBargain and minQualityScore filters seamlessly', () => {
-      // Both filters active: only bargains with reliable quality (>= 70)
-      // prop-1 is bargain with score 92 -> MATCH
-      // prop-3 is bargain but score is 55 (< 70) -> EXCLUDED
-      const results = filterAndSortItems(mockListings, {
-        onlyBargain: true,
-        minQualityScore: 70,
-        sortOption: 'price_asc',
-      })
-      expect(results).toHaveLength(1)
-      expect(results[0]?.id).toBe('prop-1')
     })
 
     it('combines onlyBargain with portal and keyword search', () => {
@@ -191,27 +158,21 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
   })
 
   describe('useFilterStore actions and state', () => {
-    it('initializes onlyBargain as false and minQualityScore as 0', () => {
+    it('initializes onlyBargain as false', () => {
       const state = useFilterStore.getState()
       expect(state.onlyBargain).toBe(false)
-      expect(state.minQualityScore).toBe(0)
     })
 
-    it('updates onlyBargain and minQualityScore via actions', () => {
+    it('updates onlyBargain via actions', () => {
       useFilterStore.getState().setOnlyBargain(true)
       expect(useFilterStore.getState().onlyBargain).toBe(true)
-
-      useFilterStore.getState().setMinQualityScore(70)
-      expect(useFilterStore.getState().minQualityScore).toBe(70)
     })
 
-    it('resets onlyBargain and minQualityScore to defaults', () => {
+    it('resets onlyBargain to default', () => {
       useFilterStore.getState().setOnlyBargain(true)
-      useFilterStore.getState().setMinQualityScore(85)
 
       useFilterStore.getState().resetToDefaults()
       expect(useFilterStore.getState().onlyBargain).toBe(false)
-      expect(useFilterStore.getState().minQualityScore).toBe(0)
     })
   })
 
