@@ -87,5 +87,5 @@ tools/
 ## Java és Docker integráció
 
 - **Java (`SidecarCliExecutor` → `IngatlanComSidecarStrategy`):** 3 perces válasz-gyorsítótárral és dinamikus időkerettel futtatja a `tools/sidecar.py` szkriptet; hiba vagy részleges bot-védelem (`INTERMEDIATE_PAGE_BOT_PROTECTED` / `INTERMEDIATE_PAGE_RATE_LIMITED`) esetén automatikusan továbbáll a `tools/sidecar-playwright.mjs` futtatóra, végső esetben pedig Jsoup/közvetlen keresőlink tartalékra (0-crash garancia).
-- **Docker (`Dockerfile`):** A backend image (`alpine:3.24` + egyedi `jlink` JRE 25) alapértelmezetten a könnyűsúlyú Python `curl_cffi` sidecart (`python3`, `tools/requirements.txt`, nem-root `appuser`) tartalmazza Chromium és Node.js nélkül; a `tools/sidecar-playwright.mjs` lokális fejlesztői környezetben használható tartalékként.
+- **Docker (`Dockerfile`):** A backend image (`alpine:3.24` + egyedi `jlink` JRE 25) a Cloudflare-védett `ingatlan.com` lekérdezéshez a `nodejs`, `chromium` és `playwright-core` (`tools/sidecar-playwright.mjs`, `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser`, nem-root `appuser`) sidecart tartalmazza felesleges Python/`pip` réteg nélkül.
 - **Tesztek futtatása:** `python -m unittest discover -s tools/tests` és `node --test tools/sidecar-playwright.test.mjs`.
