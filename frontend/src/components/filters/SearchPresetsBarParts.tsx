@@ -146,19 +146,19 @@ export const PresetChip: FC<PresetChipProps> = ({
         onSelect(preset)
       }
     }}
-    className={`group inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 font-medium transition-all ${
+    className={`group inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
       isActive
-        ? 'border-blue-500 bg-blue-500/15 text-blue-600 shadow-sm'
-        : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-blue-400/50 hover:text-[var(--text-primary)]'
+        ? 'border-blue-500 bg-blue-500/15 text-blue-700 ring-1 ring-blue-500/20 shadow-sm'
+        : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/50 hover:text-blue-700 shadow-xs'
     }`}
   >
     <span>{preset.name}</span>
-    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+    <div className="flex items-center gap-1.5 border-l border-[var(--border-hairline)] pl-2 opacity-65 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
       <button
         type="button"
         onClick={(e) => onStartEdit(e, preset)}
         title="Sablon átnevezése"
-        className="hover:text-blue-600 cursor-pointer"
+        className="text-[var(--text-secondary)] hover:text-blue-600 cursor-pointer"
       >
         <Pencil className="h-3 w-3" />
       </button>
@@ -166,7 +166,7 @@ export const PresetChip: FC<PresetChipProps> = ({
         type="button"
         onClick={(e) => onDelete(e, preset.id)}
         title="Sablon törlése"
-        className="hover:text-rose-700 cursor-pointer"
+        className="text-[var(--text-secondary)] hover:text-rose-700 cursor-pointer"
       >
         <Trash2 className="h-3 w-3" />
       </button>
