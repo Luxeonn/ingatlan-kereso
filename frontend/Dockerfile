@@ -9,8 +9,11 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Minimal Nginx Alpine runtime
-FROM nginx:1.27-alpine
+# Stage 2: Minimal Nginx Alpine Slim runtime (without unused njs/xslt/geoip/image-filter modules)
+FROM nginx:1.27-alpine-slim
+
+# Apply latest Alpine security patches
+RUN apk upgrade --no-cache
 
 # Copy custom Nginx reverse proxy and SPA configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf

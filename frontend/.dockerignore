@@ -3,3 +3,9 @@ dist
 .git
 .github
 *.log
+e2e
+src/test
+playwright-report
+test-results
+coverage
+*.md
