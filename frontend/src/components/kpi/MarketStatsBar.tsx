@@ -47,13 +47,25 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
       </div>
 
       {/* 2. New items count */}
-      <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 shadow-md">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
-          <Sparkles className="h-5 w-5 animate-pulse" />
+      <div
+        className={`flex items-center gap-3 rounded-xl border p-3.5 shadow-md ${
+          newCount > 0
+            ? 'border-emerald-500/35 bg-[var(--bg-card)]'
+            : 'border-[var(--border-color)] bg-[var(--bg-card)]'
+        }`}
+      >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--status-bargain-bg)] text-[var(--status-bargain-fg)]">
+          <Sparkles className={newCount > 0 ? 'h-5 w-5 animate-pulse' : 'h-5 w-5'} />
         </div>
         <div>
-          <p className="text-[11px] font-semibold text-emerald-400">Új Felfedezés</p>
-          <p className="text-lg font-extrabold text-emerald-400">{newCount} db</p>
+          <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Új Felfedezés</p>
+          <p
+            className={`text-lg font-extrabold tabular-nums ${
+              newCount > 0 ? 'text-[var(--status-bargain-fg)]' : 'text-[var(--text-primary)]'
+            }`}
+          >
+            {newCount} db
+          </p>
         </div>
       </div>
 
