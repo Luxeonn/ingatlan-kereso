@@ -1,4 +1,4 @@
-# Stage 1: Build Headless Spring Boot JAR (Java 25 LTS)
+# Stage 1: Build Headless Spring Boot JAR (Java 25 LTS) & Minimal Custom JRE via jlink
 FROM eclipse-temurin:25-jdk-alpine AS builder
 
 ARG APP_VERSION=1.0.0
@@ -18,46 +18,73 @@ COPY src ./src
 # Build headless Spring Boot fat JAR without running tests
 RUN sed -i 's/\r$//' gradlew && ./gradlew -PreleaseVersion="$APP_VERSION" bootJar --no-daemon -x test
 
-# Stage 2: Minimal hardened runtime with Temurin JRE 25 + Python & Playwright Chromium sidecars
-FROM eclipse-temurin:25-jre-alpine
+# Analyze exact JDK module dependencies from the Spring Boot fat JAR and assemble a stripped custom JRE
+RUN set -eu; \
+    mkdir -p /tmp/jar-extract; \
+    cd /tmp/jar-extract; \
+    jar -xf /build/build/libs/ingatlan-*.jar; \
+    JDEPS_MODULES=$(jdeps \
+      --ignore-missing-deps \
+      -q \
+      --recursive \
+      --multi-release 25 \
+      --print-module-deps \
+      --class-path '/tmp/jar-extract/BOOT-INF/lib/*' \
+      /tmp/jar-extract/BOOT-INF/classes); \
+    echo "Detected jdeps modules: ${JDEPS_MODULES}"; \
+    jlink \
+      --add-modules "${JDEPS_MODULES},java.security.sasl,jdk.crypto.ec,jdk.charsets,jdk.naming.dns,jdk.unsupported" \
+      --strip-debug \
+      --no-man-pages \
+      --no-header-files \
+      --compress=zip-6 \
+      --output /opt/jre; \
+    rm -rf /tmp/jar-extract
 
-# Upgrade packages to apply latest security patches and install Python + Node.js + Chromium runtimes
+# Stage 2: Minimal hardened Alpine runtime with Custom JRE 25 + Python curl_cffi sidecar
+FROM alpine:3.24
+
+ENV JAVA_HOME=/opt/jre \
+    PATH="/opt/jre/bin:${PATH}" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    SERVER_HOST=0.0.0.0 \
+    SERVER_PORT=8080 \
+    NO_BROWSER=true \
+    JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+# Copy minimal custom JRE built in Stage 1
+COPY --from=builder /opt/jre /opt/jre
+
+# Apply security patches, install Python sidecar deps, remove pip and unused Python stdlib/caches in one layer
 COPY tools/requirements.txt /tmp/requirements.txt
-RUN apk upgrade --no-cache && \
-    apk add --no-cache curl ca-certificates python3 py3-pip nodejs chromium && \
-    pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt && \
-    rm -f /tmp/requirements.txt
+RUN set -eu; \
+    apk upgrade --no-cache; \
+    apk add --no-cache ca-certificates tzdata python3; \
+    apk add --no-cache --virtual .pip-deps py3-pip; \
+    pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt; \
+    apk del --no-network .pip-deps; \
+    rm -rf /tmp/requirements.txt /root/.cache \
+      /usr/lib/python3.*/test /usr/lib/python3.*/tests \
+      /usr/lib/python3.*/idlelib /usr/lib/python3.*/tkinter \
+      /usr/lib/python3.*/turtledemo /usr/lib/python3.*/ensurepip \
+      /usr/lib/python3.*/pydoc_data /usr/lib/python3.*/lib2to3; \
+    find /usr/lib/python3.* -type d \( -name '__pycache__' -o -name 'tests' -o -name 'test' \) -exec rm -rf {} +; \
+    find /usr/lib/python3.* -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
 
-# Create non-root system user (UID 10001) for container security
+# Create non-root system user (UID 10001) and app directories before COPY to avoid OverlayFS chown duplication
 RUN addgroup -S -g 10001 appuser && \
-    adduser -S -u 10001 -G appuser -h /app -s /sbin/nologin appuser
+    adduser -S -u 10001 -G appuser -h /app -s /sbin/nologin appuser && \
+    mkdir -p /app/data /app/logs /app/tools/scrapers && \
+    chown -R appuser:appuser /app
 
 WORKDIR /app
 
-# Install playwright-core for the Node.js Chromium fallback sidecar without keeping npm in final image
-COPY --chown=appuser:appuser tools/package.json tools/package-lock.json /app/tools/
-RUN apk add --no-cache --virtual .npm-deps npm && \
-    cd /app/tools && \
-    npm ci --omit=dev --no-audit --no-fund && \
-    rm -rf /root/.npm && \
-    apk del .npm-deps
-
-# Prepare directories with proper permissions
-RUN mkdir -p /app/data /app/logs /app/tools && \
-    chown -R appuser:appuser /app
-
-# Copy executable Spring Boot jar and sidecar scripts
+# Copy executable Spring Boot jar and only runtime Python sidecar files
 COPY --from=builder --chown=appuser:appuser /build/build/libs/ingatlan-*.jar /app/app.jar
-COPY --chown=appuser:appuser tools/ /app/tools/
+COPY --chown=appuser:appuser tools/sidecar.py tools/models.py /app/tools/
+COPY --chown=appuser:appuser tools/scrapers/ /app/tools/scrapers/
 
 USER appuser:appuser
-
-# Default container configurations
-ENV SERVER_HOST=0.0.0.0 \
-    SERVER_PORT=8080 \
-    NO_BROWSER=true \
-    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 # Keep logs available as a mount point; Compose assigns the named backend_logs volume.
 VOLUME ["/app/logs"]
@@ -65,6 +92,6 @@ VOLUME ["/app/logs"]
 EXPOSE 8080
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8080/api/status || exit 1
+    CMD wget -q -O /dev/null http://127.0.0.1:8080/api/status || exit 1
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

@@ -378,7 +378,7 @@ public class SidecarCliExecutor {
       }
       String[] candidates = {"python3", "python", "py"};
       for (String candidate : candidates) {
-        if (canRunCommand(candidate, "-c", "import curl_cffi, bs4, pydantic")) {
+        if (canRunCommand(candidate, "-c", "import curl_cffi, bs4")) {
           cachedPythonCmd = candidate;
           return cachedPythonCmd;
         }

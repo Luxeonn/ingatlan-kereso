@@ -10,7 +10,7 @@ Az Ingatlan.com Cloudflare-védett hirdetéseinek kinyerésére szolgáló on-de
    pip install -r tools/requirements.txt
    ```
 
-   Függőségek (`tools/requirements.txt`): `curl_cffi`, `beautifulsoup4`, `pydantic`.
+   Függőségek (`tools/requirements.txt`): `curl_cffi`, `beautifulsoup4` (a válaszmodellek natív Python `dataclass`-t használnak).
 
 2. **Tartalék sidecar (`tools/sidecar-playwright.mjs` — Node.js + `playwright-core`):**
 
@@ -72,7 +72,7 @@ node tools/sidecar-playwright.mjs --portal ingatlancom --city budapest --type ha
 ```text
 tools/
 ├── sidecar.py                       # Python CLI belépési pont
-├── models.py                        # Pydantic JSON válaszmodellek
+├── models.py                        # Stdlib dataclass JSON válaszmodellek
 ├── scrapers/
 │   └── ingatlancom.py               # curl_cffi alapú Ingatlan.com kinyerő
 ├── sidecar-playwright.mjs           # Node.js + playwright-core Chromium tartalék sidecar
@@ -87,5 +87,5 @@ tools/
 ## Java és Docker integráció
 
 - **Java (`SidecarCliExecutor` → `IngatlanComSidecarStrategy`):** 3 perces válasz-gyorsítótárral és dinamikus időkerettel futtatja a `tools/sidecar.py` szkriptet; hiba vagy részleges bot-védelem (`INTERMEDIATE_PAGE_BOT_PROTECTED` / `INTERMEDIATE_PAGE_RATE_LIMITED`) esetén automatikusan továbbáll a `tools/sidecar-playwright.mjs` futtatóra, végső esetben pedig Jsoup/közvetlen keresőlink tartalékra (0-crash garancia).
-- **Docker (`Dockerfile`):** A backend image (`eclipse-temurin:25-jre-alpine`) gyárilag tartalmazza a `python3`, `nodejs`, `chromium`, `tools/requirements.txt` és `playwright-core` csomagokat (`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser`, nem-root `appuser`), így konténerben külön telepítés nélkül működik.
+- **Docker (`Dockerfile`):** A backend image (`alpine:3.24` + egyedi `jlink` JRE 25) alapértelmezetten a könnyűsúlyú Python `curl_cffi` sidecart (`python3`, `tools/requirements.txt`, nem-root `appuser`) tartalmazza Chromium és Node.js nélkül; a `tools/sidecar-playwright.mjs` lokális fejlesztői környezetben használható tartalékként.
 - **Tesztek futtatása:** `python -m unittest discover -s tools/tests` és `node --test tools/sidecar-playwright.test.mjs`.
