@@ -81,7 +81,7 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
     onClick={onClick}
     title={title}
     className={cn(
-      'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-bold transition-all cursor-pointer',
+      'flex h-8 flex-1 min-w-[130px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition-all cursor-pointer',
       isActive ? activeClassName : inactiveClassName,
     )}
   >
@@ -158,7 +158,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
       data-testid="filter-chips-row"
       className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-hairline)] pt-2.5 text-xs w-full"
     >
-      <div className="flex flex-wrap items-center gap-2 min-w-0">
+      <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
         {isPinned('bargain') && (
           <QuickFilterToggleButton
             testId="bargain-filter-toggle"
@@ -333,18 +333,18 @@ export const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
             type="button"
             onClick={() => setSelectedPortalFilter(chip.id)}
             className={cn(
-              'flex h-7 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-bold transition-all cursor-pointer',
+              'flex h-9 flex-1 min-w-[115px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-bold transition-all duration-150 cursor-pointer',
               isActive
-                ? 'border-blue-500/50 bg-blue-600 text-white shadow-sm'
-                : 'border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-700',
+                ? 'border-blue-500/40 bg-blue-500/15 text-blue-700 shadow-sm'
+                : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] opacity-80 hover:opacity-100 hover:border-blue-500/40',
             )}
           >
-            <span>{chip.label}</span>
+            <span className="truncate">{chip.label}</span>
             <span
               className={cn(
-                'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums',
+                'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums shrink-0',
                 isActive
-                  ? 'bg-white/20 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-[var(--bg-input)] text-[var(--text-primary)]',
               )}
             >

@@ -245,7 +245,7 @@ describe('UI Completeness (#157, #202, #227)', () => {
     const chipsRow2 = within(screen.getByTestId('portal-quick-filter-chips'))
     const ocChip = chipsRow2.getByRole('button', { name: /Otthon Centrum/i })
     expect(ocChip).toBeTruthy()
-    expect(ocChip.className).toContain('bg-blue-600')
+    expect(ocChip.className).toContain('bg-blue-500/15')
     expect(chipsRow2.queryByRole('button', { name: /Összes/i })).toBeNull()
     expect(chipsRow2.queryByRole('button', { name: /Duna House/i })).toBeNull()
 

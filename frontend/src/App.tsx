@@ -287,7 +287,7 @@ export const App: FC = () => {
                 allCount={scopedRawArchiveItems.length}
                 hiddenCount={scopedHiddenItems.length}
                 discountedCount={scopedDiscountedItems.length}
-                cities={criteria.cities}
+                activeItems={slice.activeItems}
               />
             )}
 
