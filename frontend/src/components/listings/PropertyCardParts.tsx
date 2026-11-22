@@ -1,4 +1,4 @@
-import type { FC, MouseEvent } from 'react'
+import type { FC, KeyboardEvent, MouseEvent } from 'react'
 import {
   Sparkles,
   TrendingDown,
@@ -7,9 +7,17 @@ import {
   Info,
   Trash2,
   RotateCcw,
+  Ruler,
+  BedDouble,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
-import { getPropertyTypeConfig } from '../../utils/formatters'
+import {
+  getPropertyTypeConfig,
+  formatPriceMillion,
+  formatPricePerSqm,
+  formatArea,
+  formatRooms,
+} from '../../utils/formatters'
 import { BargainBadge } from './BargainBadge'
 import { cn } from '../../utils/cn'
 import { isListingNew } from '../../utils/listingFilters'
@@ -20,8 +28,35 @@ export interface PropertyThumbnailProps {
   hasValidImage: boolean
   portalStyle: { bg: string; text: string }
   viewMode: 'grid' | 'list'
-  onOpen: (e: MouseEvent<HTMLElement>) => void
+  isDrawerOpen: boolean
+  onOpen?: (e: MouseEvent<HTMLElement>) => void
+  onThumbnailClick?: (e: MouseEvent<HTMLElement>) => void
+  onToggleDrawer: () => void
   onImageError: () => void
+}
+
+function buildListThumbnailProps(
+  isListMode: boolean,
+  isDrawerOpen: boolean,
+  itemId: string,
+  onToggleDrawer: () => void,
+) {
+  if (!isListMode) return {}
+  return {
+    role: 'button' as const,
+    tabIndex: 0,
+    'aria-expanded': isDrawerOpen,
+    'aria-controls': `drawer-${itemId}`,
+    'aria-label': 'Részletek és források megjelenítése',
+    title: 'Részletek és források megjelenítése',
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        e.stopPropagation()
+        onToggleDrawer()
+      }
+    },
+  }
 }
 
 export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
@@ -30,18 +65,28 @@ export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
   hasValidImage,
   portalStyle,
   viewMode,
+  isDrawerOpen,
   onOpen,
+  onThumbnailClick,
+  onToggleDrawer,
   onImageError,
 }) => {
   const TypeIcon = getPropertyTypeConfig(item.propertyType).icon
   const resolvedImageUrl = imageUrl ?? item.imageUrl
+  const isListMode = viewMode === 'list'
+  const listA11yProps = buildListThumbnailProps(isListMode, isDrawerOpen, item.id, onToggleDrawer)
 
   return (
     <div
-      onClick={onOpen}
+      data-testid="property-thumbnail"
+      onClick={onThumbnailClick ?? onOpen}
+      {...listA11yProps}
       className={cn(
         'relative cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] shrink-0',
-        viewMode === 'list' ? 'h-36 w-full sm:h-28 sm:w-44 mb-3 sm:mb-0' : 'mb-3 h-40 w-full',
+        isListMode
+          ? 'h-36 w-full sm:h-28 sm:w-44 mb-3 sm:mb-0 focus:outline-none focus:ring-2 focus:ring-blue-500/50'
+          : 'mb-3 h-40 w-full',
+        isListMode && isDrawerOpen ? 'ring-2 ring-blue-500/40 border-blue-500/60' : '',
       )}
     >
       {hasValidImage && resolvedImageUrl ? (
@@ -238,5 +283,64 @@ export const PropertyCardBadges: FC<PropertyCardBadgesProps> = ({
       onHide={onHide}
       onRestore={onRestore}
     />
+  </div>
+)
+
+export interface PropertyParametersChipsProps {
+  floorArea?: number | null
+  rooms?: number | null
+  sqmPrice?: number | null
+}
+
+export const PropertyParametersChips: FC<PropertyParametersChipsProps> = ({
+  floorArea,
+  rooms,
+  sqmPrice,
+}) => (
+  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[var(--text-secondary)]">
+    {floorArea !== null && floorArea !== undefined && floorArea > 0 && (
+      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
+        <Ruler className="h-3.5 w-3.5 text-purple-400" />
+        <span>{formatArea(floorArea)}</span>
+      </span>
+    )}
+
+    {rooms !== null && rooms !== undefined && rooms > 0 && (
+      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
+        <BedDouble className="h-3.5 w-3.5 text-teal-400" />
+        <span>{formatRooms(rooms)}</span>
+      </span>
+    )}
+
+    {sqmPrice !== null && sqmPrice !== undefined && sqmPrice > 0 && (
+      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
+        <span>{formatPricePerSqm(sqmPrice)}</span>
+      </span>
+    )}
+  </div>
+)
+
+export interface PropertyPriceSectionProps {
+  priceMillion?: number | null
+  rawPrice?: string
+  viewMode: 'grid' | 'list'
+}
+
+export const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
+  priceMillion,
+  rawPrice,
+  viewMode,
+}) => (
+  <div
+    className={cn(
+      'flex items-center justify-between border-t border-[var(--border-color)] pt-3',
+      viewMode === 'list' ? 'sm:border-t-0 sm:pt-0 sm:flex-col sm:items-end sm:justify-center sm:gap-1 shrink-0' : 'mt-4',
+    )}
+  >
+    <div className={cn(viewMode === 'list' ? 'sm:text-right' : '')}>
+      <div className="text-base font-extrabold text-blue-400">
+        {priceMillion !== null && priceMillion !== undefined ? formatPriceMillion(priceMillion) : rawPrice}
+      </div>
+    </div>
   </div>
 )

@@ -124,6 +124,32 @@ class IngatlanComSidecarTest(unittest.TestCase):
         self.assertEqual(len(resp.items), 20)
         self.assertEqual(resp.stop_reason, "REPEATED_PAGE_CONTENT")
 
+    def test_model_dump_by_alias_preserves_camel_case_contract(self):
+        fake_session = _FakeSession(
+            lambda _url: _FakeResponse(200, _build_page_html(1, 1, []))
+        )
+        resp = ingatlancom.scrape(
+            city="Debrecen",
+            property_type="haz",
+            max_pages=1,
+            delay_ms=0,
+            session_factory=lambda: fake_session,
+        )
+        payload = resp.model_dump(by_alias=True)
+        self.assertEqual(payload["portalId"], "ingatlancom")
+        self.assertEqual(payload["status"], "SUCCESS")
+        self.assertEqual(payload["pagesProcessed"], 1)
+        self.assertIn("elapsedMs", payload)
+        self.assertIn("errorMessage", payload)
+        self.assertIn("stopReason", payload)
+        self.assertEqual(len(payload["items"]), 1)
+        item = payload["items"][0]
+        self.assertEqual(item["priceMillion"], 85.0)
+        self.assertEqual(item["priceRaw"], "85 M Ft")
+        self.assertEqual(item["areaSquareMeters"], 120.0)
+        self.assertEqual(item["roomCount"], 4.0)
+        self.assertIn("imageUrl", item)
+
 
 if __name__ == "__main__":
     unittest.main()

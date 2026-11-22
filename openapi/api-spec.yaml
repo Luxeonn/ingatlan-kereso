@@ -705,15 +705,23 @@ paths:
 
   /api/dedup/overrides:
     get:
-      summary: Egy hirdetéshez tartozó kézi deduplikációs felülbírálások lekérdezése
+      summary: Egy vagy több hirdetéshez tartozó kézi deduplikációs felülbírálások lekérdezése
       operationId: getDedupOverrides
       parameters:
         - name: url
           in: query
-          required: true
+          required: false
           schema:
             type: string
-          description: A hirdetés URL-je
+          description: A hirdetés URL-je (opcionális, ha az urls paraméter meg van adva)
+        - name: urls
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Lekérdezett hirdetés URL-ek listája egyetlen kötegelt kérésben
       responses:
         '200':
           description: Aktív kézi felülbírálások listája

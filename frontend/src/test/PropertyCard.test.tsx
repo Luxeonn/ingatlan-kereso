@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import { PropertyCard } from '../components/listings/PropertyCard'
 import type { IngatlanItem } from '../types/property'
 import { useUiStore } from '../store/useUiStore'
+import * as formatters from '../utils/formatters'
 
 describe('PropertyCard component (#270)', () => {
   const mockItem: IngatlanItem = {
@@ -33,7 +34,8 @@ describe('PropertyCard component (#270)', () => {
 
   beforeEach(() => {
     localStorage.clear()
-    useUiStore.setState({ starredUrls: [], starredItemsCache: {} })
+    useUiStore.setState({ starredUrls: [], starredItemsCache: {}, selectedCardUrls: [] })
+    vi.restoreAllMocks()
   })
 
   it('renders title, price, parameters, thumbnail, new construction badge, and details trigger button (#270)', () => {
@@ -489,6 +491,106 @@ describe('PropertyCard component (#270)', () => {
     const drawer = screen.getByTestId('multi-source-drawer')
     expect(drawer).toBeTruthy()
     expect(card.contains(drawer)).toBe(true)
+    expect(screen.queryByTestId('property-details-modal')).toBeNull()
+  })
+
+  it('toggles PropertyDetailsDrawer when clicking thumbnail in list view without opening external link (#489)', () => {
+    const openSpy = vi.spyOn(formatters, 'openExternalUrl').mockImplementation(() => {})
+    const onMarkViewed = vi.fn()
+    const multiListItem: IngatlanItem = {
+      ...mockItem,
+      id: 'list-thumb-multi',
+      sourcesCount: 2,
+      sourceListings: [
+        { portal: 'Duna House', url: 'https://dh.hu/ingatlan/123', priceHuf: 75000000, status: 'ACTIVE' },
+        { portal: 'Otthon Centrum', url: 'https://oc.hu/ingatlan/456', priceHuf: 76000000, status: 'ACTIVE' },
+      ],
+    }
+
+    render(<PropertyCard item={multiListItem} onMarkViewed={onMarkViewed} viewMode="list" />)
+
+    const thumb = screen.getByTestId('property-thumbnail')
+    expect(thumb.getAttribute('role')).toBe('button')
+    expect(thumb.getAttribute('tabindex')).toBe('0')
+    expect(thumb.getAttribute('aria-expanded')).toBe('false')
+    expect(thumb.getAttribute('aria-controls')).toBe('drawer-list-thumb-multi')
+    expect(thumb.getAttribute('title')).toBe('Részletek és források megjelenítése')
+
+    // First click opens inline drawer and shows sources list without opening external link
+    fireEvent.click(thumb)
+    expect(thumb.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByTestId('multi-source-drawer')).toBeTruthy()
+    expect(screen.getByTestId('sources-list-section')).toBeTruthy()
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(onMarkViewed).not.toHaveBeenCalled()
+
+    // Second click closes the drawer
+    fireEvent.click(thumb)
+    expect(thumb.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByTestId('multi-source-drawer')).toBeNull()
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(onMarkViewed).not.toHaveBeenCalled()
+  })
+
+  it('supports Enter and Space keyboard toggle on thumbnail in list view (#489)', () => {
+    const openSpy = vi.spyOn(formatters, 'openExternalUrl').mockImplementation(() => {})
+    render(<PropertyCard item={mockItem} onMarkViewed={() => {}} viewMode="list" />)
+
+    const thumb = screen.getByTestId('property-thumbnail')
+    fireEvent.keyDown(thumb, { key: 'Enter' })
+    expect(thumb.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByTestId('multi-source-drawer')).toBeTruthy()
+
+    fireEvent.keyDown(thumb, { key: ' ' })
+    expect(thumb.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByTestId('multi-source-drawer')).toBeNull()
+    expect(openSpy).not.toHaveBeenCalled()
+  })
+
+  it('Ctrl/Cmd+clicking thumbnail in list view toggles card selection without opening drawer (#489)', () => {
+    const openSpy = vi.spyOn(formatters, 'openExternalUrl').mockImplementation(() => {})
+    const onMarkViewed = vi.fn()
+    render(<PropertyCard item={mockItem} onMarkViewed={onMarkViewed} viewMode="list" />)
+
+    const card = screen.getByTestId('property-card')
+    const thumb = screen.getByTestId('property-thumbnail')
+
+    fireEvent.click(thumb, { ctrlKey: true })
+    expect(card.getAttribute('data-selected')).toBe('true')
+    expect(screen.queryByTestId('multi-source-drawer')).toBeNull()
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(onMarkViewed).not.toHaveBeenCalled()
+
+    fireEvent.click(thumb, { metaKey: true })
+    expect(card.getAttribute('data-selected')).toBeNull()
+    expect(screen.queryByTestId('multi-source-drawer')).toBeNull()
+  })
+
+  it('keeps title click external navigation in list view and thumbnail external navigation in grid view (#489)', () => {
+    const openSpy = vi.spyOn(formatters, 'openExternalUrl').mockImplementation(() => {})
+    const onMarkViewed = vi.fn()
+
+    const { rerender } = render(
+      <PropertyCard item={mockItem} onMarkViewed={onMarkViewed} viewMode="list" />,
+    )
+
+    // Title click in list view still opens external URL
+    fireEvent.click(screen.getByText('Szép felújított lakás Debrecen belvárosában'))
+    expect(openSpy).toHaveBeenCalledWith('https://dh.hu/ingatlan/123')
+    expect(onMarkViewed).toHaveBeenCalledWith('https://dh.hu/ingatlan/123')
+
+    openSpy.mockClear()
+    onMarkViewed.mockClear()
+
+    // Grid view thumbnail click opens external URL and does not expose drawer toggle semantics
+    rerender(<PropertyCard item={mockItem} onMarkViewed={onMarkViewed} viewMode="grid" />)
+    const gridThumb = screen.getByTestId('property-thumbnail')
+    expect(gridThumb.getAttribute('role')).toBeNull()
+    expect(gridThumb.getAttribute('aria-expanded')).toBeNull()
+
+    fireEvent.click(gridThumb)
+    expect(openSpy).toHaveBeenCalledWith('https://dh.hu/ingatlan/123')
+    expect(onMarkViewed).toHaveBeenCalledWith('https://dh.hu/ingatlan/123')
     expect(screen.queryByTestId('property-details-modal')).toBeNull()
   })
 })

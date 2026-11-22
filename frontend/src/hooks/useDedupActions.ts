@@ -53,6 +53,7 @@ function resolveErrorMessage(err: unknown): string {
 export function useDedupActions(
   setData: Dispatch<SetStateAction<DashboardResponseDto | null>>,
   setToastMessage: Dispatch<SetStateAction<string | null>>,
+  onAfterMerge?: () => void,
 ) {
   const queryClient = useQueryClient()
   const { clearCardSelection } = useUiStore()
@@ -85,6 +86,9 @@ export function useDedupActions(
       clearCardSelection()
       setToastMessage(res.message)
       queryClient.invalidateQueries({ queryKey: ['history'] })
+      queryClient.invalidateQueries({ queryKey: ['portals'] })
+      queryClient.invalidateQueries({ queryKey: ['cities'] })
+      onAfterMerge?.()
       return true
     } catch (err) {
       setToastMessage(resolveErrorMessage(err))

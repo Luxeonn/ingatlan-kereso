@@ -10,11 +10,12 @@ import {
   restoreProperty as apiRestoreProperty,
 } from '../api/propertyApi'
 import { useDedupActions } from './useDedupActions'
+import { buildRawFavoriteItems } from './favoriteItemsHelper'
 import type { DashboardResponseDto, SearchCriteria } from '../types/api'
 import type { IngatlanItem } from '../types/property'
 import { useFilterStore } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
-import { detectPortalFromUrl, normalizePortalKey, openExternalUrl } from '../utils/formatters'
+import { normalizePortalKey, openExternalUrl } from '../utils/formatters'
 import {
   normalizeSearchText,
   isItemBargain,
@@ -28,53 +29,7 @@ export { normalizePortalKey, normalizeSearchText, isItemBargain, filterAndSortIt
 interface SearchMutationVariables {
   criteria: SearchCriteria
   requestId: number
-}
-
-interface RawFavoriteItemsParams {
-  starredUrls: string[]
-  starredItemsCache: Record<string, IngatlanItem | undefined>
-  historyItems?: IngatlanItem[]
-  currentItems?: IngatlanItem[]
-}
-
-function buildOrphanItem(url: string): IngatlanItem {
-  const portalInfo = detectPortalFromUrl(url)
-  return {
-    id: `orphan-${url}`,
-    portal: portalInfo.portalName,
-    url,
-    title: `Elmentett hirdetés (${portalInfo.portalName})`,
-    price: 'N/A',
-    location: 'Elmentett hivatkozás',
-    city: 'Ismeretlen',
-    propertyType: 'EGYEB_ISMERETLEN',
-    sourcesCount: 1,
-    source: {
-      portalId: portalInfo.portalId,
-      portalName: portalInfo.portalName,
-      directListing: true,
-    },
-  }
-}
-
-function buildRawFavoriteItems({
-  starredUrls,
-  starredItemsCache,
-  historyItems,
-  currentItems,
-}: RawFavoriteItemsParams): IngatlanItem[] {
-  const byUrl = new Map<string, IngatlanItem>()
-  Object.entries(starredItemsCache).forEach(([u, item]) => {
-    if (item) byUrl.set(u, item)
-  })
-  ;(historyItems ?? []).forEach((item) => {
-    if (item.url) byUrl.set(item.url, item)
-  })
-  ;(currentItems ?? []).forEach((item) => {
-    if (item.url) byUrl.set(item.url, item)
-  })
-
-  return starredUrls.map((url) => byUrl.get(url) ?? buildOrphanItem(url))
+  silent?: boolean
 }
 
 export function useSearch() {
@@ -100,10 +55,6 @@ export function useSearch() {
   const [isSearchPending, setIsSearchPending] = useState(false)
   const [sessionViewedUrls, setSessionViewedUrls] = useState<Set<string>>(() => new Set())
   const searchRequestIdRef = useRef(0)
-  const { splitSource, mergeSelected, undoDedupOverride, isMerging } = useDedupActions(
-    setData,
-    setToastMessage,
-  )
 
   const historyQuery = useQuery({
     queryKey: ['history', criteria.onlyNewConstruction],
@@ -126,19 +77,21 @@ export function useSearch() {
 
   const searchMutation = useMutation<DashboardResponseDto, Error, SearchMutationVariables>({
     mutationFn: ({ criteria: searchParams }) => executeSearch(searchParams),
-    onMutate: ({ requestId }) => {
+    onMutate: ({ requestId, silent }) => {
       setSearchError(null)
-      if (requestId === searchRequestIdRef.current) {
+      if (!silent && requestId === searchRequestIdRef.current) {
         setData(null)
       }
     },
-    onError: (err, { requestId }) => {
+    onError: (err, { requestId, silent }) => {
       if (requestId !== searchRequestIdRef.current) {
         return
       }
       setIsSearchPending(false)
       setSearchError(err)
-      setData(null)
+      if (!silent) {
+        setData(null)
+      }
     },
     onSuccess: (result, { requestId }) => {
       if (requestId !== searchRequestIdRef.current) {
@@ -319,6 +272,35 @@ export function useSearch() {
     [rawFavoriteItems, sharedFilterOptions],
   )
 
+  const triggerSearch = (overrideCriteria?: Partial<SearchCriteria>, silent = false) => {
+    const nextRequestId = searchRequestIdRef.current + 1
+    searchRequestIdRef.current = nextRequestId
+    setSessionViewedUrls(new Set())
+    setSearchError(null)
+    if (!silent) {
+      setIsSearchPending(true)
+    }
+    searchMutation.mutate({
+      criteria: { ...criteria, ...(overrideCriteria || {}) },
+      requestId: nextRequestId,
+      silent,
+    })
+  }
+
+  const handleAfterMerge = () => {
+    if (listingSubView === 'listings') {
+      triggerSearch(undefined, true)
+    } else {
+      void historyQuery.refetch()
+    }
+  }
+
+  const { splitSource, mergeSelected, undoDedupOverride, isMerging } = useDedupActions(
+    setData,
+    setToastMessage,
+    handleAfterMerge,
+  )
+
   return {
     data,
     items: processedItems,
@@ -342,17 +324,7 @@ export function useSearch() {
     isLoading: isSearchPending,
     isError: searchError !== null,
     error: searchError,
-    search: (overrideCriteria?: Partial<SearchCriteria>) => {
-      const nextRequestId = searchRequestIdRef.current + 1
-      searchRequestIdRef.current = nextRequestId
-      setSessionViewedUrls(new Set())
-      setSearchError(null)
-      setIsSearchPending(true)
-      searchMutation.mutate({
-        criteria: { ...criteria, ...(overrideCriteria || {}) },
-        requestId: nextRequestId,
-      })
-    },
+    search: (overrideCriteria?: Partial<SearchCriteria>) => triggerSearch(overrideCriteria, false),
     markAsViewed: (url: string) => markViewedMutation.mutate(url),
     hideProperty: (item: IngatlanItem) => hideMutation.mutate(item),
     restoreProperty: (item: IngatlanItem) => restoreMutation.mutate(item),
