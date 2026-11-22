@@ -845,6 +845,57 @@ class DeduplicationEngineTest {
     assertEquals(2, result.size());
   }
 
+  @Test
+  @DisplayName("Csillag-topológiájú FORCE_MERGE (N-1 él) tranzitívan egy klaszterbe vonja az összes tagot (#488)")
+  void testTransitiveForceMergeStarClustersAllMembers() {
+    IngatlanItem a = createItem("tm1", "Költözzbe", "https://koltozzbe.hu/h1001",
+        "Lakás 1", "Hajdúszoboszló", PropertyType.HAZ, 60.0, 2.0, 30_000_000L, "ACTIVE");
+    IngatlanItem b = createItem("tm2", "Költözzbe", "https://koltozzbe.hu/h1002",
+        "Ház 2", "Hajdúszoboszló", PropertyType.HAZ, 110.0, 4.0, 75_000_000L, "ACTIVE");
+    IngatlanItem c = createItem("tm3", "Költözzbe", "https://koltozzbe.hu/h1003",
+        "Villa 3", "Hajdúszoboszló", PropertyType.HAZ, 180.0, 6.0, 140_000_000L, "ACTIVE");
+    IngatlanItem d = createItem("tm4", "Költözzbe", "https://koltozzbe.hu/h1004",
+        "Tanya 4", "Hajdúszoboszló", PropertyType.HAZ, 250.0, 8.0, 210_000_000L, "ACTIVE");
+
+    DedupOverrideStorage overrides = stubOverrideStorage(List.of(
+        new DedupOverride("https://koltozzbe.hu/h1001", "https://koltozzbe.hu/h1002", DedupOverrideType.FORCE_MERGE),
+        new DedupOverride("https://koltozzbe.hu/h1001", "https://koltozzbe.hu/h1003", DedupOverrideType.FORCE_MERGE),
+        new DedupOverride("https://koltozzbe.hu/h1001", "https://koltozzbe.hu/h1004", DedupOverrideType.FORCE_MERGE)));
+    DeduplicationEngine engine = new DeduplicationEngine(null, overrides);
+
+    List<IngatlanItem> result = engine.deduplicateMultiSignal(List.of(a, b, c, d));
+    assertEquals(1, result.size());
+    assertEquals(4, result.get(0).getSourcesCount());
+    assertTrue(result.get(0).isManuallyMerged());
+  }
+
+  @Test
+  @DisplayName("FORCE_SPLIT felülírja a tranzitív csillag FORCE_MERGE kapcsolatot (#488)")
+  void testForceSplitBlocksTransitiveStarForceMerge() {
+    IngatlanItem a = createItem("ts1", "Költözzbe", "https://koltozzbe.hu/s1",
+        "Ház 1", "Hajdúszoboszló", PropertyType.HAZ, 60.0, 2.0, 30_000_000L, "ACTIVE");
+    IngatlanItem b = createItem("ts2", "Költözzbe", "https://koltozzbe.hu/s2",
+        "Ház 2", "Hajdúszoboszló", PropertyType.HAZ, 110.0, 4.0, 75_000_000L, "ACTIVE");
+    IngatlanItem c = createItem("ts3", "Költözzbe", "https://koltozzbe.hu/s3",
+        "Ház 3", "Hajdúszoboszló", PropertyType.HAZ, 180.0, 6.0, 140_000_000L, "ACTIVE");
+
+    DedupOverrideStorage overrides = stubOverrideStorage(List.of(
+        new DedupOverride("https://koltozzbe.hu/s1", "https://koltozzbe.hu/s2", DedupOverrideType.FORCE_MERGE),
+        new DedupOverride("https://koltozzbe.hu/s1", "https://koltozzbe.hu/s3", DedupOverrideType.FORCE_MERGE),
+        new DedupOverride("https://koltozzbe.hu/s2", "https://koltozzbe.hu/s3", DedupOverrideType.FORCE_SPLIT)));
+    DeduplicationEngine engine = new DeduplicationEngine(null, overrides);
+
+    List<IngatlanItem> result = engine.deduplicateMultiSignal(List.of(a, b, c));
+    assertEquals(2, result.size());
+    boolean bAndCTogether = result.stream().anyMatch(cluster -> {
+      Set<String> urls = cluster.getSourceListings().stream()
+          .map(s -> s.getUrl())
+          .collect(java.util.stream.Collectors.toSet());
+      return urls.contains("https://koltozzbe.hu/s2") && urls.contains("https://koltozzbe.hu/s3");
+    });
+    assertFalse(bAndCTogether);
+  }
+
   private DedupOverrideStorage stubOverrideStorage(List<DedupOverride> list) {
     return new DedupOverrideStorage() {
       @Override

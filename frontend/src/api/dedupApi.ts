@@ -25,11 +25,26 @@ export async function mergeListings(urls: string[]): Promise<DedupActionResponse
   )
 }
 
-export async function getDedupOverrides(url: string): Promise<DedupOverrideDto[]> {
+export async function getDedupOverrides(
+  urlOrUrls: string | string[],
+): Promise<DedupOverrideDto[]> {
+  if (Array.isArray(urlOrUrls)) {
+    const cleaned = Array.from(new Set(urlOrUrls.map((u) => u.trim()).filter(Boolean)))
+    if (cleaned.length === 0) {
+      return []
+    }
+    return unwrapApiResponse(
+      fetchClient.GET('/api/dedup/overrides', {
+        params: {
+          query: { urls: cleaned },
+        },
+      }),
+    )
+  }
   return unwrapApiResponse(
     fetchClient.GET('/api/dedup/overrides', {
       params: {
-        query: { url },
+        query: { url: urlOrUrls },
       },
     }),
   )

@@ -120,7 +120,8 @@ public class DeduplicationEngine {
     if (effectiveOverrides.isForceSplit(a.getUrl(), b.getUrl())) {
       return false;
     }
-    if (effectiveOverrides.isForceMerge(a.getUrl(), b.getUrl())) {
+    if (effectiveOverrides.isForceMerge(a.getUrl(), b.getUrl())
+        || effectiveOverrides.isTransitivelyForceMerged(a.getUrl(), b.getUrl())) {
       return isMatchingCity(a, b);
     }
     return isHeuristicMatch(a, b);

@@ -3,7 +3,6 @@ package ingatlanok.web;
 import java.util.List;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -43,8 +42,9 @@ public class DedupController {
 
   @GetMapping("/overrides")
   public ResponseEntity<List<DedupOverrideDto>> getOverrides(
-      @RequestParam("url") @NotBlank(message = "A lekérdezett URL paraméter kötelező") String url) {
-    return ResponseEntity.ok(dedupPresentationService.getOverridesForUrl(url));
+      @RequestParam(value = "url", required = false) String url,
+      @RequestParam(value = "urls", required = false) List<String> urls) {
+    return ResponseEntity.ok(dedupPresentationService.getOverridesForQuery(url, urls));
   }
 
   @DeleteMapping("/overrides/{id}")

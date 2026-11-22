@@ -193,4 +193,113 @@ class DedupControllerTest {
     assertEquals(1, saved.size());
     assertEquals(DedupOverrideType.FORCE_SPLIT, saved.get(0).type());
   }
+
+  @Test
+  @DisplayName("8 URL összevonása legfeljebb N-1 (7) FORCE_MERGE élt ment és tömeges lekérdezés is működik (#488)")
+  void testLargeMergeUsesMinimalEdgesAndMultiUrlQuery() throws Exception {
+    List<String> urls = new ArrayList<>();
+    for (int i = 1; i <= 8; i++) {
+      String url = "https://koltozzbe.hu/elado-ikerhaz-hajduszoboszlo/h1098410" + i;
+      urls.add(url);
+      seedListing(
+          "kb-" + i,
+          "koltozzbe",
+          url,
+          "Hajdúszoboszló",
+          PropertyType.HAZ,
+          35_000_000L + (i * 12_000_000L),
+          70.0 + (i * 25.0));
+    }
+
+    mockMvc
+        .perform(
+            post("/api/dedup/merge")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonSupport.mapper().writeValueAsString(new DedupMergeRequestDto(urls))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items", hasSize(1)))
+        .andExpect(jsonPath("$.items[0].sourcesCount").value(8))
+        .andExpect(jsonPath("$.items[0].manuallyMerged").value(true))
+        .andExpect(jsonPath("$.overrides", hasSize(7)));
+
+    List<DedupOverride> saved = overrideStorage.getAllOverrides();
+    assertEquals(7, saved.size());
+    assertTrue(saved.stream().allMatch(ov -> ov.type() == DedupOverrideType.FORCE_MERGE));
+
+    // Batch GET /api/dedup/overrides?urls=... returns deduplicated overrides in one call
+    mockMvc
+        .perform(
+            get("/api/dedup/overrides")
+                .param("urls", urls.get(0))
+                .param("urls", urls.get(1))
+                .param("urls", urls.get(7)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(7)));
+
+    // Splitting the star anchor detaches anchor while keeping remaining 7 peers merged
+    mockMvc
+        .perform(
+            post("/api/dedup/split")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    JsonSupport.mapper()
+                        .writeValueAsString(new DedupSplitRequestDto(urls.get(0), urls))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items", hasSize(2)));
+  }
+
+  @Test
+  @DisplayName("Meglévő kézi klaszter bővítése csak 1 új élt hoz létre, és 1 él törlése szétválasztja a tagot (#488)")
+  void testIncrementalMergeAndDeleteSeparation() throws Exception {
+    List<String> urls = List.of(
+        "https://koltozzbe.hu/h2001",
+        "https://koltozzbe.hu/h2002",
+        "https://koltozzbe.hu/h2003",
+        "https://koltozzbe.hu/h2004");
+    for (int i = 0; i < urls.size(); i++) {
+      seedListing(
+          "inc-" + i,
+          "koltozzbe",
+          urls.get(i),
+          "Hajdúszoboszló",
+          PropertyType.HAZ,
+          40_000_000L + (i * 20_000_000L),
+          80.0 + (i * 30.0));
+    }
+
+    // Merge first 3 -> 2 edges
+    mockMvc
+        .perform(
+            post("/api/dedup/merge")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    JsonSupport.mapper()
+                        .writeValueAsString(new DedupMergeRequestDto(urls.subList(0, 3)))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.overrides", hasSize(2)));
+    assertEquals(2, overrideStorage.getAllOverrides().size());
+
+    // Merge existing 3 + 4th URL -> only 1 new edge (total 3, not 6)
+    mockMvc
+        .perform(
+            post("/api/dedup/merge")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonSupport.mapper().writeValueAsString(new DedupMergeRequestDto(urls))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items", hasSize(1)))
+        .andExpect(jsonPath("$.items[0].sourcesCount").value(4))
+        .andExpect(jsonPath("$.overrides", hasSize(3)));
+    assertEquals(3, overrideStorage.getAllOverrides().size());
+
+    // Delete the edge connecting h2004 -> immediately separates h2004
+    DedupOverride edgeTo4 =
+        overrideStorage.getOverridesForUrl(urls.get(3)).stream().findFirst().orElseThrow();
+    mockMvc
+        .perform(delete("/api/dedup/overrides/{id}", edgeTo4.id()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items", hasSize(2)));
+
+    // Missing query params returns 400
+    mockMvc.perform(get("/api/dedup/overrides")).andExpect(status().isBadRequest());
+  }
 }
