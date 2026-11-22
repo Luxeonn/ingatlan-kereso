@@ -51,7 +51,7 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
   }> = [
     { id: 'all', label: 'Mentett Előzmények', count: allCount, icon: Archive },
     { id: 'discounted', label: 'Leárazás Radar', count: discountedCount, icon: TrendingDown },
-    { id: 'hidden', label: 'Elrejtettek (Kuka)', count: hiddenCount, icon: Trash2 },
+    { id: 'hidden', label: 'Töröltek (Kuka)', count: hiddenCount, icon: Trash2 },
   ]
 
   return (

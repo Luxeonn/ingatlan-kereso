@@ -7,11 +7,10 @@ export interface QuickFilterOptionMeta {
 
 export const QUICK_FILTER_OPTIONS: readonly QuickFilterOptionMeta[] = [
   { id: 'bargain', label: 'Alkalmi vétel' },
-  { id: 'onlyNew', label: 'Csak új találatok' },
-  { id: 'hidden', label: 'Elrejtettek' },
-  { id: 'excludeViewed', label: 'Megtekintettek rejtése' },
-  { id: 'onlyNewConstruction', label: 'Csak új építésű' },
-  { id: 'excludeMultiSource', label: 'Több forrásosak rejtése' },
-  { id: 'onlyMultiSource', label: 'Csak több forrásosak' },
-  { id: 'excludeNoImage', label: 'Kép nélküliek rejtése' },
+  { id: 'onlyNew', label: 'Új találatok' },
+  { id: 'hidden', label: 'Töröltek' },
+  { id: 'excludeViewed', label: 'Megtekintettek' },
+  { id: 'onlyNewConstruction', label: 'Új építésű' },
+  { id: 'onlyMultiSource', label: 'Összevontak' },
+  { id: 'excludeNoImage', label: 'Kép nélküliek' },
 ]

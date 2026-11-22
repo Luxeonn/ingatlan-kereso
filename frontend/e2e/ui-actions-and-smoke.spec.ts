@@ -274,7 +274,7 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     // Verify BulkActionBar 3-tier structure & customizable filter chips (#303, #359)
     const filterChipsRow = page.getByTestId('filter-chips-row')
     await expect(filterChipsRow).toBeVisible()
-    const onlyNewToggle = filterChipsRow.getByRole('button', { name: /Csak új találatok/i })
+    const onlyNewToggle = filterChipsRow.getByRole('button', { name: /Új találatok/i })
     await expect(onlyNewToggle).toBeVisible()
     await onlyNewToggle.click()
     await onlyNewToggle.click() // toggle back off

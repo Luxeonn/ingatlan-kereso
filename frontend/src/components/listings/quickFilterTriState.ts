@@ -51,9 +51,9 @@ const TRI_STATE_MAP: Record<QuickFilterId, TriStateConfig> = {
     },
   },
   hidden: {
-    onlyLabel: 'Csak elrejtettek',
-    excludeLabel: 'Elrejtettek nélkül',
-    allLabel: 'Elrejtettek is',
+    onlyLabel: 'Csak töröltek',
+    excludeLabel: 'Töröltek nélkül',
+    allLabel: 'Töröltek is',
     readMode: () => {
       const s = useFilterStore.getState()
       if (s.showHidden) return 'only'
@@ -72,7 +72,7 @@ const TRI_STATE_MAP: Record<QuickFilterId, TriStateConfig> = {
   },
   excludeViewed: {
     onlyLabel: 'Csak megtekintettek',
-    excludeLabel: 'Megtekintettek rejtése',
+    excludeLabel: 'Megtekintettek nélkül',
     readMode: () => {
       const s = useFilterStore.getState()
       if (s.onlyViewed) return 'only'
@@ -109,8 +109,8 @@ const TRI_STATE_MAP: Record<QuickFilterId, TriStateConfig> = {
     },
   },
   excludeMultiSource: {
-    onlyLabel: 'Csak több forrásosak',
-    excludeLabel: 'Több forrásosak rejtése',
+    onlyLabel: 'Csak összevontak',
+    excludeLabel: 'Összevontak nélkül',
     readMode: () => {
       const s = useFilterStore.getState()
       if (s.onlyMultiSource) return 'only'
@@ -128,8 +128,8 @@ const TRI_STATE_MAP: Record<QuickFilterId, TriStateConfig> = {
     },
   },
   onlyMultiSource: {
-    onlyLabel: 'Csak több forrásosak',
-    excludeLabel: 'Több forrásosak rejtése',
+    onlyLabel: 'Csak összevontak',
+    excludeLabel: 'Összevontak nélkül',
     readMode: () => {
       const s = useFilterStore.getState()
       if (s.onlyMultiSource) return 'only'
@@ -148,7 +148,7 @@ const TRI_STATE_MAP: Record<QuickFilterId, TriStateConfig> = {
   },
   excludeNoImage: {
     onlyLabel: 'Csak kép nélküliek',
-    excludeLabel: 'Kép nélküliek rejtése',
+    excludeLabel: 'Kép nélküliek nélkül',
     readMode: () => {
       const s = useFilterStore.getState()
       if (s.onlyNoImage) return 'only'
