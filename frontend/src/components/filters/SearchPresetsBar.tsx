@@ -184,7 +184,7 @@ export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
       className="mb-3 flex flex-wrap items-center gap-2 border-b border-[var(--border-color)] pb-3 text-xs"
     >
       <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-        <Bookmark className="h-3.5 w-3.5 text-blue-400" />
+        <Bookmark className="h-3.5 w-3.5 text-blue-600" />
         <span>Keresési sablonok:</span>
       </div>
 
@@ -196,7 +196,7 @@ export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
       )}
 
       {isError && (
-        <span role="alert" className="text-rose-400 italic">
+        <span role="alert" className="text-rose-700 italic">
           Nem sikerült betölteni a keresési sablonokat.
         </span>
       )}
@@ -258,7 +258,7 @@ export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
           type="button"
           onClick={handleStartCreate}
           data-testid="save-preset-button"
-          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-[var(--border-color)] bg-transparent px-2.5 py-1 font-semibold text-blue-400 transition-colors hover:border-blue-400 hover:bg-blue-500/10 cursor-pointer"
+          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-[var(--border-color)] bg-transparent px-2.5 py-1 font-semibold text-blue-600 transition-colors hover:border-blue-400 hover:bg-blue-500/10 cursor-pointer"
         >
           <BookmarkPlus className="h-3.5 w-3.5" />
           <span>Mentés sablonként</span>

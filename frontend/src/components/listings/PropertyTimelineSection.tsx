@@ -209,7 +209,7 @@ export const PropertyTimelineSection: FC<PropertyTimelineSectionProps> = ({ item
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)]">
-          <History className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+          <History className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
           <span>Ártörténet & Észlelési Idővonal</span>
         </div>
         {unchangedCount > 0 && (

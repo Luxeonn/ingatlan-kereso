@@ -85,7 +85,7 @@ export const BelowMarketDealCard: FC<BelowMarketDealCardProps> = ({
             <span>-{discountPercent}% a városi átlaghoz képest</span>
           </span>
           {isListingNew(item) && (
-            <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-400">
+            <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-600">
               <Sparkles className="h-3 w-3" /> Új
             </span>
           )}
@@ -178,7 +178,7 @@ export const PriceDropDealCard: FC<PriceDropDealCardProps> = ({
 
       <div>
         <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[11px] font-bold text-blue-400 border border-blue-500/30 tabular-nums">
+          <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[11px] font-bold text-blue-600 border border-blue-500/30 tabular-nums">
             <Tag className="h-3 w-3" />
             <span>Árcsökkenés: {priceDelta.toLocaleString('hu-HU')} Ft</span>
           </span>
@@ -189,7 +189,7 @@ export const PriceDropDealCard: FC<PriceDropDealCardProps> = ({
           )}
         </div>
 
-        <h4 className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 group-hover:text-blue-400 transition-colors">
+        <h4 className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 group-hover:text-blue-600 transition-colors">
           {item.title}
         </h4>
         <p className="text-[11px] text-[var(--text-secondary)] mt-1">
@@ -222,7 +222,7 @@ export const PriceDropDealCard: FC<PriceDropDealCardProps> = ({
         <button
           type="button"
           onClick={onOpen}
-          className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+          className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-600 transition-colors cursor-pointer"
         >
           <span>Hirdetés megnyitása</span>
           <ExternalLink className="h-3.5 w-3.5" />

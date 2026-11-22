@@ -44,7 +44,7 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
           className={cn(
             baseTabClass,
             isListingsActive
-              ? 'border-[var(--border-hairline)] border-t-2 border-t-blue-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-blue-500 dark:text-blue-400 shadow-sm'
+              ? 'border-[var(--border-hairline)] border-t-2 border-t-blue-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-blue-500 dark:text-blue-600 shadow-sm'
               : inactiveTabClass,
           )}
         >
@@ -62,7 +62,7 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
           className={cn(
             baseTabClass,
             isArchiveActive
-              ? 'border-[var(--border-hairline)] border-t-2 border-t-purple-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-purple-600 dark:text-purple-400 shadow-sm'
+              ? 'border-[var(--border-hairline)] border-t-2 border-t-purple-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-purple-600 dark:text-purple-700 shadow-sm'
               : inactiveTabClass,
           )}
         >
@@ -80,7 +80,7 @@ export const WorkspaceHeaderNav: FC<WorkspaceHeaderNavProps> = ({
           className={cn(
             baseTabClass,
             isAnalyticsActive
-              ? 'border-[var(--border-hairline)] border-t-2 border-t-indigo-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-indigo-600 dark:text-indigo-400 shadow-sm'
+              ? 'border-[var(--border-hairline)] border-t-2 border-t-indigo-500 border-b-[var(--bg-surface)] bg-[var(--bg-surface)] text-indigo-600 dark:text-indigo-700 shadow-sm'
               : inactiveTabClass,
           )}
         >

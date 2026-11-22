@@ -34,11 +34,11 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
         className={cn(
           'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0',
           isOpen
-            ? 'border-blue-500/50 bg-blue-500/15 text-blue-400 shadow-sm'
+            ? 'border-blue-500/50 bg-blue-500/15 text-blue-600 shadow-sm'
             : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
         )}
       >
-        <SlidersHorizontal className="h-3.5 w-3.5 text-blue-400" />
+        <SlidersHorizontal className="h-3.5 w-3.5 text-blue-600" />
         <span>
           Szűrők ({pinnedQuickFilters.length}/{QUICK_FILTER_OPTIONS.length})
         </span>

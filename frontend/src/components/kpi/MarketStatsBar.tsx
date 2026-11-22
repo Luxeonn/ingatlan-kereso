@@ -37,7 +37,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
     >
       {/* 1. Total count */}
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
           <Building2 className="h-5 w-5" />
         </div>
         <div>
@@ -71,7 +71,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
 
       {/* 3. Bargain Count */}
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-700">
           <TrendingDown className="h-5 w-5" />
         </div>
         <div>
@@ -82,7 +82,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
 
       {/* 4. Median Price per m² */}
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3.5 shadow-md">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-700">
           <Ruler className="h-5 w-5" />
         </div>
         <div>

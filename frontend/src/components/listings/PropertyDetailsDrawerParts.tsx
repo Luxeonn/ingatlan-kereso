@@ -107,8 +107,8 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
           className={cn(
             'rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase',
             isActive
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-              : 'border-slate-500/30 bg-slate-500/10 text-slate-400',
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
+              : 'border-slate-500/30 bg-slate-500/10 text-slate-600',
           )}
         >
           {isActive ? 'Aktív' : 'Inaktív'}
@@ -128,7 +128,7 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
 
       <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
         <div className="text-right">
-          <div className="text-xs font-bold text-blue-400">
+          <div className="text-xs font-bold text-blue-600">
             {million !== null ? formatPriceMillion(million) : 'Ár a hirdetésben'}
           </div>
           {hasPrice && source.priceHuf !== undefined && source.priceHuf !== null && (
@@ -145,10 +145,10 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
             aria-label={`Megnyitás: ${portalName}`}
             title={`Megnyitás: ${portalName}`}
             data-testid="source-external-link"
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-400 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-600 active:scale-95 transition-all"
           >
             <span className="hidden xs:inline">Megnyitás</span>
-            <ExternalLink className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+            <ExternalLink className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
           </button>
         )}
 
@@ -217,7 +217,7 @@ const SplitSourceControl: FC<SplitSourceControlProps> = ({
       onClick={onRequestConfirm}
       aria-label={`Nem ugyanaz: ${portalName}`}
       title="Nem ugyanaz – forrás leválasztása"
-      className="flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300 transition-all disabled:opacity-50"
+      className="flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-700 transition-all disabled:opacity-50"
     >
       <Unlink className="h-3.5 w-3.5" aria-hidden="true" />
       <span className="hidden sm:inline">Nem ugyanaz</span>

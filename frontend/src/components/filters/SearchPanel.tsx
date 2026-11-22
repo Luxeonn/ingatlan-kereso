@@ -104,7 +104,7 @@ const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
       onClick={onExpand}
       className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-semibold text-[var(--text-primary)] hover:border-blue-500/40 transition-colors cursor-pointer"
     >
-      <MapPin className="h-3.5 w-3.5 text-blue-400" />
+      <MapPin className="h-3.5 w-3.5 text-blue-600" />
       <span>{citiesSummary}</span>
     </button>
     <button
@@ -112,7 +112,7 @@ const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
       onClick={onExpand}
       className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Home className="h-3.5 w-3.5 text-amber-400" />
+      <Home className="h-3.5 w-3.5 text-amber-700" />
       <span>{typeLabel}</span>
     </button>
     <button
@@ -120,7 +120,7 @@ const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
       onClick={onExpand}
       className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Coins className="h-3.5 w-3.5 text-emerald-400" />
+      <Coins className="h-3.5 w-3.5 text-emerald-700" />
       <span>
         {minPriceMillion} - {maxPriceMillion} M Ft
       </span>
@@ -130,7 +130,7 @@ const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
       onClick={onExpand}
       className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Ruler className="h-3.5 w-3.5 text-purple-400" />
+      <Ruler className="h-3.5 w-3.5 text-purple-700" />
       <span>
         {minArea} - {maxArea} m²
       </span>
@@ -140,7 +140,7 @@ const CollapsedFilterSummary: FC<CollapsedFilterSummaryProps> = ({
       onClick={onExpand}
       className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] px-3 py-1.5 font-medium hover:border-blue-500/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
     >
-      <Globe className="h-3.5 w-3.5 text-indigo-400" />
+      <Globe className="h-3.5 w-3.5 text-indigo-700" />
       <span>
         {portalsCount}/{DEFAULT_PORTALS.length} portál
       </span>
@@ -194,7 +194,7 @@ export const SearchPanel: FC<SearchPanelProps> = ({ onSearch, isLoading }) => {
       {/* Panel Header */}
       <div className="flex items-center justify-between border-b border-[var(--border-hairline)] pb-3">
         <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-blue-400" />
+          <SlidersHorizontal className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
             Keresési Paraméterek & Szűrők
           </h2>

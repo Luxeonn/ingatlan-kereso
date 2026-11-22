@@ -49,9 +49,9 @@ const PortalStatusCard: FC<PortalStatusCardProps> = ({ portal: p, onOpenImport }
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          {isSuccess && <CheckCircle className="h-5 w-5 text-emerald-400" />}
-          {isBot && <ShieldAlert className="h-5 w-5 text-amber-400" />}
-          {isError && <XCircle className="h-5 w-5 text-rose-400" />}
+          {isSuccess && <CheckCircle className="h-5 w-5 text-emerald-700" />}
+          {isBot && <ShieldAlert className="h-5 w-5 text-amber-700" />}
+          {isError && <XCircle className="h-5 w-5 text-rose-700" />}
           <div>
             <h4 className="text-sm font-bold text-[var(--text-primary)]">{p.portalName}</h4>
             <span className="text-[11px] font-mono text-[var(--text-secondary)]">
@@ -67,7 +67,7 @@ const PortalStatusCard: FC<PortalStatusCardProps> = ({ portal: p, onOpenImport }
             <span>{p.latencyMs} ms</span>
           </span>
           <span className="flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)]">
-            <Layers className="h-3.5 w-3.5 text-blue-400" />
+            <Layers className="h-3.5 w-3.5 text-blue-600" />
             <span>{p.foundCount} találat</span>
           </span>
           <span
@@ -137,7 +137,7 @@ const PortalStatusCard: FC<PortalStatusCardProps> = ({ portal: p, onOpenImport }
             onClick={() => openExternalUrl(p.fallbackUrl)}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-blue-500/40"
           >
-            <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+            <ExternalLink className="h-3.5 w-3.5 text-blue-600" />
             <span>Keresés megnyitása itt: {p.portalName}</span>
           </button>
         </div>
@@ -149,7 +149,7 @@ const PortalStatusCard: FC<PortalStatusCardProps> = ({ portal: p, onOpenImport }
             type="button"
             data-testid="diagnostics-import-ingatlancom-btn"
             onClick={onOpenImport}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/35 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-300 hover:bg-sky-500/25 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/35 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-500/25 transition-colors cursor-pointer"
           >
             <span>2., 3., ... oldal importálása böngészőből</span>
           </button>
@@ -185,7 +185,7 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-700">
               <Activity className="h-5 w-5" />
             </div>
             <div>
@@ -204,7 +204,7 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
               onClick={handleCopy}
               className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-700" /> : <Copy className="h-3.5 w-3.5" />}
               <span>{copied ? 'Másolva!' : 'Export'}</span>
             </button>
             <button
@@ -242,7 +242,7 @@ export const DiagnosticsModal: FC<DiagnosticsModalProps> = ({ portalStatuses = [
                     className="flex items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] p-3.5"
                   >
                     <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-blue-400" />
+                      <Activity className="h-4 w-4 text-blue-600" />
                       <span className="text-xs font-bold text-[var(--text-primary)]">{p.name}</span>
                       <span className="text-[11px] font-mono text-[var(--text-secondary)]">({p.id})</span>
                     </div>

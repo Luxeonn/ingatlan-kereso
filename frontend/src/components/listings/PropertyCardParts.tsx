@@ -176,8 +176,8 @@ const PropertyActionButtons: FC<PropertyCardBadgesProps> = ({
       className={cn(
         'flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer tabular-nums',
         isDrawerOpen
-          ? 'border-blue-500/40 bg-[var(--accent-soft)] text-blue-400 shadow-sm'
-          : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-blue-400 hover:border-blue-500/30',
+          ? 'border-blue-500/40 bg-[var(--accent-soft)] text-blue-600 shadow-sm'
+          : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-blue-600 hover:border-blue-500/30',
       )}
     >
       <Info className="h-3.5 w-3.5" aria-hidden="true" />
@@ -194,11 +194,11 @@ const PropertyActionButtons: FC<PropertyCardBadgesProps> = ({
       className={cn(
         'flex items-center justify-center rounded-lg border p-1.5 text-xs transition-all cursor-pointer',
         isStarred
-          ? 'border-amber-500/40 bg-[var(--status-warn-bg)] text-amber-400 shadow-sm'
-          : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-400',
+          ? 'border-amber-500/40 bg-[var(--status-warn-bg)] text-amber-700 shadow-sm'
+          : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-700',
       )}
     >
-      <Star className={cn('h-3.5 w-3.5', isStarred ? 'fill-amber-400 text-amber-400' : '')} />
+      <Star className={cn('h-3.5 w-3.5', isStarred ? 'fill-amber-500 text-amber-700' : '')} />
     </button>
 
     {item.hidden && onRestore && (
@@ -211,7 +211,7 @@ const PropertyActionButtons: FC<PropertyCardBadgesProps> = ({
         }}
         aria-label="Hirdetés visszaállítása"
         title="Hirdetés visszaállítása"
-        className="flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2 py-1 text-xs font-semibold text-purple-300 hover:bg-purple-500/25 transition-all cursor-pointer"
+        className="flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-500/25 transition-all cursor-pointer"
       >
         <RotateCcw className="h-3.5 w-3.5" />
         <span className="text-[11px]">Visszaállítás</span>
@@ -228,7 +228,7 @@ const PropertyActionButtons: FC<PropertyCardBadgesProps> = ({
         }}
         aria-label="Hirdetés elrejtése"
         title="Hirdetés elrejtése"
-        className="flex items-center justify-center rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-xs text-[var(--text-secondary)] hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer"
+        className="flex items-center justify-center rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-xs text-[var(--text-secondary)] hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-700 transition-all cursor-pointer"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -306,14 +306,14 @@ export const PropertyParametersChips: FC<PropertyParametersChipsProps> = ({
   <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[var(--text-secondary)] tabular-nums">
     {floorArea !== null && floorArea !== undefined && floorArea > 0 && (
       <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-hairline)]">
-        <Ruler className="h-3.5 w-3.5 text-purple-400" />
+        <Ruler className="h-3.5 w-3.5 text-purple-700" />
         <span>{formatArea(floorArea)}</span>
       </span>
     )}
 
     {rooms !== null && rooms !== undefined && rooms > 0 && (
       <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-hairline)]">
-        <BedDouble className="h-3.5 w-3.5 text-teal-400" />
+        <BedDouble className="h-3.5 w-3.5 text-teal-700" />
         <span>{formatRooms(rooms)}</span>
       </span>
     )}
@@ -348,7 +348,7 @@ export const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
     )}
   >
     <div className={cn(viewMode === 'list' ? 'sm:text-right' : '')}>
-      <div className="text-base font-extrabold text-blue-400">
+      <div className="text-base font-extrabold text-blue-600">
         {priceMillion !== null && priceMillion !== undefined ? formatPriceMillion(priceMillion) : rawPrice}
       </div>
     </div>

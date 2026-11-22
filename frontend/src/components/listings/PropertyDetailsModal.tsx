@@ -46,7 +46,7 @@ const PropertyModalHeaderSummary: FC<PropertyModalHeaderSummaryProps> = ({
   return (
     <div className="min-w-0 flex-1 space-y-1.5 tabular-nums">
       <div className="flex items-center gap-2">
-        <span className="rounded-md border border-blue-500/30 bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-400">
+        <span className="rounded-md border border-blue-500/30 bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-600">
           Side-Peek Inspector
         </span>
       </div>
@@ -58,14 +58,14 @@ const PropertyModalHeaderSummary: FC<PropertyModalHeaderSummaryProps> = ({
       </h3>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]">
         <span className="flex items-center gap-1">
-          <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0" aria-hidden="true" />
+          <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" aria-hidden="true" />
           <span className="font-semibold text-[var(--text-primary)]">{item.city}</span>
           {item.location && item.location !== item.city && (
             <span className="truncate">({item.location})</span>
           )}
         </span>
 
-        <span className="font-extrabold text-blue-400">{priceLabel}</span>
+        <span className="font-extrabold text-blue-600">{priceLabel}</span>
 
         {sqmPrice !== null && sqmPrice !== undefined && sqmPrice > 0 && (
           <span className="rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]">
@@ -75,14 +75,14 @@ const PropertyModalHeaderSummary: FC<PropertyModalHeaderSummaryProps> = ({
 
         {Boolean(floorArea && floorArea > 0) && (
           <span className="flex items-center gap-1">
-            <Ruler className="h-3.5 w-3.5 text-purple-400 shrink-0" aria-hidden="true" />
+            <Ruler className="h-3.5 w-3.5 text-purple-700 shrink-0" aria-hidden="true" />
             <span>{formatArea(floorArea)}</span>
           </span>
         )}
 
         {Boolean(rooms && rooms > 0) && (
           <span className="flex items-center gap-1">
-            <BedDouble className="h-3.5 w-3.5 text-teal-400 shrink-0" aria-hidden="true" />
+            <BedDouble className="h-3.5 w-3.5 text-teal-700 shrink-0" aria-hidden="true" />
             <span>{formatRooms(rooms)}</span>
           </span>
         )}
@@ -139,9 +139,9 @@ export const PropertyDetailsModal: FC<PropertyDetailsModalProps> = ({
                   openExternalUrl(item.url)
                   onMarkViewed?.(item.url)
                 }}
-                className="flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:text-blue-400 transition-colors cursor-pointer"
+                className="flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:text-blue-600 transition-colors cursor-pointer"
               >
-                <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+                <ExternalLink className="h-3.5 w-3.5 text-blue-600" />
                 <span className="hidden sm:inline">Megnyitás</span>
               </button>
             )}

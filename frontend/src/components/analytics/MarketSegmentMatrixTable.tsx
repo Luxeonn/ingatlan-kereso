@@ -22,7 +22,7 @@ export const MarketSegmentMatrixTable: FC<MarketSegmentMatrixTableProps> = ({
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-hairline)] px-4 py-3">
         <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-indigo-400" />
+          <Layers className="h-4 w-4 text-indigo-700" />
           <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
             Város × Ingatlantípus Szegmens Mátrix (Szerver-hitelesített bázis)
           </h3>
@@ -73,7 +73,7 @@ export const MarketSegmentMatrixTable: FC<MarketSegmentMatrixTableProps> = ({
                     'N/A'
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-right text-blue-400 font-semibold">
+                <td className="px-4 py-2.5 text-right text-blue-600 font-semibold">
                   {seg.averagePriceMillion ? formatPriceMillion(seg.averagePriceMillion) : 'N/A'}
                 </td>
                 <td className="px-4 py-2.5 text-right text-[var(--text-secondary)]">
@@ -99,7 +99,7 @@ export const MarketSegmentMatrixTable: FC<MarketSegmentMatrixTableProps> = ({
                       <button
                         type="button"
                         onClick={() => onSelectSegment(seg.city!, seg.propertyType)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)] hover:border-blue-500/40 hover:text-blue-400 cursor-pointer"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)] hover:border-blue-500/40 hover:text-blue-600 cursor-pointer"
                       >
                         <Filter className="h-3 w-3" />
                         <span>Szűrés</span>

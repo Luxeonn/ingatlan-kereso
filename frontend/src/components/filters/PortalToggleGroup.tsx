@@ -37,7 +37,7 @@ export const PortalToggleGroup: FC<PortalToggleGroupProps> = ({
         <button
           type="button"
           onClick={handleToggleAll}
-          className="flex items-center gap-1 text-[11px] font-medium text-blue-400 hover:text-blue-300"
+          className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-600"
         >
           {isAllSelected ? (
             <>
@@ -70,7 +70,7 @@ export const PortalToggleGroup: FC<PortalToggleGroupProps> = ({
                   className={cn(
                     'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all duration-150',
                     isSelected
-                      ? 'border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm'
+                      ? 'border border-blue-500/40 bg-blue-500/15 text-blue-600 shadow-sm'
                       : 'border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] opacity-60 hover:opacity-100'
                   )}
                 >

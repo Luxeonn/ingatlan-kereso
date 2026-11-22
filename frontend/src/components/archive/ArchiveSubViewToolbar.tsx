@@ -66,7 +66,7 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
       </div>
 
       <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
-        <Database className="h-3.5 w-3.5 text-indigo-400" />
+        <Database className="h-3.5 w-3.5 text-indigo-700" />
         <span>Adatbázis-nézet: közvetlenül a mentett helyi tárolóból</span>
       </span>
     </div>

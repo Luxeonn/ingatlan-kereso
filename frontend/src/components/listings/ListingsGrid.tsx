@@ -51,7 +51,7 @@ function renderEmptyState(
   if (mode === 'listings' && !hasSearched) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/50 p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 mb-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 mb-4">
           <Search className="h-8 w-8" />
         </div>
         <h3 className="text-base font-bold text-[var(--text-primary)]">Készen állsz a keresésre?</h3>
@@ -71,7 +71,7 @@ function renderEmptyState(
   if (mode === 'favorites' && totalRawCount === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 mb-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 mb-4">
           <Star className="h-8 w-8" />
         </div>
         <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -86,7 +86,7 @@ function renderEmptyState(
   if (mode === 'archive' && totalRawCount === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 mb-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-700 mb-4">
           <Archive className="h-8 w-8" />
         </div>
         <h3 className="text-base font-bold text-[var(--text-primary)]">Az archívum jelenleg üres</h3>
@@ -343,7 +343,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 mb-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 mb-4">
             <Inbox className="h-8 w-8" />
           </div>
           <h3 className="text-base font-bold text-[var(--text-primary)]">

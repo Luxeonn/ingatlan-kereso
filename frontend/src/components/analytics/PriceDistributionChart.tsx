@@ -67,7 +67,7 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
                   : 'Négyzetméterár Eloszlás (Ft/m²)'
                 : 'Kínálati Ár Eloszlás (M Ft)'}
             </h3>
-            <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
+            <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
               Hisztogram
             </span>
           </div>
@@ -128,7 +128,7 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
           </span>
         </div>
         {activeBinIndex !== null && activeBins[activeBinIndex] && (
-          <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 border border-emerald-500/30 text-emerald-400 font-semibold">
+          <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 border border-emerald-500/30 text-emerald-700 font-semibold">
             <Info className="h-3.5 w-3.5" />
             <span>Kijelölve: {activeBins[activeBinIndex].rangeLabel} ({activeBins[activeBinIndex].count} db)</span>
           </div>
@@ -178,10 +178,10 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
                           </p>
                           <p className="flex justify-between gap-4">
                             <span>Arány:</span>
-                            <span className="font-bold text-blue-400">{data.percentage}%</span>
+                            <span className="font-bold text-blue-600">{data.percentage}%</span>
                           </p>
                           {data.newCount > 0 && (
-                            <p className="flex justify-between gap-4 text-emerald-400">
+                            <p className="flex justify-between gap-4 text-emerald-700">
                               <span>Új találat:</span>
                               <span className="font-bold">{data.newCount} db</span>
                             </p>

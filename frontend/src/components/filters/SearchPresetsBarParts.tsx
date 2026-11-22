@@ -29,7 +29,7 @@ export const PresetFeedbackBanners: FC<PresetFeedbackBannersProps> = ({
         <div
           role="status"
           data-testid="preset-success-banner"
-          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 animate-in fade-in duration-150"
+          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 animate-in fade-in duration-150"
         >
           <Check className="h-3 w-3 shrink-0" />
           <span>{successMessage}</span>
@@ -37,7 +37,7 @@ export const PresetFeedbackBanners: FC<PresetFeedbackBannersProps> = ({
             type="button"
             onClick={onClearSuccess}
             title="Értesítés bezárása"
-            className="ml-1 text-emerald-400 hover:text-emerald-200 cursor-pointer"
+            className="ml-1 text-emerald-700 hover:text-emerald-700 cursor-pointer"
           >
             <X className="h-3 w-3" />
           </button>
@@ -48,7 +48,7 @@ export const PresetFeedbackBanners: FC<PresetFeedbackBannersProps> = ({
         <div
           role="alert"
           data-testid="preset-error-banner"
-          className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-xs font-medium text-rose-400 animate-in fade-in duration-150"
+          className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-xs font-medium text-rose-700 animate-in fade-in duration-150"
         >
           <AlertCircle className="h-3 w-3 shrink-0" />
           <span>{errorMessage}</span>
@@ -56,7 +56,7 @@ export const PresetFeedbackBanners: FC<PresetFeedbackBannersProps> = ({
             type="button"
             onClick={onClearError}
             title="Hibaüzenet bezárása"
-            className="ml-1 text-rose-400 hover:text-rose-200 cursor-pointer"
+            className="ml-1 text-rose-700 hover:text-rose-700 cursor-pointer"
           >
             <X className="h-3 w-3" />
           </button>
@@ -105,7 +105,7 @@ export const PresetEditForm: FC<PresetEditFormProps> = ({
       type="submit"
       title="Mentés"
       disabled={isPending}
-      className="text-emerald-400 hover:text-emerald-300 disabled:opacity-40 cursor-pointer"
+      className="text-emerald-700 hover:text-emerald-700 disabled:opacity-40 cursor-pointer"
     >
       <Check className="h-3.5 w-3.5" />
     </button>
@@ -148,7 +148,7 @@ export const PresetChip: FC<PresetChipProps> = ({
     }}
     className={`group inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 font-medium transition-all ${
       isActive
-        ? 'border-blue-500 bg-blue-500/15 text-blue-400 shadow-sm'
+        ? 'border-blue-500 bg-blue-500/15 text-blue-600 shadow-sm'
         : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-blue-400/50 hover:text-[var(--text-primary)]'
     }`}
   >
@@ -158,7 +158,7 @@ export const PresetChip: FC<PresetChipProps> = ({
         type="button"
         onClick={(e) => onStartEdit(e, preset)}
         title="Sablon átnevezése"
-        className="hover:text-blue-400 cursor-pointer"
+        className="hover:text-blue-600 cursor-pointer"
       >
         <Pencil className="h-3 w-3" />
       </button>
@@ -166,7 +166,7 @@ export const PresetChip: FC<PresetChipProps> = ({
         type="button"
         onClick={(e) => onDelete(e, preset.id)}
         title="Sablon törlése"
-        className="hover:text-rose-400 cursor-pointer"
+        className="hover:text-rose-700 cursor-pointer"
       >
         <Trash2 className="h-3 w-3" />
       </button>
@@ -212,7 +212,7 @@ export const PresetCreateForm: FC<PresetCreateFormProps> = ({
       type="submit"
       disabled={isPending}
       title="Mentés sablonként"
-      className="flex items-center gap-0.5 rounded px-1.5 py-0.5 font-bold text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 cursor-pointer"
+      className="flex items-center gap-0.5 rounded px-1.5 py-0.5 font-bold text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-40 cursor-pointer"
     >
       <Check className="h-3.5 w-3.5" />
       <span>Mentés</span>

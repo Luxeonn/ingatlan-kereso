@@ -71,7 +71,7 @@ const DrawerCategoryHeader: FC<{ item: IngatlanItem }> = ({ item }) => {
     <div className="flex flex-col gap-1.5 pb-3 border-b border-[var(--border-hairline)]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-          <Tag className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+          <Tag className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
           <span>Besorolás és Kategória</span>
         </div>
         {hasMarketPosition && (
@@ -124,7 +124,7 @@ const DrawerQualitySection: FC<{ item: IngatlanItem; isMultiSource: boolean }> =
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-          <qualityConfig.icon className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+          <qualityConfig.icon className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
           <span>Adatminőségi Értékelés</span>
         </div>
         <span
@@ -251,7 +251,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
         <div data-testid="sources-list-section" className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-secondary)]">
             <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
-              <Layers className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+              <Layers className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
               <span>Elérhető források ({sources.length})</span>
             </div>
             <span className="text-[11px] text-[var(--text-secondary)]">

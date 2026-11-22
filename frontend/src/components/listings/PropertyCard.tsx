@@ -84,8 +84,8 @@ const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
     <h3
       onClick={onOpen}
       className={cn(
-        'cursor-pointer text-sm font-bold text-[var(--text-primary)] line-clamp-2 hover:text-blue-400 transition-colors',
-        isNew && !viewed ? 'pulse-title text-emerald-300' : '',
+        'cursor-pointer text-sm font-bold text-[var(--text-primary)] line-clamp-2 hover:text-blue-600 transition-colors',
+        isNew && !viewed ? 'pulse-title text-emerald-700' : '',
       )}
       title={title}
     >
@@ -93,7 +93,7 @@ const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
     </h3>
 
     <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
-      <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+      <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
       <span className="font-semibold text-[var(--text-primary)]">{city}</span>
       {location && location !== city && (
         <span className="truncate">({location})</span>

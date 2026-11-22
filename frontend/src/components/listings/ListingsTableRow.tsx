@@ -72,7 +72,7 @@ const TableTitleLocationCell: FC<{ item: IngatlanItem; onOpenExternal: () => voi
         <button
           type="button"
           onClick={onOpenExternal}
-          className="truncate font-bold text-[var(--text-primary)] hover:text-blue-400 text-left cursor-pointer"
+          className="truncate font-bold text-[var(--text-primary)] hover:text-blue-600 text-left cursor-pointer"
           title={item.title}
         >
           {item.title || 'Ingatlan hirdetés'}
@@ -115,18 +115,18 @@ const TableRowActionsCell: FC<TableRowActionsCellProps> = ({
         className={cn(
           'rounded-lg border p-1.5 transition-colors cursor-pointer',
           isStarred
-            ? 'border-amber-500/40 bg-[var(--status-warn-bg)] text-amber-400'
-            : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-400',
+            ? 'border-amber-500/40 bg-[var(--status-warn-bg)] text-amber-700'
+            : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-700',
         )}
       >
-        <Star className={cn('h-3.5 w-3.5', isStarred && 'fill-amber-400 text-amber-400')} />
+        <Star className={cn('h-3.5 w-3.5', isStarred && 'fill-amber-500 text-amber-700')} />
       </button>
       {item.hidden && onRestore && (
         <button
           type="button"
           onClick={onRestore}
           aria-label="Hirdetés visszaállítása"
-          className="rounded-lg border border-purple-500/40 bg-purple-500/15 p-1.5 text-purple-300 hover:bg-purple-500/25 cursor-pointer"
+          className="rounded-lg border border-purple-500/40 bg-purple-500/15 p-1.5 text-purple-700 hover:bg-purple-500/25 cursor-pointer"
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
@@ -136,7 +136,7 @@ const TableRowActionsCell: FC<TableRowActionsCellProps> = ({
           type="button"
           onClick={onHide}
           aria-label="Hirdetés elrejtése"
-          className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-[var(--text-secondary)] hover:text-rose-400 cursor-pointer"
+          className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-[var(--text-secondary)] hover:text-rose-700 cursor-pointer"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -145,7 +145,7 @@ const TableRowActionsCell: FC<TableRowActionsCellProps> = ({
         type="button"
         onClick={onOpenExternal}
         aria-label="Megnyitás új lapon"
-        className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-[var(--text-secondary)] hover:text-blue-400 cursor-pointer"
+        className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-[var(--text-secondary)] hover:text-blue-600 cursor-pointer"
       >
         <ExternalLink className="h-3.5 w-3.5" />
       </button>
@@ -162,7 +162,7 @@ const TableNumericMetricsCells: FC<{ item: IngatlanItem }> = ({ item }) => {
 
   return (
     <>
-      <td className="px-3 py-2.5 text-right whitespace-nowrap font-extrabold text-blue-400">
+      <td className="px-3 py-2.5 text-right whitespace-nowrap font-extrabold text-blue-600">
         <div>{formatRowPriceLabel(item)}</div>
         {spread && (
           <div className="text-[10px] font-semibold text-[var(--status-info-fg)]">
@@ -275,7 +275,7 @@ export const ListingsTableRow: FC<ListingsTableRowProps> = ({
           type="button"
           data-testid="table-row-inspect-button"
           onClick={onInspect}
-          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] hover:border-blue-500/40 hover:text-blue-400 cursor-pointer"
+          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] hover:border-blue-500/40 hover:text-blue-600 cursor-pointer"
         >
           <Info className="h-3 w-3" />
           <span>{sourcesCount > 1 ? `${sourcesCount} forrás` : 'Részletek'}</span>

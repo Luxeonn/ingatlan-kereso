@@ -125,12 +125,12 @@ export const CitySelector: FC<CitySelectorProps> = ({
         onClick={() => setIsOpen(true)}
         className="relative flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 transition-colors focus-within:border-blue-500"
       >
-        <MapPin className="ml-1 h-4 w-4 text-blue-400 shrink-0" />
+        <MapPin className="ml-1 h-4 w-4 text-blue-600 shrink-0" />
 
         {selectedCities.map((city) => (
           <span
             key={city}
-            className="flex items-center gap-1 rounded-lg bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-400 border border-blue-500/30"
+            className="flex items-center gap-1 rounded-lg bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-600 border border-blue-500/30"
           >
             {city}
             <button
@@ -139,7 +139,7 @@ export const CitySelector: FC<CitySelectorProps> = ({
                 e.stopPropagation()
                 onRemoveCity(city)
               }}
-              className="hover:text-red-400 transition-colors cursor-pointer"
+              className="hover:text-red-700 transition-colors cursor-pointer"
             >
               <X className="h-3 w-3" />
             </button>

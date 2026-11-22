@@ -165,14 +165,14 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             isActive={onlyBargain}
             onClick={() => setOnlyBargain(!onlyBargain)}
             title="Kizárólag alkalmi vételek megjelenítése (mediánnál legalább 20%-kal olcsóbb ingatlanok)"
-            activeClassName="border border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30"
-            inactiveClassName="border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30"
-            icon={<TrendingDown className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
+            activeClassName="border border-emerald-500/50 bg-emerald-500/15 text-emerald-700 shadow-sm ring-1 ring-emerald-500/30"
+            inactiveClassName="border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-emerald-700 hover:border-emerald-500/30"
+            icon={<TrendingDown className="h-3.5 w-3.5 text-emerald-700 shrink-0" />}
             label="Alkalmi vétel"
             count={bargainCount}
             countTestId="bargain-filter-count"
-            activeBadgeClass="bg-emerald-500/30 text-emerald-200"
-            inactiveBadgeClass="bg-[var(--bg-card)] text-emerald-400"
+            activeBadgeClass="bg-emerald-500/30 text-emerald-700"
+            inactiveBadgeClass="bg-[var(--bg-card)] text-emerald-700"
           />
         )}
 
@@ -180,12 +180,12 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
           <QuickFilterToggleButton
             isActive={onlyNew}
             onClick={() => setOnlyNew(!onlyNew)}
-            activeClassName="border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm"
-            icon={<Sparkles className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
+            activeClassName="border border-emerald-500/40 bg-emerald-500/15 text-emerald-700 shadow-sm"
+            icon={<Sparkles className="h-3.5 w-3.5 text-emerald-700 shrink-0" />}
             label="Csak új találatok"
             count={onlyNewCount}
             countTestId="only-new-filter-count"
-            activeBadgeClass="bg-emerald-500/20 text-emerald-300"
+            activeBadgeClass="bg-emerald-500/20 text-emerald-700"
           />
         )}
 
@@ -195,14 +195,14 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             isActive={showHidden}
             onClick={() => setShowHidden(!showHidden)}
             title="Elrejtett / kukázott hirdetések megtekintése"
-            activeClassName="border border-purple-500/50 bg-purple-500/20 text-purple-300 shadow-sm ring-1 ring-purple-500/30"
-            inactiveClassName="border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-purple-400 hover:border-purple-500/30"
-            icon={<Trash2 className="h-3.5 w-3.5 text-purple-400 shrink-0" />}
+            activeClassName="border border-purple-500/50 bg-purple-500/20 text-purple-700 shadow-sm ring-1 ring-purple-500/30"
+            inactiveClassName="border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-purple-700 hover:border-purple-500/30"
+            icon={<Trash2 className="h-3.5 w-3.5 text-purple-700 shrink-0" />}
             label="Elrejtettek"
             count={hiddenCount}
             countTestId="hidden-filter-count"
-            activeBadgeClass="bg-purple-500/30 text-purple-200"
-            inactiveBadgeClass="bg-[var(--bg-card)] text-purple-400"
+            activeBadgeClass="bg-purple-500/30 text-purple-700"
+            inactiveBadgeClass="bg-[var(--bg-card)] text-purple-700"
           />
         )}
 
@@ -210,12 +210,12 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
           <QuickFilterToggleButton
             isActive={excludeViewed}
             onClick={() => setExcludeViewed(!excludeViewed)}
-            activeClassName="border border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-sm"
-            icon={<EyeOff className="h-3.5 w-3.5 text-blue-400 shrink-0" />}
+            activeClassName="border border-blue-500/40 bg-blue-500/15 text-blue-600 shadow-sm"
+            icon={<EyeOff className="h-3.5 w-3.5 text-blue-600 shrink-0" />}
             label="Megtekintettek rejtése"
             count={excludeViewedCount}
             countTestId="exclude-viewed-filter-count"
-            activeBadgeClass="bg-blue-500/20 text-blue-300"
+            activeBadgeClass="bg-blue-500/20 text-blue-600"
           />
         )}
 
@@ -224,12 +224,12 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             isActive={onlyNewConstruction}
             ariaLabel="Csak új építésű ingatlanok"
             onClick={() => setOnlyNewConstruction(!onlyNewConstruction)}
-            activeClassName="border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-sm"
-            icon={<Building2 className="h-3.5 w-3.5 text-cyan-400 shrink-0" />}
+            activeClassName="border border-cyan-500/40 bg-cyan-500/15 text-cyan-700 shadow-sm"
+            icon={<Building2 className="h-3.5 w-3.5 text-cyan-700 shrink-0" />}
             label="Csak új építésű"
             count={onlyNewConstructionCount}
             countTestId="only-new-construction-filter-count"
-            activeBadgeClass="bg-cyan-500/20 text-cyan-300"
+            activeBadgeClass="bg-cyan-500/20 text-cyan-700"
           />
         )}
 
@@ -239,12 +239,12 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             isActive={excludeMultiSource}
             onClick={() => setExcludeMultiSource(!excludeMultiSource)}
             title="Több közvetítő által hirdetett, összekapcsolt ingatlanok elrejtése"
-            activeClassName="border border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm"
-            icon={<Layers className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
+            activeClassName="border border-amber-500/40 bg-amber-500/15 text-amber-700 shadow-sm"
+            icon={<Layers className="h-3.5 w-3.5 text-amber-700 shrink-0" />}
             label="Több forrásosak rejtése"
             count={excludeMultiSourceCount}
             countTestId="exclude-multi-source-filter-count"
-            activeBadgeClass="bg-amber-500/20 text-amber-300"
+            activeBadgeClass="bg-amber-500/20 text-amber-700"
           />
         )}
 
@@ -254,13 +254,13 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             isActive={onlyMultiSource}
             onClick={() => setOnlyMultiSource(!onlyMultiSource)}
             title="Kizárólag több portálon / forrásban szereplő, összevont ingatlanok megjelenítése"
-            activeClassName="border border-indigo-500/40 bg-indigo-500/15 text-indigo-400 shadow-sm"
-            inactiveClassName="border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-indigo-400 hover:border-indigo-500/30"
-            icon={<Layers className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
+            activeClassName="border border-indigo-500/40 bg-indigo-500/15 text-indigo-700 shadow-sm"
+            inactiveClassName="border border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-indigo-700 hover:border-indigo-500/30"
+            icon={<Layers className="h-3.5 w-3.5 text-indigo-700 shrink-0" />}
             label="Csak több forrásosak"
             count={onlyMultiSourceCount}
             countTestId="only-multi-source-filter-count"
-            activeBadgeClass="bg-indigo-500/20 text-indigo-300"
+            activeBadgeClass="bg-indigo-500/20 text-indigo-700"
           />
         )}
 
@@ -270,12 +270,12 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             isActive={excludeNoImage}
             onClick={() => setExcludeNoImage(!excludeNoImage)}
             title="Kép nélküli vagy placeholder képpel rendelkező hirdetések elrejtése"
-            activeClassName="border border-rose-500/40 bg-rose-500/15 text-rose-400 shadow-sm"
-            icon={<ImageOff className="h-3.5 w-3.5 text-rose-400 shrink-0" />}
+            activeClassName="border border-rose-500/40 bg-rose-500/15 text-rose-700 shadow-sm"
+            icon={<ImageOff className="h-3.5 w-3.5 text-rose-700 shrink-0" />}
             label="Kép nélküliek rejtése"
             count={excludeNoImageCount}
             countTestId="exclude-no-image-filter-count"
-            activeBadgeClass="bg-rose-500/20 text-rose-300"
+            activeBadgeClass="bg-rose-500/20 text-rose-700"
           />
         )}
       </div>
