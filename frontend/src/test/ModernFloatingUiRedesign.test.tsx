@@ -123,6 +123,8 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       expect(screen.getByText('Elemző táblázat családi ház')).toBeTruthy()
       expect(screen.getByText('84.5 M Ft')).toBeTruthy()
       expect(screen.getByText('-22%')).toBeTruthy()
+      expect(screen.queryByTestId('quality-score-button')).toBeNull()
+      expect(screen.queryByText('Minőség')).toBeNull()
 
       // Toggle selection checkbox
       const checkbox = screen.getByTestId('table-row-select-checkbox')
@@ -211,7 +213,7 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       expect(useFilterStore.getState().criteria.minRooms).toBe(3)
     })
 
-    it('renders PropertyCard with overflow-visible and top-right QualityScoreShield popover placement', () => {
+    it('renders PropertyCard with overflow-visible and suppresses removed QualityScoreShield (#501)', () => {
       const item = createMockIngatlanItem({
         id: 'qual-1',
         url: 'https://example.com/qual-1',
@@ -222,12 +224,8 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       render(<PropertyCard item={item} onMarkViewed={vi.fn()} />)
       const card = screen.getByTestId('property-card')
       expect(card.className).toContain('overflow-visible')
-
-      const qualityBtn = screen.getByTestId('quality-score-button')
-      fireEvent.click(qualityBtn)
-      const popover = screen.getByTestId('quality-score-popover')
-      expect(popover.className).toContain('bottom-full')
-      expect(popover.className).toContain('right-0')
+      expect(screen.queryByTestId('quality-score-button')).toBeNull()
+      expect(screen.queryByTestId('quality-score-pill')).toBeNull()
     })
 
     it('sorts BargainHunterTable deals by percentage descending and shows thumbnail preview on hover', () => {

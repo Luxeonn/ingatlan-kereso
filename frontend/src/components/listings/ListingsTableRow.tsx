@@ -17,7 +17,6 @@ import {
   formatPricePerSqm,
   formatArea,
 } from '../../utils/formatters'
-import { QualityScoreShield } from './QualityScoreShield'
 import { cn } from '../../utils/cn'
 
 function getSourcesCount(item: IngatlanItem): number {
@@ -158,7 +157,6 @@ const TableNumericMetricsCells: FC<{ item: IngatlanItem }> = ({ item }) => {
   const spread = getCrossPortalSpread(item)
   const medianConfig = getMedianPillConfig(item)
   const area = item.detailsInfo?.areaSquareMeters
-  const hasQuality = item.qualityScore !== null && item.qualityScore !== undefined
 
   return (
     <>
@@ -187,9 +185,6 @@ const TableNumericMetricsCells: FC<{ item: IngatlanItem }> = ({ item }) => {
         ) : (
           <span className="text-[var(--text-secondary)]">—</span>
         )}
-      </td>
-      <td className="px-3 py-2.5 text-center whitespace-nowrap">
-        {hasQuality ? <QualityScoreShield item={item} /> : <span className="text-[var(--text-secondary)]">—</span>}
       </td>
     </>
   )

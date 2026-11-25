@@ -293,9 +293,9 @@ describe('MultiSourceDrawer component (#260, #261)', () => {
     expect(screen.getByText('Lakás')).toBeTruthy()
     expect(screen.getByText('Tégla építésű, 2. emelet')).toBeTruthy()
 
-    // Data quality section is present
-    expect(screen.getByTestId('drawer-quality-section')).toBeTruthy()
-    expect(screen.getByText('95/100 pont')).toBeTruthy()
+    // Data quality section is removed (#501)
+    expect(screen.queryByTestId('drawer-quality-section')).toBeNull()
+    expect(screen.queryByText('95/100 pont')).toBeNull()
 
     // 1. m² is NOT rendered in drawer (handled by card chip)
     expect(screen.queryByText('65 m²')).toBeNull()

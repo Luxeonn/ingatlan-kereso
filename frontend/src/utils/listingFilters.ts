@@ -142,7 +142,6 @@ export interface ItemFilterOptions {
   onlyMultiSource?: boolean
   excludeNoImage?: boolean
   onlyNoImage?: boolean
-  minQualityScore?: number
   selectedPortalFilter?: string
   quickSearchQuery?: string
 }
@@ -209,15 +208,6 @@ export function applyItemFilters(rawItems: IngatlanItem[], options: ItemFilterOp
   }
   let items = rawItems.filter((item) => matchesItemFlags(item, options))
 
-  const minQuality = options.minQualityScore
-  if (minQuality !== null && minQuality !== undefined && minQuality > 0) {
-    items = items.filter(
-      (item) =>
-        item.qualityScore !== null &&
-        item.qualityScore !== undefined &&
-        item.qualityScore >= minQuality,
-    )
-  }
   const selectedPortal = options.selectedPortalFilter
   if (selectedPortal && selectedPortal !== 'all') {
     items = items.filter((item) => getPrimaryPortalKey(item) === selectedPortal)

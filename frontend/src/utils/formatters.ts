@@ -1,6 +1,6 @@
 import {
   Building2, Home, Trees, Warehouse, Factory, HelpCircle,
-  ShieldCheck, ShieldAlert, ShieldX, type LucideIcon,
+  type LucideIcon,
 } from 'lucide-react'
 import type { CanonicalPropertyType, IngatlanItem } from '../types/property'
 import { PORTAL_IDS, type PortalId } from '../types/portal'
@@ -103,72 +103,6 @@ export function normalizePropertyType(rawType?: string | null): CanonicalPropert
 
 export function getPropertyTypeConfig(rawType?: string | null): PropertyTypeConfig {
   return PROPERTY_TYPE_CONFIGS[normalizePropertyType(rawType)]
-}
-
-export type QualityTierKey = 'EXCELLENT' | 'ACCEPTABLE' | 'SUSPICIOUS'
-
-export interface QualityConfig {
-  key: QualityTierKey
-  ratingLabel: string
-  icon: LucideIcon
-  buttonClasses: string
-  badgeClass: string
-  textClass: string
-  pillClass: string
-  popoverBorderClass: string
-  headerTextClass: string
-  barClass: string
-}
-
-export function clampQualityScore(score?: number | null): number | null {
-  if (score === null || score === undefined || isNaN(score)) return null
-  return Math.max(0, Math.min(100, Math.round(score)))
-}
-
-export function getQualityConfig(score: number): QualityConfig {
-  if (score >= 85) {
-    return {
-      key: 'EXCELLENT',
-      ratingLabel: 'Kiváló adatminőség',
-      icon: ShieldCheck,
-      buttonClasses:
-        'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-emerald-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-emerald-400/50',
-      badgeClass: 'bg-[var(--status-bargain-bg)] border-emerald-500/25 text-[var(--status-bargain-fg)]',
-      textClass: 'text-[var(--status-bargain-fg)]',
-      pillClass: 'bg-[var(--status-bargain-bg)] text-[var(--status-bargain-fg)] border border-emerald-500/25',
-      popoverBorderClass: 'border-emerald-500/30',
-      headerTextClass: 'text-[var(--status-bargain-fg)]',
-      barClass: 'bg-emerald-500',
-    }
-  }
-  if (score >= 70) {
-    return {
-      key: 'ACCEPTABLE',
-      ratingLabel: 'Elfogadható adatminőség',
-      icon: ShieldAlert,
-      buttonClasses:
-        'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-amber-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-amber-400/50',
-      badgeClass: 'bg-[var(--status-warn-bg)] border-amber-500/25 text-[var(--status-warn-fg)]',
-      textClass: 'text-[var(--status-warn-fg)]',
-      pillClass: 'bg-[var(--status-warn-bg)] text-[var(--status-warn-fg)] border border-amber-500/25',
-      popoverBorderClass: 'border-amber-500/30',
-      headerTextClass: 'text-[var(--status-warn-fg)]',
-      barClass: 'bg-amber-500',
-    }
-  }
-  return {
-    key: 'SUSPICIOUS',
-    ratingLabel: 'Gyanús / hiányos adat',
-    icon: ShieldX,
-    buttonClasses:
-      'bg-[var(--bg-input)] border-[var(--border-hairline)] hover:border-rose-500/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:ring-rose-400/50',
-    badgeClass: 'bg-[var(--status-danger-bg)] border-rose-500/25 text-[var(--status-danger-fg)]',
-    textClass: 'text-[var(--status-danger-fg)]',
-    pillClass: 'bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)] border border-rose-500/25',
-    popoverBorderClass: 'border-rose-500/30',
-    headerTextClass: 'text-[var(--status-danger-fg)]',
-    barClass: 'bg-rose-500',
-  }
 }
 
 export function getEffectivePrice(item: IngatlanItem): { priceFt?: number; priceMillion?: number } {

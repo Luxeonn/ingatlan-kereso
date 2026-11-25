@@ -6,8 +6,6 @@ import {
   formatArea,
   formatRooms,
   formatDate,
-  clampQualityScore,
-  getQualityConfig,
   getEffectivePrice,
   getEffectiveSqmPrice,
   getItemSourceListingsCount,
@@ -147,26 +145,6 @@ describe('formatters utility', () => {
       expect(normalizePropertyType('kastely')).toBe('EGYEB_ISMERETLEN')
       expect(getPropertyTypeConfig('unknown').key).toBe('EGYEB_ISMERETLEN')
       expect(getPropertyTypeConfig('lakas').label).toBe('Lakás')
-    })
-  })
-
-  describe('clampQualityScore & getQualityConfig', () => {
-    it('clamps quality scores into 0-100 integer range', () => {
-      expect(clampQualityScore(null)).toBeNull()
-      expect(clampQualityScore(undefined)).toBeNull()
-      expect(clampQualityScore(NaN)).toBeNull()
-      expect(clampQualityScore(115)).toBe(100)
-      expect(clampQualityScore(-5)).toBe(0)
-      expect(clampQualityScore(82.6)).toBe(83)
-    })
-
-    it('maps scores to correct quality tiers', () => {
-      expect(getQualityConfig(90).key).toBe('EXCELLENT')
-      expect(getQualityConfig(85).key).toBe('EXCELLENT')
-      expect(getQualityConfig(84).key).toBe('ACCEPTABLE')
-      expect(getQualityConfig(70).key).toBe('ACCEPTABLE')
-      expect(getQualityConfig(69).key).toBe('SUSPICIOUS')
-      expect(getQualityConfig(0).key).toBe('SUSPICIOUS')
     })
   })
 

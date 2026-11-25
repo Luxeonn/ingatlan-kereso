@@ -76,7 +76,6 @@ export const ListingsTableView: FC<ListingsTableViewProps> = ({
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-3 py-3 text-center">Minőség</th>
               <th className="px-3 py-3 text-center">Források</th>
               <th className="px-3 py-3 text-right">Műveletek</th>
             </tr>

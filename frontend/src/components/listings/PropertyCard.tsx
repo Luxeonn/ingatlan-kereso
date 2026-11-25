@@ -193,7 +193,6 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
     </div>
 
     <PropertyPriceSection
-      item={item}
       priceMillion={priceMillion}
       rawPrice={item.price}
       viewMode={viewMode}

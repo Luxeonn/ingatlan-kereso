@@ -1,10 +1,8 @@
 import { useEffect, useState, type FC } from 'react'
-import { Layers, Tag, AlertTriangle, Check, TrendingDown } from 'lucide-react'
+import { Layers, Tag, TrendingDown } from 'lucide-react'
 import type { IngatlanItem, SourceListing } from '../../types/property'
 import { getDedupOverrides, type DedupOverrideDto } from '../../api/dedupApi'
 import {
-  clampQualityScore,
-  getQualityConfig,
   getEffectivePrice,
   getCrossPortalSpread,
   formatPriceFt,
@@ -105,70 +103,6 @@ const DrawerCategoryHeader: FC<{ item: IngatlanItem }> = ({ item }) => {
   )
 }
 
-const DrawerQualitySection: FC<{ item: IngatlanItem; isMultiSource: boolean }> = ({
-  item,
-  isMultiSource,
-}) => {
-  const score = clampQualityScore(item.qualityScore)
-  if (score === null) return null
-  const qualityConfig = getQualityConfig(score)
-  const deductions = item.qualityDeductions ?? []
-
-  return (
-    <div
-      data-testid="drawer-quality-section"
-      className={cn(
-        'flex flex-col gap-2 pb-3',
-        isMultiSource && 'border-b border-[var(--border-hairline)]',
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-          <qualityConfig.icon className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-          <span>Adatminőségi Értékelés</span>
-        </div>
-        <span
-          className={cn(
-            'px-2 py-0.5 rounded border text-[11px] font-bold flex items-center gap-1 tabular-nums',
-            qualityConfig.badgeClass,
-          )}
-        >
-          <span>{score}/100 pont</span>
-          <span className="text-[10px] font-normal opacity-80">({qualityConfig.ratingLabel})</span>
-        </span>
-      </div>
-
-      <div className="h-1.5 w-full bg-[var(--bg-card)] rounded-full overflow-hidden border border-[var(--border-hairline)]">
-        <div
-          className={cn('h-full transition-all duration-300 rounded-full', qualityConfig.barClass)}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-
-      {deductions.length > 0 ? (
-        <div className="mt-1 flex flex-col gap-1 rounded-lg bg-[var(--bg-card)] p-2 border border-[var(--border-hairline)]">
-          <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--status-warn-fg)]">
-            <AlertTriangle className="h-3 w-3" />
-            <span>Levonási tételek ({deductions.length}):</span>
-          </div>
-          <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[var(--text-secondary)]">
-            {deductions.map((deduction, idx) => (
-              <li key={idx} className="leading-snug">
-                {deduction}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <div className="flex items-center gap-1.5 text-[11px] text-[var(--status-bargain-fg)] font-medium pt-0.5">
-          <Check className="h-3.5 w-3.5 shrink-0" />
-          <span>Minden ellenőrzött adatmező hiánytalan és megbízható.</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
   item,
   onMarkViewed,
@@ -245,7 +179,6 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
       )}
     >
       <DrawerCategoryHeader item={item} />
-      <DrawerQualitySection item={item} isMultiSource={isMultiSource} />
 
       {isMultiSource && (
         <div data-testid="sources-list-section" className="flex flex-col gap-2">
