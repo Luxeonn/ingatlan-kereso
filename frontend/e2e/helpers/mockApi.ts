@@ -171,6 +171,12 @@ export async function setupStandardApiMocks(page: Page, options: SetupMockOption
         contentType: 'application/json',
         body: JSON.stringify([]),
       })
+    } else if (url.includes('/api/properties/discounted')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      })
     } else if (url.includes('/api/history/clear')) {
       await route.fulfill({
         status: 200,

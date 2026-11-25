@@ -68,6 +68,7 @@ export function useDedupActions(
       )
       setToastMessage(res.message)
       queryClient.invalidateQueries({ queryKey: ['history'] })
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
       return true
     } catch (err) {
       setToastMessage(resolveErrorMessage(err))
@@ -86,6 +87,7 @@ export function useDedupActions(
       clearCardSelection()
       setToastMessage(res.message)
       queryClient.invalidateQueries({ queryKey: ['history'] })
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
       queryClient.invalidateQueries({ queryKey: ['portals'] })
       queryClient.invalidateQueries({ queryKey: ['cities'] })
       onAfterMerge?.()
@@ -112,6 +114,7 @@ export function useDedupActions(
       )
       setToastMessage(res.message)
       queryClient.invalidateQueries({ queryKey: ['history'] })
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
       return true
     } catch (err) {
       setToastMessage(resolveErrorMessage(err))

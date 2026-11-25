@@ -40,6 +40,7 @@ import ingatlanok.persistence.ConfigStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngineRegistry;
+import ingatlanok.presentation.ArchivePresentationService;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
 import ingatlanok.presentation.IngatlanComHtmlImportRequestDto;
@@ -54,6 +55,7 @@ public class RestApiController {
   private final ListingStorage listingStorage;
   private final ConfigStorage configStorage;
   private final DashboardPresentationService dashboardPresentationService;
+  private final ArchivePresentationService archivePresentationService;
   private final PortalEngineRegistry portalEngineRegistry;
 
   @Value("${server.port:8080}")
@@ -64,10 +66,12 @@ public class RestApiController {
       ListingStorage listingStorage,
       @Autowired(required = false) ConfigStorage configStorage,
       DashboardPresentationService dashboardPresentationService,
+      ArchivePresentationService archivePresentationService,
       PortalEngineRegistry portalEngineRegistry) {
     this.listingStorage = listingStorage;
     this.configStorage = configStorage;
     this.dashboardPresentationService = dashboardPresentationService;
+    this.archivePresentationService = archivePresentationService;
     this.portalEngineRegistry = portalEngineRegistry;
   }
 
@@ -201,7 +205,7 @@ public class RestApiController {
             ? query
             : new HistoryQueryDto(
                 null, false, null, null, null, null, null, null, null, false, false, "DISCOVERED_DESC", 50, 0);
-    List<IngatlanItem> dtoList = listingStorage.findByCriteria(effectiveQuery.toCriteria());
+    List<IngatlanItem> dtoList = archivePresentationService.getHistory(effectiveQuery.toCriteria());
     return ResponseEntity.ok(dtoList);
   }
 
@@ -251,7 +255,7 @@ public class RestApiController {
 
   @GetMapping("/properties/hidden")
   public ResponseEntity<List<IngatlanItem>> getHiddenProperties() {
-    List<IngatlanItem> hidden = listingStorage.getHiddenProperties();
+    List<IngatlanItem> hidden = archivePresentationService.getHiddenProperties();
     return ResponseEntity.ok(hidden);
   }
 
@@ -304,7 +308,7 @@ public class RestApiController {
   @GetMapping("/properties/discounted")
   public ResponseEntity<List<IngatlanItem>> getDiscountedProperties(
       @RequestParam(value = "city", required = false) String city) {
-    List<IngatlanItem> discounted = listingStorage.getDiscountedProperties(city);
+    List<IngatlanItem> discounted = archivePresentationService.getDiscountedProperties(city);
     return ResponseEntity.ok(discounted);
   }
 
