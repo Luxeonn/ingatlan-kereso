@@ -112,6 +112,54 @@ describe('MarketStatsBar component (3 interactive filter KPI cards)', () => {
     expect(screen.getByText('2 db')).toBeTruthy()
   })
 
+  it('excludes hidden items, respects sessionViewedUrls, and stays consistent after client mutations (#502)', () => {
+    const mixedData: DashboardResponseDto = {
+      totalFound: 84,
+      newCount: 10,
+      marketStats: { bargainCount: 20 },
+      items: [
+        createMockIngatlanItem({
+          id: 'a-1',
+          url: 'https://dh.hu/a1',
+          isNew: true,
+          isBargain: true,
+          hidden: false,
+        }),
+        createMockIngatlanItem({
+          id: 'a-2',
+          url: 'https://oc.hu/a2',
+          isNew: false,
+          viewed: true,
+          isBargain: false,
+          hidden: false,
+        }),
+        createMockIngatlanItem({
+          id: 'a-3',
+          url: 'https://dh.hu/a3',
+          isNew: true,
+          viewed: false,
+          isBargain: false,
+          hidden: false,
+        }),
+        createMockIngatlanItem({
+          id: 'h-1',
+          url: 'https://dh.hu/h1',
+          isNew: true,
+          isBargain: true,
+          hidden: true,
+        }),
+      ],
+    }
+
+    const sessionViewed = new Set(['https://oc.hu/a2'])
+    render(<MarketStatsBar data={mixedData} sessionViewedUrls={sessionViewed} />)
+
+    // Active total: 3 (excluding hidden h-1), newCount: 3 (a-1, a-3 + sessionViewed a-2), bargain: 1 (a-1)
+    expect(screen.getByTestId('kpi-filter-all').textContent).toContain('3 db')
+    expect(screen.getByTestId('kpi-filter-new').textContent).toContain('3 db')
+    expect(screen.getByTestId('kpi-filter-bargain').textContent).toContain('1 db')
+  })
+
   it('renders median sqm price inside ListingsPanel multi-source summary notice', () => {
     const items = [
       createMockIngatlanItem({ id: 'm-1', url: 'https://example.com/m-1', sourcesCount: 2 }),

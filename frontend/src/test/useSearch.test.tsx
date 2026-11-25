@@ -570,4 +570,56 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     expect(result.current.isLoading).toBe(false)
     expect(result.current.items).toHaveLength(1)
   })
+
+  it('keeps sessionViewedUrls and rawItems consistent across hide, restore, and markAsViewed mutations (#502)', async () => {
+    const bargainNewItem = createMockIngatlanItem({
+      id: 'item-1',
+      url: 'https://dh.hu/ingatlan/1',
+      isNew: true,
+      viewed: false,
+      isBargain: true,
+      hidden: false,
+    })
+    const regularItem = createMockIngatlanItem({
+      id: 'item-2',
+      url: 'https://oc.hu/ingatlan/2',
+      isNew: false,
+      viewed: false,
+      isBargain: false,
+      hidden: false,
+    })
+    vi.mocked(searchApi.executeSearch).mockResolvedValueOnce({
+      items: [bargainNewItem, regularItem],
+      newCount: 1,
+      totalFound: 2,
+    })
+
+    const { result } = renderHook(() => useSearch(), { wrapper })
+    act(() => {
+      result.current.search({ city: 'Debrecen' })
+    })
+    await waitFor(() => expect(result.current.rawCount).toBe(2))
+
+    // Mark viewed -> tracked in sessionViewedUrls
+    act(() => {
+      result.current.markAsViewed(bargainNewItem.url)
+    })
+    await waitFor(() => {
+      expect(result.current.sessionViewedUrls.has(bargainNewItem.url)).toBe(true)
+    })
+
+    // Hide -> immediately removed from rawItems/data active view
+    act(() => {
+      result.current.hideProperty(bargainNewItem)
+    })
+    await waitFor(() => expect(result.current.rawCount).toBe(1))
+    expect(result.current.data?.items.filter((i) => !i.hidden)).toHaveLength(1)
+
+    // Restore -> immediately back in rawItems/data active view
+    act(() => {
+      result.current.restoreProperty(bargainNewItem)
+    })
+    await waitFor(() => expect(result.current.rawCount).toBe(2))
+    expect(result.current.data?.items.filter((i) => !i.hidden)).toHaveLength(2)
+  })
 })

@@ -130,6 +130,28 @@ describe('ListingsPanel component (#264)', () => {
     expect(notice.textContent).toBe('6 egyedi ingatlan (9 hirdetésből · 3 összevonva) · 1 szűrt')
   })
 
+  it('uses rawItems base for MultiSourceNotice so summary matches BulkActionBar rawItems (#502)', () => {
+    const rawActive = sampleItems // 2 unique items, 3 source listings -> 1 merged
+    const filteredView = [sampleItems[1]!] // local filter narrowed to 1 item
+
+    render(
+      <ListingsPanel
+        items={filteredView}
+        rawItems={rawActive}
+        totalRawCount={2}
+        isLoading={false}
+        hasSearched={true}
+        mode="listings"
+        onMarkViewed={vi.fn()}
+        onOpenAll={vi.fn()}
+        onTriggerSearch={vi.fn()}
+      />,
+    )
+
+    const notice = screen.getByTestId('multi-source-summary-notice')
+    expect(notice.textContent).toBe('2 egyedi ingatlan (3 hirdetésből · 1 összevonva)')
+  })
+
   it('renders live status announcement for screen readers', () => {
     render(
       <ListingsPanel

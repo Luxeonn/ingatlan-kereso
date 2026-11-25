@@ -101,7 +101,7 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
       {activeTab === 'belowMarket' ? (
         sortedBelowMarketDeals.length === 0 ? (
           <div className="flex h-36 items-center justify-center text-xs text-[var(--text-secondary)]">
-            Nem található legalább 15%-kal a városi átlagár alatti ingatlan a jelenlegi keresési halmazban.
+            Nem található legalább 20%-kal a kategória mediánja alatti ingatlan a jelenlegi keresési halmazban.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

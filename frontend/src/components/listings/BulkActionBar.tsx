@@ -23,7 +23,10 @@ import { cn } from '../../utils/cn'
 import { PortalFilterChipsRow, QuickFilterChipsRow } from './BulkFilterChips'
 import { FloatingSelectionBar } from './FloatingSelectionBar'
 
-function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
+function computeQuickFilterCounts(
+  sourceItems: IngatlanItem[],
+  sessionViewedUrls?: ReadonlySet<string>,
+) {
   const counts = {
     bargain: 0,
     onlyNew: 0,
@@ -35,7 +38,7 @@ function computeQuickFilterCounts(sourceItems: IngatlanItem[]) {
   }
   for (const item of sourceItems) {
     if (isItemBargain(item)) counts.bargain += 1
-    if (isListingNew(item)) counts.onlyNew += 1
+    if (isListingNew(item, sessionViewedUrls)) counts.onlyNew += 1
     if (item.viewed) counts.excludeViewed += 1
     if (item.newConstruction) counts.onlyNewConstruction += 1
     const sourceCount = getItemSourceListingsCount(item)
@@ -50,6 +53,7 @@ interface BulkActionBarProps {
   items: IngatlanItem[]
   rawItems?: IngatlanItem[]
   totalRawCount: number
+  sessionViewedUrls?: ReadonlySet<string>
   onOpenAll?: (items: IngatlanItem[]) => void
   onMarkAllViewed?: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
@@ -79,6 +83,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   items,
   rawItems,
   totalRawCount,
+  sessionViewedUrls,
   onClearHistory,
   isClearingHistory = false,
   onMergeSelected,
@@ -143,8 +148,8 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   }
 
   const quickFilterCounts = useMemo(
-    () => computeQuickFilterCounts(sourceItems),
-    [sourceItems],
+    () => computeQuickFilterCounts(sourceItems, sessionViewedUrls),
+    [sourceItems, sessionViewedUrls],
   )
 
   const portalCounts = useMemo(() => {
