@@ -155,6 +155,7 @@ ingatlan-kereso/
 > 9. **Issue-Scope Boundary & Anti-Scope-Creep Guardrails:** Modifications must be strictly confined to the issue's stated goals and acceptance criteria. Unsolicited refactoring, technology version bumps, package reorganizations, or API/DB contract shifts are prohibited. Out-of-scope improvements must be documented as separate proposed issues; never execute them opportunistically. Any supporting change required to meet acceptance criteria must be explicitly justified in the Hungarian PR body.
 > 10. **Adversarial Self-Review Protocol (Anti-Tunnel-Vision & Confirmation-Bias Gate):** Before opening any PR, agents must systematically audit their own implementation against four critical invariants: (1) **Multi-Source Domain Invariant** (no direct `item.priceInfo.amountHuf` / `item.detailsInfo.pricePerSquareMeter` access, use `getEffectivePrice`/`getEffectiveSqmPrice` from `frontend/src/utils/formatters.ts`), (2) **Multi-City & Partial Failure Invariant** (proper handling of mixed portal/city statuses), (3) **End-to-End Contract Traceability** (DTO -> `api-spec.yaml` -> `generated-api.ts` -> UI components), and (4) **Hermetic Test Isolation** (no production `app.test-mode` branching, zero `synchronized` carrier-pinning in Java 25).
 > 11. **Cross-Portal Bug & Fix Consistency Rule:** Whenever a scraping, pagination, URL-building, or parsing bug is discovered or fixed in one portal engine, always audit all other portal engines (`dh`, `oc`, `jofogas`, `koltozzbe`, `ingatlanbazar`, `ingatlancom`) for the same defect and apply the fix uniformly across every affected portal.
+> 12. **Mandatory Subagent Delegation & Issue Routing:** Actively delegate daily development tasks and GitHub issues to the 8 narrow-scope custom subagents in `.agents/agents/` (`invoke_subagent`) according to Section 7 below; always run `pr-quality-reviewer` before opening a PR.
 
 ---
 
@@ -175,3 +176,24 @@ Never push unverified code to remote. Run fast iterative checks via `bash script
   bash scripts/validate-skills.sh -v
   ```
 - **AppSec & Spring CLI:** Route all external scraping HTTP calls through `HttpFetcher` (SSRF protection) and keep `@ConditionalOnProperty(name = "cli")` on `CliSearchRunner` synchronized via `System.setProperty("cli", "true")` in `IngatlanApplication.main()`.
+
+---
+
+## 7. Narrow-Scope Subagent Team, Issue Routing & PR Lifecycle Hooks
+
+In daily development, prefer delegating work via `invoke_subagent` to the 8 specialized agents in `.agents/agents/` as frequently as the task warrants (in parallel where independent, or chained across handoffs). Before starting an issue (`#<id>` / `ik-<id>`), run `gh issue view <id>` and route automatically:
+
+| Agent (`.agents/agents/<name>/agent.md`) | Write Scope | Automatic Delegation Triggers |
+| :--- | :--- | :--- |
+| **`product-researcher`** | Read-only | Product/UX/data growth research, Impact/Effort roadmap, GitHub Issue drafts |
+| **`ui-designer`** | Read-only | Modern UI/UX specs, Tailwind v4 + CSS tokens, 360px–4K layout, WCAG 2.2 AA |
+| **`qa-test-engineer`** | Tests & fixtures only | Regression Test First (**Red** failing tests first), Golden Dataset, Playwright E2E, coverage |
+| **`backend-developer`** | Java web/pres/service/JPA + OpenAPI | REST controllers, MapStruct DTOs, JPA persistence, `openapi/api-spec.yaml` owner |
+| **`frontend-developer`** | `frontend/src/**` | React 19, TypeScript 5.9, Tailwind v4, `npm run generate-api`, Recharts, Zustand |
+| **`scraper-engineer`** | `portal/**`, `tools/**`, `HttpFetcher`, `PropertyParser` | All 6 portals, Playwright/Python sidecars, HTML import, SSRF & cross-portal fixes |
+| **`domain-algorithm-engineer`** | `core/` domain engines | `DeduplicationEngine`, `core/dedup/*`, `MarketAnalyticsEngine`, `DataQualityEngine`, `ListingNormalizer` |
+| **`pr-quality-reviewer`** | Read-only | Mandatory pre-PR diff, Clean Code, type-safety, ArchUnit & compliance gate (`FINDING`/`NO_FINDING`) |
+
+**Automated Lifecycle Hooks (`.agents/hooks.json`):**
+- **`pr-publish-guard` (`PreToolUse` on `run_command`):** Runs `.agents/hooks/pr-publish-guard.mjs` before `gh pr create`, `gh pr merge`, or `git push` to block auto-merge, direct pushes to `main`/`develop`, invalid branch/title formats, UTF-8 BOM or non-compliant PR bodies (`verify-pr-compliance.mjs`), dirty tracked files, and failing `scripts/validate-skills.sh`.
+- **`issue-subagent-router` (`SessionStart` / `PreInvocation`):** Runs `.agents/hooks/issue-subagent-router.mjs` to map issue numbers and domain keywords to the exact subagent pipeline automatically.

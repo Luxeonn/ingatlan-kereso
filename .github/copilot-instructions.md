@@ -68,3 +68,10 @@ Code is organized strictly into four decoupled layers. Cross-layer dependencies 
 1. **Conventional Commits:** PR titles and commits must follow `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `chore: ...`.
 2. **Worktrees & Branches:** All development is isolated in git worktrees branching from `develop` (`git worktree add -b ik-<id> ../worktrees/ik-<id> develop`). Branch naming follows the mandatory issue-based format `ik-<issue-number>` (e.g., `ik-503`).
 3. **Concise PR Description:** Every PR must follow `.github/pull_request_template.md` (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`, and `Closes #<id>` / `Fixes #<id>`). See `docs/pr-compliance.md` for details.
+
+---
+
+## 7. Narrow-Scope Subagent Delegation & PR Hooks
+
+- **Task- & Issue-Driven Delegation:** Daily development and issue execution default to delegating scoped work to the 8 custom subagents in `.agents/agents/` (`product-researcher`, `ui-designer`, `qa-test-engineer`, `backend-developer`, `frontend-developer`, `scraper-engineer`, `domain-algorithm-engineer`, `pr-quality-reviewer`) according to issue labels and affected layers (Red tests via `qa-test-engineer` -> specialist implementer -> mandatory read-only `pr-quality-reviewer` audit).
+- **Automated PR Guard Hooks (`.agents/hooks.json`):** `pr-publish-guard.mjs` gates `gh pr create`, `gh pr merge`, and `git push` against branch naming (`ik-<issue>`), Conventional Commit titles, UTF-8 no-BOM Hungarian PR compliance (`scripts/verify-pr-compliance.mjs`), clean tracked git status, and `scripts/validate-skills.sh`; `issue-subagent-router.mjs` injects automatic issue/domain subagent routing hints.

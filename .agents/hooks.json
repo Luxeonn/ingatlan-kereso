@@ -1,0 +1,34 @@
+{
+  "pr-publish-guard": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./hooks/pr-publish-guard.mjs",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  },
+  "issue-subagent-router": {
+    "enabled": true,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node ./hooks/issue-subagent-router.mjs",
+        "timeout": 5
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./hooks/issue-subagent-router.mjs",
+        "timeout": 5
+      }
+    ]
+  }
+}

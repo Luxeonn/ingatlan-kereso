@@ -84,3 +84,28 @@ Use `.env.example` as the configuration reference; never commit secrets or real 
 - **Allowlist-Only Exception Governance:** Any unavoidable transitional or third-party type-safety exception must be narrowly scoped to the exact file and construct and documented with an `ALLOW-*` entry and justification in [docs/architecture/type-safety/allowlist.md](docs/architecture/type-safety/allowlist.md), verified deterministically by `scripts/validate-skills.sh`.
 - **Self-Check Non-Tampering & CODEOWNERS Protection:** AI agents and developers **must never** disable, weaken, or bypass their own verification checks (`build.gradle.kts`, `config/checkstyle/checkstyle.xml`, `frontend/eslint.config.js`, `frontend/tsconfig.json`, `ArchitectureRulesTest.java`, `scripts/validate-skills.sh`, `scripts/verify-pr-compliance.mjs`, `.github/workflows/*`, or `docs/architecture/type-safety/allowlist.md`). All governance, workflow, compiler, and linter configuration files are protected by [.github/CODEOWNERS](.github/CODEOWNERS) and require explicit human repository owner review.
 
+## Narrow-Scope Subagent Team, Issue Routing & PR Hooks (Mandatory Daily Workflow)
+
+**Default-to-Delegation Policy:** In daily development, AI orchestrators **must actively and frequently delegate** tasks to the 8 narrow-scope custom subagents in `.agents/agents/` (`invoke_subagent`) based on the task or GitHub issue rather than executing multi-domain work monolithically. Narrow scopes reduce errors, eliminate confirmation bias, and enforce least-privilege tool boundaries (read-only design, research, and PR review; test-only QA).
+
+### Issue-Driven Subagent Routing Matrix
+
+Whenever starting from a GitHub issue (`#<id>` / `ik-<id>`), inspect it first (`gh issue view <id>`) and automatically dispatch the matching subagent(s) (running independent roles in parallel):
+
+| Task / Issue Signal (Labels, Scope, or Paths) | Primary Subagent | Mandatory Handoff / Sequence |
+| :--- | :--- | :--- |
+| Growth ideas, roadmap, proptech/UX research | `product-researcher` *(read-only)* | Drafts prioritized options + issue proposals for human approval |
+| UI/UX redesign, layout, CSS tokens, WCAG 2.2 AA | `ui-designer` *(read-only)* | Outputs implementation spec -> `frontend-developer` |
+| Bugfix, business logic regression, E2E, Golden Dataset | `qa-test-engineer` *(tests/fixtures only)* | Writes failing Red test first -> owning implementer (Green) |
+| REST (`web/`), `presentation/`, `service/`, `persistence/`, `openapi/api-spec.yaml` | `backend-developer` | Owns OpenAPI spec -> `frontend-developer` (`npm run generate-api`) |
+| React 19, TypeScript 5.9, Tailwind v4, Zustand, Recharts (`frontend/src/`) | `frontend-developer` | Consumes generated API types and `ui-designer` specs |
+| 6 portal engines (`portal/`), `tools/` sidecars, `HttpFetcher`, `PropertyParser` | `scraper-engineer` | Enforces 0-crash resilience & cross-portal consistency |
+| `DeduplicationEngine`, `core/dedup/*`, `MarketAnalyticsEngine`, `DataQualityEngine`, `ListingNormalizer` | `domain-algorithm-engineer` | Enforces mathematical invariants & Golden Dataset parity |
+| Pre-PR / staged diff / code quality & compliance audit | `pr-quality-reviewer` *(read-only)* | Mandatory fail-closed gate before opening any PR |
+
+### Antigravity Lifecycle Hooks (`.agents/hooks.json`)
+
+- **`pr-publish-guard` (`PreToolUse` on `run_command`):** Automatically executes `.agents/hooks/pr-publish-guard.mjs` before `gh pr create`, `gh pr merge`, or `git push`. Blocks auto-merge, direct pushes to `main`/`develop`, non-`ik-<issue>` branches, non-Conventional Commit titles, UTF-8 BOM or non-compliant PR bodies (`scripts/verify-pr-compliance.mjs`), uncommitted tracked files, and failing `scripts/validate-skills.sh`.
+- **`issue-subagent-router` (`SessionStart` / `PreInvocation`):** Automatically runs `.agents/hooks/issue-subagent-router.mjs` to detect issue references and domain signals and remind/route daily prompts to the matching narrow-scope subagent(s).
+
+
