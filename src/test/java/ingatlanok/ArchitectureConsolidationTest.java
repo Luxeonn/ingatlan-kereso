@@ -41,12 +41,7 @@ class ArchitectureConsolidationTest {
     Environment environment = mock(Environment.class);
     when(environment.getProperty("server.port", "8080")).thenReturn("9090");
     when(environment.getProperty("server.address", "127.0.0.1")).thenReturn("0.0.0.0");
-    System.setProperty("open.browser", "false");
-    try {
-      new IngatlanApplication(environment).onApplicationReady();
-    } finally {
-      System.clearProperty("open.browser");
-    }
+    new IngatlanApplication(environment).onApplicationReady();
   }
 
   @Test

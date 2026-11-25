@@ -70,7 +70,7 @@ A feladatod elfogulatlanul, tényalapon, fájl:sor hivatkozásokkal és reproduk
 
 ### 6. PR Compliance & Git Higiénia (PR audit esetén)
 - Conventional Commit PR cím és commitok; branch formátum `ik-<issue>` (ha issue-hoz kötött), célág `develop`.
-- Magyar nyelvű 2 kötelező szekció (`## 🎯 Miért készült?`, `## 🛠️ Mit módosít / Mit javít?`), UTF-8 (BOM nélkül), issue lezáró kulcsszó (`Closes #<id>` / `Fixes #<id>`), `@copilot` reviewer beállítva.
+- Magyar nyelvű 2 kötelező szekció (`## 🎯 Miért készült?`, `## 🛠️ Mit módosít / Mit javít?`), UTF-8 (BOM nélkül), issue lezáró kulcsszó (`Closes #<id>` / `Fixes #<id>`).
 
 ---
 

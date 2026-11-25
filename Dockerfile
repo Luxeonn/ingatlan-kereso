@@ -48,7 +48,6 @@ ENV JAVA_HOME=/opt/jre \
     PATH="/opt/jre/bin:${PATH}" \
     SERVER_HOST=0.0.0.0 \
     SERVER_PORT=8080 \
-    NO_BROWSER=true \
     PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 

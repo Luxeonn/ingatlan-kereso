@@ -6,5 +6,5 @@
 <!-- Ha presentation/*Dto.java változott: frissítsd az openapi/api-spec.yaml és frontend/src/types/generated-api.ts fájlokat -->
 - 
 
-<!-- Mentés UTF-8 (BOM nélkül); @copilot reviewer beállítása kötelező -->
+<!-- Mentés UTF-8 (BOM nélkül) -->
 Closes #

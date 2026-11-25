@@ -34,7 +34,7 @@ A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti e
   Összevonja az azonos ingatlanok többportálos hirdetéseit a **legkedvezőbb aktív árral**, és a `DedupController` API-n keresztül lehetővé teszi a téves összevonás leválasztását („Nem ugyanaz”), több kártya kézi összevonását (`Ctrl+kattintás` + „Összevonás”), valamint a felülbírálások visszavonását.
 
 - 🛡️ **Ingatlan.com Sidecar és böngészős HTML-import**  
-  A Cloudflare-védett portált on-demand Python (`curl_cffi`) és Playwright Chromium sidecarral kérdezi le; korlátozás esetén közvetlen keresőlinket és böngészős HTML-importot biztosít a további oldalakhoz.
+  A Cloudflare-védett portált on-demand Node.js Playwright Chromium sidecarral kérdezi le; korlátozás esetén közvetlen keresőlinket és böngészős HTML-importot biztosít a további oldalakhoz.
 
 - 💎 **Szegmentált piaci radar és „Alkalmi vétel” vadász**  
   Külön számítja a lakóingatlan- és telekpiaci medián m² árat, legalább 20%-os árelőnynél „Alkalmi vétel” jelölést ad, és interaktív grafikonokon mutatja az árszórást, városi összevetést és áresési toplistát.
@@ -55,7 +55,7 @@ A hagyományos portálokon ugyanazt az ingatlant tucatnyi ügynökség hirdeti e
 | 🎨 **Webes Felület (SPA)** | React 19, TypeScript 5.9, Vite 8.3, Tailwind CSS 4 | Letisztult keresőfelület, szűrők, kézi dedup vezérlők és piaci elemző dashboard (élesben Nginx proxy mögött). |
 | ⚡ **Headless REST API** | Java 25 LTS, Spring Boot 4.1.2 | Virtuális szálakra épülő backend API (`RestApiController`, `DedupController`), OpenAPI szerződéssel. |
 | 🧠 **Üzleti és Elemző Motor** | Saját domain algoritmusok | Normalizálás, klaszteres duplikáció-kezelés, 0–100 adatminőség és szegmentált piaci statisztikák. |
-| 🕷️ **Portál Konnektorok & Sidecar** | Jsoup, REST kliens, Python / Playwright | Párhuzamos portál-adatgyűjtés SSRF-védett `HttpFetcher`-en keresztül, automatikus sidecar fallbackkel. |
+| 🕷️ **Portál Konnektorok & Sidecar** | Jsoup, REST kliens, Node.js / Playwright | Párhuzamos portál-adatgyűjtés SSRF-védett `HttpFetcher`-en keresztül, automatikus sidecar fallbackkel. |
 | 🗄️ **Perzisztencia** | Spring Data JPA, H2 / PostgreSQL 17 | Ingatlanok, megfigyelések, ártörténet, kézi dedup felülbírálások és keresési presetek tárolása. |
 
 <br />
@@ -85,7 +85,7 @@ docker compose up -d --build
 
 ### 💻 2. Lokális fejlesztői indítás
 
-Előfeltételek: **JDK 25** és **Node.js 22+** (opcionálisan Python 3.10+ / Playwright az Ingatlan.com sidecarhoz, lásd [tools/README.md](tools/README.md)).
+Előfeltételek: **JDK 25** és **Node.js 22+** (opcionálisan `playwright-core` + Chromium az Ingatlan.com sidecarhoz, lásd [tools/README.md](tools/README.md)).
 
 **1. Backend indítása:**
 
@@ -142,7 +142,7 @@ bash scripts/validate-skills.sh -v
 - ♿ [Akadálymentességi útmutató (WCAG 2.2 AA)](Accessibility.md)
 - 🔒 [Biztonsági irányelvek (AppSec & hibajelentés)](SECURITY.md)
 - 🎨 [Frontend SPA útmutató](frontend/README.md)
-- 🐍 [Scraper Sidecar (Python & Playwright)](tools/README.md)
+- 🎭 [Scraper Sidecar (Node.js & Playwright)](tools/README.md)
 - 🏛️ [Rendszerarchitektúra részletesen](docs/architecture.md)
 - 🔌 [REST API Specifikáció (OpenAPI)](openapi/api-spec.yaml)
 - ⚖️ [Licenc (GPL-3.0)](LICENSE)

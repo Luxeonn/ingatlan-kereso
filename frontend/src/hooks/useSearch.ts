@@ -345,11 +345,5 @@ export function useSearch() {
     mergeSelected,
     undoDedupOverride,
     isMerging,
-    openAllTabs: (itemsToOpen: IngatlanItem[]) => {
-      const urls = itemsToOpen.map((item) => item.url).filter(Boolean)
-      if (urls.length > 0) {
-        openClientTabs(urls)
-      }
-    },
   }
 }
