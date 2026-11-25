@@ -386,7 +386,7 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     expect(screen.getByTestId('bargain-filter-count').textContent).toBe('2')
     expect(screen.getByTestId('only-new-filter-count').textContent).toBe('2')
     expect(screen.getByTestId('hidden-filter-count').textContent).toBe('4')
-    expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('2')
+    expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('1')
     expect(screen.getByTestId('only-new-construction-filter-count').textContent).toBe('1')
     expect(screen.getByTestId('exclude-multi-source-filter-count').textContent).toBe('2')
     expect(screen.getByTestId('only-multi-source-filter-count').textContent).toBe('1')
@@ -410,7 +410,7 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     expect(screen.queryByTestId('exclude-no-image-filter-count')).toBeNull()
   })
 
-  it('pins, toggles, and counts items with valid images on exclude-no-image-filter (#460)', () => {
+  it('pins, toggles, and counts items without valid images on exclude-no-image-filter (#460, #503)', () => {
     useUiStore.setState({ pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS] })
     const itemsMixedImages: IngatlanItem[] = [
       createMockIngatlanItem({ id: 'img-1', imageUrl: 'https://dh.hu/1.jpg' }),
@@ -425,13 +425,14 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
           { portal: 'oc', url: 'https://oc.hu/4', imageUrl: 'https://oc.hu/4.jpg' },
         ],
       }),
+      createMockIngatlanItem({ id: 'img-5', imageUrl: 'https://dh.hu/5.jpg' }),
     ]
 
     render(
       <BulkActionBar
         items={itemsMixedImages}
         rawItems={itemsMixedImages}
-        totalRawCount={4}
+        totalRawCount={5}
       />,
     )
 
@@ -446,5 +447,26 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     fireEvent.click(chip)
     expect(useFilterStore.getState().excludeNoImage).toBe(true)
     expect(chip.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('counts viewed items accurately on exclude-viewed-filter-count (#503)', () => {
+    useUiStore.setState({ pinnedQuickFilters: ['excludeViewed'] })
+    const itemsMixedViewed: IngatlanItem[] = [
+      createMockIngatlanItem({ id: 'v-1', viewed: true }),
+      createMockIngatlanItem({ id: 'v-2', viewed: true }),
+      createMockIngatlanItem({ id: 'v-3', viewed: false }),
+      createMockIngatlanItem({ id: 'v-4', viewed: false }),
+      createMockIngatlanItem({ id: 'v-5', viewed: false }),
+    ]
+
+    render(
+      <BulkActionBar
+        items={itemsMixedViewed}
+        rawItems={itemsMixedViewed}
+        totalRawCount={5}
+      />,
+    )
+
+    expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('2')
   })
 })
