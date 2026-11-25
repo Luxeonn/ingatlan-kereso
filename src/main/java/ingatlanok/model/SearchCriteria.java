@@ -129,10 +129,6 @@ public class SearchCriteria implements Serializable {
     return propertyType != null ? propertyType : PropertyType.HAZ;
   }
 
-  public String getPropertyTypeSlug() {
-    return getPropertyType().getSlug();
-  }
-
   public void setPropertyType(PropertyType propertyType) {
     this.propertyType = propertyType != null ? propertyType : PropertyType.HAZ;
   }

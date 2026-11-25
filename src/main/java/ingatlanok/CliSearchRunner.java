@@ -1,8 +1,7 @@
 package ingatlanok;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,12 +11,11 @@ import ingatlanok.core.SearchExecutionEngine;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.persistence.ConfigStorage;
 
+@Slf4j
 @Component
 @ConditionalOnProperty(name = "cli")
 @RequiredArgsConstructor
 public class CliSearchRunner implements ApplicationRunner {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(CliSearchRunner.class);
 
   private final SearchExecutionEngine searchEngine;
   private final ConfigStorage configStorage;
@@ -25,8 +23,8 @@ public class CliSearchRunner implements ApplicationRunner {
   @Override
   public void run(ApplicationArguments args) {
     SearchCriteria criteria = configStorage.getLastCriteria();
-    LOGGER.info("CLI keresés indítása, kritériumok: {}", criteria);
+    log.info("CLI keresés indítása, kritériumok: {}", criteria);
     var result = searchEngine.executeSearch(criteria);
-    LOGGER.info("CLI keresés kész: {} találat, {} új hirdetés", result.getTotalFound(), result.getNewCount());
+    log.info("CLI keresés kész: {} találat, {} új hirdetés", result.getTotalFound(), result.getNewCount());
   }
 }

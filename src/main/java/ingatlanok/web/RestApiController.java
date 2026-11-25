@@ -10,8 +10,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -49,8 +47,6 @@ import ingatlanok.presentation.IngatlanComHtmlImportResponseDto;
 @RestController
 @RequestMapping("/api")
 public class RestApiController {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(RestApiController.class);
 
   private final ListingStorage listingStorage;
   private final ConfigStorage configStorage;

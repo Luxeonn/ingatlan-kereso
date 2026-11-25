@@ -181,10 +181,6 @@ class ModelClassesTest {
             "https://example.com/img.jpg");
     assertEquals("https://example.com/img.jpg", sidecarItem.getImageUrl());
 
-    IngatlanItem converted =
-        sidecarItem.toIngatlanItem(PortalSource.of("dh"), "Debrecen", "2026-10-13", true);
-    assertEquals("https://example.com/img.jpg", converted.getImageUrl());
-
     sidecarItem.setImageUrl("https://example.com/updated.jpg");
     assertEquals("https://example.com/updated.jpg", sidecarItem.getImageUrl());
   }

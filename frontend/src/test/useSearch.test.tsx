@@ -9,7 +9,6 @@ import { createMockIngatlanItem } from './testFixtures'
 import * as searchApi from '../api/searchApi'
 import * as propertyApi from '../api/propertyApi'
 import * as dedupApi from '../api/dedupApi'
-import * as formatters from '../utils/formatters'
 import type { DashboardResponseDto } from '../types/api'
 
 vi.mock('../api/searchApi', () => ({
@@ -257,23 +256,6 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     expect(cached?.title).toBe('Cache-elt kedvenc')
     expect(orphan?.title).toContain('Elmentett hirdetés')
     expect(orphan?.portal).toBe('Otthon Centrum')
-  })
-
-  it('opens all tabs in external browser and marks URLs as viewed', async () => {
-    const openSpy = vi.spyOn(formatters, 'openExternalUrl').mockImplementation(() => {})
-    const { result } = renderHook(() => useSearch(), { wrapper })
-
-    act(() => {
-      result.current.openAllTabs([mockItem1, mockItem2])
-    })
-
-    expect(openSpy).toHaveBeenCalledWith(mockItem1.url)
-    expect(openSpy).toHaveBeenCalledWith(mockItem2.url)
-    await waitFor(() => {
-      expect(propertyApi.openUrls).toHaveBeenCalledWith([mockItem1.url, mockItem2.url])
-    })
-
-    openSpy.mockRestore()
   })
 
   it('clears archive history asynchronously', async () => {

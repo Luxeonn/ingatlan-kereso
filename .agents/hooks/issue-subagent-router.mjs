@@ -184,7 +184,7 @@ export function buildRoutingOutput(payload, options = {}) {
     )
   ) {
     parts.push(
-      'PR feladás előtt kötelező a `pr-quality-reviewer` read-only audit + `gh pr edit <id> --add-reviewer "@copilot"`.',
+      'PR feladás előtt kötelező a `pr-quality-reviewer` read-only audit.',
     );
   }
 

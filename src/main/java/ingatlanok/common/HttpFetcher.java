@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.Locale;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -13,6 +14,7 @@ import ingatlanok.common.resilience.PortalCircuitBreaker;
 import ingatlanok.common.resilience.PortalRateLimiter;
 
 /** Centralized resilient HTTP fetcher with domain whitelisting, rate limiting, and circuit breaking. */
+@Slf4j
 public final class HttpFetcher {
 
   public static final String DEFAULT_USER_AGENT =
@@ -36,7 +38,6 @@ public final class HttpFetcher {
   private static final Sleeper DEFAULT_SLEEPER = Thread::sleep;
   private static volatile Sleeper sleeper = DEFAULT_SLEEPER;
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
   private static final PortalCircuitBreaker CIRCUIT_BREAKER = new PortalCircuitBreaker();
   private static final PortalRateLimiter RATE_LIMITER = new PortalRateLimiter();
   private static final ThreadLocal<Integer> LAST_STATUS_CODE = new ThreadLocal<>();
@@ -97,7 +98,7 @@ public final class HttpFetcher {
       return null;
     }
     long startTime = System.currentTimeMillis();
-    LOGGER.debug("HTTP GET Document indítása: {}", targetUrl);
+    log.debug("HTTP GET Document indítása: {}", targetUrl);
     Connection.Response response = executeWithRetry(targetUrl, timeoutMs, false, null);
     return parseDocumentResponse(response, startTime, targetUrl, "GET");
   }
@@ -111,7 +112,7 @@ public final class HttpFetcher {
       return null;
     }
     long startTime = System.currentTimeMillis();
-    LOGGER.debug("HTTP POST JSON Document indítása: {}", targetUrl);
+    log.debug("HTTP POST JSON Document indítása: {}", targetUrl);
     Connection.Response response = executeWithRetry(targetUrl, timeoutMs, false, jsonBody);
     return parseDocumentResponse(response, startTime, targetUrl, "POST");
   }
@@ -124,7 +125,7 @@ public final class HttpFetcher {
     try {
       Document document = response.parse();
       long elapsed = System.currentTimeMillis() - startTime;
-      LOGGER.info(
+      log.info(
           "HTTP {} Document sikeres [{} ms] (cím: '{}'): {}",
           method,
           elapsed,
@@ -132,7 +133,7 @@ public final class HttpFetcher {
           targetUrl);
       return document;
     } catch (IOException e) {
-      LOGGER.error(
+      log.error(
           "Hiba a letöltött HTML Document feldolgozásakor -> URL: {} ({})",
           targetUrl,
           e.getMessage());
@@ -149,7 +150,7 @@ public final class HttpFetcher {
       return null;
     }
     long startTime = System.currentTimeMillis();
-    LOGGER.debug("HTTP GET JSON indítása: {}", targetUrl);
+    log.debug("HTTP GET JSON indítása: {}", targetUrl);
     Connection.Response response = executeWithRetry(targetUrl, timeoutMs, true, null);
     if (response == null) {
       return null;
@@ -157,7 +158,7 @@ public final class HttpFetcher {
     String body = response.body();
     long elapsed = System.currentTimeMillis() - startTime;
     int length = body != null ? body.length() : 0;
-    LOGGER.info("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
+    log.info("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
     return body;
   }
 
@@ -166,7 +167,7 @@ public final class HttpFetcher {
     LAST_STATUS_CODE.remove();
     String circuitKey = resolveCircuitKey(targetUrl);
     if (!CIRCUIT_BREAKER.allowRequest(circuitKey)) {
-      LOGGER.warn("A(z) {} circuit breakere nyitva van", circuitKey);
+      log.warn("A(z) {} circuit breakere nyitva van", circuitKey);
       return null;
     }
     String host = extractHost(targetUrl);
@@ -234,19 +235,19 @@ public final class HttpFetcher {
     }
     if (statusCode == 403) {
       CIRCUIT_BREAKER.recordFailure(circuitKey);
-      LOGGER.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
+      log.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
       return Action.RETURN_NULL;
     }
     if (statusCode == 404 || statusCode < 400) {
       CIRCUIT_BREAKER.releaseProbeIfActive(circuitKey);
-      LOGGER.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
+      log.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
       return Action.RETURN_NULL;
     }
     if (attempt < maxRetries && isRetryableStatus(statusCode)) {
       long waitMs = statusCode == 429
           ? parseRetryAfterMs(response.header("Retry-After"), retryDelayMs)
           : retryDelayMs;
-      LOGGER.warn(
+      log.warn(
           "Átmeneti HTTP [{}] hiba, újrapróbálkozás ({}/{})... URL: {}",
           statusCode, attempt + 1, maxRetries, targetUrl);
       if (!sleepDelay(waitMs)) {
@@ -256,7 +257,7 @@ public final class HttpFetcher {
       return Action.RETRY;
     }
     CIRCUIT_BREAKER.recordFailure(circuitKey);
-    LOGGER.warn(
+    log.warn(
         "HTTP [{}] hiba, próbálkozások kimerültek ({}) -> URL: {}",
         statusCode, attempt + 1, targetUrl);
     return Action.RETURN_NULL;
@@ -271,11 +272,11 @@ public final class HttpFetcher {
       String circuitKey) {
     if (isRedirectLoop(e)) {
       CIRCUIT_BREAKER.recordFailure(circuitKey);
-      LOGGER.warn("Átirányítási hurok detektálva -> URL: {} ({})", targetUrl, e.getMessage());
+      log.warn("Átirányítási hurok detektálva -> URL: {} ({})", targetUrl, e.getMessage());
       return false;
     }
     if (attempt < maxRetries) {
-      LOGGER.warn(
+      log.warn(
           "Átmeneti hálózati I/O hiba, újrapróbálkozás ({}/{})... URL: {} ({})",
           attempt + 1, maxRetries, targetUrl, e.getMessage());
       if (!sleepDelay(retryDelayMs)) {
@@ -285,7 +286,7 @@ public final class HttpFetcher {
       return true;
     }
     CIRCUIT_BREAKER.recordFailure(circuitKey);
-    LOGGER.error("Hálózati I/O hiba a letöltés során -> URL: {} ({})", targetUrl, e.getMessage());
+    log.error("Hálózati I/O hiba a letöltés során -> URL: {} ({})", targetUrl, e.getMessage());
     return false;
   }
 

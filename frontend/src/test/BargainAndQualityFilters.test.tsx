@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { BulkActionBar } from '../components/listings/BulkActionBar'
 import { useFilterStore } from '../store/useFilterStore'
@@ -183,8 +183,6 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
           items={mockListings}
           rawItems={mockListings}
           totalRawCount={4}
-          onOpenAll={vi.fn()}
-          onMarkAllViewed={vi.fn()}
         />,
       )
 

@@ -3,19 +3,18 @@ package ingatlanok.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PriceInfo;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.SearchCriteria;
 
+@Slf4j
 @Service
 public class PropertyFilterEngine {
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(PropertyFilterEngine.class);
 
   public record FilterResult(
       List<IngatlanItem> matchingItems,
@@ -167,7 +166,7 @@ public class PropertyFilterEngine {
       return false;
     }
     if (logWarnings) {
-      LOGGER.warn(
+      log.warn(
           "Kiszűrt hirdetés (Ár: {} kívül esik a {}-{} M Ft sávon): portál='{}', cím='{}', "
               + "link='{}', ár='{}', méret='{}' m², település='{}'",
           priceInfo != null ? priceInfo.getAmountMillion() : "N/A",
@@ -189,7 +188,7 @@ public class PropertyFilterEngine {
       return false;
     }
     if (logWarnings) {
-      LOGGER.warn(
+      log.warn(
           "Kiszűrt hirdetés (Alapterület: {} m² kívül esik a {}-{} m² sávon): portál='{}', "
               + "cím='{}', link='{}', ár='{}', méret='{}' m², település='{}'",
           area != null ? area : "N/A",
@@ -211,7 +210,7 @@ public class PropertyFilterEngine {
       return false;
     }
     if (logWarnings) {
-      LOGGER.warn(
+      log.warn(
           "Kiszűrt hirdetés (Település eltérés: várt='{}', valós='{}'): portál='{}', cím='{}', "
               + "link='{}', ár='{}', méret='{}' m²",
           targetCity,

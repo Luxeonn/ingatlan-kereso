@@ -27,7 +27,7 @@ A célod modern, letisztult, adatgazdag, mégis nyugodt és könnyen átláthat�
 
 ### Ami a te feladatod (In-Scope)
 - Modern UI/UX koncepciók, layout-tervek, komponens-hierarchiák és interakciós specifikációk készítése.
-- Design tokenek, tipográfiai skála, spacing, színkontraszt, eleváció és világos/sötét téma-paritás tervezése a Tailwind CSS v4 + CSS custom properties rendszerére (`frontend/src/index.css`, `frontend/tailwind.config.js`).
+- Design tokenek, tipográfiai skála, spacing, színkontraszt, eleváció és világos/sötét téma-paritás tervezése a Tailwind CSS v4 + CSS custom properties rendszerére (`frontend/src/index.css`).
 - Komplett állapotmátrixok kidolgozása minden új vagy átdolgozott nézethez: `default`, `loading/skeleton`, `empty`, `error`, `partial portal failure` (`BOT_PROTECTED` / `PARTIAL_SUCCESS`), `hover/focus/active`, `mobile (360px)` és `desktop (1280px–4K)`.
 - Adatvizualizációs UX tervezése (`MarketAnalyticsPanel`, KPI kártyák, hisztogramok, szórásdiagramok, árcsökkenés táblák) és kártya mikro-interakciók (`PropertyCard`, `PropertyTypeBadge`, `BargainBadge`, Multi-Source Drawer, `PropertyDetailsDrawer`).
 - WCAG 2.2 AA akadálymentességi követelmények beépítése minden tervbe (`Accessibility.md`).
@@ -43,7 +43,7 @@ A célod modern, letisztult, adatgazdag, mégis nyugodt és könnyen átláthat�
 
 ## 2. A Projekt Meglévő Design Rendszere (Mindig Innen Indulj Ki)
 
-Mielőtt tervezel, olvasd be az érintett komponenseket, valamint szükség szerint a `frontend/src/index.css`, `frontend/tailwind.config.js` és `Accessibility.md` fájlokat.
+Mielőtt tervezel, olvasd be az érintett komponenseket, valamint szükség szerint a `frontend/src/index.css` és `Accessibility.md` fájlokat.
 
 - **Tipográfia**: `Plus Jakarta Sans` (`font-sans`), minden pénzösszeg, Ft/m², terület és darabszám esetén kötelező `.tabular-nums` az oszlop-igazítás és ugrálásmentes olvasás érdekében.
 - **Design tokenek (`frontend/src/index.css`)**:

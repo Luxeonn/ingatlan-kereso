@@ -9,12 +9,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
@@ -35,11 +35,11 @@ import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
  * Parses and persists user-supplied Ingatlan.com search result HTML without outbound requests or
  * anti-bot circumvention (#455).
  */
+@Slf4j
 @Service
 public class IngatlanComHtmlImportService {
 
   static final int MAX_HTML_BYTES = 5 * 1024 * 1024;
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComHtmlImportService.class);
   private static final DateTimeFormatter TS_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -90,7 +90,7 @@ public class IngatlanComHtmlImportService {
 
     List<RawPropertyListing> rawListings = rawParser.parseRawListings(document);
     if (rawListings.isEmpty()) {
-      LOGGER.warn(
+      log.warn(
           "Ingatlan.com HTML import: 0 hirdetéskártya található (város={})", resolvedCity);
       return new ImportSummary(0, 0, 0, 0, resolvedCity, List.of());
     }
@@ -107,7 +107,7 @@ public class IngatlanComHtmlImportService {
     qualityEngine.evaluateAll(uniqueItems);
 
     int existingCount = Math.max(0, uniqueItems.size() - newCount);
-    LOGGER.info(
+    log.info(
         "Ingatlan.com HTML import ({}): {} nyers -> {} egyedi ({} új, {} frissített)",
         resolvedCity,
         rawListings.size(),

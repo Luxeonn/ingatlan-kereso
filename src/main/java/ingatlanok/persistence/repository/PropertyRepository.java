@@ -34,14 +34,9 @@ public interface PropertyRepository
   List<PropertyEntity> findByNormalizedCityAndHiddenFalseOrderByDiscoveredAtDesc(
       String normalizedCity);
 
-  List<PropertyEntity> findAllByOrderByDiscoveredAtDesc();
-
   List<PropertyEntity> findAllByHiddenFalseOrderByDiscoveredAtDesc();
 
   Page<PropertyEntity> findAll(Specification<PropertyEntity> specification, Pageable pageable);
-
-  List<PropertyEntity> findByPriceDeltaLessThanAndCityContainingIgnoreCaseOrderByDiscoveredAtDesc(
-      long priceDelta, String city);
 
   List<PropertyEntity> findByHiddenTrueOrderByDiscoveredAtDesc();
 
@@ -50,18 +45,10 @@ public interface PropertyRepository
   int markAsViewed(@Param("url") String url, @Param("viewedAt") String viewedAt);
 
   @Modifying
-  @Query("UPDATE PropertyEntity p SET p.hidden = true, p.hiddenAt = :hiddenAt WHERE p.url = :url")
-  int markAsHidden(@Param("url") String url, @Param("hiddenAt") String hiddenAt);
-
-  @Modifying
   @Query(
       "UPDATE PropertyEntity p SET p.hidden = true, p.hiddenAt = :hiddenAt"
           + " WHERE p.propertyId = :key OR p.url = :key OR p.canonicalId = :key")
   int markKeyAsHidden(@Param("key") String key, @Param("hiddenAt") String hiddenAt);
-
-  @Modifying
-  @Query("UPDATE PropertyEntity p SET p.hidden = false, p.hiddenAt = null WHERE p.url = :url")
-  int restoreFromHidden(@Param("url") String url);
 
   @Modifying
   @Query(

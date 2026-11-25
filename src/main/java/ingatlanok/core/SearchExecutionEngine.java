@@ -8,10 +8,10 @@ import java.util.Objects;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
@@ -21,11 +21,10 @@ import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalEngine;
 import ingatlanok.portal.PortalEngineRegistry;
 
+@Slf4j
 @Getter
 @Service
 public class SearchExecutionEngine {
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(SearchExecutionEngine.class);
 
   private final PortalEngineRegistry portalRegistry;
   private final ListingStorage listingStorage;
@@ -92,11 +91,11 @@ public class SearchExecutionEngine {
       boolean isFirstSearch = !listingStorage.hasCityDatabase(currentCity);
       if (isFirstSearch) {
         newCitiesInitialized.add(currentCity);
-        LOGGER.info(
+        log.info(
             "[Új Város] '{}' még nem szerepel az adatbázisban. Alapállapot snapshot rögzítése...",
             currentCity);
       } else {
-        LOGGER.info("[Ismert Város] '{}' adatbázisa létezik. Differenciál-keresés...", currentCity);
+        log.info("[Ismert Város] '{}' adatbázisa létezik. Differenciál-keresés...", currentCity);
       }
 
       CityProcessResult cityResult =
@@ -176,8 +175,8 @@ public class SearchExecutionEngine {
   }
 
   private void logSearchStart(List<String> citiesToSearch, SearchCriteria criteria) {
-    LOGGER.info("==================================================");
-    LOGGER.info(
+    log.info("==================================================");
+    log.info(
         "Keresés indítása: Városok={}, Jelleg={}, Ársáv={}-{} M Ft, Alapterület={}-{} m²",
         citiesToSearch,
         criteria.getPropertyType(),
@@ -185,8 +184,8 @@ public class SearchExecutionEngine {
         criteria.getMaxPriceMillion(),
         criteria.getMinArea(),
         criteria.getMaxArea());
-    LOGGER.info("Aktív portálok: {}", criteria.getPortals());
-    LOGGER.info("==================================================");
+    log.info("Aktív portálok: {}", criteria.getPortals());
+    log.info("==================================================");
   }
 
   private void pauseBetweenCities(int cityIndex) {
@@ -219,7 +218,7 @@ public class SearchExecutionEngine {
 
     dedupEngine.applyNewStatus(currentCity, relevantCityItems, isFirstSearch);
     List<IngatlanItem> uniqueCityItems = dedupEngine.deduplicateByUrl(relevantCityItems);
-    LOGGER.info(
+    log.info(
         "  ├─ [{}] Adattisztítás: {} letöltve -> {} releváns (ár: {}, méret: {}, város: {}) -> {}"
             + " egyedi URL",
         currentCity,
@@ -241,7 +240,7 @@ public class SearchExecutionEngine {
 
     int cityMatchingCount = visibleCityItems.size();
     int cityTotalFiltered = scrapeOutput.items().size() - cityMatchingCount;
-    LOGGER.info(
+    log.info(
         "  └─ [{}] Összesítés: {} letöltve -> {} megfelelő találat (Kiszűrve: {} db | Ár: {},"
             + " Méret: {}, Megtekintett: {})",
         currentCity,
@@ -268,7 +267,7 @@ public class SearchExecutionEngine {
                     i.getQualityScore() != null
                         && i.getQualityScore() < DataQualityEngine.PASSING_THRESHOLD)
             .count();
-    LOGGER.info(
+    log.info(
         "Deduplikáció és minőségellenőrzés: {} -> {} egyedi ingatlan ({} összevonva), {} db {} pont"
             + " alatti minőségű",
         totalItems,
@@ -279,14 +278,14 @@ public class SearchExecutionEngine {
   }
 
   private void logSearchEnd(SearchResult result) {
-    LOGGER.info("==================================================");
-    LOGGER.info("Keresés befejeződött: {}", result.getExecutedAt());
-    LOGGER.info("Összes találat: {} | Új: {}", result.getTotalFound(), result.getNewCount());
-    LOGGER.info("Városok szerint: {}", result.getCityCounts());
-    LOGGER.info("Portálok szerint: {}", result.getPortalCounts());
+    log.info("==================================================");
+    log.info("Keresés befejeződött: {}", result.getExecutedAt());
+    log.info("Összes találat: {} | Új: {}", result.getTotalFound(), result.getNewCount());
+    log.info("Városok szerint: {}", result.getCityCounts());
+    log.info("Portálok szerint: {}", result.getPortalCounts());
     if (!result.getNewCitiesInitialized().isEmpty()) {
-      LOGGER.info("Új város(ok) baseline mentve: {}", result.getNewCitiesInitialized());
+      log.info("Új város(ok) baseline mentve: {}", result.getNewCitiesInitialized());
     }
-    LOGGER.info("==================================================");
+    log.info("==================================================");
   }
 }

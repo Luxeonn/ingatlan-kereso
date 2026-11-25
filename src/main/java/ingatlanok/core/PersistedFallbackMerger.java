@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import ingatlanok.common.AppLogger;
+import lombok.extern.slf4j.Slf4j;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PortalId;
@@ -20,9 +21,8 @@ import ingatlanok.persistence.ListingStorage;
  * Merges active persisted listings back into search results when live portal scrapes are
  * rate-limited, bot-protected, or truncated mid-pagination.
  */
+@Slf4j
 final class PersistedFallbackMerger {
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(PersistedFallbackMerger.class);
 
   private PersistedFallbackMerger() {}
 
@@ -65,7 +65,7 @@ final class PersistedFallbackMerger {
         filterEngine.filterRelevanceSilently(fallbackCandidates, cityCriteria, currentCity);
     if (!filtered.matchingItems().isEmpty()) {
       targetItems.addAll(filtered.matchingItems());
-      LOGGER.info(
+      log.info(
           "  ├─ [{}] DB fallback: +{} aktív tárolt hirdetés bevonva részleges/blokkolt portáloktól {}",
           currentCity,
           filtered.matchingItems().size(),

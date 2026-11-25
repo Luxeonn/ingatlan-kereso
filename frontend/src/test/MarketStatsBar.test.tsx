@@ -173,7 +173,6 @@ describe('MarketStatsBar component (3 interactive filter KPI cards)', () => {
         isLoading={false}
         hasSearched={true}
         onMarkViewed={() => {}}
-        onOpenAll={() => {}}
         onTriggerSearch={() => {}}
       />,
     )

@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   useUiStore,
   DEFAULT_PINNED_QUICK_FILTERS,
-  MAX_PINNED_QUICK_FILTERS,
-  type QuickFilterId,
 } from '../store/useUiStore'
 import { createMockIngatlanItem } from './testFixtures'
 
@@ -124,31 +122,6 @@ describe('useUiStore', () => {
       // Unpin one
       useUiStore.getState().togglePinnedQuickFilter('onlyNew')
       expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'excludeViewed', 'onlyNewConstruction'])
-    })
-
-    it('validates and clamps custom pinned quick filter lists', () => {
-      useUiStore.getState().setPinnedQuickFilters([
-        'bargain',
-        'onlyNew',
-        'hidden',
-        'excludeViewed',
-        'onlyNewConstruction',
-        'excludeMultiSource',
-        'onlyMultiSource',
-        'excludeNoImage',
-        'invalid_key' as QuickFilterId,
-      ])
-      expect(useUiStore.getState().pinnedQuickFilters).toHaveLength(MAX_PINNED_QUICK_FILTERS)
-      expect(useUiStore.getState().pinnedQuickFilters).toEqual([
-        'bargain',
-        'onlyNew',
-        'hidden',
-        'excludeViewed',
-        'onlyNewConstruction',
-        'excludeMultiSource',
-        'onlyMultiSource',
-        'excludeNoImage',
-      ])
     })
   })
 })

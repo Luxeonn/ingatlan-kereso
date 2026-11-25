@@ -138,7 +138,6 @@ export interface FilterState {
   setAutoOpen: (auto: boolean) => void
   setExcludeViewed: (exclude: boolean) => void
   setOnlyViewed: (only: boolean) => void
-  setOnlyDiscounted: (onlyDiscounted: boolean) => void
   setOnlyNewConstruction: (onlyNewConstruction: boolean) => void
   setExcludeNewConstruction: (excludeNewConstruction: boolean) => void
   setSortOption: (sort: SortOption) => void

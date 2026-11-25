@@ -21,12 +21,10 @@ export interface ListingsPanelProps {
   onSubViewChange?: (subView: ListingSubView) => void
   searchCount?: number
   favoritesCount?: number
-  archiveCount?: number
   onMarkViewed: (url: string) => void
   onHide?: (item: IngatlanItem) => void
   onRestore?: (item: IngatlanItem) => void
   hiddenCount?: number
-  onOpenAll: (items: IngatlanItem[]) => void
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
@@ -81,7 +79,6 @@ interface ListingsSubViewNavProps {
   activeMode: ListingSubView
   activeSearchCount: number
   activeFavoritesCount: number
-  activeArchiveCount?: number
   onSubViewChange: (newSubView: ListingSubView) => void
   summaryNotice?: ReactNode
 }
@@ -141,12 +138,10 @@ function resolveSubViewCounts(
   totalRawCount: number,
   searchCount?: number,
   favoritesCount?: number,
-  archiveCount?: number,
 ) {
   return {
     activeSearchCount: searchCount ?? (activeMode === 'listings' ? totalRawCount : 0),
     activeFavoritesCount: favoritesCount ?? (activeMode === 'favorites' ? totalRawCount : 0),
-    activeArchiveCount: archiveCount ?? (activeMode === 'archive' ? totalRawCount : 0),
   }
 }
 
@@ -164,12 +159,10 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   onSubViewChange,
   searchCount,
   favoritesCount,
-  archiveCount,
   onMarkViewed,
   onHide,
   onRestore,
   hiddenCount,
-  onOpenAll,
   onTriggerSearch,
   onClearHistory,
   isClearingHistory = false,
@@ -188,12 +181,11 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
     onSubViewChange?.(newSubView)
   }
 
-  const { activeSearchCount, activeFavoritesCount, activeArchiveCount } = resolveSubViewCounts(
+  const { activeSearchCount, activeFavoritesCount } = resolveSubViewCounts(
     activeMode,
     totalRawCount,
     searchCount,
     favoritesCount,
-    archiveCount,
   )
 
   const baseSummaryItems = rawItems ?? items
@@ -217,7 +209,6 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
           activeMode={activeMode}
           activeSearchCount={activeSearchCount}
           activeFavoritesCount={activeFavoritesCount}
-          activeArchiveCount={activeArchiveCount}
           onSubViewChange={handleSubViewChange}
           summaryNotice={summaryNotice}
         />
@@ -243,7 +234,6 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         onHide={onHide}
         onRestore={onRestore}
         hiddenCount={hiddenCount}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
         onClearHistory={onClearHistory}
         isClearingHistory={isClearingHistory}
