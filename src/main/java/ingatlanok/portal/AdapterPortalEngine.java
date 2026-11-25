@@ -5,7 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import ingatlanok.common.AppLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
@@ -15,7 +17,7 @@ import ingatlanok.model.raw.RawPropertyListing;
 
 public class AdapterPortalEngine implements PortalEngine {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(AdapterPortalEngine.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AdapterPortalEngine.class);
 
   private final PortalAdapter adapter;
   private final RawListingNormalizer normalizer;
@@ -181,10 +183,6 @@ public class AdapterPortalEngine implements PortalEngine {
       );
     }
     return PortalScrapeResult.empty(descriptor.id(), descriptor.name(), defaultSearchUrl, elapsed);
-  }
-
-  public PortalAdapter getAdapter() {
-    return adapter;
   }
 
   public RawListingNormalizer getNormalizer() {

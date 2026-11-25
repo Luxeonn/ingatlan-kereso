@@ -3,9 +3,10 @@ package ingatlanok.portal.ingatlanbazar;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
@@ -14,7 +15,7 @@ import ingatlanok.portal.PortalSupport;
 public class IngatlanBazarRawParser {
 
   static final String THUMBNAIL_SUFFIX = "_485x354.jpg";
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarRawParser.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanBazarRawParser.class);
 
   public List<RawPropertyListing> parseRawListings(String json) {
     List<RawPropertyListing> result = new ArrayList<>();

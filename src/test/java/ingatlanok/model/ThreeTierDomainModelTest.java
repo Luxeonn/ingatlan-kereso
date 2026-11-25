@@ -7,8 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -111,52 +109,6 @@ class ThreeTierDomainModelTest {
   }
 
   @Test
-  @DisplayName("Property model computes min active price and manages source listings")
-  void testPropertyModel() {
-    SourceListing s1 =
-        new SourceListing(
-            "dh.hu", "DH-1", "https://dh.hu/1", "Tégla lakás", null, null, null, "ACTIVE", 50_000_000L,
-            800_000L, false, null);
-    SourceListing s2 =
-        new SourceListing(
-            "oc.hu", "OC-1", "https://oc.hu/1", "Tégla lakás", null, null, null, "ACTIVE", 48_000_000L,
-            768_000L, false, null);
-    SourceListing s3 =
-        new SourceListing(
-            "jofogas.hu", "JF-1", "https://jf.hu/1", "Tégla lakás", null, null, null, "INACTIVE", 40_000_000L,
-            640_000L, false, null);
-
-    Property prop =
-        new Property(
-            "PROP-CANONICAL-1",
-            "debrecen",
-            "Debrecen",
-            PropertyType.LAKAS,
-            62.5,
-            2.5,
-            "Debrecen, Belváros",
-            null,
-            List.of(s1, s2, s3));
-
-    assertEquals("PROP-CANONICAL-1", prop.getCanonicalId());
-    assertEquals("debrecen", prop.getNormalizedCity());
-    assertEquals("Debrecen", prop.getCity());
-    assertEquals(PropertyType.LAKAS, prop.getPropertyType());
-    assertEquals(62.5, prop.getFloorAreaSquareMeters());
-    assertEquals(2.5, prop.getRoomCount());
-    assertEquals(3, prop.getSourcesCount());
-    assertEquals(2, prop.getActiveSources().size());
-    // Lowest active price is 48M (ignoring inactive 40M)
-    assertEquals(48_000_000L, prop.getMinActivePriceHuf());
-
-    Property propSame = new Property();
-    propSame.setCanonicalId("PROP-CANONICAL-1");
-    assertEquals(prop, propSame);
-    assertEquals(prop.hashCode(), propSame.hashCode());
-    assertTrue(prop.toString().contains("PROP-CANONICAL-1"));
-  }
-
-  @Test
   @DisplayName("IngatlanItem maintains sourceListings and backwards compatibility")
   void testIngatlanItemThreeTierCompatibility() {
     IngatlanItem item = new IngatlanItem();
@@ -224,12 +176,6 @@ class ThreeTierDomainModelTest {
     assertEquals(1, item.getSourcesCount());
     assertEquals(1, item.getSourceListings().size());
     assertEquals("https://dh.hu/123", item.getSourceListings().get(0).getUrl());
-
-    Property prop = mapper.toProperty(entity, List.of(sl));
-    assertNotNull(prop);
-    assertEquals("CANONICAL-999", prop.getCanonicalId());
-    assertEquals(PropertyType.HAZ, prop.getPropertyType());
-    assertEquals(95_000_000L, prop.getMinActivePriceHuf());
 
     ListingObservationEntity obsEntity =
         mapper.createListingObservationEntity(

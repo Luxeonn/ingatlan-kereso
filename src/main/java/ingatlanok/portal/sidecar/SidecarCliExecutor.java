@@ -10,7 +10,9 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import ingatlanok.common.AppLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ingatlanok.common.JsonSupport;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
@@ -19,15 +21,13 @@ public class SidecarCliExecutor {
 
   public static final int DEFAULT_MAX_PAGES = 20;
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(SidecarCliExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SidecarCliExecutor.class);
   private static final int MIN_TIMEOUT_SECONDS = 25;
   private static final int MAX_TIMEOUT_SECONDS = 105;
   private static final int MAX_SOFT_TIMEOUT_MS = 90_000;
   private static final ReentrantLock RUNTIME_DETECT_LOCK = new ReentrantLock();
 
   private static volatile List<String> customExecutables = null;
-  private static volatile String cachedPythonCmd = null;
-  private static volatile boolean pythonChecked = false;
   private static volatile String cachedNodeCmd = null;
   private static volatile boolean nodeChecked = false;
 
@@ -325,15 +325,6 @@ public class SidecarCliExecutor {
     }
 
     List<List<String>> candidates = new ArrayList<>();
-    File exe = new File("tools/scraper-sidecar.exe");
-    if (exe.exists() && exe.canExecute()) {
-      candidates.add(buildCmd(exe.getAbsolutePath(), null, args));
-    }
-    File pyScript = new File("tools/sidecar.py");
-    String pythonCmd = pyScript.exists() ? detectPythonCommand() : null;
-    if (pythonCmd != null) {
-      candidates.add(buildCmd(pythonCmd, pyScript.getAbsolutePath(), args));
-    }
     File nodeScript = new File("tools/sidecar-playwright.mjs");
     String nodeCmd = nodeScript.exists() && hasPlaywrightModule() ? detectNodeCommand() : null;
     if (nodeCmd != null) {
@@ -365,29 +356,6 @@ public class SidecarCliExecutor {
     }
     fullCmd.addAll(args);
     return fullCmd;
-  }
-
-  private static String detectPythonCommand() {
-    if (pythonChecked) {
-      return cachedPythonCmd;
-    }
-    RUNTIME_DETECT_LOCK.lock();
-    try {
-      if (pythonChecked) {
-        return cachedPythonCmd;
-      }
-      String[] candidates = {"python3", "python", "py"};
-      for (String candidate : candidates) {
-        if (canRunCommand(candidate, "-c", "import curl_cffi, bs4")) {
-          cachedPythonCmd = candidate;
-          return cachedPythonCmd;
-        }
-      }
-      return null;
-    } finally {
-      pythonChecked = true;
-      RUNTIME_DETECT_LOCK.unlock();
-    }
   }
 
   private static String detectNodeCommand() {

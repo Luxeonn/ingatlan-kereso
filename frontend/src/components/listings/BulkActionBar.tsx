@@ -54,13 +54,10 @@ interface BulkActionBarProps {
   rawItems?: IngatlanItem[]
   totalRawCount: number
   sessionViewedUrls?: ReadonlySet<string>
-  onOpenAll?: (items: IngatlanItem[]) => void
-  onMarkAllViewed?: (items: IngatlanItem[]) => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
   onMergeSelected?: (urls: string[]) => Promise<boolean | void> | void
   isMerging?: boolean
-  visibleCount?: number
   hiddenCount?: number
 }
 

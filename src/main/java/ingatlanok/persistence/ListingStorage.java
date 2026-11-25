@@ -88,8 +88,4 @@ public interface ListingStorage {
   default Map<String, IngatlanItem> findByUrls(Collection<String> urls) {
     return Map.of();
   }
-
-  default Map<String, Long> countByCity() {
-    return Map.of();
-  }
 }

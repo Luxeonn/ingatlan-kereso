@@ -226,10 +226,6 @@ public class IngatlanItem implements Serializable {
     return qualityScore != null ? qualityScore.value() : null;
   }
 
-  public QualityScore getQualityScoreObject() {
-    return qualityScore;
-  }
-
   public void setQualityScore(Integer score) {
     this.qualityScore = score != null ? QualityScore.of(score) : null;
   }
@@ -289,10 +285,6 @@ public class IngatlanItem implements Serializable {
 
   public Boolean getIsBargain() {
     return isBargain;
-  }
-
-  public void setBargain(Boolean bargain) {
-    this.isBargain = bargain;
   }
 
   public void setIsBargain(Boolean bargain) {

@@ -6,7 +6,5 @@ export type PortalFilterOption = PortalId | 'all'
 
 export type PortalDescriptor = components['schemas']['PortalDescriptor']
 export type PortalStatusDto = components['schemas']['PortalStatusDto']
-export type PortalScrapeStatus = components['schemas']['PortalScrapeStatus']
 export type IngatlanComHtmlImportRequest = components['schemas']['IngatlanComHtmlImportRequest']
 export type IngatlanComHtmlImportResponse = components['schemas']['IngatlanComHtmlImportResponse']
-

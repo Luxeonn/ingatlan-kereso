@@ -8,9 +8,10 @@ import java.util.regex.Pattern;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.raw.ExtractionMethod;
@@ -19,7 +20,7 @@ import ingatlanok.portal.PortalSupport;
 
 public class KoltozzbeRawParser {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbeRawParser.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(KoltozzbeRawParser.class);
   private static final Pattern ID_PATTERN =
       Pattern.compile("(?i)/h?([0-9]+)(?:[/?#]|$)");
   private static final Pattern PAGE_PARAM_PATTERN = Pattern.compile("(?:^|[?&])page=(\\d+)");

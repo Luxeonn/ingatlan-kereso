@@ -12,8 +12,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 
-import ingatlanok.common.BrowserUtils;
-
 @SpringBootApplication
 @EnableCaching
 @RequiredArgsConstructor
@@ -46,19 +44,5 @@ public class IngatlanApplication {
     String url = "http://" + displayHost + ":" + port;
 
     LOGGER.info("Ingatlan Kereső (Spring Boot 4.1.2) Aktív! Headless REST API: {}/api/status", url);
-
-    boolean openBrowser =
-        Boolean.getBoolean("open.browser")
-            || "true".equalsIgnoreCase(System.getenv("OPEN_BROWSER"));
-
-    if (openBrowser && !java.awt.GraphicsEnvironment.isHeadless() && !"0.0.0.0".equals(host)) {
-      Thread.ofVirtual()
-          .start(
-              () -> {
-                if (!BrowserUtils.openUrl(url + "/api/status")) {
-                  LOGGER.warn("Nyisd meg manuálisan a böngésződben: {}/api/status", url);
-                }
-              });
-    }
   }
 }

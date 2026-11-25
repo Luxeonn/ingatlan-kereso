@@ -10,10 +10,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
@@ -22,7 +23,7 @@ import ingatlanok.portal.PortalEngine;
 @Component
 public class ParallelPortalScrapeExecutor {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(ParallelPortalScrapeExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParallelPortalScrapeExecutor.class);
   private static final long DEFAULT_TIMEOUT_SECONDS = 15;
   private static final long DEFAULT_SIDECAR_TIMEOUT_SECONDS = 120;
 
@@ -112,10 +113,10 @@ public class ParallelPortalScrapeExecutor {
         } catch (Exception e) {
           LOGGER.error(
               "Hiba a(z) {} keresésekor ({}): {}",
-              e,
               engine.getName(),
               currentCity,
-              e.getMessage());
+              e.getMessage(),
+              e);
           PortalScrapeResult failResult =
               PortalScrapeResult.failure(engine.getId(), engine.getName(), e.getMessage(), 0);
           scrapeResults.add(failResult);

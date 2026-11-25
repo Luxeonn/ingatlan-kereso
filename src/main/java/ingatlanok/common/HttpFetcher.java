@@ -8,6 +8,8 @@ import java.util.Set;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ingatlanok.common.resilience.PortalCircuitBreaker;
 import ingatlanok.common.resilience.PortalRateLimiter;
@@ -36,7 +38,7 @@ public final class HttpFetcher {
   private static final Sleeper DEFAULT_SLEEPER = Thread::sleep;
   private static volatile Sleeper sleeper = DEFAULT_SLEEPER;
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpFetcher.class);
   private static final PortalCircuitBreaker CIRCUIT_BREAKER = new PortalCircuitBreaker();
   private static final PortalRateLimiter RATE_LIMITER = new PortalRateLimiter();
   private static final ThreadLocal<Integer> LAST_STATUS_CODE = new ThreadLocal<>();

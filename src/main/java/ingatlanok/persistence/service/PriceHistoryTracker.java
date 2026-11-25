@@ -1,14 +1,15 @@
 package ingatlanok.persistence.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.model.ListingStatus;
 
 @Component
 public class PriceHistoryTracker {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(PriceHistoryTracker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PriceHistoryTracker.class);
 
   public record ExistingPriceState(
       boolean isNew,

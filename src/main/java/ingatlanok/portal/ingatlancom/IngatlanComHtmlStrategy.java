@@ -4,8 +4,9 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
@@ -17,7 +18,7 @@ import ingatlanok.portal.sidecar.SidecarCliExecutor;
 
 public class IngatlanComHtmlStrategy implements ExtractionStrategy {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComHtmlStrategy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanComHtmlStrategy.class);
 
   private final IngatlanComUrlBuilder urlBuilder;
   private final IngatlanComRawParser rawParser;

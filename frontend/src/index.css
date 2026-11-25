@@ -1,9 +1,7 @@
 @import "tailwindcss";
-@config "../tailwind.config.js";
 
 :root {
   --bg-body: #f6f8fb;
-  --bg-canvas: #f6f8fb;
   --bg-card: #ffffff;
   --bg-surface: #ffffff;
   --bg-card-hover: #f8fafc;
@@ -16,11 +14,8 @@
   --border-strong: rgba(15, 23, 42, 0.16);
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --text-muted: #64748b;
   --accent: #2563eb;
   --accent-soft: rgba(37, 99, 235, 0.10);
-  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  --success: #10b981;
   --status-bargain-fg: #047857;
   --status-bargain-bg: rgba(5, 150, 105, 0.10);
   --status-warn-fg: #b45309;
@@ -36,10 +31,6 @@ body {
   color: var(--text-primary);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
 }
 
 /* Custom scrollbars */

@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import ingatlanok.common.AppLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PortalId;
@@ -22,7 +24,7 @@ import ingatlanok.persistence.ListingStorage;
  */
 final class PersistedFallbackMerger {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(PersistedFallbackMerger.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PersistedFallbackMerger.class);
 
   private PersistedFallbackMerger() {}
 

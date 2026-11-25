@@ -12,9 +12,10 @@ import java.util.Objects;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
@@ -39,7 +40,7 @@ import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
 public class IngatlanComHtmlImportService {
 
   static final int MAX_HTML_BYTES = 5 * 1024 * 1024;
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComHtmlImportService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanComHtmlImportService.class);
   private static final DateTimeFormatter TS_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 

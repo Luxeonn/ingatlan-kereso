@@ -8,7 +8,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import ingatlanok.common.AppLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
@@ -23,7 +25,7 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
 
   public static final int DEFAULT_MAX_PAGES = 20;
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComSidecarStrategy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanComSidecarStrategy.class);
   private static final long CACHE_TTL_MS = 180_000L; // 3 minutes TTL to avoid Cloudflare 429 burst limit
   private static final Map<String, CachedResult> RESPONSE_CACHE = new ConcurrentHashMap<>();
 

@@ -6,16 +6,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.common.SlugUtils;
 
 public final class IngatlanBazarLocationResolver {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarLocationResolver.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanBazarLocationResolver.class);
   private static final String GEO_MATCH_URL =
       "https://www.ingatlanbazar.hu/api/geo/get-matches?name=%s&types=3&needLocation=1";
   private static final Map<String, Integer> LOCATION_CACHE = new ConcurrentHashMap<>();

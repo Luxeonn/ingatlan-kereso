@@ -301,14 +301,11 @@ export const App: FC = () => {
                 sessionViewedUrls={searchState.sessionViewedUrls}
                 isLoading={slice.activeLoading}
                 hasSearched={hasSearched}
-                mode={ui.listingSubView}
                 subView={ui.listingSubView}
                 onSubViewChange={ui.setListingSubView}
                 searchCount={searchState.rawCount}
                 favoritesCount={searchState.favoritesCount}
-                archiveCount={searchState.rawArchiveItems.length}
                 onMarkViewed={searchState.markAsViewed}
-                onOpenAll={searchState.openAllTabs}
                 onTriggerSearch={handleSearch}
                 onClearHistory={clearHistoryFn}
                 isClearingHistory={searchState.isClearingHistory}

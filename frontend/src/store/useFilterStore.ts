@@ -127,7 +127,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
       set({ onlyViewed })
     },
 
-    setOnlyDiscounted: (onlyDiscounted) => updateCriteria({ onlyDiscounted }),
     setOnlyNewConstruction: (onlyNewConstruction) => {
       if (onlyNewConstruction) set({ excludeNewConstruction: false })
       updateCriteria({ onlyNewConstruction })

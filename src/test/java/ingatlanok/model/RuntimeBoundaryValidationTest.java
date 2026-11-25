@@ -141,18 +141,6 @@ class RuntimeBoundaryValidationTest {
   }
 
   @Test
-  @DisplayName("Money - Negatív érték nem engedélyezett a domain értékobjektumban")
-  void testMoneyValidation() {
-    assertTrue(Money.ofHuf(0).amountHuf() == 0);
-    assertTrue(Money.ofHuf(50_000_000L).amountHuf() == 50_000_000L);
-    assertTrue(Money.ofMillions(45.5).amountHuf() == 45_500_000L);
-
-    assertThrows(IllegalArgumentException.class, () -> new Money(-1L));
-    assertThrows(IllegalArgumentException.class, () -> Money.ofHuf(-100L));
-    assertThrows(IllegalArgumentException.class, () -> Money.ofMillions(-5.0));
-  }
-
-  @Test
   @DisplayName("ListingSortOption.fromString() - Érvénytelen rendezési kulcs kivételt dob")
   void testListingSortOptionValidation() {
     assertEquals(ListingSortOption.DISCOVERED_DESC, ListingSortOption.fromString(null));

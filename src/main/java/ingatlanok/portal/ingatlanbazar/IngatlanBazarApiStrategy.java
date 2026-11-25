@@ -3,7 +3,9 @@ package ingatlanok.portal.ingatlanbazar;
 import java.util.List;
 import java.util.function.Function;
 
-import ingatlanok.common.AppLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
@@ -17,7 +19,7 @@ public class IngatlanBazarApiStrategy extends AbstractPaginatedExtractionStrateg
 
   public static final int DEFAULT_MAX_PAGES = AbstractPaginatedExtractionStrategy.DEFAULT_MAX_PAGES;
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarApiStrategy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanBazarApiStrategy.class);
 
   private final IngatlanBazarQueryBuilder queryBuilder;
   private final IngatlanBazarRawParser rawParser;

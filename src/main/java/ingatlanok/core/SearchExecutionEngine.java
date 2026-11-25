@@ -8,10 +8,11 @@ import java.util.Objects;
 
 import lombok.Builder;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
@@ -25,7 +26,7 @@ import ingatlanok.portal.PortalEngineRegistry;
 @Service
 public class SearchExecutionEngine {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(SearchExecutionEngine.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SearchExecutionEngine.class);
 
   private final PortalEngineRegistry portalRegistry;
   private final ListingStorage listingStorage;

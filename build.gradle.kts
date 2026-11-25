@@ -7,7 +7,6 @@ buildscript {
             force("org.apache.httpcomponents.client5:httpclient5:5.6.5")
             force("org.apache.httpcomponents.core5:httpcore5:5.5")
             force("org.apache.httpcomponents.core5:httpcore5-h2:5.5")
-            force("org.apache.commons:commons-lang3:3.22.0")
             force("org.springframework:spring-core:7.1.0")
             force("tools.jackson.core:jackson-core:3.3.0")
             force("tools.jackson.core:jackson-databind:3.3.0")
@@ -47,8 +46,6 @@ application {
 }
 
 val jsoupVersion = "1.24.1"
-val commonsIoVersion = "2.22.0"
-val commonsLang3Version = "3.22.0"
 val caffeineVersion = "3.3.1"
 val lombokVersion = "1.18.48"
 val mapstructVersion = "1.6.3"
@@ -73,9 +70,6 @@ dependencies {
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.jsoup:jsoup:$jsoupVersion")
-    implementation("org.brotli:dec:0.1.2")
-    implementation("commons-io:commons-io:$commonsIoVersion")
-    implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
     implementation("org.mapstruct:mapstruct:$mapstructVersion")

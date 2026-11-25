@@ -2,8 +2,6 @@ import type { FC } from 'react'
 import type { PropertyType } from '../../types/property'
 import { cn } from '../../utils/cn'
 
-export type FilterPropertyType = 'LAKAS' | 'HAZ' | 'TELEK' | 'lakas' | 'haz' | 'telek'
-
 interface PropertyTypeTabsProps {
   value: PropertyType | string
   onChange: (type: PropertyType) => void

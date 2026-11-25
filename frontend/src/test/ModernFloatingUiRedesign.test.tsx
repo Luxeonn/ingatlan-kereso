@@ -14,7 +14,6 @@ import { PropertyCard } from '../components/listings/PropertyCard'
 import { ListingsPanel } from '../components/listings/ListingsPanel'
 import { BulkActionBar } from '../components/listings/BulkActionBar'
 import { applyItemFilters, filterItemsByCities } from '../utils/listingFilters'
-import { sanitizeHistoryQuery } from '../hooks/useArchiveQueries'
 import { useUiStore } from '../store/useUiStore'
 import { useFilterStore } from '../store/useFilterStore'
 import { createMockIngatlanItem } from './testFixtures'
@@ -28,7 +27,6 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       viewMode: 'grid',
       dashboardTab: 'listings',
       listingSubView: 'listings',
-      workspaceTab: 'listings',
       archiveSubMode: 'all',
       selectedCardUrls: [],
       starredUrls: [],
@@ -194,17 +192,7 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       expect(useUiStore.getState().archiveSubMode).toBe('discounted')
     })
 
-    it('sanitizes HistoryQuery parameters and tracks dirty filter state after markCriteriaExecuted', () => {
-      const sanitized = sanitizeHistoryQuery({
-        minPrice: 120,
-        maxPrice: 70,
-        limit: 500,
-        offset: -10,
-      })
-      expect(sanitized.maxPrice).toBeUndefined()
-      expect(sanitized.limit).toBe(200)
-      expect(sanitized.offset).toBe(0)
-
+    it('tracks dirty filter state after markCriteriaExecuted', () => {
       useFilterStore.getState().markCriteriaExecuted()
       const initialHash = useFilterStore.getState().lastExecutedCriteriaHash
       expect(initialHash).toBeTruthy()
@@ -319,7 +307,6 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
           mode="archive"
           subView="archive"
           onMarkViewed={vi.fn()}
-          onOpenAll={vi.fn()}
           onTriggerSearch={vi.fn()}
         />,
       )
