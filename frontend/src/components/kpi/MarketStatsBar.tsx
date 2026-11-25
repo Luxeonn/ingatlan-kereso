@@ -1,21 +1,36 @@
 import type { FC, ReactNode } from 'react'
 import { Building2, Sparkles, TrendingDown } from 'lucide-react'
 import type { DashboardResponseDto } from '../../types/api'
-import { isItemBargain } from '../../utils/listingFilters'
+import { isItemBargain, isListingNew } from '../../utils/listingFilters'
 import { useFilterStore } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
 
 interface MarketStatsBarProps {
   data: DashboardResponseDto | null
+  sessionViewedUrls?: ReadonlySet<string>
 }
 
-function resolveBargainCount(data: DashboardResponseDto): number {
-  const statsBargainCount = data.marketStats?.bargainCount
-  if (statsBargainCount !== null && statsBargainCount !== undefined) {
-    return statsBargainCount
+function resolveActiveKpiCounts(
+  data: DashboardResponseDto,
+  sessionViewedUrls?: ReadonlySet<string>,
+): { total: number; newCount: number; bargainCount: number } {
+  const items = data.items
+  if (Array.isArray(items) && items.length > 0) {
+    const activeItems = items.filter((item) => !item.hidden)
+    return {
+      total: activeItems.length,
+      newCount: activeItems.filter((item) => isListingNew(item, sessionViewedUrls)).length,
+      bargainCount: activeItems.filter(isItemBargain).length,
+    }
   }
-  return data.items ? data.items.filter(isItemBargain).length : 0
+  const statsBargainCount = data.marketStats?.bargainCount
+  return {
+    total: data.totalFound ?? 0,
+    newCount: data.newCount ?? 0,
+    bargainCount:
+      statsBargainCount !== null && statsBargainCount !== undefined ? statsBargainCount : 0,
+  }
 }
 
 interface KpiCardButtonProps {
@@ -79,15 +94,13 @@ const KpiCardButton: FC<KpiCardButtonProps> = ({
   </button>
 )
 
-export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data }) => {
+export const MarketStatsBar: FC<MarketStatsBarProps> = ({ data, sessionViewedUrls }) => {
   const { onlyNew, setOnlyNew, onlyBargain, setOnlyBargain } = useFilterStore()
   const { setDashboardTab, setListingSubView } = useUiStore()
 
   if (!data) return null
 
-  const total = data.totalFound ?? data.items?.length ?? 0
-  const newCount = data.newCount ?? 0
-  const bargainCount = resolveBargainCount(data)
+  const { total, newCount, bargainCount } = resolveActiveKpiCounts(data, sessionViewedUrls)
   const isAllActive = !onlyNew && !onlyBargain
 
   const focusListingsView = () => {

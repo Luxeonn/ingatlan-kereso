@@ -110,6 +110,7 @@ public class SearchExecutionEngine {
     qualityEngine.evaluateAll(uniqueAggregatedList);
     logQualityStats(allAggregatedItems.size(), uniqueAggregatedList);
 
+    reconcileCityCounts(cityCounts, uniqueAggregatedList);
     persistenceSynchronizer.recalculateRelevantPortalCounts(portalCounts, uniqueAggregatedList);
     List<PortalScrapeResult> aggregatedPortalResults =
         persistenceSynchronizer.aggregatePortalResultsByPortal(
@@ -128,6 +129,30 @@ public class SearchExecutionEngine {
 
     logSearchEnd(result);
     return result;
+  }
+
+  private void reconcileCityCounts(
+      Map<String, Integer> cityCounts, List<IngatlanItem> uniqueAggregatedList) {
+    cityCounts.replaceAll((k, v) -> 0);
+    for (IngatlanItem item : uniqueAggregatedList) {
+      if (item == null || item.isHidden()) {
+        continue;
+      }
+      String matchedCity = null;
+      for (String city : cityCounts.keySet()) {
+        if (SearchCriteria.matchesCity(item, city)) {
+          matchedCity = city;
+          break;
+        }
+      }
+      String key =
+          matchedCity != null
+              ? matchedCity
+              : (item.getCity() != null && !item.getCity().isBlank() ? item.getCity() : null);
+      if (key != null) {
+        cityCounts.merge(key, 1, Integer::sum);
+      }
+    }
   }
 
   private void applyMultiCityExecutionStatus(

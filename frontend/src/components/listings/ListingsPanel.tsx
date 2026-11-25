@@ -13,6 +13,7 @@ export interface ListingsPanelProps {
   totalRawCount: number
   serverFilteredCount?: number
   medianPricePerSqm?: number | null
+  sessionViewedUrls?: ReadonlySet<string>
   isLoading: boolean
   hasSearched: boolean
   mode?: ListingSubView
@@ -135,12 +136,27 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
   </nav>
 )
 
+function resolveSubViewCounts(
+  activeMode: ListingSubView,
+  totalRawCount: number,
+  searchCount?: number,
+  favoritesCount?: number,
+  archiveCount?: number,
+) {
+  return {
+    activeSearchCount: searchCount ?? (activeMode === 'listings' ? totalRawCount : 0),
+    activeFavoritesCount: favoritesCount ?? (activeMode === 'favorites' ? totalRawCount : 0),
+    activeArchiveCount: archiveCount ?? (activeMode === 'archive' ? totalRawCount : 0),
+  }
+}
+
 export const ListingsPanel: FC<ListingsPanelProps> = ({
   items,
   rawItems,
   totalRawCount,
   serverFilteredCount,
   medianPricePerSqm,
+  sessionViewedUrls,
   isLoading,
   hasSearched,
   mode,
@@ -172,17 +188,21 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
     onSubViewChange?.(newSubView)
   }
 
-  const activeSearchCount = searchCount ?? (activeMode === 'listings' ? totalRawCount : 0)
-  const activeFavoritesCount = favoritesCount ?? (activeMode === 'favorites' ? totalRawCount : 0)
-  const activeArchiveCount = archiveCount ?? (activeMode === 'archive' ? totalRawCount : 0)
+  const { activeSearchCount, activeFavoritesCount, activeArchiveCount } = resolveSubViewCounts(
+    activeMode,
+    totalRawCount,
+    searchCount,
+    favoritesCount,
+    archiveCount,
+  )
 
-  // Multi-source grouped count calculation (#260, #261, #358, #432)
-  const totalSourceListingsCount = getTotalSourceListingsCount(items)
+  const baseSummaryItems = rawItems ?? items
+  const totalSourceListingsCount = getTotalSourceListingsCount(baseSummaryItems)
 
   const summaryNotice =
     activeMode === 'listings' ? (
       <MultiSourceNotice
-        itemsCount={items.length}
+        itemsCount={baseSummaryItems.length}
         totalSourceListingsCount={totalSourceListingsCount}
         serverFilteredCount={serverFilteredCount}
         medianPricePerSqm={medianPricePerSqm}
@@ -215,6 +235,7 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         items={items}
         rawItems={rawItems}
         totalRawCount={totalRawCount}
+        sessionViewedUrls={sessionViewedUrls}
         isLoading={isLoading}
         hasSearched={hasSearched}
         mode={activeMode}

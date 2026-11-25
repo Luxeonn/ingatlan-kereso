@@ -111,7 +111,7 @@ export function useSearch() {
 
       if (criteria.autoOpenBrowser && result.items && result.items.length > 0) {
         const newUrls = result.items
-          .filter(isListingNew)
+          .filter((item) => !item.hidden && isListingNew(item))
           .map((item) => item.url)
           .filter(Boolean)
 
@@ -318,8 +318,9 @@ export function useSearch() {
     handleAfterMerge,
   )
 
-  return {
+    return {
     data,
+    sessionViewedUrls,
     items: processedItems,
     rawItems: showHidden ? hiddenSearchItems : activeSearchItems,
     rawCount: showHidden ? hiddenSearchItems.length : activeSearchItems.length,

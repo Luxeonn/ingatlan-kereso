@@ -47,7 +47,18 @@ public class MarketAnalyticsEngine {
       return stats.build();
     }
 
-    List<IngatlanItem> uniqueItems = statisticsCalculator.deduplicateItems(items);
+    List<IngatlanItem> uniqueAll = statisticsCalculator.deduplicateItems(items);
+    List<IngatlanItem> uniqueItems = new ArrayList<>(uniqueAll.size());
+    for (IngatlanItem item : uniqueAll) {
+      if (item == null) {
+        continue;
+      }
+      if (item.isHidden()) {
+        suppressItemBargain(item, null);
+      } else {
+        uniqueItems.add(item);
+      }
+    }
     int totalItems = uniqueItems.size();
 
     MarketStatsAccumulator acc = accumulateItemMetrics(uniqueItems);
@@ -282,7 +293,7 @@ public class MarketAnalyticsEngine {
     item.setPercentageBelowMedian(roundedPctBelow);
     item.setReferenceSampleSize(segment.getSampleSize());
 
-    boolean isBargain = pctBelow >= BARGAIN_DISCOUNT_THRESHOLD_PERCENT;
+    boolean isBargain = roundedPctBelow >= BARGAIN_DISCOUNT_THRESHOLD_PERCENT;
     item.setIsBargain(isBargain);
     return isBargain;
   }

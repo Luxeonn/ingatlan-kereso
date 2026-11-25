@@ -47,8 +47,10 @@ public class SearchResultAggregator {
       Map<String, Integer> cityCounts,
       List<String> newCitiesInitialized) {
 
+    List<IngatlanItem> activeItems =
+        uniqueAggregatedList.stream().filter(item -> item != null && !item.isHidden()).toList();
     List<IngatlanItem> newItems =
-        uniqueAggregatedList.stream().filter(IngatlanItem::isNew).collect(Collectors.toList());
+        activeItems.stream().filter(IngatlanItem::isNew).collect(Collectors.toList());
 
     if (configStorage != null) {
       configStorage.saveLastCriteria(criteria);
@@ -60,7 +62,7 @@ public class SearchResultAggregator {
     return SearchResult.builder()
         .items(uniqueAggregatedList)
         .newCount(newItems.size())
-        .totalFound(uniqueAggregatedList.size())
+        .totalFound(activeItems.size())
         .executedAt(
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()))
         .portalCounts(portalCounts != null ? portalCounts : new HashMap<>())
