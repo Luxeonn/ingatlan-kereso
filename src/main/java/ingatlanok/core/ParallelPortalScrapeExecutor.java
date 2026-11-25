@@ -10,8 +10,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,10 +19,10 @@ import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.portal.PortalEngine;
 
+@Slf4j
 @Component
 public class ParallelPortalScrapeExecutor {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ParallelPortalScrapeExecutor.class);
   private static final long DEFAULT_TIMEOUT_SECONDS = 15;
   private static final long DEFAULT_SIDECAR_TIMEOUT_SECONDS = 120;
 
@@ -90,7 +89,7 @@ public class ParallelPortalScrapeExecutor {
             portalCounts.put(
                 engine.getName(), portalCounts.getOrDefault(engine.getName(), 0) + items.size());
           }
-          LOGGER.info(
+          log.info(
               "  ├─ [{}] {} db hirdetés letöltve (Válaszidő: {} ms, Státusz: {})",
               engine.getName(),
               items != null ? items.size() : 0,
@@ -98,7 +97,7 @@ public class ParallelPortalScrapeExecutor {
               scrapeResult.getStatus());
         } catch (TimeoutException te) {
           future.cancel(true);
-          LOGGER.warn(
+          log.warn(
               "Időtúllépés ({} mp) a(z) {} keresésekor ({})",
               engineTimeoutSeconds,
               engine.getName(),
@@ -111,7 +110,7 @@ public class ParallelPortalScrapeExecutor {
                   engineTimeoutSeconds * 1000);
           scrapeResults.add(timeoutResult);
         } catch (Exception e) {
-          LOGGER.error(
+          log.error(
               "Hiba a(z) {} keresésekor ({}): {}",
               engine.getName(),
               currentCity,

@@ -10,18 +10,17 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import ingatlanok.common.JsonSupport;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.SearchCriteria;
 
+@Slf4j
 public class SidecarCliExecutor {
 
   public static final int DEFAULT_MAX_PAGES = 20;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SidecarCliExecutor.class);
   private static final int MIN_TIMEOUT_SECONDS = 25;
   private static final int MAX_TIMEOUT_SECONDS = 105;
   private static final int MAX_SOFT_TIMEOUT_MS = 90_000;
@@ -74,7 +73,7 @@ public class SidecarCliExecutor {
     List<String> cliArgs = buildArguments(portalId, criteria, safeMaxPages);
     List<List<String>> candidates = resolveCommandCandidates(cliArgs);
     if (candidates.isEmpty()) {
-      LOGGER.debug("Sidecar parancs nem érhető el a(z) {} portálhoz", portalId);
+      log.debug("Sidecar parancs nem érhető el a(z) {} portálhoz", portalId);
       return Optional.empty();
     }
 
@@ -142,7 +141,7 @@ public class SidecarCliExecutor {
 
   private static void logPartialFallback(SidecarResponse resp, boolean hasNextCandidate) {
     if (hasNextCandidate) {
-      LOGGER.warn(
+      log.warn(
           "Sidecar részleges eredmény ({} db, ok={}), fallback sidecar futtatása...",
           resp.getItems().size(),
           resp.getStopReason());
@@ -151,7 +150,7 @@ public class SidecarCliExecutor {
 
   private static void logFailureFallback(SidecarResponse resp, boolean hasNextCandidate) {
     if (hasNextCandidate) {
-      LOGGER.warn(
+      log.warn(
           "Sidecar sikertelen ({}), fallback sidecar futtatása...",
           resp.getErrorMessage() != null ? resp.getErrorMessage() : resp.getStatus());
     }
@@ -172,7 +171,7 @@ public class SidecarCliExecutor {
 
   private static Optional<SidecarResponse> executeCommand(
       String portalId, List<String> fullCommand, int timeoutSeconds) {
-    LOGGER.info("Sidecar futtatása: {}", String.join(" ", fullCommand));
+    log.info("Sidecar futtatása: {}", String.join(" ", fullCommand));
     Process process = null;
     try {
       ProcessBuilder pb = new ProcessBuilder(fullCommand);
@@ -184,7 +183,7 @@ public class SidecarCliExecutor {
 
       boolean finished = readProcessStreams(process, stdout, stderr, timeoutSeconds);
       if (!finished) {
-        LOGGER.warn(
+        log.warn(
             "Időtúllépés a sidecar futtatása során ({}, limit={}s)", portalId, timeoutSeconds);
         return parseResponseIfPresent(stdout.toString().trim());
       }
@@ -192,7 +191,7 @@ public class SidecarCliExecutor {
       String stdoutJson = stdout.toString().trim();
       if (stdoutJson.isEmpty()) {
         if (!stderr.isEmpty()) {
-          LOGGER.warn("Üres stdout válasz ({}). Stderr: {}", portalId, stderr.toString().trim());
+          log.warn("Üres stdout válasz ({}). Stderr: {}", portalId, stderr.toString().trim());
         }
         return Optional.empty();
       }
@@ -203,13 +202,13 @@ public class SidecarCliExecutor {
         process.destroyForcibly();
       }
       Thread.currentThread().interrupt();
-      LOGGER.warn("A sidecar futtatása megszakadt ({})", portalId);
+      log.warn("A sidecar futtatása megszakadt ({})", portalId);
       return Optional.empty();
     } catch (tools.jackson.core.JacksonException e) {
-      LOGGER.error("JSON szintaxis hiba a sidecar kimenetében: {}", e.getMessage(), e);
+      log.error("JSON szintaxis hiba a sidecar kimenetében: {}", e.getMessage(), e);
       return Optional.empty();
     } catch (Exception e) {
-      LOGGER.error("Hiba a sidecar futtatásakor: {}", e.getMessage(), e);
+      log.error("Hiba a sidecar futtatásakor: {}", e.getMessage(), e);
       return Optional.empty();
     }
   }

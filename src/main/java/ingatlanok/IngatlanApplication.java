@@ -1,8 +1,7 @@
 package ingatlanok;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,12 +11,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 
+@Slf4j
 @SpringBootApplication
 @EnableCaching
 @RequiredArgsConstructor
 public class IngatlanApplication {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanApplication.class);
 
   private final Environment environment;
 
@@ -43,6 +41,6 @@ public class IngatlanApplication {
     String displayHost = ("0.0.0.0".equals(host) || "::".equals(host)) ? "localhost" : host;
     String url = "http://" + displayHost + ":" + port;
 
-    LOGGER.info("Ingatlan Kereső (Spring Boot 4.1.2) Aktív! Headless REST API: {}/api/status", url);
+    log.info("Ingatlan Kereső (Spring Boot 4.1.2) Aktív! Headless REST API: {}/api/status", url);
   }
 }

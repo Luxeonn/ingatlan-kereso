@@ -3,8 +3,7 @@ package ingatlanok.portal.ingatlanbazar;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
 
 import ingatlanok.common.JsonSupport;
@@ -12,10 +11,10 @@ import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.PortalSupport;
 
+@Slf4j
 public class IngatlanBazarRawParser {
 
   static final String THUMBNAIL_SUFFIX = "_485x354.jpg";
-  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanBazarRawParser.class);
 
   public List<RawPropertyListing> parseRawListings(String json) {
     List<RawPropertyListing> result = new ArrayList<>();
@@ -26,7 +25,7 @@ public class IngatlanBazarRawParser {
     try {
       JsonNode root = JsonSupport.parse(json);
       if (!root.has("hits") || !root.get("hits").isArray()) {
-        LOGGER.warn("Ingatlanbazár API válasz nem tartalmaz 'hits' tömböt");
+        log.warn("Ingatlanbazár API válasz nem tartalmaz 'hits' tömböt");
         return result;
       }
 
@@ -43,7 +42,7 @@ public class IngatlanBazarRawParser {
         }
       }
     } catch (Exception e) {
-      LOGGER.error("Hiba a nyers Ingatlanbazár JSON találatok feldolgozásakor: {}", e.getMessage(), e);
+      log.error("Hiba a nyers Ingatlanbazár JSON találatok feldolgozásakor: {}", e.getMessage(), e);
     }
 
     return result;

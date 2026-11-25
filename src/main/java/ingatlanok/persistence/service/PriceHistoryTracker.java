@@ -1,15 +1,13 @@
 package ingatlanok.persistence.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import ingatlanok.model.ListingStatus;
 
+@Slf4j
 @Component
 public class PriceHistoryTracker {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(PriceHistoryTracker.class);
 
   public record ExistingPriceState(
       boolean isNew,
@@ -91,7 +89,7 @@ public class PriceHistoryTracker {
             ? ListingStatus.PRICE_DROP
             : (delta > 0 ? ListingStatus.PRICE_INCREASE : resolveStatus(existing.currentStatus()));
 
-    LOGGER.info(
+    log.info(
         "[Árváltozás] {} - Régi: {} Ft -> Új: {} Ft (Delta: {} Ft, {}%)",
         title != null ? title : "", prev, newAmount, delta, changePct);
 

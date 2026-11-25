@@ -3,9 +3,8 @@ package ingatlanok.portal.ingatlancom;
 import java.util.List;
 import java.util.function.Function;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.SearchCriteria;
@@ -16,9 +15,8 @@ import ingatlanok.portal.ExtractionStrategy;
 import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.sidecar.SidecarCliExecutor;
 
+@Slf4j
 public class IngatlanComHtmlStrategy implements ExtractionStrategy {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanComHtmlStrategy.class);
 
   private final IngatlanComUrlBuilder urlBuilder;
   private final IngatlanComRawParser rawParser;
@@ -48,30 +46,30 @@ public class IngatlanComHtmlStrategy implements ExtractionStrategy {
   public RawExtractionResult extract(SearchCriteria criteria) {
     String searchUrl = urlBuilder.buildSearchUrl(criteria);
     if (defaultFetcher && SidecarCliExecutor.isAvailable()) {
-      LOGGER.debug("Ingatlan.com: Sidecar elérhető volt, redundáns Jsoup lekérés kihagyása");
+      log.debug("Ingatlan.com: Sidecar elérhető volt, redundáns Jsoup lekérés kihagyása");
       return RawExtractionResult.botProtected(
           method(), searchUrl, "Cloudflare WAF / Sidecar fallback");
     }
 
-    LOGGER.info("Ingatlan.com HTML stratégia indítása: {}", searchUrl);
+    log.info("Ingatlan.com HTML stratégia indítása: {}", searchUrl);
 
     try {
       Document document = documentFetcher.apply(searchUrl);
       if (document == null) {
-        LOGGER.warn("Ingatlan.com: Nem sikerült letölteni az oldalt -> WAF védelem feltételezve");
+        log.warn("Ingatlan.com: Nem sikerült letölteni az oldalt -> WAF védelem feltételezve");
         return RawExtractionResult.botProtected(
             method(), searchUrl, "Nem sikerült letölteni az oldalt");
       }
 
       if (PortalSupport.isCommonBotChallenge(document)) {
-        LOGGER.warn("Ingatlan.com: Cloudflare WAF bot-védelem detektálva");
+        log.warn("Ingatlan.com: Cloudflare WAF bot-védelem detektálva");
         return RawExtractionResult.botProtected(
             method(), searchUrl, "Cloudflare WAF detektálva");
       }
 
       List<RawPropertyListing> listings = rawParser.parseRawListings(document);
       if (listings.isEmpty()) {
-        LOGGER.warn(
+        log.warn(
             "Ingatlan.com: Nem sikerült közvetlen hirdetéseket kinyerni -> bot védelem feltételezve");
         return RawExtractionResult.botProtected(
             method(), searchUrl, "0 találat, bot-védelem aktív");
@@ -79,7 +77,7 @@ public class IngatlanComHtmlStrategy implements ExtractionStrategy {
 
       return RawExtractionResult.success(listings, method());
     } catch (Exception e) {
-      LOGGER.error("Hiba az Ingatlan.com HTML stratégia futásakor: {}", e.getMessage(), e);
+      log.error("Hiba az Ingatlan.com HTML stratégia futásakor: {}", e.getMessage(), e);
       return RawExtractionResult.failure(method(), searchUrl, e.getMessage(), 500);
     }
   }

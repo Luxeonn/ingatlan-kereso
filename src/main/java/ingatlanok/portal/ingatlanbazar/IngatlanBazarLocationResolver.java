@@ -6,17 +6,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
 
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.common.SlugUtils;
 
+@Slf4j
 public final class IngatlanBazarLocationResolver {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(IngatlanBazarLocationResolver.class);
   private static final String GEO_MATCH_URL =
       "https://www.ingatlanbazar.hu/api/geo/get-matches?name=%s&types=3&needLocation=1";
   private static final Map<String, Integer> LOCATION_CACHE = new ConcurrentHashMap<>();
@@ -73,17 +72,17 @@ public final class IngatlanBazarLocationResolver {
     try {
       String encoded = URLEncoder.encode(cityName.trim(), StandardCharsets.UTF_8);
       String url = String.format(GEO_MATCH_URL, encoded);
-      LOGGER.debug("Ingatlanbazár településkód lekérdezése: {} -> {}", cityName, url);
+      log.debug("Ingatlanbazár településkód lekérdezése: {} -> {}", cityName, url);
       String json = HttpFetcher.fetchJson(url);
       Optional<Integer> resolved = parseLocationIdFromJson(json, cityName);
       if (resolved.isPresent()) {
         int id = resolved.get();
         LOCATION_CACHE.put(slug, id);
-        LOGGER.debug("Ingatlanbazár településkód megtalálva: {} -> {}", cityName, id);
+        log.debug("Ingatlanbazár településkód megtalálva: {} -> {}", cityName, id);
         return resolved;
       }
     } catch (Exception e) {
-      LOGGER.warn("Nem sikerült feloldani a településkódot ({}): {}", cityName, e.getMessage());
+      log.warn("Nem sikerült feloldani a településkódot ({}): {}", cityName, e.getMessage());
     }
 
     return Optional.empty();

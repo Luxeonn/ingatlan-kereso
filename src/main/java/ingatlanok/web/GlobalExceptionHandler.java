@@ -4,8 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,18 +17,17 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import tools.jackson.databind.ObjectMapper;
 
+@Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   private final ObjectMapper objectMapper;
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ApiErrorResponse> handleIllegalArgument(
       IllegalArgumentException ex, HttpServletRequest request) {
-    LOGGER.warn("Érvénytelen kérés: " + ex.getMessage());
+    log.warn("Érvénytelen kérés: " + ex.getMessage());
     return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
   }
 
@@ -37,7 +35,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
       MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
     String msg = "Érvénytelen paraméter típus: " + ex.getName();
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
@@ -46,7 +44,7 @@ public class GlobalExceptionHandler {
       org.springframework.web.HttpRequestMethodNotSupportedException ex,
       HttpServletRequest request) {
     String msg = "A kért HTTP metódus nem támogatott: " + ex.getMethod();
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, msg, request.getRequestURI());
   }
 
@@ -59,7 +57,7 @@ public class GlobalExceptionHandler {
         (cause instanceof IllegalArgumentException && cause.getMessage() != null && !cause.getMessage().isBlank())
             ? cause.getMessage()
             : "Érvénytelen kéréstörzs (hibás JSON formátum)";
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
@@ -67,7 +65,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleMediaTypeNotSupported(
       org.springframework.web.HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
     String msg = "Nem támogatott média típus: " + ex.getContentType();
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, msg, request.getRequestURI());
   }
 
@@ -75,7 +73,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<String> handleMediaTypeNotAcceptable(
       org.springframework.web.HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
     String msg = "Nem elfogadható média típus a kért erőforráshoz";
-    LOGGER.warn(msg);
+    log.warn(msg);
     ApiErrorResponse body =
         ApiErrorResponse.of(
             HttpStatus.NOT_ACCEPTABLE.value(),
@@ -92,7 +90,7 @@ public class GlobalExceptionHandler {
       org.springframework.web.bind.MissingServletRequestParameterException ex,
       HttpServletRequest request) {
     String msg = "Hiányzó kötelező kérés paraméter: " + ex.getParameterName();
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
@@ -105,7 +103,7 @@ public class GlobalExceptionHandler {
             .filter(m -> m != null && !m.isBlank())
             .findFirst()
             .orElse("Érvénytelen kérés paraméterek");
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
@@ -113,7 +111,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex, HttpServletRequest request) {
     String msg = resolveBindingValidationMessage(ex);
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
@@ -126,7 +124,7 @@ public class GlobalExceptionHandler {
             .filter(m -> m != null && !m.isBlank())
             .findFirst()
             .orElse("Érvénytelen kérés paraméterek");
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.BAD_REQUEST, msg, request.getRequestURI());
   }
 
@@ -156,14 +154,14 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleNoResourceFound(
       Exception ex, HttpServletRequest request) {
     String msg = "Erőforrás nem található: " + request.getRequestURI();
-    LOGGER.warn(msg);
+    log.warn(msg);
     return buildErrorResponse(HttpStatus.NOT_FOUND, msg, request.getRequestURI());
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiErrorResponse> handleGenericException(
       Exception ex, HttpServletRequest request) {
-    LOGGER.error(
+    log.error(
         "Váratlan hiba történt a(z) " + request.getRequestURI() + " kérés feldolgozása közben", ex);
     return buildErrorResponse(
         HttpStatus.INTERNAL_SERVER_ERROR, "Váratlan szerverhiba történt", request.getRequestURI());
