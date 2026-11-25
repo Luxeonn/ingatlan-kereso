@@ -5,10 +5,10 @@ buildscript {
     configurations.classpath {
         resolutionStrategy {
             force("org.apache.httpcomponents.client5:httpclient5:5.6.5")
-            force("org.apache.httpcomponents.core5:httpcore5:5.4.4")
-            force("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
+            force("org.apache.httpcomponents.core5:httpcore5:5.5")
+            force("org.apache.httpcomponents.core5:httpcore5-h2:5.5")
             force("org.apache.commons:commons-lang3:3.22.0")
-            force("org.springframework:spring-core:7.0.10")
+            force("org.springframework:spring-core:7.1.0")
             force("tools.jackson.core:jackson-core:3.3.0")
             force("tools.jackson.core:jackson-databind:3.3.0")
         }
@@ -20,7 +20,7 @@ plugins {
     application
     jacoco
     checkstyle
-    id("org.springframework.boot") version "4.1.2"
+    id("org.springframework.boot") version "4.2.0"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -56,14 +56,14 @@ val archunitVersion = "1.5.1"
 
 dependencies {
     constraints {
-        implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.27")
+        implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.29")
         implementation("tools.jackson.core:jackson-core:3.3.0")
         implementation("tools.jackson.core:jackson-databind:3.3.0")
         implementation("org.postgresql:postgresql:42.7.14")
         implementation("org.apache.logging.log4j:log4j-api:2.26.1")
         implementation("org.apache.httpcomponents.client5:httpclient5:5.6.5")
-        implementation("org.apache.httpcomponents.core5:httpcore5:5.4.4")
-        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
+        implementation("org.apache.httpcomponents.core5:httpcore5:5.5")
+        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.5")
     }
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -154,7 +154,7 @@ checkstyle {
 
 configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     resolutionStrategy {
-        force("org.codehaus.plexus:plexus-utils:4.1.0")
+        force("org.codehaus.plexus:plexus-utils:4.2.0")
         force("commons-beanutils:commons-beanutils:1.11.0")
         force("com.google.guava:guava:33.8.0-jre")
     }
