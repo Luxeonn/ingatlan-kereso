@@ -110,7 +110,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │                  IngatlanComHtmlImportRequestDto, IngatlanComHtmlImportResponseDto
     │  - web: RestApiController, DedupController, GlobalExceptionHandler, HistoryQueryDto,
     │         StatusResponseDto, CitiesResponseDto, ApiErrorResponse, PropertyHideResponseDto,
-    │         MarkViewedResponseDto, OpenUrlsResponseDto, ClearHistoryResponseDto, ActionSuccessResponseDto,
+    │         MarkViewedResponseDto, ClearHistoryResponseDto, ActionSuccessResponseDto,
     │         ClearHistoryRequest, MarkViewedRequest, PropertyBatchActionRequest
     │  - config: WebCorsConfig, SecurityHeadersFilter, RequestLoggingFilter
     ▼
@@ -206,7 +206,6 @@ All 27 paths (30 HTTP operations) defined in `openapi/api-spec.yaml` and served 
 | `/api/properties/discounted` | `GET` | `city` (optional) | `List<IngatlanItem>` | All properties with recorded negative price deltas. |
 | `/api/portals/ingatlancom/import-html` | `POST` | `IngatlanComHtmlImportRequestDto` | `IngatlanComHtmlImportResponseDto` | Parses and imports user-supplied Ingatlan.com search result HTML. |
 | `/api/search` | `POST` | `SearchCriteria` (optional) | `DashboardResponseDto` | Executes parallel scraping, normalization, deduplication, quality scoring, analytics, and returns aggregated results. |
-| `/api/open-urls` | `POST` | `List<String>` (URLs) | `OpenUrlsResponseDto` | Marks listings as viewed and returns processed count. |
 | `/api/items/viewed` | `POST` | `MarkViewedRequest` | `MarkViewedResponseDto` | Marks a single listing as viewed. |
 | `/api/history/clear` | `POST` | `ClearHistoryRequest` / `city` param (optional) | `ClearHistoryResponseDto` | Clears history for a specific city or entire database. |
 | `/api/dedup/split` | `POST` | `DedupSplitRequestDto` | `DedupActionResponseDto` | Persists `FORCE_SPLIT` override(s) to split a deduplicated cluster. |
