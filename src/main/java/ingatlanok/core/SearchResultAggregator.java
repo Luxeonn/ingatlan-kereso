@@ -5,15 +5,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import ingatlanok.common.BrowserUtils;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.SearchCriteria;
@@ -56,7 +53,6 @@ public class SearchResultAggregator {
       configStorage.saveLastCriteria(criteria);
     }
 
-    handleAutoOpenBrowser(criteria, newItems);
     uniqueAggregatedList.sort(ITEM_COMPARATOR);
 
     return SearchResult.builder()
@@ -123,15 +119,5 @@ public class SearchResultAggregator {
       return -1;
     }
     return urlA.compareTo(urlB);
-  }
-
-  private void handleAutoOpenBrowser(SearchCriteria criteria, List<IngatlanItem> newItems) {
-    if (criteria != null && criteria.isAutoOpenBrowser() && !newItems.isEmpty()) {
-      Set<String> urlsToOpen =
-          newItems.stream()
-              .map(IngatlanItem::getUrl)
-              .collect(Collectors.toCollection(LinkedHashSet::new));
-      BrowserUtils.openUrls(urlsToOpen);
-    }
   }
 }

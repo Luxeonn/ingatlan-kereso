@@ -111,9 +111,6 @@ describe('useFilterStore', () => {
     })
 
     it('updates boolean search flags and persists preferences in localStorage', () => {
-      useFilterStore.getState().setAutoOpen(true)
-      expect(useFilterStore.getState().criteria.autoOpenBrowser).toBe(true)
-
       useFilterStore.getState().setExcludeViewed(true)
       expect(useFilterStore.getState().criteria.excludeViewed).toBe(true)
       expect(localStorage.getItem('preferred_exclude_viewed')).toBe('true')

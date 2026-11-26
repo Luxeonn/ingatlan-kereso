@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { executeSearch } from '../api/searchApi'
 import {
   markAsViewed as apiMarkAsViewed,
-  openUrls as apiOpenUrls,
   getHistory as apiGetHistory,
   clearHistory as apiClearHistory,
   hideProperty as apiHideProperty,
@@ -15,11 +14,10 @@ import type { DashboardResponseDto, SearchCriteria } from '../types/api'
 import type { IngatlanItem } from '../types/property'
 import { useFilterStore } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
-import { normalizePortalKey, openExternalUrl } from '../utils/formatters'
+import { normalizePortalKey } from '../utils/formatters'
 import {
   normalizeSearchText,
   isItemBargain,
-  isListingNew,
   filterAndSortItems,
   markItemsAsViewed,
 } from '../utils/listingFilters'
@@ -108,17 +106,6 @@ export function useSearch() {
       setIsSearchPending(false)
       setData(result)
       invalidateDashboardQueries()
-
-      if (criteria.autoOpenBrowser && result.items && result.items.length > 0) {
-        const newUrls = result.items
-          .filter((item) => !item.hidden && isListingNew(item))
-          .map((item) => item.url)
-          .filter(Boolean)
-
-        if (newUrls.length > 0) {
-          openClientTabs(newUrls.slice(0, 10))
-        }
-      }
     },
   })
 
@@ -137,11 +124,6 @@ export function useSearch() {
   const markViewedMutation = useMutation({
     mutationFn: (url: string) => apiMarkAsViewed(url),
     onSuccess: (_, url) => markViewedInState(new Set([url])),
-  })
-
-  const openUrlsMutation = useMutation({
-    mutationFn: (urls: string[]) => apiOpenUrls(urls),
-    onSuccess: (_, urls) => markViewedInState(new Set(urls)),
   })
 
   const clearHistoryMutation = useMutation({
@@ -193,11 +175,6 @@ export function useSearch() {
       invalidateDashboardQueries()
     },
   })
-
-  const openClientTabs = (urls: string[]) => {
-    urls.forEach((u) => openExternalUrl(u))
-    openUrlsMutation.mutate(urls)
-  }
 
   const filterResetKey = `${criteria.excludeViewed}|${onlyViewed}|${criteria.onlyNewConstruction}|${excludeNewConstruction}|${onlyNew}|${excludeNew}|${onlyBargain}|${excludeBargain}|${excludeMultiSource}|${onlyMultiSource}|${excludeNoImage}|${onlyNoImage}|${includeHidden}|${selectedPortalFilter}|${quickSearchQuery}|${sortOption}|${showHidden}|${listingSubView}`
   const [prevFilterResetKey, setPrevFilterResetKey] = useState(filterResetKey)
@@ -352,11 +329,5 @@ export function useSearch() {
     mergeSelected,
     undoDedupOverride,
     isMerging,
-    openAllTabs: (itemsToOpen: IngatlanItem[]) => {
-      const urls = itemsToOpen.map((item) => item.url).filter(Boolean)
-      if (urls.length > 0) {
-        openClientTabs(urls)
-      }
-    },
   }
 }

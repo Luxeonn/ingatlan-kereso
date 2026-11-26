@@ -26,7 +26,6 @@ export interface ListingsPanelProps {
   onHide?: (item: IngatlanItem) => void
   onRestore?: (item: IngatlanItem) => void
   hiddenCount?: number
-  onOpenAll: (items: IngatlanItem[]) => void
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
@@ -169,7 +168,6 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   onHide,
   onRestore,
   hiddenCount,
-  onOpenAll,
   onTriggerSearch,
   onClearHistory,
   isClearingHistory = false,
@@ -243,7 +241,6 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         onHide={onHide}
         onRestore={onRestore}
         hiddenCount={hiddenCount}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
         onClearHistory={onClearHistory}
         isClearingHistory={isClearingHistory}

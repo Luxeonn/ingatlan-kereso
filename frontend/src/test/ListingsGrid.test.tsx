@@ -22,7 +22,6 @@ vi.mock('@tanstack/react-virtual', () => ({
 
 describe('ListingsGrid component', () => {
   const onMarkViewed = vi.fn()
-  const onOpenAll = vi.fn()
   const onTriggerSearch = vi.fn()
   const onClearHistory = vi.fn()
 
@@ -73,7 +72,6 @@ describe('ListingsGrid component', () => {
         isLoading={true}
         hasSearched={false}
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -91,7 +89,6 @@ describe('ListingsGrid component', () => {
         hasSearched={false}
         mode="listings"
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -113,7 +110,6 @@ describe('ListingsGrid component', () => {
         hasSearched={true}
         mode="favorites"
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -130,7 +126,6 @@ describe('ListingsGrid component', () => {
         hasSearched={true}
         mode="archive"
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
         onClearHistory={onClearHistory}
       />,
@@ -149,7 +144,6 @@ describe('ListingsGrid component', () => {
         hasSearched={true}
         mode="listings"
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -169,7 +163,6 @@ describe('ListingsGrid component', () => {
         hasSearched={true}
         mode="listings"
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -197,7 +190,6 @@ describe('ListingsGrid component', () => {
         initialBatchSize={10}
         batchSize={5}
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -227,7 +219,6 @@ describe('ListingsGrid component', () => {
         initialBatchSize={18}
         batchSize={18}
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -252,7 +243,6 @@ describe('ListingsGrid component', () => {
         initialBatchSize={18}
         batchSize={18}
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )
@@ -279,7 +269,6 @@ describe('ListingsGrid component', () => {
         initialBatchSize={18}
         batchSize={18}
         onMarkViewed={onMarkViewed}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
       />,
     )

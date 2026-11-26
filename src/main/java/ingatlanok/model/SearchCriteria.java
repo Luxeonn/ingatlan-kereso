@@ -42,7 +42,6 @@ public class SearchCriteria {
   @PositiveOrZero(message = "A minimum szobaszám nem lehet negatív")
   private Integer minRooms;
   private List<String> portals = new ArrayList<>();
-  private boolean autoOpenBrowser = false;
   private boolean excludeViewed = false;
   private boolean onlyDiscounted = false;
   private boolean onlyNewConstruction = false;
@@ -117,7 +116,6 @@ public class SearchCriteria {
     clone.setMaxArea(this.maxArea);
     clone.setMinRooms(this.minRooms);
     clone.setPortals(this.portals != null ? new ArrayList<>(this.portals) : new ArrayList<>());
-    clone.setAutoOpenBrowser(this.autoOpenBrowser);
     clone.setExcludeViewed(this.excludeViewed);
     clone.setOnlyDiscounted(this.onlyDiscounted);
     clone.setOnlyNewConstruction(this.onlyNewConstruction);

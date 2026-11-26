@@ -9,7 +9,6 @@ import type { HistoryQuery, StatusResponse } from '../types/api'
 import type { components } from '../types/generated-api'
 
 export type MarkViewedResponse = components['schemas']['MarkViewedResponse']
-export type OpenUrlsResponse = components['schemas']['OpenUrlsResponse']
 export type PropertyHideResponse = components['schemas']['PropertyHideResponse']
 export type ClearHistoryResponse = components['schemas']['ClearHistoryResponse']
 
@@ -64,14 +63,6 @@ export async function markAsViewed(url: string): Promise<MarkViewedResponse> {
   return unwrapApiResponse(
     fetchClient.POST('/api/items/viewed', {
       body: { url },
-    }),
-  )
-}
-
-export async function openUrls(urls: string[]): Promise<OpenUrlsResponse> {
-  return unwrapApiResponse(
-    fetchClient.POST('/api/open-urls', {
-      body: urls,
     }),
   )
 }

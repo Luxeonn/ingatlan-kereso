@@ -65,7 +65,6 @@ export const DEFAULT_CRITERIA: SearchCriteria = {
   minArea: 90,
   maxArea: 200,
   portals: [...DEFAULT_PORTALS],
-  autoOpenBrowser: false,
   excludeViewed: false,
   onlyDiscounted: false,
   onlyNewConstruction: false,
@@ -135,7 +134,6 @@ export interface FilterState {
   setMinRooms: (minRooms: number | undefined) => void
   togglePortal: (portalId: PortalId | string) => void
   setAllPortals: (portals: (PortalId | string)[]) => void
-  setAutoOpen: (auto: boolean) => void
   setExcludeViewed: (exclude: boolean) => void
   setOnlyViewed: (only: boolean) => void
   setOnlyDiscounted: (onlyDiscounted: boolean) => void

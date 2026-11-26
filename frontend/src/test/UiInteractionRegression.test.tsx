@@ -60,7 +60,6 @@ vi.mock('../api/propertyApi', async (importOriginal) => {
     hideProperty: vi.fn().mockResolvedValue({ success: true } as never),
     restoreProperty: vi.fn().mockResolvedValue({ success: true } as never),
     clearHistory: vi.fn().mockResolvedValue({ success: true } as never),
-    openUrls: vi.fn().mockResolvedValue({ success: true } as never),
   }
 })
 

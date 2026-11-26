@@ -395,7 +395,6 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
           hasSearched={true}
           mode="listings"
           onMarkViewed={vi.fn()}
-          onOpenAll={vi.fn()}
           onTriggerSearch={vi.fn()}
         />
       )

@@ -3,7 +3,7 @@ import { ApiError, fetchClient, unwrapApiResponse } from '../api/client'
 import { getCities } from '../api/cityApi'
 import { getPortals } from '../api/portalApi'
 import { getLastConfig, executeSearch } from '../api/searchApi'
-import { markAsViewed, openUrls, getHistory, clearHistory, hideProperty, restoreProperty, getHiddenProperties } from '../api/propertyApi'
+import { markAsViewed, getHistory, clearHistory, hideProperty, restoreProperty, getHiddenProperties } from '../api/propertyApi'
 import { getPresets, createPreset, updatePreset, deletePreset, recordPresetUsage } from '../api/presetApi'
 import type { SearchCriteria } from '../types/api'
 
@@ -174,7 +174,6 @@ describe('Typed OpenAPI Client (Issue #402)', () => {
         minArea: 0,
         maxArea: 200,
         portals: ['dh'],
-        autoOpenBrowser: false,
         excludeViewed: false,
         onlyDiscounted: false,
         onlyNewConstruction: false,
@@ -200,11 +199,6 @@ describe('Typed OpenAPI Client (Issue #402)', () => {
         if (url.includes('/api/items/viewed')) {
           return Promise.resolve(
             new Response(JSON.stringify({ success: true, marked: true, url: 'https://dh.hu/1' }), { status: 200 }),
-          )
-        }
-        if (url.includes('/api/open-urls')) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ success: true, count: 2 }), { status: 200 }),
           )
         }
         if (url.includes('/api/history?')) {
@@ -237,9 +231,6 @@ describe('Typed OpenAPI Client (Issue #402)', () => {
 
       const viewed = await markAsViewed('https://dh.hu/1')
       expect(viewed.marked).toBe(true)
-
-      const opened = await openUrls(['https://dh.hu/1', 'https://oc.hu/2'])
-      expect(opened.count).toBe(2)
 
       const history = await getHistory('Debrecen', true, false)
       expect(history).toEqual([])

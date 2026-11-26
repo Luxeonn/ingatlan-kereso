@@ -111,7 +111,6 @@ export const useFilterStore = create<FilterState>((set, get) => {
     },
 
     setAllPortals: (portals) => updateCriteria({ portals }),
-    setAutoOpen: (autoOpenBrowser) => updateCriteria({ autoOpenBrowser }),
 
     setExcludeViewed: (excludeViewed) => {
       safeSetStorageItem('preferred_exclude_viewed', String(excludeViewed))

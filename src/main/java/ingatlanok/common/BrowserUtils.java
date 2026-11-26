@@ -2,9 +2,6 @@ package ingatlanok.common;
 
 import java.awt.Desktop;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -90,35 +87,5 @@ public final class BrowserUtils {
       LOGGER.error("Nem sikerült megnyitni a böngészőben: {} ({})", uri, e.getMessage(), e);
       return false;
     }
-  }
-
-  public static List<String> openUrls(Collection<String> urlList, int maxToOpen) {
-    List<String> opened = new ArrayList<>();
-    if (urlList == null || urlList.isEmpty()) {
-      return opened;
-    }
-
-    for (String url : urlList) {
-      if (opened.size() >= maxToOpen) {
-        break;
-      }
-      if (openUrl(url)) {
-        opened.add(url);
-      }
-    }
-
-    if (urlList.size() > maxToOpen) {
-      LOGGER.info(
-          "Megjegyzés: Az első {} új link került megnyitásra a böngészőben, a többi elérhető a"
-              + " felületen.",
-          maxToOpen);
-    }
-
-    return opened;
-  }
-
-  public static List<String> openUrls(Collection<String> urlList) {
-    int max = Integer.getInteger("max.open.browser", 5);
-    return openUrls(urlList, max);
   }
 }

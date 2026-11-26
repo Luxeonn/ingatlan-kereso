@@ -60,7 +60,6 @@ class OpenApiSpecIntegrityTest {
             "/api/properties/discounted:",
             "/api/portals/ingatlancom/import-html:",
             "/api/search:",
-            "/api/open-urls:",
             "/api/items/viewed:",
             "/api/history/clear:",
             "/api/presets:",

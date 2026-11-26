@@ -319,7 +319,6 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
           mode="archive"
           subView="archive"
           onMarkViewed={vi.fn()}
-          onOpenAll={vi.fn()}
           onTriggerSearch={vi.fn()}
         />,
       )

@@ -183,7 +183,6 @@ describe('Bargain and Quality Score Filter Engine (#275)', () => {
           items={mockListings}
           rawItems={mockListings}
           totalRawCount={4}
-          onOpenAll={vi.fn()}
           onMarkAllViewed={vi.fn()}
         />,
       )

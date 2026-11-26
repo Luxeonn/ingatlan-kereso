@@ -16,7 +16,6 @@ export const urlSchema = z.object({
   maxArea: z.coerce.number().finite().min(0).max(100_000).optional().catch(undefined),
   minRooms: z.coerce.number().int().min(0).max(50).optional().catch(undefined),
   portals: z.string().max(500).optional().catch(undefined),
-  autoOpen: z.enum(['true', 'false']).optional().catch(undefined),
   excludeViewed: z.enum(['true', 'false']).optional().catch(undefined),
   onlyDiscounted: z.enum(['true', 'false']).optional().catch(undefined),
   onlyNewConstruction: z.enum(['true', 'false']).optional().catch(undefined),
@@ -73,7 +72,6 @@ function parseNumericRanges(params: ParsedUrlParams, result: Partial<SearchCrite
 }
 
 function parseBooleanFlags(params: ParsedUrlParams, result: Partial<SearchCriteria>): void {
-  if (params.autoOpen !== null && params.autoOpen !== undefined) result.autoOpenBrowser = params.autoOpen === 'true'
   if (params.excludeViewed !== null && params.excludeViewed !== undefined) result.excludeViewed = params.excludeViewed === 'true'
   if (params.onlyDiscounted !== null && params.onlyDiscounted !== undefined) {
     result.onlyDiscounted = params.onlyDiscounted === 'true'
@@ -170,7 +168,6 @@ function appendFilterCategoryParams(params: URLSearchParams, criteria: SearchCri
   if (criteria.portals && criteria.portals.length < DEFAULT_PORTALS.length) {
     params.set('portals', criteria.portals.join(','))
   }
-  if (criteria.autoOpenBrowser) params.set('autoOpen', 'true')
   if (criteria.excludeViewed) params.set('excludeViewed', 'true')
   if (criteria.onlyDiscounted) params.set('onlyDiscounted', 'true')
   if (criteria.onlyNewConstruction) params.set('onlyNewConstruction', 'true')

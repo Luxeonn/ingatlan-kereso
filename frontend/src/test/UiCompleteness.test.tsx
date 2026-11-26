@@ -212,7 +212,6 @@ describe('UI Completeness (#157, #202, #227)', () => {
         items={sampleItems}
         rawItems={sampleItems}
         totalRawCount={2}
-        onOpenAll={() => {}}
         onMarkAllViewed={() => {}}
       />,
     )
@@ -237,7 +236,6 @@ describe('UI Completeness (#157, #202, #227)', () => {
         items={[sampleItems[1]!]}
         rawItems={[sampleItems[1]!]}
         totalRawCount={1}
-        onOpenAll={() => {}}
         onMarkAllViewed={() => {}}
       />,
     )

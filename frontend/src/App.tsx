@@ -318,7 +318,6 @@ export const App: FC = () => {
                 favoritesCount={searchState.favoritesCount}
                 archiveCount={searchState.rawArchiveItems.length}
                 onMarkViewed={searchState.markAsViewed}
-                onOpenAll={searchState.openAllTabs}
                 onTriggerSearch={handleSearch}
                 onClearHistory={clearHistoryFn}
                 isClearingHistory={searchState.isClearingHistory}

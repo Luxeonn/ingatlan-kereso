@@ -62,7 +62,6 @@ describe('ListingsPanel component (#264)', () => {
         hasSearched={true}
         mode="listings"
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -121,7 +120,6 @@ describe('ListingsPanel component (#264)', () => {
         hasSearched={true}
         mode="listings"
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -143,7 +141,6 @@ describe('ListingsPanel component (#264)', () => {
         hasSearched={true}
         mode="listings"
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />,
     )
@@ -161,7 +158,6 @@ describe('ListingsPanel component (#264)', () => {
         hasSearched={true}
         mode="listings"
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -180,7 +176,6 @@ describe('ListingsPanel component (#264)', () => {
         hasSearched={true}
         mode="favorites"
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -203,7 +198,6 @@ describe('ListingsPanel component (#264)', () => {
         mode="listings"
         onSubViewChange={handleSubViewChange}
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -229,7 +223,6 @@ describe('ListingsPanel component (#264)', () => {
         isLoading={false}
         hasSearched={true}
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -259,7 +252,6 @@ describe('ListingsPanel component (#264)', () => {
         hasSearched={true}
         mode="favorites"
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -312,7 +304,6 @@ describe('ListingsPanel component (#264)', () => {
         initialBatchSize={10}
         batchSize={10}
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />
     )
@@ -353,7 +344,6 @@ describe('ListingsPanel component (#264)', () => {
         hasSearched={true}
         mode="listings"
         onMarkViewed={vi.fn()}
-        onOpenAll={vi.fn()}
         onTriggerSearch={vi.fn()}
       />,
     )

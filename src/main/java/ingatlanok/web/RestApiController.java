@@ -326,17 +326,6 @@ public class RestApiController {
     return ResponseEntity.ok(result);
   }
 
-  @PostMapping("/open-urls")
-  public ResponseEntity<OpenUrlsResponseDto> openUrls(
-      @RequestBody(required = false) List<String> urls) {
-    if (urls != null && !urls.isEmpty()) {
-      for (String url : urls) {
-        listingStorage.markAsViewed(url);
-      }
-    }
-    return ResponseEntity.ok(OpenUrlsResponseDto.of(true, urls != null ? urls.size() : 0));
-  }
-
   @PostMapping("/items/viewed")
   public ResponseEntity<MarkViewedResponseDto> markViewed(
       @RequestBody(required = false) MarkViewedRequest body) {
