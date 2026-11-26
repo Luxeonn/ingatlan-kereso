@@ -1,14 +1,23 @@
 package ingatlanok.web;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Set;
 
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +25,10 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
+import org.springframework.validation.method.MethodValidationResult;
+import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import ingatlanok.common.JsonSupport;
@@ -252,12 +264,90 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  @DisplayName("ConstraintViolationException kezelése - 400 Bad Request fallback üzenettel")
+  @DisplayName("ConstraintViolationException kezelése - 400 Bad Request fallback és konkrét üzenettel")
   void testHandleConstraintViolation() {
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
-    ConstraintViolationException ex = new ConstraintViolationException(Set.of());
-    ResponseEntity<ApiErrorResponse> response = handler.handleConstraintViolation(ex, request);
-    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-    assertEquals("Érvénytelen kérés paraméterek", response.getBody().message());
+    ConstraintViolationException emptyEx = new ConstraintViolationException(Set.of());
+    ResponseEntity<ApiErrorResponse> fallbackResponse =
+        handler.handleConstraintViolation(emptyEx, request);
+    assertEquals(HttpStatus.BAD_REQUEST, fallbackResponse.getStatusCode());
+    assertNotNull(fallbackResponse.getBody());
+    assertEquals(400, fallbackResponse.getBody().status());
+    assertEquals("Bad Request", fallbackResponse.getBody().error());
+    assertEquals("Érvénytelen kérés paraméterek", fallbackResponse.getBody().message());
+    assertEquals("/api/test", fallbackResponse.getBody().path());
+
+    Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+    Set<ConstraintViolation<ClearHistoryRequest>> violations =
+        validator.validate(new ClearHistoryRequest("A".repeat(201)));
+    assertFalse(violations.isEmpty());
+
+    ConstraintViolationException populatedEx = new ConstraintViolationException(violations);
+    ResponseEntity<ApiErrorResponse> populatedResponse =
+        handler.handleConstraintViolation(populatedEx, request);
+    assertEquals(HttpStatus.BAD_REQUEST, populatedResponse.getStatusCode());
+    assertNotNull(populatedResponse.getBody());
+    assertEquals(400, populatedResponse.getBody().status());
+    assertEquals("Bad Request", populatedResponse.getBody().error());
+    assertEquals("A település neve túl hosszú", populatedResponse.getBody().message());
+    assertEquals("/api/test", populatedResponse.getBody().path());
+  }
+
+  @Test
+  @DisplayName("HandlerMethodValidationException kezelése - üzenet kinyerés és üres fallback")
+  void testHandleValidationException() throws NoSuchMethodException {
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/test");
+    Method method = String.class.getDeclaredMethod("concat", String.class);
+    MethodParameter param = new MethodParameter(method, 0);
+
+    ParameterValidationResult paramResult =
+        new ParameterValidationResult(
+            param,
+            "invalid",
+            List.of(
+                new DefaultMessageSourceResolvable(
+                    new String[] {"Size"}, null, "A megadott paraméter túl hosszú")),
+            null,
+            null,
+            null,
+            (err, type) -> err);
+    HandlerMethodValidationException populatedEx =
+        new HandlerMethodValidationException(
+            MethodValidationResult.create("target", method, List.of(paramResult)));
+
+    ResponseEntity<ApiErrorResponse> populatedResponse =
+        handler.handleValidationException(populatedEx, request);
+    assertEquals(HttpStatus.BAD_REQUEST, populatedResponse.getStatusCode());
+    assertNotNull(populatedResponse.getBody());
+    assertEquals(400, populatedResponse.getBody().status());
+    assertEquals("Bad Request", populatedResponse.getBody().error());
+    assertEquals("A megadott paraméter túl hosszú", populatedResponse.getBody().message());
+    assertEquals("/api/test", populatedResponse.getBody().path());
+
+    HandlerMethodValidationException emptyEx = mock(HandlerMethodValidationException.class);
+    when(emptyEx.getAllErrors()).thenReturn(List.of());
+    ResponseEntity<ApiErrorResponse> emptyResponse =
+        handler.handleValidationException(emptyEx, request);
+    assertEquals(HttpStatus.BAD_REQUEST, emptyResponse.getStatusCode());
+    assertNotNull(emptyResponse.getBody());
+    assertEquals("Érvénytelen kérés paraméterek", emptyResponse.getBody().message());
+
+    ParameterValidationResult blankMsgResult =
+        new ParameterValidationResult(
+            param,
+            "invalid",
+            List.of(new DefaultMessageSourceResolvable(new String[] {"Size"}, null, "   ")),
+            null,
+            null,
+            null,
+            (err, type) -> err);
+    HandlerMethodValidationException blankMsgEx =
+        new HandlerMethodValidationException(
+            MethodValidationResult.create("target", method, List.of(blankMsgResult)));
+    ResponseEntity<ApiErrorResponse> blankResponse =
+        handler.handleValidationException(blankMsgEx, request);
+    assertEquals(HttpStatus.BAD_REQUEST, blankResponse.getStatusCode());
+    assertNotNull(blankResponse.getBody());
+    assertEquals("Érvénytelen kérés paraméterek", blankResponse.getBody().message());
   }
 }

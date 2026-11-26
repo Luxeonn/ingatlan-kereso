@@ -177,7 +177,7 @@ class DeduplicationEngineTest {
     // Lowest active price is 75M from Otthon Centrum
     assertEquals("http://oc/2", primary.getUrl());
     assertEquals("OC Belvárosi Lakás", primary.getTitle());
-    assertEquals(75_000_000L, primary.getPriceInfo().getAmountHuf());
+    assertEquals(75_000_000L, primary.getPriceInfo().amountHuf());
     // Sources sorted by price ascending: 75M, 78M, 80M
     assertEquals(75_000_000L, primary.getSourceListings().get(0).getPriceHuf());
     assertEquals(78_000_000L, primary.getSourceListings().get(1).getPriceHuf());
@@ -298,7 +298,7 @@ class DeduplicationEngineTest {
     List<IngatlanItem> clusteredTelek = engine.deduplicateMultiSignal(List.of(telek1, telek2));
     assertEquals(1, clusteredTelek.size());
     assertEquals(2, clusteredTelek.get(0).getSourcesCount());
-    assertEquals(24_000_000L, clusteredTelek.get(0).getPriceInfo().getAmountHuf());
+    assertEquals(24_000_000L, clusteredTelek.get(0).getPriceInfo().amountHuf());
   }
 
   @Test
@@ -341,7 +341,7 @@ class DeduplicationEngineTest {
     assertEquals(1, clustered.size());
     IngatlanItem primary = clustered.get(0);
     assertEquals("http://oc/active", primary.getUrl());
-    assertEquals(75_000_000L, primary.getPriceInfo().getAmountHuf());
+    assertEquals(75_000_000L, primary.getPriceInfo().amountHuf());
   }
 
   @Test

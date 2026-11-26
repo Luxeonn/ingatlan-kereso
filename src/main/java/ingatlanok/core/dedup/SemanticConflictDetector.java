@@ -101,8 +101,8 @@ public final class SemanticConflictDetector {
     if (item == null) {
       return null;
     }
-    String rawDetails = item.getDetailsInfo() != null && item.getDetailsInfo().getRawText() != null
-        ? item.getDetailsInfo().getRawText()
+    String rawDetails = item.getDetailsInfo() != null && item.getDetailsInfo().rawText() != null
+        ? item.getDetailsInfo().rawText()
         : "";
     String combined = getCombinedText(item) + " " + rawDetails;
     String normalized = SlugUtils.stripAccents(combined.toLowerCase(Locale.ROOT));

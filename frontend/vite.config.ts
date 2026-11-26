@@ -32,7 +32,35 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+            },
+            {
+              name: 'vendor-query',
+              test: /[\\/]node_modules[\\/]@tanstack[\\/]/,
+            },
+            {
+              name: 'vendor-state',
+              test: /[\\/]node_modules[\\/](zustand|zod|clsx)[\\/]/,
+            },
+            {
+              name: 'vendor-icons',
+              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+            },
+            {
+              name: 'vendor-charts',
+              test: /[\\/]node_modules[\\/](recharts|victory-vendor|d3-[^\\/]+|decimal\.js-light|es-toolkit|@reduxjs[\\/]toolkit|react-redux|reselect|immer|react-is|use-sync-external-store|eventemitter3|tiny-invariant)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
   },
   test: {
     globals: true,

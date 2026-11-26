@@ -72,12 +72,11 @@ describe('filterUrlSync utility', () => {
 
     it('parses boolean flags and portals correctly', () => {
       setLocation(
-        'https://example.com/?portals=dh,oc&autoOpen=true&excludeViewed=true&onlyNewConstruction=true&onlyNew=true&onlyBargain=true&excludeMulti=1&sort=bargain_desc',
+        'https://example.com/?portals=dh,oc&excludeViewed=true&onlyNewConstruction=true&onlyNew=true&onlyBargain=true&excludeMulti=1&sort=bargain_desc',
       )
 
       const result = parseUrlParams()
       expect(result.criteria?.portals).toEqual(['dh', 'oc'])
-      expect(result.criteria?.autoOpenBrowser).toBe(true)
       expect(result.criteria?.excludeViewed).toBe(true)
       expect(result.criteria?.onlyNewConstruction).toBe(true)
       expect(result.onlyNew).toBe(true)
@@ -113,7 +112,6 @@ describe('filterUrlSync utility', () => {
       minArea: 90, // default
       maxArea: 200, // default
       portals: ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe'],
-      autoOpenBrowser: false,
       excludeViewed: false,
       onlyDiscounted: false,
       onlyNewConstruction: false,
@@ -139,7 +137,6 @@ describe('filterUrlSync utility', () => {
         minArea: 75,
         maxArea: 160,
         portals: ['dh', 'oc'],
-        autoOpenBrowser: true,
         excludeViewed: true,
         onlyNewConstruction: true,
       }
@@ -153,7 +150,6 @@ describe('filterUrlSync utility', () => {
       expect(params.get('minArea')).toBe('75')
       expect(params.get('maxArea')).toBe('160')
       expect(params.get('portals')).toBe('dh,oc')
-      expect(params.get('autoOpen')).toBe('true')
       expect(params.get('excludeViewed')).toBe('true')
       expect(params.get('onlyNewConstruction')).toBe('true')
     })

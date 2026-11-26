@@ -1,28 +1,16 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-public class PropertyDetails implements Serializable {
-
-  private String rawText;
-  private Double areaSquareMeters;
-  private Double roomCount;
-  private Long pricePerSquareMeter;
-
-  @Builder(toBuilder = true)
-  public PropertyDetails(
-      String rawText, Double areaSquareMeters, Double roomCount, Long pricePerSquareMeter) {
-    this.rawText = rawText;
-    this.areaSquareMeters = areaSquareMeters;
-    this.roomCount = roomCount;
-    this.pricePerSquareMeter = pricePerSquareMeter;
-  }
+/**
+ * Immutable value object representing parsed property size, room count, and unit price details.
+ */
+@Builder(toBuilder = true)
+public record PropertyDetails(
+    String rawText,
+    Double areaSquareMeters,
+    Double roomCount,
+    Long pricePerSquareMeter) {
 
   @Override
   public String toString() {

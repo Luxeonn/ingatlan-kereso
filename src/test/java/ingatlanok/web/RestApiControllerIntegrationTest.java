@@ -188,8 +188,8 @@ class RestApiControllerIntegrationTest {
   }
 
   @Test
-  @DisplayName("POST /api/items/viewed és POST /api/open-urls - Megtekintett jelölés")
-  void testMarkViewedAndOpenUrls() throws Exception {
+  @DisplayName("POST /api/items/viewed - Megtekintett jelölés")
+  void testMarkViewed() throws Exception {
     String testUrl = "https://teszt-ingatlan.hu/1";
     IngatlanItem item =
         new IngatlanItem(
@@ -203,15 +203,6 @@ class RestApiControllerIntegrationTest {
                 .content("{\"url\":\"" + testUrl + "\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true));
-
-    mockMvc
-        .perform(
-            post("/api/open-urls")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("[\"" + testUrl + "\"]"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.count").value(1));
   }
 
   @Test
@@ -435,13 +426,8 @@ class RestApiControllerIntegrationTest {
   }
 
   @Test
-  @DisplayName("POST /api/open-urls és /api/items/viewed - Üres és érvénytelen törzs kezelése")
-  void testOpenUrlsAndMarkViewedEdgeCases() throws Exception {
-    mockMvc
-        .perform(post("/api/open-urls").contentType(MediaType.APPLICATION_JSON).content("[]"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.count").value(0));
-
+  @DisplayName("POST /api/items/viewed - Üres és érvénytelen törzs kezelése")
+  void testMarkViewedEdgeCases() throws Exception {
     mockMvc
         .perform(post("/api/items/viewed").contentType(MediaType.APPLICATION_JSON).content("{}"))
         .andExpect(status().isOk())

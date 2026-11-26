@@ -35,18 +35,18 @@ class BusinessLogicGoldenDatasetRegressionTest {
   void testPriceParsingDottedAndNbspAndZeroPriceProtection() {
     // 1. Dotted thousand separators: "45.000.000 Ft"
     PriceInfo dottedPrice = PropertyParser.parsePrice("Ár: 45.000.000 Ft");
-    assertEquals(45_000_000L, dottedPrice.getAmountHuf(), "Dotted thousand groups must parse to 45,000,000 Ft");
-    assertEquals(45.0, dottedPrice.getAmountMillion(), "Dotted thousand groups must parse to 45.0 M Ft");
+    assertEquals(45_000_000L, dottedPrice.amountHuf(), "Dotted thousand groups must parse to 45,000,000 Ft");
+    assertEquals(45.0, dottedPrice.amountMillion(), "Dotted thousand groups must parse to 45.0 M Ft");
 
     // 2. Non-breaking space (NBSP): "45\u00A0000\u00A0000 Ft"
     PriceInfo nbspPrice = PropertyParser.parsePrice("Ár: 45\u00A0000\u00A0000 Ft");
-    assertEquals(45_000_000L, nbspPrice.getAmountHuf(), "NBSP-separated price must parse to 45,000,000 Ft");
-    assertEquals(45.0, nbspPrice.getAmountMillion(), "NBSP-separated price must parse to 45.0 M Ft");
+    assertEquals(45_000_000L, nbspPrice.amountHuf(), "NBSP-separated price must parse to 45,000,000 Ft");
+    assertEquals(45.0, nbspPrice.amountMillion(), "NBSP-separated price must parse to 45.0 M Ft");
 
     // 3. Zero price protection in parseDetails
     PriceInfo zeroPrice = PriceInfo.builder().rawText("0 Ft").amountHuf(0L).amountMillion(0.0).build();
     PropertyDetails zeroDetails = PropertyParser.parseDetails("50 m2", zeroPrice);
-    assertNull(zeroDetails.getPricePerSquareMeter(), "Zero price must not calculate 0 Ft/m2; should be null");
+    assertNull(zeroDetails.pricePerSquareMeter(), "Zero price must not calculate 0 Ft/m2; should be null");
   }
 
   @Test
@@ -66,11 +66,11 @@ class BusinessLogicGoldenDatasetRegressionTest {
     MarketStats stats = analyticsEngine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertEquals(40.0, stats.getMaxPriceMillion(),
+    assertEquals(40.0, stats.maxPriceMillion(),
         "Max price must ignore quarantined outliers (expected 40.0 M, not 10000.0 M)");
-    assertEquals(40.0, stats.getAveragePriceMillion(),
+    assertEquals(40.0, stats.averagePriceMillion(),
         "Average price must ignore quarantined outliers (expected 40.0 M)");
-    assertEquals(800_000L, stats.getAveragePricePerM2(),
+    assertEquals(800_000L, stats.averagePricePerM2(),
         "Average price/m2 must ignore quarantined outliers (expected 800,000 Ft/m2)");
   }
 

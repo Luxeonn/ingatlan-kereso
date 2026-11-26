@@ -1,8 +1,9 @@
 package ingatlanok.web;
 
-import java.io.Serializable;
+import jakarta.validation.constraints.Size;
 
 /**
  * Request payload for marking a single listing as viewed (#401 / JAVA-019).
  */
-public record MarkViewedRequest(String url) implements Serializable {}
+public record MarkViewedRequest(
+    @Size(max = 1000, message = "Az URL túl hosszú!") String url) {}

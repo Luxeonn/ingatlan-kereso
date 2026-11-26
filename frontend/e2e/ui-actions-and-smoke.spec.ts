@@ -38,7 +38,6 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
               maxArea: 150,
               propertyType: 'FLAT',
               portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar'],
-              autoOpenBrowser: false,
               excludeViewed: false,
             }),
           })

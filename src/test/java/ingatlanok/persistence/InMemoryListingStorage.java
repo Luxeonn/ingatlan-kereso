@@ -115,13 +115,13 @@ public class InMemoryListingStorage implements ListingStorage, ConfigStorage {
   }
 
   private void updatePriceAndStatus(IngatlanItem item, IngatlanItem existing, String now) {
-    Long newAmount = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
+    Long newAmount = item.getPriceInfo() != null ? item.getPriceInfo().amountHuf() : null;
     if (existing == null) {
       applyNewPriceDefaults(item, newAmount);
       return;
     }
     Long prevAmount =
-        existing.getPriceInfo() != null ? existing.getPriceInfo().getAmountHuf() : null;
+        existing.getPriceInfo() != null ? existing.getPriceInfo().amountHuf() : null;
     if (hasPriceChanged(prevAmount, newAmount)) {
       applyPriceChange(item, prevAmount, newAmount, now);
     } else {

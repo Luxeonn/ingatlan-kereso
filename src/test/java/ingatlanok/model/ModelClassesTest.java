@@ -18,51 +18,51 @@ class ModelClassesTest {
   @DisplayName("PortalSource mappings and metadata")
   void testPortalSource() {
     PortalSource dh = PortalSource.of("Duna House");
-    assertEquals("dh", dh.getPortalId());
-    assertEquals("Duna House", dh.getPortalName());
-    assertTrue(dh.isDirectListing());
-    assertNotNull(dh.getThemeColor());
+    assertEquals("dh", dh.portalId());
+    assertEquals("Duna House", dh.portalName());
+    assertTrue(dh.directListing());
+    assertNotNull(dh.themeColor());
 
     PortalSource oc = PortalSource.of("Otthon Centrum");
-    assertEquals("oc", oc.getPortalId());
-    assertEquals("Otthon Centrum", oc.getPortalName());
+    assertEquals("oc", oc.portalId());
+    assertEquals("Otthon Centrum", oc.portalName());
 
     PortalSource jf = PortalSource.of("Jófogás Ingatlan");
-    assertEquals("jofogas", jf.getPortalId());
+    assertEquals("jofogas", jf.portalId());
 
     PortalSource ic = PortalSource.of("ingatlan.com");
-    assertEquals("ingatlancom", ic.getPortalId());
-    assertFalse(ic.isDirectListing());
+    assertEquals("ingatlancom", ic.portalId());
+    assertFalse(ic.directListing());
 
     PortalSource ib = PortalSource.of("Ingatlanbazár");
-    assertEquals("ingatlanbazar", ib.getPortalId());
+    assertEquals("ingatlanbazar", ib.portalId());
 
     PortalSource unknown = PortalSource.of(null);
-    assertEquals("unknown", unknown.getPortalId());
+    assertEquals("unknown", unknown.portalId());
   }
 
   @Test
   @DisplayName("PriceInfo construction and formatting")
   void testPriceInfo() {
     PriceInfo priceInfo = new PriceInfo("45.5 M Ft", 45_500_000L, 45.5);
-    assertEquals(45_500_000L, priceInfo.getAmountHuf());
-    assertEquals(45.5, priceInfo.getAmountMillion());
-    assertEquals("45.5 M Ft", priceInfo.getRawText());
-    assertEquals("HUF", priceInfo.getCurrency());
+    assertEquals(45_500_000L, priceInfo.amountHuf());
+    assertEquals(45.5, priceInfo.amountMillion());
+    assertEquals("45.5 M Ft", priceInfo.rawText());
+    assertEquals("HUF", priceInfo.currency());
     assertTrue(priceInfo.toString().contains("45.5"));
 
     PriceInfo emptyInfo = new PriceInfo();
-    assertNull(emptyInfo.getRawText());
+    assertNull(emptyInfo.rawText());
   }
 
   @Test
   @DisplayName("PropertyDetails sqm and room count")
   void testPropertyDetails() {
     PropertyDetails details = new PropertyDetails("60 m²", 60.0, 2.5, 750_000L);
-    assertEquals("60 m²", details.getRawText());
-    assertEquals(60.0, details.getAreaSquareMeters());
-    assertEquals(2.5, details.getRoomCount());
-    assertEquals(750_000L, details.getPricePerSquareMeter());
+    assertEquals("60 m²", details.rawText());
+    assertEquals(60.0, details.areaSquareMeters());
+    assertEquals(2.5, details.roomCount());
+    assertEquals(750_000L, details.pricePerSquareMeter());
     assertTrue(details.toString().contains("60"));
   }
 
@@ -227,10 +227,10 @@ class ModelClassesTest {
             .rawText("60 M Ft")
             .build();
 
-    assertEquals(60_000_000L, priceInfo.getAmountHuf());
-    assertEquals(60.0, priceInfo.getAmountMillion());
-    assertEquals("60 M Ft", priceInfo.getRawText());
-    assertEquals("HUF", priceInfo.getCurrency());
+    assertEquals(60_000_000L, priceInfo.amountHuf());
+    assertEquals(60.0, priceInfo.amountMillion());
+    assertEquals("60 M Ft", priceInfo.rawText());
+    assertEquals("HUF", priceInfo.currency());
 
     PropertyDetails details =
         PropertyDetails.builder()
@@ -240,10 +240,10 @@ class ModelClassesTest {
             .rawText("70 m² 3 szoba")
             .build();
 
-    assertEquals(70.0, details.getAreaSquareMeters());
-    assertEquals(3.0, details.getRoomCount());
-    assertEquals(857_143L, details.getPricePerSquareMeter());
-    assertEquals("70 m² 3 szoba", details.getRawText());
+    assertEquals(70.0, details.areaSquareMeters());
+    assertEquals(3.0, details.roomCount());
+    assertEquals(857_143L, details.pricePerSquareMeter());
+    assertEquals("70 m² 3 szoba", details.rawText());
   }
 
   @Test

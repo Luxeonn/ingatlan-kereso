@@ -1,7 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -32,7 +30,7 @@ import ingatlanok.model.ListingStatus;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class StatusLogEntity implements Serializable {
+public class StatusLogEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

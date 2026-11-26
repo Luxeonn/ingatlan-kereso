@@ -35,11 +35,8 @@ public class DedupPresentationService {
   private final PresentationMapper presentationMapper;
 
   public DedupActionResponseDto splitCluster(DedupSplitRequestDto request) {
-    if (request == null || request.sourceUrl() == null || request.sourceUrl().isBlank()) {
-      throw new IllegalArgumentException("A leválasztandó forrás URL kötelező");
-    }
     String sourceUrl = request.sourceUrl().trim();
-    List<String> clusterUrls = sanitizeAndValidateUrls(request.clusterUrls(), 1, MAX_BATCH_URLS);
+    List<String> clusterUrls = trimAndEnsureUniqueUrls(request.clusterUrls());
 
     List<String> peerUrls = new ArrayList<>();
     for (String url : clusterUrls) {
@@ -76,10 +73,7 @@ public class DedupPresentationService {
   }
 
   public DedupActionResponseDto mergeListings(DedupMergeRequestDto request) {
-    if (request == null) {
-      throw new IllegalArgumentException("Az összevonási kérés törzse kötelező");
-    }
-    List<String> urls = sanitizeAndValidateUrls(request.urls(), 2, MAX_BATCH_URLS);
+    List<String> urls = trimAndEnsureUniqueUrls(request.urls());
     Map<String, IngatlanItem> found = fetchAndVerifyExistingUrls(urls);
     String normCity = validateSameNormalizedCity(urls, found);
 
@@ -106,20 +100,10 @@ public class DedupPresentationService {
         }
       }
     }
-    if (queryUrls.isEmpty()) {
-      throw new IllegalArgumentException("A lekérdezett URL paraméter kötelező");
-    }
-    if (queryUrls.size() > MAX_BATCH_URLS) {
-      throw new IllegalArgumentException(
-          "Egyszerre legfeljebb " + MAX_BATCH_URLS + " URL kérdezhető le");
-    }
     return toOverrideDtos(overrideStorage.getOverridesForUrls(queryUrls));
   }
 
   public DedupActionResponseDto deleteOverride(Long id) {
-    if (id == null || id <= 0) {
-      throw new IllegalArgumentException("Érvénytelen felülbírálás azonosító");
-    }
     DedupOverride existing =
         overrideStorage
             .findOverrideById(id)
@@ -134,21 +118,9 @@ public class DedupPresentationService {
         reclustered, remaining, "Felülbírálás sikeresen visszavonva");
   }
 
-  private List<String> sanitizeAndValidateUrls(
-      List<String> rawUrls, int minSize, int maxSize) {
-    if (rawUrls == null || rawUrls.size() < minSize) {
-      throw new IllegalArgumentException(
-          "Legalább " + minSize + " érvényes URL megadása kötelező");
-    }
-    if (rawUrls.size() > maxSize) {
-      throw new IllegalArgumentException(
-          "Egyszerre legfeljebb " + maxSize + " URL adható meg");
-    }
+  private List<String> trimAndEnsureUniqueUrls(List<String> rawUrls) {
     Set<String> unique = new LinkedHashSet<>();
     for (String raw : rawUrls) {
-      if (raw == null || raw.isBlank()) {
-        throw new IllegalArgumentException("Üres URL nem engedélyezett");
-      }
       String trimmed = raw.trim();
       if (!unique.add(trimmed)) {
         throw new IllegalArgumentException("Duplikált URL nem engedélyezett: " + trimmed);

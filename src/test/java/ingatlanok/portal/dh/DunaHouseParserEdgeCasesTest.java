@@ -52,12 +52,12 @@ class DunaHouseParserEdgeCasesTest {
 
     assertNotNull(item);
     assertNotNull(item.getPriceInfo());
-    assertEquals("Ár a hirdetésben", item.getPriceInfo().getRawText());
-    assertNull(item.getPriceInfo().getAmountHuf(), "Hiányzó árból nem keletkezhet numerikus HUF érték");
-    assertNull(item.getPriceInfo().getAmountMillion(), "Hiányzó árból nem keletkezhet millió érték");
-    assertEquals(70.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.0, item.getDetailsInfo().getRoomCount());
-    assertNull(item.getDetailsInfo().getPricePerSquareMeter(), "Ár nélkül m2 ár nem számítható");
+    assertEquals("Ár a hirdetésben", item.getPriceInfo().rawText());
+    assertNull(item.getPriceInfo().amountHuf(), "Hiányzó árból nem keletkezhet numerikus HUF érték");
+    assertNull(item.getPriceInfo().amountMillion(), "Hiányzó árból nem keletkezhet millió érték");
+    assertEquals(70.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.0, item.getDetailsInfo().roomCount());
+    assertNull(item.getDetailsInfo().pricePerSquareMeter(), "Ár nélkül m2 ár nem számítható");
   }
 
   @Test
@@ -73,10 +73,10 @@ class DunaHouseParserEdgeCasesTest {
         missingDetailsRaw, TestFixtures.dhEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertEquals(75_000_000L, item.getPriceInfo().getAmountHuf());
-    assertNull(item.getDetailsInfo().getAreaSquareMeters(), "Hiányzó terület nem lehet becsült érték");
-    assertNull(item.getDetailsInfo().getRoomCount(), "Hiányzó szobaszám nem lehet kitalált érték");
-    assertNull(item.getDetailsInfo().getPricePerSquareMeter(), "Terület nélkül m2 ár nem számítható");
+    assertEquals(75_000_000L, item.getPriceInfo().amountHuf());
+    assertNull(item.getDetailsInfo().areaSquareMeters(), "Hiányzó terület nem lehet becsült érték");
+    assertNull(item.getDetailsInfo().roomCount(), "Hiányzó szobaszám nem lehet kitalált érték");
+    assertNull(item.getDetailsInfo().pricePerSquareMeter(), "Terület nélkül m2 ár nem számítható");
   }
 
   @Test
@@ -126,10 +126,10 @@ class DunaHouseParserEdgeCasesTest {
         multiMillionRaw, TestFixtures.dhEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertEquals(350_500_000L, item.getPriceInfo().getAmountHuf());
-    assertEquals(350.5, item.getPriceInfo().getAmountMillion());
-    assertEquals(350.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(6.0, item.getDetailsInfo().getRoomCount());
+    assertEquals(350_500_000L, item.getPriceInfo().amountHuf());
+    assertEquals(350.5, item.getPriceInfo().amountMillion());
+    assertEquals(350.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(6.0, item.getDetailsInfo().roomCount());
   }
 
   @Test

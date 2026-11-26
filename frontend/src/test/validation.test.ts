@@ -20,7 +20,6 @@ describe('Runtime Boundary Validation Suite (#403)', () => {
         maxArea: 160,
         minRooms: 2,
         portals: ['dh', 'oc'],
-        autoOpenBrowser: true,
         excludeViewed: true,
         onlyDiscounted: false,
         onlyNewConstruction: false,
@@ -36,7 +35,6 @@ describe('Runtime Boundary Validation Suite (#403)', () => {
       expect(result.maxArea).toBe(160)
       expect(result.minRooms).toBe(2)
       expect(result.portals).toEqual(['dh', 'oc'])
-      expect(result.autoOpenBrowser).toBe(true)
       expect(result.excludeViewed).toBe(true)
     })
 

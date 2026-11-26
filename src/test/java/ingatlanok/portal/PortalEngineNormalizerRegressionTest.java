@@ -104,9 +104,9 @@ class PortalEngineNormalizerRegressionTest {
 
     IngatlanItem item = result.getItems().get(0);
     assertNotNull(item.getPriceInfo(), "PriceInfo nem lehet null normalizálás után!");
-    assertEquals(85.0, item.getPriceInfo().getAmountMillion(), 0.01, "Árnak 85 M Ft-nak kell lennie");
+    assertEquals(85.0, item.getPriceInfo().amountMillion(), 0.01, "Árnak 85 M Ft-nak kell lennie");
     assertNotNull(item.getDetailsInfo(), "DetailsInfo nem lehet null!");
-    assertEquals(120.0, item.getDetailsInfo().getAreaSquareMeters(), 0.01, "Területnek 120 nm-nek kell lennie");
+    assertEquals(120.0, item.getDetailsInfo().areaSquareMeters(), 0.01, "Területnek 120 nm-nek kell lennie");
 
     PropertyFilterEngine filterEngine = new PropertyFilterEngine();
     PropertyFilterEngine.FilterResult filterResult = filterEngine.filter(result.getItems(), criteria, "Debrecen");
@@ -143,7 +143,7 @@ class PortalEngineNormalizerRegressionTest {
     IngatlanItem normalized = dh.getNormalizer().normalize(
         sampleRaw, dh.getDescriptor(), new SearchCriteria(), "2026-11-08T22:00:00");
     assertNotNull(normalized.getPriceInfo(), "Ár normalizálása sikeres kell legyen");
-    assertEquals(90.0, normalized.getPriceInfo().getAmountMillion(), 0.01);
+    assertEquals(90.0, normalized.getPriceInfo().amountMillion(), 0.01);
   }
 
   @Test

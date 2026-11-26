@@ -60,10 +60,10 @@ class KoltozzbeParserEdgeCasesTest {
         raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertNull(item.getPriceInfo().getAmountHuf());
-    assertEquals("Ár a hirdetésben", item.getPriceInfo().getRawText());
-    assertEquals(100.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(4.0, item.getDetailsInfo().getRoomCount());
+    assertNull(item.getPriceInfo().amountHuf());
+    assertEquals("Ár a hirdetésben", item.getPriceInfo().rawText());
+    assertEquals(100.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(4.0, item.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -79,9 +79,9 @@ class KoltozzbeParserEdgeCasesTest {
         raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertEquals(85_000_000L, item.getPriceInfo().getAmountHuf());
-    assertNull(item.getDetailsInfo().getAreaSquareMeters());
-    assertNull(item.getDetailsInfo().getRoomCount());
+    assertEquals(85_000_000L, item.getPriceInfo().amountHuf());
+    assertNull(item.getDetailsInfo().areaSquareMeters());
+    assertNull(item.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -97,9 +97,9 @@ class KoltozzbeParserEdgeCasesTest {
         raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertEquals(110_000_000L, item.getPriceInfo().getAmountHuf());
-    assertEquals(130.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(5.0, item.getDetailsInfo().getRoomCount());
+    assertEquals(110_000_000L, item.getPriceInfo().amountHuf());
+    assertEquals(130.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(5.0, item.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -166,7 +166,7 @@ class KoltozzbeParserEdgeCasesTest {
     IngatlanItem item = normalizer.normalize(
         raw, TestFixtures.koltozzbeEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
     assertNotNull(item, "A 0 árú hirdetést nem szabad eldobni");
-    assertNull(item.getPriceInfo().getAmountHuf());
+    assertNull(item.getPriceInfo().amountHuf());
   }
 
   @Test

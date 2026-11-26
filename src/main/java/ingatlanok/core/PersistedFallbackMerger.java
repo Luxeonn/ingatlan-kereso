@@ -140,8 +140,8 @@ final class PersistedFallbackMerger {
   }
 
   private static PortalId resolveItemPortal(IngatlanItem item) {
-    if (item.getSource() != null && item.getSource().getPortalId() != null) {
-      PortalId byId = PortalId.fromString(item.getSource().getPortalId());
+    if (item.getSource() != null && item.getSource().portalId() != null) {
+      PortalId byId = PortalId.fromString(item.getSource().portalId());
       if (byId != PortalId.UNKNOWN) {
         return byId;
       }

@@ -1,6 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import jakarta.persistence.Column;
@@ -35,7 +34,7 @@ import ingatlanok.model.ListingObservation;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class ListingObservationEntity implements Serializable {
+public class ListingObservationEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

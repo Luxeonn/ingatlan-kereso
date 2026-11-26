@@ -265,7 +265,7 @@ class DeduplicationEngineAdversarialTest {
 
     // Primary card price MUST be 50M HUF (lowest ACTIVE), not 42M HUF (which is INACTIVE)
     assertNotNull(primary.getPriceInfo());
-    assertEquals(50_000_000L, primary.getPriceInfo().getAmountHuf(),
+    assertEquals(50_000_000L, primary.getPriceInfo().amountHuf(),
         "Primary card price must be lowest ACTIVE price (50M), not inactive (42M)");
     assertEquals("http://oc/50m", primary.getUrl(),
         "Primary card URL must be from the lowest active price source");
@@ -300,11 +300,11 @@ class DeduplicationEngineAdversarialTest {
     // 40M inactive is isolated (20% away from 50M), while 50M + 52M active (3.85% diff) cluster together
     IngatlanItem cluster1 = clustered.get(0);
     assertEquals(1, cluster1.getSourcesCount());
-    assertEquals(40_000_000L, cluster1.getPriceInfo().getAmountHuf());
+    assertEquals(40_000_000L, cluster1.getPriceInfo().amountHuf());
 
     IngatlanItem cluster2 = clustered.get(1);
     assertEquals(2, cluster2.getSourcesCount());
-    assertEquals(50_000_000L, cluster2.getPriceInfo().getAmountHuf());
+    assertEquals(50_000_000L, cluster2.getPriceInfo().amountHuf());
     assertEquals("http://oc/50m", cluster2.getUrl());
   }
 
@@ -319,7 +319,7 @@ class DeduplicationEngineAdversarialTest {
     List<IngatlanItem> clustered = engine.deduplicateMultiSignal(List.of(inactive40M, inactive45M));
     assertEquals(1, clustered.size());
     IngatlanItem primary = clustered.get(0);
-    assertEquals(40_000_000L, primary.getPriceInfo().getAmountHuf());
+    assertEquals(40_000_000L, primary.getPriceInfo().amountHuf());
     assertEquals("http://dh/40m", primary.getUrl());
   }
 
