@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Property implements Serializable {
+public class Property {
 
   private String canonicalId;
   private String normalizedCity;

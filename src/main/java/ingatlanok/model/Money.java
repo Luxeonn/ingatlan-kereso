@@ -1,11 +1,9 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 /**
  * Value object representing a monetary value in Hungarian Forint (#401 / JAVA-012).
  */
-public record Money(long amountHuf) implements Comparable<Money>, Serializable {
+public record Money(long amountHuf) implements Comparable<Money> {
 
   public Money {
     if (amountHuf < 0) {

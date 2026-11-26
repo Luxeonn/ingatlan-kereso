@@ -1,11 +1,9 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 /**
  * Value object representing a validated data quality score in the [0, 100] range (#401 / JAVA-014).
  */
-public record QualityScore(int value) implements Serializable, Comparable<QualityScore> {
+public record QualityScore(int value) implements Comparable<QualityScore> {
 
   public QualityScore {
     if (value < 0 || value > 100) {

@@ -1,11 +1,9 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 /**
  * Closed set of deterministic data quality deduction rules (#401 / JAVA-010).
  */
-public enum QualityDeductionRule implements Serializable {
+public enum QualityDeductionRule {
   INVALID_PRICE("Érvénytelen vagy irreális ár"),
   MISSING_AREA("Hiányzó vagy érvénytelen alapterület"),
   UNREALISTIC_AREA("Irreális alapterület"),

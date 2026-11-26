@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +16,7 @@ import ingatlanok.common.SlugUtils;
 
 @Getter
 @Setter
-public class SearchCriteria implements Serializable {
+public class SearchCriteria {
 
   @Size(max = 200, message = "A település neve túl hosszú (max. 200 karakter)!")
   private String city = "Hajdúszoboszló";

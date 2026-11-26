@@ -1,7 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class PriceDropItem implements Serializable {
+public class PriceDropItem {
 
   private String id;
   private String url;

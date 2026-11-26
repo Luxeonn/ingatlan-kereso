@@ -1,11 +1,9 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 /**
  * Value object representing floor or land area in square meters (#401 / JAVA-013).
  */
-public record Area(double squareMeters) implements Serializable, Comparable<Area> {
+public record Area(double squareMeters) implements Comparable<Area> {
 
   public Area {
     if (squareMeters < 0) {

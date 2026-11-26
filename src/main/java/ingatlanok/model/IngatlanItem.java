@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -13,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class IngatlanItem implements Serializable {
+public class IngatlanItem {
 
   private String id;
   private String portal;

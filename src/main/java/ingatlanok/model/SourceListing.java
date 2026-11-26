@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import lombok.Builder;
@@ -11,7 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SourceListing implements Serializable {
+public class SourceListing {
 
   private String portal;
   private String externalListingId;

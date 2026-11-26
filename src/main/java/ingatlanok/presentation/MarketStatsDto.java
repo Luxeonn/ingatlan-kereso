@@ -1,6 +1,5 @@
 package ingatlanok.presentation;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class MarketStatsDto implements Serializable {
+public class MarketStatsDto {
 
   private Double averagePriceMillion;
   private Long averagePricePerM2;

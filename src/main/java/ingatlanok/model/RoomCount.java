@@ -1,11 +1,9 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 /**
  * Value object representing a property room count (#401 / JAVA-013).
  */
-public record RoomCount(double count) implements Serializable, Comparable<RoomCount> {
+public record RoomCount(double count) implements Comparable<RoomCount> {
 
   public RoomCount {
     if (count < 0) {

@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -9,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 /**
  * Currency code for real estate prices (#401 / JAVA-005).
  */
-public enum CurrencyCode implements Serializable {
+public enum CurrencyCode {
   HUF,
   EUR;
 

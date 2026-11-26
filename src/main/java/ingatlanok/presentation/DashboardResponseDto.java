@@ -1,6 +1,5 @@
 package ingatlanok.presentation;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,7 +22,7 @@ import ingatlanok.model.SearchResult;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class DashboardResponseDto implements Serializable {
+public class DashboardResponseDto {
 
   @Builder.Default
   private List<IngatlanItem> items = new ArrayList<>();
