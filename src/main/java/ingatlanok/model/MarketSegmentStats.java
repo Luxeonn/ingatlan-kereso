@@ -1,7 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +10,7 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @NoArgsConstructor
-public class MarketSegmentStats implements Serializable {
+public class MarketSegmentStats {
 
   private String city;
   private PropertyType propertyType;

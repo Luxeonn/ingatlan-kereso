@@ -1,7 +1,5 @@
 package ingatlanok.presentation;
 
-import java.io.Serializable;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +11,7 @@ import ingatlanok.model.PropertyType;
  */
 @Getter
 @NoArgsConstructor
-public class MarketSegmentStatsDto implements Serializable {
+public class MarketSegmentStatsDto {
 
   private String city;
   private PropertyType propertyType;

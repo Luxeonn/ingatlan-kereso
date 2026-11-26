@@ -1,7 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -45,7 +43,7 @@ import ingatlanok.model.PropertyType;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class PropertyEntity implements Serializable {
+public class PropertyEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

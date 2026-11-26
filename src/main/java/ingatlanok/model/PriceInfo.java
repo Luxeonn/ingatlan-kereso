@@ -1,14 +1,12 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class PriceInfo implements Serializable {
+public class PriceInfo {
 
   private String rawText;
   private Long amountHuf;

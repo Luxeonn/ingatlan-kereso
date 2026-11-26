@@ -1,6 +1,5 @@
 package ingatlanok.web;
 
-import java.io.Serializable;
 import java.util.List;
 
 import ingatlanok.model.TrackedCityInfo;
@@ -13,5 +12,4 @@ public record StatusResponseDto(
     int port,
     int totalInDb,
     String lastRunTime,
-    List<TrackedCityInfo> trackedCities)
-    implements Serializable {}
+    List<TrackedCityInfo> trackedCities) {}

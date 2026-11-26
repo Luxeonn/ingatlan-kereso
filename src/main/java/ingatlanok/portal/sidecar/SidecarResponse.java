@@ -1,6 +1,5 @@
 package ingatlanok.portal.sidecar;
 
-import java.io.Serializable;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +17,7 @@ import ingatlanok.model.PropertyDetails;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SidecarResponse implements Serializable {
+public class SidecarResponse {
 
   private String portalId;
 
@@ -54,7 +53,7 @@ public class SidecarResponse implements Serializable {
     return items != null ? items : new ArrayList<>();
   }
 
-  public static class SidecarItem implements Serializable {
+  public static class SidecarItem {
 
     private String id;
 

@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -9,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 /**
  * Closed set of sorting options for property listing queries (#401 / JAVA-004).
  */
-public enum ListingSortOption implements Serializable {
+public enum ListingSortOption {
   DISCOVERED_DESC,
   PRICE_ASC,
   PRICE_DESC,

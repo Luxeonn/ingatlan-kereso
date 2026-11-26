@@ -1,7 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -17,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ConfigEntity implements Serializable {
+public class ConfigEntity {
 
   @Id
   @Column(name = "config_key", nullable = false, unique = true, length = 100)

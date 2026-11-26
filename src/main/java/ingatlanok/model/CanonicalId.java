@@ -1,11 +1,9 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 /**
  * Value object representing a cross-portal deduplicated canonical property identifier (#401 / JAVA-015).
  */
-public record CanonicalId(String value) implements Serializable {
+public record CanonicalId(String value) {
 
   public CanonicalId {
     if (value == null || value.isBlank()) {

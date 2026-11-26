@@ -1,11 +1,9 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 /**
  * Value object representing a portal-native property identifier (#401 / JAVA-015).
  */
-public record PropertyId(String value) implements Serializable {
+public record PropertyId(String value) {
 
   public PropertyId {
     if (value == null || value.isBlank()) {

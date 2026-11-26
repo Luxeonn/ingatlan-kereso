@@ -1,7 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -39,7 +37,7 @@ import ingatlanok.model.DedupOverrideType;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class DedupOverrideEntity implements Serializable {
+public class DedupOverrideEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

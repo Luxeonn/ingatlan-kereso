@@ -1,7 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -22,5 +20,4 @@ public record SearchPreset(
     @Valid SearchCriteria criteria,
     String createdAt,
     String updatedAt,
-    String lastUsedAt)
-    implements Serializable {}
+    String lastUsedAt) {}

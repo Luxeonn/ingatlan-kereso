@@ -1,7 +1,5 @@
 package ingatlanok.presentation;
 
-import java.io.Serializable;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +11,7 @@ import ingatlanok.model.PortalScrapeStatus;
  */
 @Getter
 @NoArgsConstructor
-public class PortalStatusDto implements Serializable {
+public class PortalStatusDto {
 
   private String portalId;
   private String portalName;

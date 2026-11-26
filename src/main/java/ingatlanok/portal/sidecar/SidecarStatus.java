@@ -1,6 +1,5 @@
 package ingatlanok.portal.sidecar;
 
-import java.io.Serializable;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -9,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 /**
  * Execution status reported by external sidecar scrapers (#401 / JAVA-009).
  */
-public enum SidecarStatus implements Serializable {
+public enum SidecarStatus {
   SUCCESS,
   FAILED,
   BOT_PROTECTED,
