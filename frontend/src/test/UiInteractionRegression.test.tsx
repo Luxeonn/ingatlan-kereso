@@ -110,6 +110,7 @@ describe('UI State Management & Interaction Regression (#378)', () => {
       dashboardTab: 'listings',
       listingSubView: 'listings',
       isDiagnosticsModalOpen: false,
+      isIngatlanComImportModalOpen: false,
       isFiltersCollapsed: false,
       starredUrls: [],
       starredItemsCache: {},
