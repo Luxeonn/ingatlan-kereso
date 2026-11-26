@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -53,6 +54,10 @@ public class SidecarResponse {
     return items != null ? items : new ArrayList<>();
   }
 
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class SidecarItem {
 
     private String id;
@@ -71,8 +76,6 @@ public class SidecarResponse {
 
     private String imageUrl;
 
-    public SidecarItem() {}
-
     public SidecarItem(
         String id,
         String url,
@@ -82,61 +85,6 @@ public class SidecarResponse {
         Double areaSquareMeters,
         Double roomCount) {
       this(id, url, title, priceMillion, priceRaw, areaSquareMeters, roomCount, null);
-    }
-
-    public SidecarItem(
-        String id,
-        String url,
-        String title,
-        Double priceMillion,
-        String priceRaw,
-        Double areaSquareMeters,
-        Double roomCount,
-        String imageUrl) {
-      this.id = id;
-      this.url = url;
-      this.title = title;
-      this.priceMillion = priceMillion;
-      this.priceRaw = priceRaw;
-      this.areaSquareMeters = areaSquareMeters;
-      this.roomCount = roomCount;
-      this.imageUrl = imageUrl;
-    }
-
-    public String getId() {
-      return id;
-    }
-
-    public String getUrl() {
-      return url;
-    }
-
-    public String getTitle() {
-      return title;
-    }
-
-    public Double getPriceMillion() {
-      return priceMillion;
-    }
-
-    public String getPriceRaw() {
-      return priceRaw;
-    }
-
-    public Double getAreaSquareMeters() {
-      return areaSquareMeters;
-    }
-
-    public Double getRoomCount() {
-      return roomCount;
-    }
-
-    public String getImageUrl() {
-      return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-      this.imageUrl = imageUrl;
     }
 
     public IngatlanItem toIngatlanItem(
