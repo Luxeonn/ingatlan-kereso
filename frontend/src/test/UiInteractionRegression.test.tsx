@@ -231,13 +231,32 @@ describe('UI State Management & Interaction Regression (#378)', () => {
       const diagBtn = screen.getByRole('button', { name: /Diagnosztika/i })
       fireEvent.click(diagBtn)
       expect(useUiStore.getState().isDiagnosticsModalOpen).toBe(true)
-      expect(screen.getByText('Portál Diagnosztika & Állapotjelentés')).toBeTruthy()
+      expect(await screen.findByText('Portál Diagnosztika & Állapotjelentés')).toBeTruthy()
 
       // Close modal
       const closeBtn = screen.getByRole('button', { name: 'Bezárás' })
       fireEvent.click(closeBtn)
       expect(useUiStore.getState().isDiagnosticsModalOpen).toBe(false)
       expect(screen.queryByText('Portál Diagnosztika & Állapotjelentés')).toBeNull()
+    })
+
+    it('lazy-loads and closes Ingatlan.com HTML import modal via UI store toggle', async () => {
+      renderApp()
+
+      expect(screen.queryByTestId('ingatlancom-import-modal')).toBeNull()
+
+      act(() => {
+        useUiStore.getState().setIngatlanComImportModalOpen(true)
+      })
+      expect(useUiStore.getState().isIngatlanComImportModalOpen).toBe(true)
+      const modal = await screen.findByTestId('ingatlancom-import-modal')
+      expect(modal).toBeTruthy()
+
+      const [closeBtn] = within(modal).getAllByRole('button', { name: 'Bezárás' })
+      if (!closeBtn) throw new Error('Close button not found')
+      fireEvent.click(closeBtn)
+      expect(useUiStore.getState().isIngatlanComImportModalOpen).toBe(false)
+      expect(screen.queryByTestId('ingatlancom-import-modal')).toBeNull()
     })
 
     it('collapses and expands search filter panel, rendering summary chips', () => {

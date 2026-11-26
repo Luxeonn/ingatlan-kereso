@@ -5,8 +5,6 @@ import { SearchPanel } from './components/filters/SearchPanel'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { ArchiveSubViewToolbar } from './components/archive/ArchiveSubViewToolbar'
-import { DiagnosticsModal } from './components/modals/DiagnosticsModal'
-import { IngatlanComImportModal } from './components/modals/IngatlanComImportModal'
 import {
   SearchErrorBanner,
   PartialPortalWarningBanner,
@@ -28,6 +26,18 @@ import type { PortalStatusDto } from './types/portal'
 const MarketAnalyticsPanel = lazy(() =>
   import('./components/analytics/MarketAnalyticsPanel').then((module) => ({
     default: module.MarketAnalyticsPanel,
+  })),
+)
+
+const DiagnosticsModal = lazy(() =>
+  import('./components/modals/DiagnosticsModal').then((module) => ({
+    default: module.DiagnosticsModal,
+  })),
+)
+
+const IngatlanComImportModal = lazy(() =>
+  import('./components/modals/IngatlanComImportModal').then((module) => ({
+    default: module.IngatlanComImportModal,
   })),
 )
 
@@ -345,11 +355,17 @@ export const App: FC = () => {
         onClear={searchState.clearToast}
       />
 
-      <DiagnosticsModal portalStatuses={searchState.data?.portalStatuses} />
-      <IngatlanComImportModal
-        fetchedPages={bannerState.ingatlanComFetchedPages}
-        onImportSuccess={handleSearch}
-      />
+      <Suspense fallback={null}>
+        {ui.isDiagnosticsModalOpen && (
+          <DiagnosticsModal portalStatuses={searchState.data?.portalStatuses} />
+        )}
+        {ui.isIngatlanComImportModalOpen && (
+          <IngatlanComImportModal
+            fetchedPages={bannerState.ingatlanComFetchedPages}
+            onImportSuccess={handleSearch}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }
