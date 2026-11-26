@@ -19,7 +19,7 @@ Keep property-portal scraping reliable despite external DOM changes, network tim
 
 Activate this skill for any task, pull request, or code review affecting any of the following:
 
-- **Portal engines, sidecars, and HTML import**: `src/main/java/ingatlanok/portal/**` (including `AbstractAdapterPortalEngine`, `AbstractPaginatedExtractionStrategy`, `sidecar/`), `tools/**` (`sidecar.py`, `sidecar-playwright.mjs`, `scrapers/ingatlancom.py`), `src/main/java/ingatlanok/core/IngatlanComHtmlImportService.java`, `src/main/java/ingatlanok/common/HttpFetcher.java`
+- **Portal engines, sidecars, and HTML import**: `src/main/java/ingatlanok/portal/**` (including `AbstractAdapterPortalEngine`, `AbstractPaginatedExtractionStrategy`, `sidecar/`), `tools/**` (`sidecar-playwright.mjs`), `src/main/java/ingatlanok/core/IngatlanComHtmlImportService.java`, `src/main/java/ingatlanok/common/HttpFetcher.java`
 - **Web server and API security**: `src/main/java/ingatlanok/web/**`, `src/main/java/ingatlanok/config/WebCorsConfig.java`, `src/main/java/ingatlanok/config/SecurityHeadersFilter.java`, `src/main/java/ingatlanok/config/RequestLoggingFilter.java`
 - **Input parsing and validation**: `src/main/java/ingatlanok/common/PropertyParser.java`, search criteria and URL-building code
 - **Outbound network boundaries**: HTTP clients, request headers, timeouts, allowed domains, redirect handling
@@ -36,7 +36,7 @@ Activate this skill for any task, pull request, or code review affecting any of 
    - Handle network failures, timeouts, rate limiting, changed HTML, missing fields, and bot-protection pages without crashing the application across `AbstractAdapterPortalEngine` / `AbstractPaginatedExtractionStrategy` / `AbstractPaginatedHtmlStrategy` engines.
    - Return an explicit portal status (`SUCCESS`, `EMPTY`, `BOT_PROTECTED`, `SPA_FALLBACK`, or `FAILED`), including a direct search link where available.
    - Keep one slow or stalled portal from indefinitely blocking `SearchExecutionEngine` (`ParallelPortalScrapeExecutor` enforces 15s for standard portals and 120s for the `ingatlancom` sidecar).
-   - For `ingatlan.com`, isolate browser/TLS-impersonation work in `IngatlanComSidecarStrategy` (`SidecarCliExecutor` -> `tools/sidecar.py` / `tools/sidecar-playwright.mjs`) and validate manual HTML uploads in `IngatlanComHtmlImportService` (5 MB max HTML limit, allowed `ingatlan.com` `sourceUrl` host check, zero outbound requests).
+   - For `ingatlan.com`, isolate browser/TLS-impersonation work in `IngatlanComSidecarStrategy` (`SidecarCliExecutor` -> `tools/sidecar-playwright.mjs`) and validate manual HTML uploads in `IngatlanComHtmlImportService` (5 MB max HTML limit, allowed `ingatlan.com` `sourceUrl` host check, zero outbound requests).
 2. **Network requests, timeouts, and single-point SSRF isolation**:
    - Route all outbound HTTP requests through the centralized `HttpFetcher`.
    - Single-point SSRF containment: `Jsoup.connect` calls are strictly encapsulated in `HttpFetcher.java` (asserted by ArchUnit and `scripts/validate-skills.sh`). Direct external connection calls anywhere else in the codebase are forbidden.

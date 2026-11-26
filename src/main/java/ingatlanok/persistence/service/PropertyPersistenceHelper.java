@@ -58,7 +58,7 @@ public class PropertyPersistenceHelper {
   private PriceDeltaCalculation calculatePriceDelta(
       IngatlanItem item, PropertyEntity existing, String now) {
     PriceInfo pi = item.getPriceInfo();
-    Long priceAmount = pi != null ? pi.getAmountHuf() : null;
+    Long priceAmount = pi != null ? pi.amountHuf() : null;
     Long prevAmount = existing != null ? existing.getPriceAmount() : null;
     ExistingPriceState state =
         new ExistingPriceState(
@@ -74,17 +74,17 @@ public class PropertyPersistenceHelper {
   private void recordPriceHistory(
       String propId, String url, String now, IngatlanItem item, PriceDeltaCalculation calc) {
     PriceInfo pi = item.getPriceInfo();
-    Long priceAmount = pi != null ? pi.getAmountHuf() : null;
+    Long priceAmount = pi != null ? pi.amountHuf() : null;
     if (priceAmount == null || priceAmount <= 0) {
       return;
     }
-    Double m = pi.getAmountMillion();
+    Double m = pi.amountMillion();
     String raw =
-        pi.getRawText() != null
-            ? pi.getRawText()
+        pi.rawText() != null
+            ? pi.rawText()
             : (item.getPrice() != null ? item.getPrice() : "");
     Long perSqm =
-        item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
+        item.getDetailsInfo() != null ? item.getDetailsInfo().pricePerSquareMeter() : null;
 
     if (calc.isNewPriceRecord()) {
       priceHistoryRepo.save(
@@ -149,9 +149,9 @@ public class PropertyPersistenceHelper {
     String statusEvent = determineStatusEvent(existing, calc);
     String obsTime =
         existing == null && item.getDiscoveredAt() != null ? item.getDiscoveredAt() : now;
-    Long priceAmount = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
+    Long priceAmount = item.getPriceInfo() != null ? item.getPriceInfo().amountHuf() : null;
     Long perSqm =
-        item.getDetailsInfo() != null ? item.getDetailsInfo().getPricePerSquareMeter() : null;
+        item.getDetailsInfo() != null ? item.getDetailsInfo().pricePerSquareMeter() : null;
 
     ListingObservationEntity obs =
         mapper.createListingObservationEntity(

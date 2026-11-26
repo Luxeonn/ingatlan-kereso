@@ -8,7 +8,6 @@ describe('Header layout component', () => {
   beforeEach(() => {
     useFilterStore.getState().resetToDefaults()
     useUiStore.setState({
-      theme: 'dark',
       isDiagnosticsModalOpen: false,
     })
   })
@@ -47,17 +46,10 @@ describe('Header layout component', () => {
     expect(useUiStore.getState().isDiagnosticsModalOpen).toBe(true)
   })
 
-  it('toggles theme when theme switcher button is clicked', () => {
+  it('does not render theme switcher or command palette buttons (light-only, no Ctrl+K shortcut)', () => {
     render(<Header />)
 
-    expect(useUiStore.getState().theme).toBe('dark')
-    const themeBtn = screen.getByTitle('Váltás világos témára')
-    expect(themeBtn).toBeTruthy()
-
-    fireEvent.click(themeBtn)
-    expect(useUiStore.getState().theme).toBe('light')
-
-    fireEvent.click(screen.getByTitle('Váltás sötét témára'))
-    expect(useUiStore.getState().theme).toBe('dark')
+    expect(screen.queryByTestId('command-palette-trigger')).toBeNull()
+    expect(screen.queryByTitle(/Váltás .* témára/i)).toBeNull()
   })
 })

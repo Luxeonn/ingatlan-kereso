@@ -21,7 +21,6 @@ import ingatlanok.model.ListingObservation;
 import ingatlanok.model.ListingStatus;
 import ingatlanok.model.PriceHistoryEntry;
 import ingatlanok.model.PriceInfo;
-import ingatlanok.model.Property;
 import ingatlanok.model.PropertyDetails;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.SourceListing;
@@ -51,7 +50,6 @@ public abstract class JpaEntityMapper {
   @Mapping(target = "manuallyMerged", ignore = true)
   @Mapping(target = "manuallySplit", ignore = true)
   @Mapping(target = "isBargain", ignore = true)
-  @Mapping(target = "bargain", ignore = true)
   @Mapping(target = "referenceMedianPricePerSquareMeter", ignore = true)
   @Mapping(target = "percentageBelowMedian", ignore = true)
   @Mapping(target = "referenceSampleSize", ignore = true)
@@ -126,8 +124,8 @@ public abstract class JpaEntityMapper {
   @Mapping(
       target = "priceRaw",
       expression =
-          "java((item.getPriceInfo() != null && item.getPriceInfo().getRawText() != null)"
-              + " ? item.getPriceInfo().getRawText()"
+          "java((item.getPriceInfo() != null && item.getPriceInfo().rawText() != null)"
+              + " ? item.getPriceInfo().rawText()"
               + " : (item.getPrice() != null ? item.getPrice() : \"\"))")
   @Mapping(target = "priceAmount", source = "item.priceInfo.amountHuf")
   @Mapping(target = "priceMillions", source = "item.priceInfo.amountMillion")
@@ -314,32 +312,4 @@ public abstract class JpaEntityMapper {
   @Mapping(target = "changePercent", source = "ctx.changePercent")
   public abstract ListingObservationEntity createListingObservationEntity(
       ListingObservationContext ctx);
-
-  @Mapping(
-      target = "canonicalId",
-      source = "entity.canonicalId",
-      defaultExpression = "java(entity.getPropertyId())")
-  @Mapping(
-      target = "propertyType",
-      source = "entity.propertyType",
-      defaultExpression = "java(PropertyType.EGYEB_ISMERETLEN)")
-  @Mapping(target = "floorAreaSquareMeters", source = "entity.areaSqm")
-  @Mapping(target = "roomCount", source = "entity.rooms")
-  @Mapping(target = "minActivePriceHuf", source = "entity.priceAmount")
-  @Mapping(target = "sources", ignore = true)
-  public abstract Property toProperty(PropertyEntity entity, List<SourceListing> sources);
-
-  @AfterMapping
-  protected void populatePropertySources(
-      PropertyEntity entity, List<SourceListing> sources, @MappingTarget Property prop) {
-    if (sources != null && !sources.isEmpty()) {
-      prop.setSources(sources);
-      prop.setMinActivePriceHuf(prop.calculateMinActivePriceHuf());
-    } else {
-      SourceListing singleSource = toSourceListing(entity);
-      if (singleSource != null) {
-        prop.setSources(List.of(singleSource));
-      }
-    }
-  }
 }

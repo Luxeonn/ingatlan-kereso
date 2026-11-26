@@ -1,6 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
 import java.time.Instant;
 
 import jakarta.persistence.Column;
@@ -32,7 +31,7 @@ import lombok.Setter;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class SearchPresetEntity implements Serializable {
+public class SearchPresetEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

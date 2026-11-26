@@ -185,7 +185,7 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     })
   })
 
-  it('useDedupActions: sikeres összevonás után törli a kijelölést és meghívja az onAfterMerge callbacket (#487)', async () => {
+  it('useDedupActions: sikeres összevonás után törli a kijelölést, invalidálja a properties cache-t és meghívja az onAfterMerge callbacket (#487, #500)', async () => {
     const mergedItem = createMockIngatlanItem({
       id: 'merged-1',
       url: 'https://dh.hu/a',
@@ -202,6 +202,7 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     const setToastMessage = vi.fn()
     const onAfterMerge = vi.fn()
     const queryClient = new QueryClient()
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     )
@@ -218,7 +219,45 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     expect(ok).toBe(true)
     expect(useUiStore.getState().selectedCardUrls).toEqual([])
     expect(setToastMessage).toHaveBeenCalledWith('Hirdetések sikeresen összevonva')
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['history'] })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['properties'] })
     expect(onAfterMerge).toHaveBeenCalledTimes(1)
+  })
+
+  it('useDedupActions: splitSource és undoDedupOverride után invalidálja a history és properties kulcsokat (#500)', async () => {
+    const splitItem = createMockIngatlanItem({ id: 's1', url: 'https://dh.hu/s1', sourcesCount: 1 })
+    vi.mocked(dedupApi.splitCluster).mockResolvedValueOnce({
+      items: [splitItem],
+      overrides: [],
+      message: 'Forrás sikeresen leválasztva',
+    })
+    vi.mocked(dedupApi.deleteDedupOverride).mockResolvedValueOnce({
+      items: [splitItem],
+      overrides: [],
+      message: 'Felülbírálás sikeresen visszavonva',
+    })
+    const setData = vi.fn()
+    const setToastMessage = vi.fn()
+    const queryClient = new QueryClient()
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+
+    const { result } = renderHook(() => useDedupActions(setData, setToastMessage), { wrapper })
+
+    await act(async () => {
+      await result.current.splitSource('https://dh.hu/s1', ['https://dh.hu/s1', 'https://oc.hu/s2'])
+    })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['history'] })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['properties'] })
+
+    invalidateSpy.mockClear()
+    await act(async () => {
+      await result.current.undoDedupOverride(99)
+    })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['history'] })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['properties'] })
   })
 
   it('useDedupActions: hiba esetén toastot jelenít meg, nem hívja az onAfterMerge-et és nem törli a kijelölést', async () => {

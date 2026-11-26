@@ -158,8 +158,8 @@ test.describe('Ingatlan Kereső - Search, Filter & Sort E2E Flow Suite (#377)', 
     const cards = page.getByTestId('property-card')
     await expect(cards).toHaveCount(3)
 
-    // Filter by "Csak új találatok" (P1 and P3 are new, P2 is not)
-    const onlyNewBtn = page.getByTestId('filter-chips-row').getByRole('button', { name: /Csak új találatok/i })
+    // Filter by "Új találatok" (P1 and P3 are new, P2 is not)
+    const onlyNewBtn = page.getByTestId('filter-chips-row').getByRole('button', { name: /Új találatok/i })
     await onlyNewBtn.click()
 
     await expect(cards).toHaveCount(2)

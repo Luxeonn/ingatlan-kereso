@@ -166,10 +166,6 @@ public final class DedupOverrides {
     return url != null && splitUrls.contains(url.trim());
   }
 
-  public boolean hasAnyMerge(String url) {
-    return url != null && mergedUrls.contains(url.trim());
-  }
-
   public boolean hasAnyForceMergePair(List<IngatlanItem> cluster) {
     if (pairTypes.isEmpty() || cluster == null || cluster.size() < 2) {
       return false;

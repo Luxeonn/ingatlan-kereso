@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -11,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 /**
  * Closed set of supported real estate portal providers (#401 / JAVA-002).
  */
-public enum PortalId implements Serializable {
+public enum PortalId {
   DH("dh", "Duna House"),
   OC("oc", "Otthon Centrum"),
   JOFOGAS("jofogas", "Jófogás Ingatlan"),

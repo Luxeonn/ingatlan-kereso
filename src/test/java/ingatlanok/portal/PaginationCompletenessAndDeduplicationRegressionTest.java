@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.core.DeduplicationEngine;
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
@@ -36,8 +35,7 @@ import ingatlanok.portal.ingatlanbazar.IngatlanBazarPortalEngine;
 import ingatlanok.portal.ingatlanbazar.IngatlanBazarQueryBuilder;
 import ingatlanok.portal.ingatlanbazar.IngatlanBazarRawParser;
 import ingatlanok.portal.jofogas.JofogasPortalEngine;
-import ingatlanok.portal.koltozzbe.KoltozzbeHtmlStrategy;
-import ingatlanok.portal.koltozzbe.KoltozzbeJsonLdStrategy;
+import ingatlanok.portal.koltozzbe.KoltozzbeExtractionStrategy;
 import ingatlanok.portal.koltozzbe.KoltozzbePortalEngine;
 import ingatlanok.portal.koltozzbe.KoltozzbeRawParser;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
@@ -174,7 +172,7 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertTrue(result.getTechnicalDetails().contains("stopReason=NO_NEXT_PAGE"));
 
       List<String> jsonLdUrls = new ArrayList<>();
-      KoltozzbeJsonLdStrategy jsonLdStrategy = new KoltozzbeJsonLdStrategy(
+      KoltozzbeExtractionStrategy jsonLdStrategy = new KoltozzbeExtractionStrategy(
           new KoltozzbeUrlBuilder(),
           new KoltozzbeRawParser(),
           url -> {
@@ -510,10 +508,10 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       assertEquals(PortalScrapeStatus.FAILED, jfTotalFailure.getStatus(),
           "Jófogás Page 1 null response must be FAILED, not EMPTY");
 
-      KoltozzbeHtmlStrategy kbHtmlStrategy = new KoltozzbeHtmlStrategy(
+      KoltozzbeExtractionStrategy kbStrategy = new KoltozzbeExtractionStrategy(
           new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), url -> null, 2);
-      assertEquals(PortalScrapeStatus.FAILED, kbHtmlStrategy.extract(criteria).status(),
-          "Költözzbe HTML Page 1 null response must be FAILED, not EMPTY");
+      assertEquals(PortalScrapeStatus.FAILED, kbStrategy.extract(criteria).status(),
+          "Költözzbe Page 1 null response must be FAILED, not EMPTY");
 
       IngatlanBazarApiStrategy ibStrategy = new IngatlanBazarApiStrategy(
           new IngatlanBazarQueryBuilder(),
@@ -539,12 +537,9 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
     @Test
     @DisplayName("A lapozás végén a napló tartalmazza a feldolgozott oldalak számát és a leállási okot")
     void logsProcessedPageCountAndStopReasonWithoutRawPayload() {
-      Logger dhLogger = (Logger) LoggerFactory.getLogger(
-          DunaHouseHtmlStrategy.class.getSimpleName());
+      Logger dhLogger = (Logger) LoggerFactory.getLogger(DunaHouseHtmlStrategy.class);
       Level previousSlf4jLevel = dhLogger.getLevel();
-      AppLogger.LogLevel previousAppLevel = AppLogger.getGlobalLevel();
       dhLogger.setLevel(Level.INFO);
-      AppLogger.setGlobalLevel(AppLogger.LogLevel.INFO);
       ListAppender<ILoggingEvent> appender = new ListAppender<>();
       appender.start();
       dhLogger.addAppender(appender);
@@ -581,7 +576,6 @@ class PaginationCompletenessAndDeduplicationRegressionTest {
       } finally {
         dhLogger.detachAppender(appender);
         dhLogger.setLevel(previousSlf4jLevel);
-        AppLogger.setGlobalLevel(previousAppLevel);
       }
     }
   }

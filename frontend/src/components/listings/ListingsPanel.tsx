@@ -1,10 +1,10 @@
-import type { FC } from 'react'
+import type { FC, ReactNode } from 'react'
 import { LayoutGrid, Star } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import { ListingsGrid } from './ListingsGrid'
 import type { ListingSubView } from '../../store/useUiStore'
 import { useUiStore } from '../../store/useUiStore'
-import { getTotalSourceListingsCount } from '../../utils/formatters'
+import { formatPricePerSqm, getTotalSourceListingsCount } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 
 export interface ListingsPanelProps {
@@ -12,6 +12,8 @@ export interface ListingsPanelProps {
   rawItems?: IngatlanItem[]
   totalRawCount: number
   serverFilteredCount?: number
+  medianPricePerSqm?: number | null
+  sessionViewedUrls?: ReadonlySet<string>
   isLoading: boolean
   hasSearched: boolean
   mode?: ListingSubView
@@ -19,12 +21,10 @@ export interface ListingsPanelProps {
   onSubViewChange?: (subView: ListingSubView) => void
   searchCount?: number
   favoritesCount?: number
-  archiveCount?: number
   onMarkViewed: (url: string) => void
   onHide?: (item: IngatlanItem) => void
   onRestore?: (item: IngatlanItem) => void
   hiddenCount?: number
-  onOpenAll: (items: IngatlanItem[]) => void
   onTriggerSearch: () => void
   onClearHistory?: () => void
   isClearingHistory?: boolean
@@ -40,29 +40,35 @@ interface MultiSourceNoticeProps {
   itemsCount: number
   totalSourceListingsCount: number
   serverFilteredCount?: number
+  medianPricePerSqm?: number | null
 }
 
 const MultiSourceNotice: FC<MultiSourceNoticeProps> = ({
   itemsCount,
   totalSourceListingsCount,
   serverFilteredCount,
+  medianPricePerSqm,
 }) => {
   const mergedDuplicatesCount = Math.max(0, totalSourceListingsCount - itemsCount)
   const hasFiltered = serverFilteredCount !== undefined && serverFilteredCount > 0
-  if (mergedDuplicatesCount === 0 && !hasFiltered) return null
+  const hasMedian = medianPricePerSqm !== null && medianPricePerSqm !== undefined && medianPricePerSqm > 0
+  if (mergedDuplicatesCount === 0 && !hasFiltered && !hasMedian) return null
 
   return (
     <div
       data-testid="multi-source-summary-notice"
-      className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300"
+      className="flex flex-1 min-w-[260px] flex-wrap items-center justify-center text-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs text-indigo-700 tabular-nums"
     >
       <span>
-        <strong className="font-bold text-indigo-200">{itemsCount} egyedi ingatlan</strong>
+        <strong className="font-bold text-indigo-700">{itemsCount} egyedi ingatlan</strong>
         {mergedDuplicatesCount > 0 && (
           <> ({totalSourceListingsCount} hirdetésből · {mergedDuplicatesCount} összevonva)</>
         )}
         {hasFiltered && (
-          <> · <strong className="font-bold text-indigo-200">{serverFilteredCount} szűrt</strong></>
+          <> · <strong className="font-bold text-indigo-700">{serverFilteredCount} szűrt</strong></>
+        )}
+        {hasMedian && (
+          <> · Medián m² ár: <strong className="font-bold text-indigo-700">{formatPricePerSqm(medianPricePerSqm)}</strong></>
         )}
       </span>
     </div>
@@ -73,8 +79,8 @@ interface ListingsSubViewNavProps {
   activeMode: ListingSubView
   activeSearchCount: number
   activeFavoritesCount: number
-  activeArchiveCount?: number
   onSubViewChange: (newSubView: ListingSubView) => void
+  summaryNotice?: ReactNode
 }
 
 const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
@@ -82,23 +88,24 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
   activeSearchCount,
   activeFavoritesCount,
   onSubViewChange,
+  summaryNotice,
 }) => (
   <nav
     data-testid="listings-subview-nav"
     aria-label="Hirdetés nézetek"
-    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-2.5 shadow-sm"
+    className="flex flex-wrap items-center justify-center gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-2.5 shadow-xs"
   >
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-1 min-w-[280px] flex-wrap items-center gap-2">
       <button
         type="button"
         data-testid="subview-listings"
         aria-pressed={activeMode === 'listings'}
         onClick={() => onSubViewChange('listings')}
         className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+          'flex flex-1 min-w-[130px] items-center justify-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
           activeMode === 'listings'
             ? 'bg-blue-600 text-white shadow-sm'
-            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
+            : 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-700',
         )}
       >
         <LayoutGrid className="h-3.5 w-3.5" />
@@ -111,24 +118,40 @@ const ListingsSubViewNav: FC<ListingsSubViewNavProps> = ({
         aria-pressed={activeMode === 'favorites'}
         onClick={() => onSubViewChange('favorites')}
         className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all',
+          'flex flex-1 min-w-[130px] items-center justify-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer',
           activeMode === 'favorites'
             ? 'bg-amber-600 text-white shadow-sm'
-            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]',
+            : 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-amber-500/40 hover:text-amber-700',
         )}
       >
         <Star className="h-3.5 w-3.5" />
         <span>⭐ Kedvencek ({activeFavoritesCount})</span>
       </button>
     </div>
+
+    {summaryNotice}
   </nav>
 )
+
+function resolveSubViewCounts(
+  activeMode: ListingSubView,
+  totalRawCount: number,
+  searchCount?: number,
+  favoritesCount?: number,
+) {
+  return {
+    activeSearchCount: searchCount ?? (activeMode === 'listings' ? totalRawCount : 0),
+    activeFavoritesCount: favoritesCount ?? (activeMode === 'favorites' ? totalRawCount : 0),
+  }
+}
 
 export const ListingsPanel: FC<ListingsPanelProps> = ({
   items,
   rawItems,
   totalRawCount,
   serverFilteredCount,
+  medianPricePerSqm,
+  sessionViewedUrls,
   isLoading,
   hasSearched,
   mode,
@@ -136,12 +159,10 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
   onSubViewChange,
   searchCount,
   favoritesCount,
-  archiveCount,
   onMarkViewed,
   onHide,
   onRestore,
   hiddenCount,
-  onOpenAll,
   onTriggerSearch,
   onClearHistory,
   isClearingHistory = false,
@@ -160,30 +181,36 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
     onSubViewChange?.(newSubView)
   }
 
-  const activeSearchCount = searchCount ?? (activeMode === 'listings' ? totalRawCount : 0)
-  const activeFavoritesCount = favoritesCount ?? (activeMode === 'favorites' ? totalRawCount : 0)
-  const activeArchiveCount = archiveCount ?? (activeMode === 'archive' ? totalRawCount : 0)
+  const { activeSearchCount, activeFavoritesCount } = resolveSubViewCounts(
+    activeMode,
+    totalRawCount,
+    searchCount,
+    favoritesCount,
+  )
 
-  // Multi-source grouped count calculation (#260, #261, #358, #432)
-  const totalSourceListingsCount = getTotalSourceListingsCount(items)
+  const baseSummaryItems = rawItems ?? items
+  const totalSourceListingsCount = getTotalSourceListingsCount(baseSummaryItems)
+
+  const summaryNotice =
+    activeMode === 'listings' ? (
+      <MultiSourceNotice
+        itemsCount={baseSummaryItems.length}
+        totalSourceListingsCount={totalSourceListingsCount}
+        serverFilteredCount={serverFilteredCount}
+        medianPricePerSqm={medianPricePerSqm}
+      />
+    ) : null
 
   return (
     <section className="space-y-4" data-testid="listings-panel">
-      {/* Sub-view navigation toolbar (#R2) */}
-      <ListingsSubViewNav
-        activeMode={activeMode}
-        activeSearchCount={activeSearchCount}
-        activeFavoritesCount={activeFavoritesCount}
-        activeArchiveCount={activeArchiveCount}
-        onSubViewChange={handleSubViewChange}
-      />
-
-      {/* Multi-source clustering summary notice if present in listings mode */}
-      {activeMode === 'listings' && (
-        <MultiSourceNotice
-          itemsCount={items.length}
-          totalSourceListingsCount={totalSourceListingsCount}
-          serverFilteredCount={serverFilteredCount}
+      {/* Sub-view navigation toolbar (hidden in Archive & Trash tab) */}
+      {activeMode !== 'archive' && (
+        <ListingsSubViewNav
+          activeMode={activeMode}
+          activeSearchCount={activeSearchCount}
+          activeFavoritesCount={activeFavoritesCount}
+          onSubViewChange={handleSubViewChange}
+          summaryNotice={summaryNotice}
         />
       )}
 
@@ -199,6 +226,7 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         items={items}
         rawItems={rawItems}
         totalRawCount={totalRawCount}
+        sessionViewedUrls={sessionViewedUrls}
         isLoading={isLoading}
         hasSearched={hasSearched}
         mode={activeMode}
@@ -206,7 +234,6 @@ export const ListingsPanel: FC<ListingsPanelProps> = ({
         onHide={onHide}
         onRestore={onRestore}
         hiddenCount={hiddenCount}
-        onOpenAll={onOpenAll}
         onTriggerSearch={onTriggerSearch}
         onClearHistory={onClearHistory}
         isClearingHistory={isClearingHistory}

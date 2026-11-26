@@ -54,36 +54,36 @@ class PropertyBusinessRulesRegressionTest {
     @DisplayName("Millió Ft formátumok (vessző, pont, szóköz, kis/nagybetű) feldolgozása")
     void testParsePriceMillionFormats() {
       PriceInfo p1 = PropertyParser.parsePrice("Eladó lakás 65.5 M Ft");
-      assertEquals(65_500_000L, p1.getAmountHuf());
-      assertEquals(65.5, p1.getAmountMillion());
+      assertEquals(65_500_000L, p1.amountHuf());
+      assertEquals(65.5, p1.amountMillion());
 
       PriceInfo p2 = PropertyParser.parsePrice("Ikerház 65,5 M Ft");
-      assertEquals(65_500_000L, p2.getAmountHuf());
-      assertEquals(65.5, p2.getAmountMillion());
+      assertEquals(65_500_000L, p2.amountHuf());
+      assertEquals(65.5, p2.amountMillion());
 
       PriceInfo p3 = PropertyParser.parsePrice("Családi ház 120 m ft");
-      assertEquals(120_000_000L, p3.getAmountHuf());
-      assertEquals(120.0, p3.getAmountMillion());
+      assertEquals(120_000_000L, p3.amountHuf());
+      assertEquals(120.0, p3.amountMillion());
 
       PriceInfo p4 = PropertyParser.parsePrice("Telek 8.25 M Ft irányár");
-      assertEquals(8_250_000L, p4.getAmountHuf());
-      assertEquals(8.25, p4.getAmountMillion());
+      assertEquals(8_250_000L, p4.amountHuf());
+      assertEquals(8.25, p4.amountMillion());
     }
 
     @Test
     @DisplayName("Egész Forint formátumok (szóköz, pont, NBSP tagolás) feldolgozása")
     void testParsePriceIntegerHufFormats() {
       PriceInfo pSpace = PropertyParser.parsePrice("Lakás 45 500 000 Ft");
-      assertEquals(45_500_000L, pSpace.getAmountHuf());
-      assertEquals(45.5, pSpace.getAmountMillion());
+      assertEquals(45_500_000L, pSpace.amountHuf());
+      assertEquals(45.5, pSpace.amountMillion());
 
       PriceInfo pDot = PropertyParser.parsePrice("Családi ház 78.900.000 Ft");
-      assertEquals(78_900_000L, pDot.getAmountHuf());
-      assertEquals(78.9, pDot.getAmountMillion());
+      assertEquals(78_900_000L, pDot.amountHuf());
+      assertEquals(78.9, pDot.amountMillion());
 
       PriceInfo pNbsp = PropertyParser.parsePrice("Panel 32\u00A0400\u00A0000 Ft");
-      assertEquals(32_400_000L, pNbsp.getAmountHuf());
-      assertEquals(32.4, pNbsp.getAmountMillion());
+      assertEquals(32_400_000L, pNbsp.amountHuf());
+      assertEquals(32.4, pNbsp.amountMillion());
     }
 
     @Test
@@ -91,19 +91,19 @@ class PropertyBusinessRulesRegressionTest {
     void testParsePriceMalformedAndBoundaryInputs() {
       PriceInfo pNull = PropertyParser.parsePrice(null);
       assertNotNull(pNull);
-      assertNull(pNull.getAmountHuf());
-      assertEquals("Ár a hirdetésben", pNull.getRawText());
+      assertNull(pNull.amountHuf());
+      assertEquals("Ár a hirdetésben", pNull.rawText());
 
       PriceInfo pBlank = PropertyParser.parsePrice("   ");
-      assertNull(pBlank.getAmountHuf());
-      assertEquals("Ár a hirdetésben", pBlank.getRawText());
+      assertNull(pBlank.amountHuf());
+      assertEquals("Ár a hirdetésben", pBlank.rawText());
 
       PriceInfo pZero = PropertyParser.parsePrice("0 Ft");
-      assertNull(pZero.getAmountHuf(), "0 Ft amount must remain unparsed amountHuf=null");
+      assertNull(pZero.amountHuf(), "0 Ft amount must remain unparsed amountHuf=null");
 
       PriceInfo pNoPrice = PropertyParser.parsePrice("Ár megegyezés szerint, hívjon bizalommal!");
-      assertNull(pNoPrice.getAmountHuf());
-      assertEquals("Ár a hirdetésben", pNoPrice.getRawText());
+      assertNull(pNoPrice.amountHuf());
+      assertEquals("Ár a hirdetésben", pNoPrice.rawText());
     }
   }
 
@@ -116,11 +116,11 @@ class PropertyBusinessRulesRegressionTest {
     void testCalculateSquareMeterPriceRounding() {
       PriceInfo price50M = PriceInfo.builder().amountHuf(50_000_000L).amountMillion(50.0).build();
       PropertyDetails d1 = PropertyParser.parseDetails("75 m² 3 szoba", price50M);
-      assertEquals(666_667L, d1.getPricePerSquareMeter());
+      assertEquals(666_667L, d1.pricePerSquareMeter());
 
       PriceInfo price40M = PriceInfo.builder().amountHuf(40_000_000L).amountMillion(40.0).build();
       PropertyDetails d2 = PropertyParser.parseDetails("50 m² 2 szoba", price40M);
-      assertEquals(800_000L, d2.getPricePerSquareMeter());
+      assertEquals(800_000L, d2.pricePerSquareMeter());
     }
 
     @Test
@@ -129,16 +129,16 @@ class PropertyBusinessRulesRegressionTest {
       PriceInfo validPrice = PriceInfo.builder().amountHuf(45_000_000L).amountMillion(45.0).build();
 
       PropertyDetails dNoArea = PropertyParser.parseDetails("Csak leírás alapterület nélkül", validPrice);
-      assertNull(dNoArea.getAreaSquareMeters());
-      assertNull(dNoArea.getPricePerSquareMeter());
+      assertNull(dNoArea.areaSquareMeters());
+      assertNull(dNoArea.pricePerSquareMeter());
 
       PropertyDetails dNullPrice = PropertyParser.parseDetails("60 m²", null);
-      assertEquals(60.0, dNullPrice.getAreaSquareMeters());
-      assertNull(dNullPrice.getPricePerSquareMeter());
+      assertEquals(60.0, dNullPrice.areaSquareMeters());
+      assertNull(dNullPrice.pricePerSquareMeter());
 
       PriceInfo zeroPrice = PriceInfo.builder().amountHuf(0L).amountMillion(0.0).build();
       PropertyDetails dZeroPrice = PropertyParser.parseDetails("60 m²", zeroPrice);
-      assertNull(dZeroPrice.getPricePerSquareMeter());
+      assertNull(dZeroPrice.pricePerSquareMeter());
     }
 
     @Test
@@ -147,13 +147,13 @@ class PropertyBusinessRulesRegressionTest {
       PriceInfo price = PriceInfo.builder().amountHuf(30_000_000L).amountMillion(30.0).build();
 
       PropertyDetails dM2 = PropertyParser.parseDetails("45.5 m2 eladó", price);
-      assertEquals(45.5, dM2.getAreaSquareMeters());
+      assertEquals(45.5, dM2.areaSquareMeters());
 
       PropertyDetails dNm = PropertyParser.parseDetails("52 nm-es lakás", price);
-      assertEquals(52.0, dNm.getAreaSquareMeters());
+      assertEquals(52.0, dNm.areaSquareMeters());
 
       PropertyDetails dFull = PropertyParser.parseDetails("120 négyzetméter tégla ház", price);
-      assertEquals(120.0, dFull.getAreaSquareMeters());
+      assertEquals(120.0, dFull.areaSquareMeters());
     }
   }
 
@@ -266,7 +266,7 @@ class PropertyBusinessRulesRegressionTest {
       items.add(exact20Bargain);
 
       IngatlanItem notBargain =
-          TestFixtures.validResidentialItem("NOT-BARGAIN", "Szeged", 40_010_000L, 50.0, 2.0);
+          TestFixtures.validResidentialItem("NOT-BARGAIN", "Szeged", 40_030_000L, 50.0, 2.0);
       items.add(notBargain);
 
       MarketStats stats = analyticsEngine.calculateMarketStats(items);
@@ -275,8 +275,8 @@ class PropertyBusinessRulesRegressionTest {
       assertTrue(exact20Bargain.getIsBargain(), "Pontosan 20.0% engedmény esetén alkalmi vételnek kell lennie");
       assertEquals(20.0, exact20Bargain.getPercentageBelowMedian());
 
-      assertFalse(notBargain.getIsBargain(), "20% alatti engedmény (19.98%) nem lehet alkalmi vétel");
-      assertEquals(20.0, notBargain.getPercentageBelowMedian());
+      assertFalse(notBargain.getIsBargain(), "20% alatti engedmény (19.94%) nem lehet alkalmi vétel");
+      assertEquals(19.9, notBargain.getPercentageBelowMedian());
     }
 
     @Test
@@ -308,9 +308,9 @@ class PropertyBusinessRulesRegressionTest {
       );
 
       MarketStats stats = analyticsEngine.calculateMarketStats(smallSample);
-      assertNull(stats.getResidentialMedianPricePerM2());
-      assertTrue(stats.isResidentialInsufficientData());
-      assertEquals(0, stats.getBargainCount());
+      assertNull(stats.residentialMedianPricePerM2());
+      assertTrue(stats.residentialInsufficientData());
+      assertEquals(0, stats.bargainCount());
 
       for (IngatlanItem it : smallSample) {
         assertFalse(it.getIsBargain());
@@ -399,6 +399,7 @@ class PropertyBusinessRulesRegressionTest {
   class NewConstructionAndMultiSourceTests {
 
     private final DeduplicationEngine dedupEngine = TestFixtures.deduplicationEngine();
+    private final MarketAnalyticsEngine analyticsEngine = TestFixtures.marketAnalyticsEngine();
 
     @Test
     @DisplayName("Új építésű kulcsszavak azonosítása címben, leírásban és URL-ben")
@@ -430,7 +431,7 @@ class PropertyBusinessRulesRegressionTest {
 
       IngatlanItem primary = clustered.get(0);
       assertEquals("OC-1", primary.getId(), "A legalacsonyabb aktív árú forrás (39.5M) a megjelenített elsődleges");
-      assertEquals(39_500_000L, primary.getPriceInfo().getAmountHuf());
+      assertEquals(39_500_000L, primary.getPriceInfo().amountHuf());
       assertTrue(primary.isNewConstruction(), "Az új építésű jelölést örökölnie kell a kluszter tagjától");
       assertEquals(2, primary.getSourcesCount());
 
@@ -478,6 +479,96 @@ class PropertyBusinessRulesRegressionTest {
       assertEquals(PortalScrapeStatus.SUCCESS, agg.get(0).getStatus(),
           "A másodlagos forrásként beolvadt portál státusza nem eshet vissza EMPTY-re");
     }
+
+    @Test
+    @DisplayName(
+        "Rejtett (hidden=true) elemek nem torzítják a totalFound, newCount, portalCounts,"
+            + " cityCounts és MarketStats mutatókat (#502)")
+    void testHiddenItemsExcludedFromActiveCountsAndMarketAnalytics() {
+      List<IngatlanItem> mixed = new ArrayList<>();
+      for (int i = 1; i <= 5; i++) {
+        IngatlanItem active =
+            TestFixtures.validResidentialItem("ACT-" + i, "Debrecen", 50_000_000L, 50.0, 2.0);
+        active.setUrl("https://dh.hu/act-" + i);
+        active.setPortal("Duna House");
+        active.setSource(PortalSource.of("Duna House"));
+        active.setNew(i <= 2);
+        active.setHidden(false);
+        mixed.add(active);
+      }
+
+      // Active bargain (750k Ft/m2 -> 25% below 1M median)
+      IngatlanItem activeBargain =
+          TestFixtures.validResidentialItem("ACT-BARGAIN", "Debrecen", 37_500_000L, 50.0, 2.0);
+      activeBargain.setUrl("https://oc.hu/act-bargain");
+      activeBargain.setPortal("Otthon Centrum");
+      activeBargain.setSource(PortalSource.of("Otthon Centrum"));
+      activeBargain.setNew(true);
+      activeBargain.setHidden(false);
+      mixed.add(activeBargain);
+
+      // Hidden item with very cheap price (would be a bargain and lower median/avg if counted) and isNew=true
+      IngatlanItem hiddenBargain =
+          TestFixtures.validResidentialItem("HID-BARGAIN", "Debrecen", 25_000_000L, 50.0, 2.0);
+      hiddenBargain.setUrl("https://dh.hu/hid-bargain");
+      hiddenBargain.setPortal("Duna House");
+      hiddenBargain.setSource(PortalSource.of("Duna House"));
+      hiddenBargain.setNew(true);
+      hiddenBargain.setHidden(true);
+      hiddenBargain.setPriceDelta(-5_000_000L);
+      hiddenBargain.setPriceChangePercent(-16.7);
+      mixed.add(hiddenBargain);
+
+      // 1. MarketAnalyticsEngine excludes hidden item from counts, medians, bargains, and price drops
+      MarketStats stats = analyticsEngine.calculateMarketStats(mixed);
+      assertEquals(6, stats.residentialSampleSize());
+      assertEquals(1_000_000L, stats.residentialMedianPricePerM2());
+      assertEquals(1, stats.bargainCount(), "Hidden item must not be counted in bargainCount");
+      assertEquals(0, stats.priceDropCount(), "Hidden item must not be counted in priceDropCount");
+      assertEquals(6, stats.cityBreakdown().get("Debrecen"));
+      assertFalse(hiddenBargain.getIsBargain(), "Hidden item must not keep isBargain=true");
+      assertNull(hiddenBargain.getPercentageBelowMedian());
+
+      // 2. SearchResultAggregator counts only non-hidden items in totalFound and newCount while
+      // retaining hidden items in list
+      Map<String, Integer> portalCounts = new LinkedHashMap<>();
+      portalCounts.put("Duna House", 0);
+      portalCounts.put("Otthon Centrum", 0);
+      SearchPersistenceSynchronizer sync =
+          new SearchPersistenceSynchronizer(
+              new PortalEngineRegistry(List.of(TestFixtures.dhEngine(), TestFixtures.ocEngine())),
+              Mockito.mock(ListingStorage.class));
+      sync.recalculateRelevantPortalCounts(portalCounts, mixed);
+      assertEquals(5, portalCounts.get("Duna House"), "Hidden DH item must not inflate portalCounts");
+      assertEquals(1, portalCounts.get("Otthon Centrum"));
+
+      SearchResultAggregator agg = new SearchResultAggregator();
+      SearchResult result =
+          agg.aggregate(new ArrayList<>(mixed), new SearchCriteria(), null, portalCounts, null, null);
+      assertEquals(7, result.getItems().size(), "Hidden items remain in items for Trash/ShowHidden UI");
+      assertEquals(6, result.getTotalFound(), "totalFound must count only active (!hidden) items");
+      assertEquals(3, result.getNewCount(), "newCount must count only active (!hidden) new items");
+    }
+
+    @Test
+    @DisplayName("Alkalmi vétel 19.96% feletti kerekítési rés nélkül és multi-source Ft/m² összhanggal (#502)")
+    void testBargainRoundingGapAndMultiSourceSqmPriceAlignment() {
+      List<IngatlanItem> items = new ArrayList<>();
+      for (int i = 1; i <= 5; i++) {
+        items.add(TestFixtures.validResidentialItem("M-" + i, "Debrecen", 50_000_000L, 50.0, 2.0));
+      }
+      // 19.96% below 1,000,000 -> 800,400 Ft/m² (40,020,000 Ft / 50 m²)
+      // Rounds to 20.0 at 1 decimal -> must be consistent between isBargain and percentageBelowMedian
+      IngatlanItem edgeItem =
+          TestFixtures.validResidentialItem("EDGE-1996", "Debrecen", 40_020_000L, 50.0, 2.0);
+      items.add(edgeItem);
+
+      MarketStats stats = analyticsEngine.calculateMarketStats(items);
+      assertEquals(20.0, edgeItem.getPercentageBelowMedian());
+      assertTrue(edgeItem.getIsBargain(),
+          "19.96% rounds to 20.0% display value -> isBargain must match percentageBelowMedian >= 20.0");
+      assertEquals(1, stats.bargainCount());
+    }
   }
 
   @Nested
@@ -485,6 +576,7 @@ class PropertyBusinessRulesRegressionTest {
   class EdgeCasesAndConflictTests {
 
     private final DeduplicationEngine dedupEngine = TestFixtures.deduplicationEngine();
+    private final MarketAnalyticsEngine analyticsEngine = TestFixtures.marketAnalyticsEngine();
 
     @Test
     @DisplayName("Ellentmondó adatok (pl. eltérő szobaszám vagy túl nagy árkülönbség) nem vonhatók össze")

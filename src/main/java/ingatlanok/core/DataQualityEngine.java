@@ -11,7 +11,6 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.QualityDeduction;
 import ingatlanok.model.QualityDeductionRule;
-import ingatlanok.model.QualityScore;
 
 /**
  * Deterministic rule-based data quality and reliability scoring engine (#267).
@@ -57,10 +56,6 @@ public class DataQualityEngine {
       deductions = deductions != null ? List.copyOf(deductions) : List.of();
       structuredDeductions =
           structuredDeductions != null ? List.copyOf(structuredDeductions) : List.of();
-    }
-
-    public QualityScore toQualityScore() {
-      return QualityScore.of(score);
     }
   }
 
@@ -205,11 +200,6 @@ public class DataQualityEngine {
       this.deductions.add(reason);
       this.structuredDeductions.add(new QualityDeduction(rule, points, reason));
     }
-
-    void deduct(int points, String reason) {
-      this.score -= points;
-      this.deductions.add(reason);
-    }
   }
 
   /**
@@ -239,39 +229,39 @@ public class DataQualityEngine {
   }
 
   private Long resolvePriceAmount(IngatlanItem item) {
-    if (item.getPriceInfo() != null && item.getPriceInfo().getAmountHuf() != null) {
-      return item.getPriceInfo().getAmountHuf();
+    if (item.getPriceInfo() != null && item.getPriceInfo().amountHuf() != null) {
+      return item.getPriceInfo().amountHuf();
     }
     if (item.getPrice() != null && !item.getPrice().isBlank()) {
-      return PropertyParser.parsePrice(item.getPrice()).getAmountHuf();
+      return PropertyParser.parsePrice(item.getPrice()).amountHuf();
     }
     return null;
   }
 
   private Double resolveArea(IngatlanItem item) {
-    if (item.getDetailsInfo() != null && item.getDetailsInfo().getAreaSquareMeters() != null) {
-      return item.getDetailsInfo().getAreaSquareMeters();
+    if (item.getDetailsInfo() != null && item.getDetailsInfo().areaSquareMeters() != null) {
+      return item.getDetailsInfo().areaSquareMeters();
     }
     if (item.getDetails() != null && !item.getDetails().isBlank()) {
-      return PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo()).getAreaSquareMeters();
+      return PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo()).areaSquareMeters();
     }
     return null;
   }
 
   private Double resolveRooms(IngatlanItem item) {
-    if (item.getDetailsInfo() != null && item.getDetailsInfo().getRoomCount() != null) {
-      return item.getDetailsInfo().getRoomCount();
+    if (item.getDetailsInfo() != null && item.getDetailsInfo().roomCount() != null) {
+      return item.getDetailsInfo().roomCount();
     }
     if (item.getDetails() != null && !item.getDetails().isBlank()) {
-      return PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo()).getRoomCount();
+      return PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo()).roomCount();
     }
     return null;
   }
 
   private Long resolvePricePerM2(IngatlanItem item, Long priceHuf, Double areaM2) {
-    if (item.getDetailsInfo() != null && item.getDetailsInfo().getPricePerSquareMeter() != null
-        && item.getDetailsInfo().getPricePerSquareMeter() > 0) {
-      return item.getDetailsInfo().getPricePerSquareMeter();
+    if (item.getDetailsInfo() != null && item.getDetailsInfo().pricePerSquareMeter() != null
+        && item.getDetailsInfo().pricePerSquareMeter() > 0) {
+      return item.getDetailsInfo().pricePerSquareMeter();
     }
     if (priceHuf != null && priceHuf > 0 && areaM2 != null && areaM2 > 0) {
       return Math.round((double) priceHuf / areaM2);

@@ -38,7 +38,6 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
               maxArea: 150,
               propertyType: 'FLAT',
               portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar'],
-              autoOpenBrowser: false,
               excludeViewed: false,
             }),
           })
@@ -274,7 +273,7 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     // Verify BulkActionBar 3-tier structure & customizable filter chips (#303, #359)
     const filterChipsRow = page.getByTestId('filter-chips-row')
     await expect(filterChipsRow).toBeVisible()
-    const onlyNewToggle = filterChipsRow.getByRole('button', { name: /Csak új találatok/i })
+    const onlyNewToggle = filterChipsRow.getByRole('button', { name: /Új találatok/i })
     await expect(onlyNewToggle).toBeVisible()
     await onlyNewToggle.click()
     await onlyNewToggle.click() // toggle back off
@@ -286,12 +285,16 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     const filterSelectorBtn = filterChipsRow.getByTestId('quick-filter-selector-btn')
     await expect(filterSelectorBtn).toBeVisible()
 
-    // Verify static MarketStatsBar cards (#R3)
+    // Verify interactive MarketStatsBar filter cards
     const statsBar = page.getByTestId('market-stats-bar')
     await expect(statsBar).toBeVisible()
-    const bargainCard = statsBar.getByText('Alkalmi Vételek')
+    const bargainCard = statsBar.getByTestId('kpi-filter-bargain')
     await bargainCard.click()
+    await expect(bargainCard).toHaveAttribute('aria-pressed', 'true')
     await expect(headerBar.getByTestId('tab-listings')).toHaveAttribute('aria-pressed', 'true')
+    const allCard = statsBar.getByTestId('kpi-filter-all')
+    await allCard.click()
+    await expect(allCard).toHaveAttribute('aria-pressed', 'true')
 
     // Switch between embedded Favorites and Listings sub-views (#157)
     const listingsPanel = page.getByTestId('listings-panel')
@@ -311,14 +314,16 @@ test.describe('Ingatlan Kereső - UI Action & Endpoint Smoke Suite', () => {
     const analyticsTabBtn = headerBar.getByTestId('tab-analytics')
     await expect(analyticsTabBtn).toBeVisible()
     await analyticsTabBtn.click()
-    await expect(analyticsTabBtn).toHaveClass(/bg-indigo-600/)
+    await expect(analyticsTabBtn).toHaveAttribute('aria-selected', 'true')
+    await expect(analyticsTabBtn).toHaveClass(/border-t-indigo-500/)
     await expect(page.getByTestId('market-analytics-panel')).toBeVisible()
 
     // Switch back to Találatok top tab
     const talalatokTabBtn = headerBar.getByTestId('tab-listings')
     await expect(talalatokTabBtn).toBeVisible()
     await talalatokTabBtn.click()
-    await expect(talalatokTabBtn).toHaveClass(/bg-blue-600/)
+    await expect(talalatokTabBtn).toHaveAttribute('aria-selected', 'true')
+    await expect(talalatokTabBtn).toHaveClass(/border-t-blue-500/)
     await expect(page.getByTestId('listings-panel')).toBeVisible()
   })
 })

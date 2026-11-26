@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -13,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class IngatlanItem implements Serializable {
+public class IngatlanItem {
 
   private String id;
   private String portal;
@@ -104,15 +103,15 @@ public class IngatlanItem implements Serializable {
       boolean isNew) {
     this.id = id;
     this.source = source;
-    this.portal = source != null ? source.getPortalName() : "Ismeretlen";
+    this.portal = source != null ? source.portalName() : "Ismeretlen";
     this.url = url;
     this.title = title;
     this.priceInfo = priceInfo;
-    this.price = priceInfo != null ? priceInfo.getRawText() : "Ár a hirdetésben";
+    this.price = priceInfo != null ? priceInfo.rawText() : "Ár a hirdetésben";
     this.city = city;
     this.location = city;
     this.detailsInfo = detailsInfo;
-    this.details = detailsInfo != null ? detailsInfo.getRawText() : "";
+    this.details = detailsInfo != null ? detailsInfo.rawText() : "";
     this.discoveredAt = discoveredAt;
     this.isNew = isNew;
   }
@@ -170,14 +169,14 @@ public class IngatlanItem implements Serializable {
   public void setSource(PortalSource source) {
     this.source = source;
     if (source != null) {
-      this.portal = source.getPortalName();
+      this.portal = source.portalName();
     }
   }
 
   public void setPriceInfo(PriceInfo priceInfo) {
     this.priceInfo = priceInfo;
-    if (priceInfo != null && priceInfo.getRawText() != null) {
-      this.price = priceInfo.getRawText();
+    if (priceInfo != null && priceInfo.rawText() != null) {
+      this.price = priceInfo.rawText();
     }
   }
 
@@ -201,8 +200,8 @@ public class IngatlanItem implements Serializable {
 
   public void setDetailsInfo(PropertyDetails detailsInfo) {
     this.detailsInfo = detailsInfo;
-    if (detailsInfo != null && detailsInfo.getRawText() != null) {
-      this.details = detailsInfo.getRawText();
+    if (detailsInfo != null && detailsInfo.rawText() != null) {
+      this.details = detailsInfo.rawText();
     }
   }
 
@@ -224,10 +223,6 @@ public class IngatlanItem implements Serializable {
 
   public Integer getQualityScore() {
     return qualityScore != null ? qualityScore.value() : null;
-  }
-
-  public QualityScore getQualityScoreObject() {
-    return qualityScore;
   }
 
   public void setQualityScore(Integer score) {
@@ -289,10 +284,6 @@ public class IngatlanItem implements Serializable {
 
   public Boolean getIsBargain() {
     return isBargain;
-  }
-
-  public void setBargain(Boolean bargain) {
-    this.isBargain = bargain;
   }
 
   public void setIsBargain(Boolean bargain) {

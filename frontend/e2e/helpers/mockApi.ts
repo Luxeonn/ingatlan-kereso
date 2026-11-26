@@ -11,7 +11,6 @@ export const DEFAULT_MOCK_CONFIG: SearchCriteria = {
   maxArea: 150,
   propertyType: 'LAKAS',
   portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar', 'ingatlancom'],
-  autoOpenBrowser: false,
   excludeViewed: false,
   onlyDiscounted: false,
   onlyNewConstruction: false,
@@ -166,6 +165,12 @@ export async function setupStandardApiMocks(page: Page, options: SetupMockOption
         body: JSON.stringify(options.cities ?? DEFAULT_MOCK_CITIES),
       })
     } else if (url.includes('/api/properties/hidden')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      })
+    } else if (url.includes('/api/properties/discounted')) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

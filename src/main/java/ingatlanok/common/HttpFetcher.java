@@ -1,10 +1,9 @@
 package ingatlanok.common;
 
 import java.io.IOException;
-import java.net.URI;
-import java.util.Locale;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -13,6 +12,7 @@ import ingatlanok.common.resilience.PortalCircuitBreaker;
 import ingatlanok.common.resilience.PortalRateLimiter;
 
 /** Centralized resilient HTTP fetcher with domain whitelisting, rate limiting, and circuit breaking. */
+@Slf4j
 public final class HttpFetcher {
 
   public static final String DEFAULT_USER_AGENT =
@@ -36,7 +36,6 @@ public final class HttpFetcher {
   private static final Sleeper DEFAULT_SLEEPER = Thread::sleep;
   private static volatile Sleeper sleeper = DEFAULT_SLEEPER;
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
   private static final PortalCircuitBreaker CIRCUIT_BREAKER = new PortalCircuitBreaker();
   private static final PortalRateLimiter RATE_LIMITER = new PortalRateLimiter();
   private static final ThreadLocal<Integer> LAST_STATUS_CODE = new ThreadLocal<>();
@@ -97,9 +96,9 @@ public final class HttpFetcher {
       return null;
     }
     long startTime = System.currentTimeMillis();
-    LOGGER.debug("HTTP GET Document indítása: {}", targetUrl);
+    log.debug("HTTP GET Document indítása: {}", targetUrl);
     Connection.Response response = executeWithRetry(targetUrl, timeoutMs, false, null);
-    return parseDocumentResponse(response, startTime, targetUrl, "GET");
+    return HttpFetcherHelper.parseDocumentResponse(response, startTime, targetUrl, "GET");
   }
 
   public static Document postJsonDocument(String targetUrl, String jsonBody) {
@@ -111,33 +110,9 @@ public final class HttpFetcher {
       return null;
     }
     long startTime = System.currentTimeMillis();
-    LOGGER.debug("HTTP POST JSON Document indítása: {}", targetUrl);
+    log.debug("HTTP POST JSON Document indítása: {}", targetUrl);
     Connection.Response response = executeWithRetry(targetUrl, timeoutMs, false, jsonBody);
-    return parseDocumentResponse(response, startTime, targetUrl, "POST");
-  }
-
-  private static Document parseDocumentResponse(
-      Connection.Response response, long startTime, String targetUrl, String method) {
-    if (response == null) {
-      return null;
-    }
-    try {
-      Document document = response.parse();
-      long elapsed = System.currentTimeMillis() - startTime;
-      LOGGER.info(
-          "HTTP {} Document sikeres [{} ms] (cím: '{}'): {}",
-          method,
-          elapsed,
-          document.title(),
-          targetUrl);
-      return document;
-    } catch (IOException e) {
-      LOGGER.error(
-          "Hiba a letöltött HTML Document feldolgozásakor -> URL: {} ({})",
-          targetUrl,
-          e.getMessage());
-      return null;
-    }
+    return HttpFetcherHelper.parseDocumentResponse(response, startTime, targetUrl, "POST");
   }
 
   public static String fetchJson(String targetUrl) {
@@ -149,27 +124,20 @@ public final class HttpFetcher {
       return null;
     }
     long startTime = System.currentTimeMillis();
-    LOGGER.debug("HTTP GET JSON indítása: {}", targetUrl);
+    log.debug("HTTP GET JSON indítása: {}", targetUrl);
     Connection.Response response = executeWithRetry(targetUrl, timeoutMs, true, null);
-    if (response == null) {
-      return null;
-    }
-    String body = response.body();
-    long elapsed = System.currentTimeMillis() - startTime;
-    int length = body != null ? body.length() : 0;
-    LOGGER.info("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
-    return body;
+    return HttpFetcherHelper.extractJsonBody(response, startTime, targetUrl);
   }
 
   private static Connection.Response executeWithRetry(
       String targetUrl, int timeoutMs, boolean isJson, String postBody) {
     LAST_STATUS_CODE.remove();
-    String circuitKey = resolveCircuitKey(targetUrl);
+    String circuitKey = HttpFetcherHelper.resolveCircuitKey(targetUrl);
     if (!CIRCUIT_BREAKER.allowRequest(circuitKey)) {
-      LOGGER.warn("A(z) {} circuit breakere nyitva van", circuitKey);
+      log.warn("A(z) {} circuit breakere nyitva van", circuitKey);
       return null;
     }
-    String host = extractHost(targetUrl);
+    String host = HttpFetcherHelper.extractHost(targetUrl);
     int maxRetries = resolveMaxRetries();
     long retryDelayMs = resolveRetryDelayMs();
     boolean outcomeRecorded = false;
@@ -234,19 +202,19 @@ public final class HttpFetcher {
     }
     if (statusCode == 403) {
       CIRCUIT_BREAKER.recordFailure(circuitKey);
-      LOGGER.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
+      log.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
       return Action.RETURN_NULL;
     }
     if (statusCode == 404 || statusCode < 400) {
       CIRCUIT_BREAKER.releaseProbeIfActive(circuitKey);
-      LOGGER.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
+      log.warn("HTTP státuszkód hiba [{}] az oldal letöltésekor -> URL: {}", statusCode, targetUrl);
       return Action.RETURN_NULL;
     }
-    if (attempt < maxRetries && isRetryableStatus(statusCode)) {
+    if (attempt < maxRetries && HttpFetcherHelper.isRetryableStatus(statusCode)) {
       long waitMs = statusCode == 429
-          ? parseRetryAfterMs(response.header("Retry-After"), retryDelayMs)
+          ? HttpFetcherHelper.parseRetryAfterMs(response.header("Retry-After"), retryDelayMs)
           : retryDelayMs;
-      LOGGER.warn(
+      log.warn(
           "Átmeneti HTTP [{}] hiba, újrapróbálkozás ({}/{})... URL: {}",
           statusCode, attempt + 1, maxRetries, targetUrl);
       if (!sleepDelay(waitMs)) {
@@ -256,7 +224,7 @@ public final class HttpFetcher {
       return Action.RETRY;
     }
     CIRCUIT_BREAKER.recordFailure(circuitKey);
-    LOGGER.warn(
+    log.warn(
         "HTTP [{}] hiba, próbálkozások kimerültek ({}) -> URL: {}",
         statusCode, attempt + 1, targetUrl);
     return Action.RETURN_NULL;
@@ -269,13 +237,13 @@ public final class HttpFetcher {
       long retryDelayMs,
       String targetUrl,
       String circuitKey) {
-    if (isRedirectLoop(e)) {
+    if (HttpFetcherHelper.isRedirectLoop(e)) {
       CIRCUIT_BREAKER.recordFailure(circuitKey);
-      LOGGER.warn("Átirányítási hurok detektálva -> URL: {} ({})", targetUrl, e.getMessage());
+      log.warn("Átirányítási hurok detektálva -> URL: {} ({})", targetUrl, e.getMessage());
       return false;
     }
     if (attempt < maxRetries) {
-      LOGGER.warn(
+      log.warn(
           "Átmeneti hálózati I/O hiba, újrapróbálkozás ({}/{})... URL: {} ({})",
           attempt + 1, maxRetries, targetUrl, e.getMessage());
       if (!sleepDelay(retryDelayMs)) {
@@ -285,7 +253,7 @@ public final class HttpFetcher {
       return true;
     }
     CIRCUIT_BREAKER.recordFailure(circuitKey);
-    LOGGER.error("Hálózati I/O hiba a letöltés során -> URL: {} ({})", targetUrl, e.getMessage());
+    log.error("Hálózati I/O hiba a letöltés során -> URL: {} ({})", targetUrl, e.getMessage());
     return false;
   }
 
@@ -296,76 +264,7 @@ public final class HttpFetcher {
         .followRedirects(true)
         .ignoreHttpErrors(true)
         .timeout(timeoutMs);
-
-    if (postBody != null) {
-      connection
-          .method(Connection.Method.POST)
-          .requestBody(postBody)
-          .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-          .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")
-          .header("Content-Type", "application/json; charset=UTF-8")
-          .header("X-Requested-With", "XMLHttpRequest")
-          .ignoreContentType(true);
-    } else if (isJson) {
-      connection
-          .header("Accept", "application/json, text/plain, */*")
-          .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")
-          .header("Accept-Encoding", "gzip, deflate")
-          .header(
-              "sec-ch-ua",
-              "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"")
-          .header("sec-ch-ua-mobile", "?0")
-          .header("sec-ch-ua-platform", "\"Windows\"")
-          .header("sec-fetch-dest", "empty")
-          .header("sec-fetch-mode", "cors")
-          .header("sec-fetch-site", "same-origin")
-          .ignoreContentType(true);
-    } else {
-      connection
-          .header(
-              "Accept",
-              "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
-          .header("Accept-Language", "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7")
-          .header("Accept-Encoding", "gzip, deflate")
-          .header(
-              "sec-ch-ua",
-              "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"")
-          .header("sec-ch-ua-mobile", "?0")
-          .header("sec-ch-ua-platform", "\"Windows\"")
-          .header("sec-fetch-dest", "document")
-          .header("sec-fetch-mode", "navigate")
-          .header("sec-fetch-site", "none")
-          .header("sec-fetch-user", "?1")
-          .header("upgrade-insecure-requests", "1");
-    }
-    return connection;
-  }
-
-  private static boolean isRetryableStatus(int statusCode) {
-    return (statusCode >= 500 && statusCode < 600) || statusCode == 429;
-  }
-
-  private static boolean isRedirectLoop(Exception e) {
-    if (e == null || e.getMessage() == null) {
-      return false;
-    }
-    String msg = e.getMessage().toLowerCase(Locale.ROOT);
-    return msg.contains("too many redirects") || msg.contains("redirect loop");
-  }
-
-  private static long parseRetryAfterMs(String retryAfterHeader, long defaultDelayMs) {
-    if (retryAfterHeader == null || retryAfterHeader.isBlank()) {
-      return defaultDelayMs;
-    }
-    try {
-      long seconds = Long.parseLong(retryAfterHeader.trim());
-      if (seconds > 0) {
-        return Math.min(seconds * 1000L, 5000L);
-      }
-    } catch (NumberFormatException ignored) {
-      // not an integer
-    }
-    return defaultDelayMs;
+    return HttpFetcherHelper.applyHeaders(connection, isJson, postBody);
   }
 
   private static boolean sleepDelay(long delayMs) {
@@ -398,25 +297,5 @@ public final class HttpFetcher {
   private static boolean isAllowedLocalTestUrl(String url) {
     return Boolean.getBoolean("app.test-mode")
         && (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:"));
-  }
-
-  private static String extractHost(String targetUrl) {
-    try {
-      URI uri = URI.create(targetUrl.trim());
-      String host = uri.getHost();
-      return host != null ? host.toLowerCase(Locale.ROOT) : "default";
-    } catch (Exception e) {
-      return "default";
-    }
-  }
-
-  private static String resolveCircuitKey(String targetUrl) {
-    try {
-      URI uri = URI.create(targetUrl.trim());
-      String host = uri.getHost() != null ? uri.getHost().toLowerCase(Locale.ROOT) : "default";
-      return host + ":" + (uri.getPort() > 0 ? uri.getPort() : 443);
-    } catch (Exception e) {
-      return targetUrl;
-    }
   }
 }

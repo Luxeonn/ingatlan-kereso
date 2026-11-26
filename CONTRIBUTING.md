@@ -4,19 +4,13 @@ Ez az útmutató foglalja össze az **ingatlan-kereso** fejlesztési munkafolyam
 
 ## 1. Branch-stratégia és Git Worktree
 
-Közvetlen push a `main` és `develop` ágakra **tilos**. Minden fejlesztés a `develop` ágról induló saját ágon vagy izolált worktree-ben készül:
+Közvetlen push a `main` és `develop` ágakra **tilos**. Minden fejlesztés a `develop` ágról induló saját ágon vagy izolált worktree-ben készül, kötelezően `ik-<issue-szám>` elnevezéssel (ahol az `ik` az *ingatlan-kereső* rövidítése, pl. `ik-503` a `#503`-as issue esetén):
 
 ```bash
-git worktree add -b <ág-neve> ../worktrees/<ág-neve> develop
+git worktree add -b ik-<id> ../worktrees/ik-<id> develop
 ```
 
-| Ág-előtag | Mire használjuk |
-| :--- | :--- |
-| `feature/<rövid-leírás>` | Új funkció vagy képesség |
-| `fix/<rövid-leírás>` | Hibajavítás |
-| `refactor/<rövid-leírás>` | Szerkezeti átalakítás funkcionális változtatás nélkül |
-| `docs/<rövid-leírás>` | Csak dokumentációt érintő módosítás |
-| `chore/<rövid-leírás>` | Build, függőségek, CI vagy eszközkarbantartás |
+Az ág típusát és leírását a Conventional Commits formátumú PR-cím, valamint a PR-leírás végén szereplő `Closes #<id>` hivatkozás hordozza.
 
 ## 2. Commit üzenetek
 
@@ -62,7 +56,7 @@ node scripts/verify-pr-compliance.mjs --body-file pr_body.md --diff-base origin/
 
 - **PR cím és címke:** Angol nyelvű Conventional Commit cím + megfelelő címke (`enhancement`, `bug`, `documentation`).
 - **PR leírás:** Tömör magyar szöveg **BOM nélküli UTF-8** fájlban (`gh pr create --body-file ...`), a [`.github/pull_request_template.md`](.github/pull_request_template.md) két szekciójával (`## 🎯 Miért készült?`, `## 🛠️ Mit módosít / Mit javít?`) és záró hivatkozással (`Closes #<id>` / `Fixes #<id>`). Ha `presentation/*Dto.java` változik, az [`openapi/api-spec.yaml`](openapi/api-spec.yaml) és a `frontend/src/types/generated-api.ts` fájlokat is frissíteni kell.
-- **Review és merge:** Mindig kérj `@copilot` reviewt (`gh pr edit <id> --add-reviewer "@copilot"`). Saját PR merge-elése (`gh pr merge`) tilos; az összevonást a karbantartó végzi zöld CI után.
+- **Review és merge:** Saját PR merge-elése (`gh pr merge`) tilos; az összevonást a karbantartó végzi zöld CI után.
 - **Issue sablonok:** Hibákhoz [`.github/ISSUE_TEMPLATE/bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml) (`fix: ...`, `bug`), fejlesztésekhez [`.github/ISSUE_TEMPLATE/feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml) (`feat: ...`, `enhancement`).
 
 ## 5. Aktív CI/CD Workflow-k és AppSec

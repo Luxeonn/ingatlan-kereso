@@ -73,10 +73,10 @@ updates:
           - "*"
 
   # =========================================================================
-  # TOOLS: Python utilities and the Scraper Sidecar module (tools/requirements.txt)
+  # TOOLS: Node.js Playwright Chromium Sidecar dependencies (tools/package.json)
   # Groups all updates into a single consolidated Tools PR
   # =========================================================================
-  - package-ecosystem: "pip"
+  - package-ecosystem: "npm"
     directory: "/tools"
     schedule:
       interval: "weekly"

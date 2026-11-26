@@ -51,9 +51,9 @@ class IngatlanBazarParserEdgeCasesTest {
         raw, TestFixtures.ingatlanBazarEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item, "A null árú hirdetés nem kerülhet elutasításra");
-    assertNull(item.getPriceInfo().getAmountHuf());
-    assertEquals(70.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.0, item.getDetailsInfo().getRoomCount());
+    assertNull(item.getPriceInfo().amountHuf());
+    assertEquals(70.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.0, item.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -70,8 +70,8 @@ class IngatlanBazarParserEdgeCasesTest {
         raw, TestFixtures.ingatlanBazarEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertNull(item.getPriceInfo().getAmountHuf());
-    assertEquals(80.0, item.getDetailsInfo().getAreaSquareMeters());
+    assertNull(item.getPriceInfo().amountHuf());
+    assertEquals(80.0, item.getDetailsInfo().areaSquareMeters());
   }
 
   @Test
@@ -93,7 +93,7 @@ class IngatlanBazarParserEdgeCasesTest {
     IngatlanItem item = normalizer.normalize(
         zeroAreaRaw, TestFixtures.ingatlanBazarEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
     assertNotNull(item);
-    assertNull(item.getDetailsInfo().getAreaSquareMeters());
+    assertNull(item.getDetailsInfo().areaSquareMeters());
   }
 
   @Test

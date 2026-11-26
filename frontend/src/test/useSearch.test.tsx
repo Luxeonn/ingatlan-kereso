@@ -9,7 +9,6 @@ import { createMockIngatlanItem } from './testFixtures'
 import * as searchApi from '../api/searchApi'
 import * as propertyApi from '../api/propertyApi'
 import * as dedupApi from '../api/dedupApi'
-import * as formatters from '../utils/formatters'
 import type { DashboardResponseDto } from '../types/api'
 
 vi.mock('../api/searchApi', () => ({
@@ -25,7 +24,6 @@ vi.mock('../api/dedupApi', () => ({
 
 vi.mock('../api/propertyApi', () => ({
   markAsViewed: vi.fn(),
-  openUrls: vi.fn(),
   getHistory: vi.fn(),
   clearHistory: vi.fn(),
   hideProperty: vi.fn(),
@@ -90,7 +88,6 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     vi.mocked(propertyApi.hideProperty).mockResolvedValue({ success: true } as never)
     vi.mocked(propertyApi.restoreProperty).mockResolvedValue({ success: true } as never)
     vi.mocked(propertyApi.clearHistory).mockResolvedValue({ success: true } as never)
-    vi.mocked(propertyApi.openUrls).mockResolvedValue({ success: true } as never)
   })
 
   it('initializes with default empty state', () => {
@@ -257,23 +254,6 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     expect(cached?.title).toBe('Cache-elt kedvenc')
     expect(orphan?.title).toContain('Elmentett hirdetés')
     expect(orphan?.portal).toBe('Otthon Centrum')
-  })
-
-  it('opens all tabs in external browser and marks URLs as viewed', async () => {
-    const openSpy = vi.spyOn(formatters, 'openExternalUrl').mockImplementation(() => {})
-    const { result } = renderHook(() => useSearch(), { wrapper })
-
-    act(() => {
-      result.current.openAllTabs([mockItem1, mockItem2])
-    })
-
-    expect(openSpy).toHaveBeenCalledWith(mockItem1.url)
-    expect(openSpy).toHaveBeenCalledWith(mockItem2.url)
-    await waitFor(() => {
-      expect(propertyApi.openUrls).toHaveBeenCalledWith([mockItem1.url, mockItem2.url])
-    })
-
-    openSpy.mockRestore()
   })
 
   it('clears archive history asynchronously', async () => {
@@ -569,5 +549,57 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     })
     expect(result.current.isLoading).toBe(false)
     expect(result.current.items).toHaveLength(1)
+  })
+
+  it('keeps sessionViewedUrls and rawItems consistent across hide, restore, and markAsViewed mutations (#502)', async () => {
+    const bargainNewItem = createMockIngatlanItem({
+      id: 'item-1',
+      url: 'https://dh.hu/ingatlan/1',
+      isNew: true,
+      viewed: false,
+      isBargain: true,
+      hidden: false,
+    })
+    const regularItem = createMockIngatlanItem({
+      id: 'item-2',
+      url: 'https://oc.hu/ingatlan/2',
+      isNew: false,
+      viewed: false,
+      isBargain: false,
+      hidden: false,
+    })
+    vi.mocked(searchApi.executeSearch).mockResolvedValueOnce({
+      items: [bargainNewItem, regularItem],
+      newCount: 1,
+      totalFound: 2,
+    })
+
+    const { result } = renderHook(() => useSearch(), { wrapper })
+    act(() => {
+      result.current.search({ city: 'Debrecen' })
+    })
+    await waitFor(() => expect(result.current.rawCount).toBe(2))
+
+    // Mark viewed -> tracked in sessionViewedUrls
+    act(() => {
+      result.current.markAsViewed(bargainNewItem.url)
+    })
+    await waitFor(() => {
+      expect(result.current.sessionViewedUrls.has(bargainNewItem.url)).toBe(true)
+    })
+
+    // Hide -> immediately removed from rawItems/data active view
+    act(() => {
+      result.current.hideProperty(bargainNewItem)
+    })
+    await waitFor(() => expect(result.current.rawCount).toBe(1))
+    expect(result.current.data?.items.filter((i) => !i.hidden)).toHaveLength(1)
+
+    // Restore -> immediately back in rawItems/data active view
+    act(() => {
+      result.current.restoreProperty(bargainNewItem)
+    })
+    await waitFor(() => expect(result.current.rawCount).toBe(2))
+    expect(result.current.data?.items.filter((i) => !i.hidden)).toHaveLength(2)
   })
 })

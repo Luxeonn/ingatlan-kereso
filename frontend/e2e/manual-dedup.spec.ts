@@ -242,4 +242,108 @@ test.describe('Manual Dedup Overrides E2E (#461)', () => {
     ).toBeVisible()
     await expect(actionBar).toHaveCount(0)
   })
+
+  test('Kuka (Globális Elrejtettek) nézetben két kártya összevonása azonnal 1 többforrású kártyává áll össze és újratöltés után is megmarad (#500)', async ({
+    page,
+  }) => {
+    const hidden1: IngatlanItem = {
+      ...SAMPLE_PROPERTIES[0]!,
+      id: 'h-e2e-1',
+      portal: 'Duna House',
+      url: 'https://dh.hu/h-e2e-1',
+      title: 'Kukázott ház forrás 1',
+      city: 'Debrecen',
+      hidden: true,
+      sourcesCount: 1,
+      sourceListings: [{ portal: 'Duna House', url: 'https://dh.hu/h-e2e-1', priceHuf: 87_500_000 }],
+    }
+    const hidden2: IngatlanItem = {
+      ...SAMPLE_PROPERTIES[0]!,
+      id: 'h-e2e-2',
+      portal: 'Otthon Centrum',
+      url: 'https://oc.hu/h-e2e-2',
+      title: 'Kukázott ház forrás 2',
+      city: 'Debrecen',
+      hidden: true,
+      sourcesCount: 1,
+      sourceListings: [{ portal: 'Otthon Centrum', url: 'https://oc.hu/h-e2e-2', priceHuf: 89_000_000 }],
+    }
+
+    let isHiddenMerged = false
+    let hiddenFetchCount = 0
+
+    await setupStandardApiMocks(page)
+    await page.route('**/api/properties/discounted**', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+    await page.route('**/api/properties/hidden', async (route) => {
+      hiddenFetchCount += 1
+      if (isHiddenMerged) {
+        const mergedHidden: IngatlanItem = {
+          ...hidden1,
+          manuallyMerged: true,
+          sourcesCount: 2,
+          sourceListings: [...(hidden1.sourceListings ?? []), ...(hidden2.sourceListings ?? [])],
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([mergedHidden]),
+        })
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([hidden1, hidden2]),
+        })
+      }
+    })
+
+    await page.route('**/api/dedup/merge', async (route) => {
+      isHiddenMerged = true
+      const mergedHidden: IngatlanItem = {
+        ...hidden1,
+        manuallyMerged: true,
+        sourcesCount: 2,
+        sourceListings: [...(hidden1.sourceListings ?? []), ...(hidden2.sourceListings ?? [])],
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [mergedHidden],
+          overrides: [],
+          message: 'Hirdetések sikeresen összevonva',
+        }),
+      })
+    })
+
+    await page.route('**/api/dedup/overrides**', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+
+    await page.goto('/')
+    await page.getByTestId('tab-archive').click()
+    await page.getByTestId('archive-mode-hidden').click()
+
+    await expect(page.getByTestId('archive-mode-hidden')).toContainText('2')
+    await expect(page.getByTestId('property-card')).toHaveCount(2)
+
+    const cards = page.getByTestId('property-card')
+    await cards.nth(0).click({ modifiers: ['Control'] })
+    await cards.nth(1).click({ modifiers: ['Control'] })
+    await page.getByTestId('merge-selected-button').click()
+
+    await expect.poll(() => hiddenFetchCount).toBeGreaterThanOrEqual(2)
+    await expect(page.getByTestId('property-card')).toHaveCount(1)
+    await expect(page.getByTestId('archive-mode-hidden')).toContainText('1')
+    await expect(page.getByTestId('sources-count-badge')).toContainText('2')
+
+    // Page reload persists merged trash state
+    await page.reload()
+    await page.getByTestId('tab-archive').click()
+    await page.getByTestId('archive-mode-hidden').click()
+    await expect(page.getByTestId('property-card')).toHaveCount(1)
+    await expect(page.getByTestId('archive-mode-hidden')).toContainText('1')
+  })
 })

@@ -5,21 +5,21 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import tools.jackson.databind.JsonNode;
 
-import ingatlanok.common.AppLogger;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.common.PropertyParser;
 import ingatlanok.model.raw.ExtractionMethod;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.PortalSupport;
 
+@Slf4j
 public class KoltozzbeRawParser {
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(KoltozzbeRawParser.class);
   private static final Pattern ID_PATTERN =
       Pattern.compile("(?i)/h?([0-9]+)(?:[/?#]|$)");
   private static final Pattern PAGE_PARAM_PATTERN = Pattern.compile("(?:^|[?&])page=(\\d+)");
@@ -126,7 +126,7 @@ public class KoltozzbeRawParser {
         }
       }
     } catch (Exception ex) {
-      LOGGER.debug("JSON-LD parse warning: {}", ex.getMessage());
+      log.debug("JSON-LD parse warning: {}", ex.getMessage());
     }
   }
 

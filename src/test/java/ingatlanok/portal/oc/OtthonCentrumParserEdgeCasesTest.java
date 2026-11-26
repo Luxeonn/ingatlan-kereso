@@ -52,10 +52,10 @@ class OtthonCentrumParserEdgeCasesTest {
         raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertNull(item.getPriceInfo().getAmountHuf());
-    assertEquals("Ár a hirdetésben", item.getPriceInfo().getRawText());
-    assertEquals(60.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(2.0, item.getDetailsInfo().getRoomCount());
+    assertNull(item.getPriceInfo().amountHuf());
+    assertEquals("Ár a hirdetésben", item.getPriceInfo().rawText());
+    assertEquals(60.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(2.0, item.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -71,10 +71,10 @@ class OtthonCentrumParserEdgeCasesTest {
         raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertEquals(45_000_000L, item.getPriceInfo().getAmountHuf(), "A kártyaszövegből kinyert árat kell használnia");
-    assertEquals(45.0, item.getPriceInfo().getAmountMillion());
-    assertEquals(55.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(2.0, item.getDetailsInfo().getRoomCount());
+    assertEquals(45_000_000L, item.getPriceInfo().amountHuf(), "A kártyaszövegből kinyert árat kell használnia");
+    assertEquals(45.0, item.getPriceInfo().amountMillion());
+    assertEquals(55.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(2.0, item.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -90,8 +90,8 @@ class OtthonCentrumParserEdgeCasesTest {
         raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item, "A 0 árú rekordot nem szabad elutasítani, ha egyébként érvényes");
-    assertNull(item.getPriceInfo().getAmountHuf());
-    assertEquals(50.0, item.getDetailsInfo().getAreaSquareMeters());
+    assertNull(item.getPriceInfo().amountHuf());
+    assertEquals(50.0, item.getDetailsInfo().areaSquareMeters());
   }
 
   @Test
@@ -107,9 +107,9 @@ class OtthonCentrumParserEdgeCasesTest {
         raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertEquals(85_000_000L, item.getPriceInfo().getAmountHuf());
-    assertNull(item.getDetailsInfo().getAreaSquareMeters());
-    assertNull(item.getDetailsInfo().getRoomCount());
+    assertEquals(85_000_000L, item.getPriceInfo().amountHuf());
+    assertNull(item.getDetailsInfo().areaSquareMeters());
+    assertNull(item.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -127,9 +127,9 @@ class OtthonCentrumParserEdgeCasesTest {
         raw, TestFixtures.ocEngine().getDescriptor(), new SearchCriteria(), "2026-11-07 10:00:00");
 
     assertNotNull(item);
-    assertEquals(92_000_000L, item.getPriceInfo().getAmountHuf());
-    assertEquals(110.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(4.0, item.getDetailsInfo().getRoomCount());
+    assertEquals(92_000_000L, item.getPriceInfo().amountHuf());
+    assertEquals(110.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(4.0, item.getDetailsInfo().roomCount());
     assertEquals("https://www.oc.hu/uploads/oc5.jpg", item.getImageUrl());
   }
 

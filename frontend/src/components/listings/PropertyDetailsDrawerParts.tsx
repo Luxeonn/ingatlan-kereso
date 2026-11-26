@@ -107,8 +107,8 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
           className={cn(
             'rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase',
             isActive
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-              : 'border-slate-500/30 bg-slate-500/10 text-slate-400',
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
+              : 'border-slate-500/30 bg-slate-500/10 text-slate-600',
           )}
         >
           {isActive ? 'Aktív' : 'Inaktív'}
@@ -128,7 +128,7 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
 
       <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
         <div className="text-right">
-          <div className="text-xs font-bold text-blue-400">
+          <div className="text-xs font-bold text-blue-600">
             {million !== null ? formatPriceMillion(million) : 'Ár a hirdetésben'}
           </div>
           {hasPrice && source.priceHuf !== undefined && source.priceHuf !== null && (
@@ -145,10 +145,10 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
             aria-label={`Megnyitás: ${portalName}`}
             title={`Megnyitás: ${portalName}`}
             data-testid="source-external-link"
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-400 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-600 active:scale-95 transition-all"
           >
             <span className="hidden xs:inline">Megnyitás</span>
-            <ExternalLink className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+            <ExternalLink className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
           </button>
         )}
 
@@ -195,7 +195,7 @@ const SplitSourceControl: FC<SplitSourceControlProps> = ({
           data-testid="confirm-split-button"
           disabled={isMutating}
           onClick={onConfirmSplit}
-          className="rounded-lg border border-rose-500/50 bg-rose-500/20 px-2 py-1 text-[11px] font-bold text-rose-200 hover:bg-rose-500/30 disabled:opacity-50"
+          className="rounded-lg border border-rose-500/40 bg-[var(--status-danger-bg)] px-2 py-1 text-[11px] font-bold text-[var(--status-danger-fg)] hover:opacity-90 disabled:opacity-50"
         >
           Megerősítés
         </button>
@@ -217,7 +217,7 @@ const SplitSourceControl: FC<SplitSourceControlProps> = ({
       onClick={onRequestConfirm}
       aria-label={`Nem ugyanaz: ${portalName}`}
       title="Nem ugyanaz – forrás leválasztása"
-      className="flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300 transition-all disabled:opacity-50"
+      className="flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-700 transition-all disabled:opacity-50"
     >
       <Unlink className="h-3.5 w-3.5" aria-hidden="true" />
       <span className="hidden sm:inline">Nem ugyanaz</span>
@@ -250,7 +250,7 @@ const OverrideRow: FC<OverrideRowProps> = ({ overrideItem, isMutating, onUndoOve
   return (
     <div
       data-testid="dedup-override-row"
-      className="flex items-center justify-between gap-2 text-[10px] text-indigo-300"
+      className="flex items-center justify-between gap-2 text-[10px] text-[var(--status-info-fg)]"
     >
       <span className="truncate" title={fullPair}>
         {actionLabel}: {shortPair}
@@ -261,7 +261,7 @@ const OverrideRow: FC<OverrideRowProps> = ({ overrideItem, isMutating, onUndoOve
           data-testid={`undo-override-${overrideItem.id}`}
           disabled={isMutating}
           onClick={() => onUndoOverride(overrideItem.id)}
-          className="inline-flex shrink-0 items-center gap-1 rounded border border-indigo-400/40 bg-indigo-500/20 px-2 py-0.5 font-semibold text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1 rounded border border-indigo-400/40 bg-[var(--bg-surface)] px-2 py-0.5 font-semibold text-[var(--status-info-fg)] hover:opacity-90 disabled:opacity-50"
         >
           <RotateCcw className="h-3 w-3" aria-hidden="true" />
           <span>Visszavonás</span>
@@ -296,7 +296,7 @@ export const ManualDedupStatusSection: FC<ManualDedupStatusSectionProps> = ({
   return (
     <div
       data-testid="manual-dedup-status"
-      className="flex flex-col gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-2.5 text-[11px] text-indigo-200"
+      className="flex flex-col gap-1.5 rounded-lg border border-indigo-500/30 bg-[var(--status-info-bg)] p-2.5 text-[11px] text-[var(--status-info-fg)]"
     >
       <div className="flex flex-wrap items-center gap-2 font-semibold">
         {manuallyMerged && <span>{mergedHeader}</span>}
@@ -326,7 +326,7 @@ export const ManualDedupStatusSection: FC<ManualDedupStatusSectionProps> = ({
           type="button"
           data-testid="toggle-all-overrides-button"
           onClick={() => setShowAllOverrides((prev) => !prev)}
-          className="self-start text-[10px] font-semibold text-indigo-300 underline decoration-indigo-400/50 hover:text-indigo-100 cursor-pointer"
+          className="self-start text-[10px] font-semibold text-[var(--status-info-fg)] underline decoration-indigo-400/50 hover:opacity-80 cursor-pointer"
         >
           {showAllOverrides
             ? 'Kevesebb megjelenítése'

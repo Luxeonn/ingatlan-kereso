@@ -42,15 +42,15 @@ class PortalStatusDiagnosticTest {
             500,
             "Read timed out after 15000ms");
 
-    assertEquals("oc", dto.getPortalId());
-    assertEquals("Otthon Centrum", dto.getPortalName());
-    assertEquals(PortalScrapeStatus.FAILED, dto.getStatus());
-    assertEquals(0, dto.getFoundCount());
-    assertEquals(350L, dto.getLatencyMs());
-    assertEquals("https://oc.hu/elado/lakas", dto.getFallbackUrl());
-    assertEquals("Hiba történt", dto.getMessage());
-    assertEquals(500, dto.getHttpStatusCode());
-    assertEquals("Read timed out after 15000ms", dto.getTechnicalDetails());
+    assertEquals("oc", dto.portalId());
+    assertEquals("Otthon Centrum", dto.portalName());
+    assertEquals(PortalScrapeStatus.FAILED, dto.status());
+    assertEquals(0, dto.foundCount());
+    assertEquals(350L, dto.latencyMs());
+    assertEquals("https://oc.hu/elado/lakas", dto.fallbackUrl());
+    assertEquals("Hiba történt", dto.message());
+    assertEquals(500, dto.httpStatusCode());
+    assertEquals("Read timed out after 15000ms", dto.technicalDetails());
 
     dto =
         dto.toBuilder()
@@ -65,15 +65,15 @@ class PortalStatusDiagnosticTest {
             .technicalDetails("Minden rendben")
             .build();
 
-    assertEquals("dh", dto.getPortalId());
-    assertEquals("Duna House", dto.getPortalName());
-    assertEquals(PortalScrapeStatus.SUCCESS, dto.getStatus());
-    assertEquals(15, dto.getFoundCount());
-    assertEquals(420L, dto.getLatencyMs());
-    assertEquals("https://dh.hu", dto.getFallbackUrl());
-    assertEquals("Sikeres", dto.getMessage());
-    assertEquals(200, dto.getHttpStatusCode());
-    assertEquals("Minden rendben", dto.getTechnicalDetails());
+    assertEquals("dh", dto.portalId());
+    assertEquals("Duna House", dto.portalName());
+    assertEquals(PortalScrapeStatus.SUCCESS, dto.status());
+    assertEquals(15, dto.foundCount());
+    assertEquals(420L, dto.latencyMs());
+    assertEquals("https://dh.hu", dto.fallbackUrl());
+    assertEquals("Sikeres", dto.message());
+    assertEquals(200, dto.httpStatusCode());
+    assertEquals("Minden rendben", dto.technicalDetails());
   }
 
   @Test
@@ -104,16 +104,16 @@ class PortalStatusDiagnosticTest {
   @DisplayName("DashboardResponseDto contains portalStatuses list")
   void testDashboardResponseDtoPortalStatuses() {
     DashboardResponseDto response = new DashboardResponseDto();
-    assertNotNull(response.getPortalStatuses());
-    assertTrue(response.getPortalStatuses().isEmpty());
+    assertNotNull(response.portalStatuses());
+    assertTrue(response.portalStatuses().isEmpty());
 
     PortalStatusDto dto =
         new PortalStatusDto("ib", "Ingatlanbazár", "SUCCESS", 25, 300L, null, "Sikeres");
     DashboardResponseDto withStatuses =
         DashboardResponseDto.builder().portalStatuses(List.of(dto)).build();
 
-    assertEquals(1, withStatuses.getPortalStatuses().size());
-    assertEquals("ib", withStatuses.getPortalStatuses().get(0).getPortalId());
+    assertEquals(1, withStatuses.portalStatuses().size());
+    assertEquals("ib", withStatuses.portalStatuses().get(0).portalId());
   }
 
   @Test
@@ -145,13 +145,13 @@ class PortalStatusDiagnosticTest {
         TestFixtures.dashboardPresentationService(search, TestFixtures.marketAnalyticsEngine())
             .executeSearch(criteria);
     assertNotNull(response);
-    assertNotNull(response.getPortalStatuses());
-    assertFalse(response.getPortalStatuses().isEmpty());
+    assertNotNull(response.portalStatuses());
+    assertFalse(response.portalStatuses().isEmpty());
 
-    PortalStatusDto first = response.getPortalStatuses().get(0);
-    assertNotNull(first.getPortalId());
-    assertNotNull(first.getPortalName());
-    assertNotNull(first.getStatus());
+    PortalStatusDto first = response.portalStatuses().get(0);
+    assertNotNull(first.portalId());
+    assertNotNull(first.portalName());
+    assertNotNull(first.status());
   }
 
   @Test
@@ -242,32 +242,32 @@ class PortalStatusDiagnosticTest {
         TestFixtures.dashboardPresentationService(search, TestFixtures.marketAnalyticsEngine())
             .executeSearch(criteria);
 
-    List<PortalStatusDto> statuses = response.getPortalStatuses();
+    List<PortalStatusDto> statuses = response.portalStatuses();
     assertEquals(3, statuses.size(), "Minden aktív portál pontosan egyszer szerepelhet");
-    long uniquePortalIds = statuses.stream().map(PortalStatusDto::getPortalId).distinct().count();
+    long uniquePortalIds = statuses.stream().map(PortalStatusDto::portalId).distinct().count();
     assertEquals(3L, uniquePortalIds);
 
     PortalStatusDto dhStatus =
-        statuses.stream().filter(s -> "dh".equals(s.getPortalId())).findFirst().orElseThrow();
-    assertEquals(PortalScrapeStatus.SUCCESS, dhStatus.getStatus());
-    assertEquals(2, dhStatus.getFoundCount());
-    assertEquals(220L, dhStatus.getLatencyMs());
+        statuses.stream().filter(s -> "dh".equals(s.portalId())).findFirst().orElseThrow();
+    assertEquals(PortalScrapeStatus.SUCCESS, dhStatus.status());
+    assertEquals(2, dhStatus.foundCount());
+    assertEquals(220L, dhStatus.latencyMs());
 
     PortalStatusDto icStatus =
         statuses.stream()
-            .filter(s -> "ingatlancom".equals(s.getPortalId()))
+            .filter(s -> "ingatlancom".equals(s.portalId()))
             .findFirst()
             .orElseThrow();
-    assertEquals(PortalScrapeStatus.BOT_PROTECTED, icStatus.getStatus());
-    assertEquals(0, icStatus.getFoundCount());
-    assertEquals(100L, icStatus.getLatencyMs());
+    assertEquals(PortalScrapeStatus.BOT_PROTECTED, icStatus.status());
+    assertEquals(0, icStatus.foundCount());
+    assertEquals(100L, icStatus.latencyMs());
 
     PortalStatusDto ocStatus =
-        statuses.stream().filter(s -> "oc".equals(s.getPortalId())).findFirst().orElseThrow();
-    assertEquals(PortalScrapeStatus.FAILED, ocStatus.getStatus());
-    assertEquals(0, ocStatus.getFoundCount());
-    assertEquals(100L, ocStatus.getLatencyMs());
-    assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.getExecutionStatus());
+        statuses.stream().filter(s -> "oc".equals(s.portalId())).findFirst().orElseThrow();
+    assertEquals(PortalScrapeStatus.FAILED, ocStatus.status());
+    assertEquals(0, ocStatus.foundCount());
+    assertEquals(100L, ocStatus.latencyMs());
+    assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.executionStatus());
   }
 
   @Test
@@ -321,14 +321,14 @@ class PortalStatusDiagnosticTest {
         TestFixtures.dashboardPresentationService(search, TestFixtures.marketAnalyticsEngine())
             .executeSearch(criteria);
 
-    assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.getExecutionStatus());
-    assertEquals(1, response.getPortalStatuses().size());
-    PortalStatusDto dhStatus = response.getPortalStatuses().get(0);
-    assertEquals(PortalScrapeStatus.SUCCESS, dhStatus.getStatus());
-    assertEquals(1, dhStatus.getFoundCount());
+    assertEquals(ingatlanok.model.SearchExecutionStatus.PARTIAL_SUCCESS, response.executionStatus());
+    assertEquals(1, response.portalStatuses().size());
+    PortalStatusDto dhStatus = response.portalStatuses().get(0);
+    assertEquals(PortalScrapeStatus.SUCCESS, dhStatus.status());
+    assertEquals(1, dhStatus.foundCount());
     assertTrue(
-        dhStatus.getMessage().contains("részleges hiba"),
+        dhStatus.message().contains("részleges hiba"),
         "A részleges városhibát jeleznie kell az összesített státuszüzenetnek: "
-            + dhStatus.getMessage());
+            + dhStatus.message());
   }
 }

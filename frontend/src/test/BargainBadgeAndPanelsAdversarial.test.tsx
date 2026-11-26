@@ -395,7 +395,6 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
           hasSearched={true}
           mode="listings"
           onMarkViewed={vi.fn()}
-          onOpenAll={vi.fn()}
           onTriggerSearch={vi.fn()}
         />
       )
@@ -444,7 +443,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
       // 6. Switch to Market Analytics tab (top-level navigation)
-      const analyticsBtn = screen.getByRole('button', { name: /Piaci Elemzés/i })
+      const analyticsBtn = screen.getByRole('tab', { name: /Piaci Elemzés/i })
       fireEvent.click(analyticsBtn)
       expect(useUiStore.getState().dashboardTab).toBe('analytics')
 
@@ -453,7 +452,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       expect(analyticsPanel).toBeTruthy()
 
       // 7. Switch back to Találatok tab (top-level navigation)
-      const talalatokBtn = screen.getByRole('button', { name: /^Találatok$/i })
+      const talalatokBtn = screen.getByRole('tab', { name: /^Találatok$/i })
       fireEvent.click(talalatokBtn)
       expect(useUiStore.getState().dashboardTab).toBe('listings')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()

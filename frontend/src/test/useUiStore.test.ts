@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   useUiStore,
   DEFAULT_PINNED_QUICK_FILTERS,
-  MAX_PINNED_QUICK_FILTERS,
-  type QuickFilterId,
 } from '../store/useUiStore'
 import { createMockIngatlanItem } from './testFixtures'
 
@@ -11,7 +9,6 @@ describe('useUiStore', () => {
   beforeEach(() => {
     localStorage.clear()
     useUiStore.setState({
-      theme: 'dark',
       viewMode: 'grid',
       dashboardTab: 'listings',
       listingSubView: 'listings',
@@ -22,22 +19,6 @@ describe('useUiStore', () => {
       pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS],
     })
     document.documentElement.classList.remove('dark')
-  })
-
-  describe('theme toggling', () => {
-    it('toggles theme between dark and light, updates DOM and localStorage', () => {
-      expect(useUiStore.getState().theme).toBe('dark')
-
-      useUiStore.getState().toggleTheme()
-      expect(useUiStore.getState().theme).toBe('light')
-      expect(localStorage.getItem('theme')).toBe('light')
-      expect(document.documentElement.classList.contains('dark')).toBe(false)
-
-      useUiStore.getState().toggleTheme()
-      expect(useUiStore.getState().theme).toBe('dark')
-      expect(localStorage.getItem('theme')).toBe('dark')
-      expect(document.documentElement.classList.contains('dark')).toBe(true)
-    })
   })
 
   describe('viewMode and layout', () => {
@@ -141,31 +122,6 @@ describe('useUiStore', () => {
       // Unpin one
       useUiStore.getState().togglePinnedQuickFilter('onlyNew')
       expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'excludeViewed', 'onlyNewConstruction'])
-    })
-
-    it('validates and clamps custom pinned quick filter lists', () => {
-      useUiStore.getState().setPinnedQuickFilters([
-        'bargain',
-        'onlyNew',
-        'hidden',
-        'excludeViewed',
-        'onlyNewConstruction',
-        'excludeMultiSource',
-        'onlyMultiSource',
-        'excludeNoImage',
-        'invalid_key' as QuickFilterId,
-      ])
-      expect(useUiStore.getState().pinnedQuickFilters).toHaveLength(MAX_PINNED_QUICK_FILTERS)
-      expect(useUiStore.getState().pinnedQuickFilters).toEqual([
-        'bargain',
-        'onlyNew',
-        'hidden',
-        'excludeViewed',
-        'onlyNewConstruction',
-        'excludeMultiSource',
-        'onlyMultiSource',
-        'excludeNoImage',
-      ])
     })
   })
 })

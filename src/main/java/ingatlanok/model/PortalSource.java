@@ -1,28 +1,16 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-public class PortalSource implements Serializable {
-
-  private String portalId;
-  private String portalName;
-  private String themeColor;
-  private boolean directListing;
-
-  @Builder
-  public PortalSource(
-      String portalId, String portalName, String themeColor, boolean directListing) {
-    this.portalId = portalId;
-    this.portalName = portalName;
-    this.themeColor = themeColor;
-    this.directListing = directListing;
-  }
+/**
+ * Immutable value object describing the origin portal metadata of a listing.
+ */
+@Builder
+public record PortalSource(
+    String portalId,
+    String portalName,
+    String themeColor,
+    boolean directListing) {
 
   public static PortalSource of(String portalName) {
     if (portalName == null) {

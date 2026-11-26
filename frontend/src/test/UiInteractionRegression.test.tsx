@@ -60,7 +60,6 @@ vi.mock('../api/propertyApi', async (importOriginal) => {
     hideProperty: vi.fn().mockResolvedValue({ success: true } as never),
     restoreProperty: vi.fn().mockResolvedValue({ success: true } as never),
     clearHistory: vi.fn().mockResolvedValue({ success: true } as never),
-    openUrls: vi.fn().mockResolvedValue({ success: true } as never),
   }
 })
 
@@ -107,11 +106,11 @@ describe('UI State Management & Interaction Regression (#378)', () => {
     localStorage.clear()
     useFilterStore.getState().resetToDefaults()
     useUiStore.setState({
-      theme: 'dark',
       viewMode: 'grid',
       dashboardTab: 'listings',
       listingSubView: 'listings',
       isDiagnosticsModalOpen: false,
+      isIngatlanComImportModalOpen: false,
       isFiltersCollapsed: false,
       starredUrls: [],
       starredItemsCache: {},
@@ -186,11 +185,9 @@ describe('UI State Management & Interaction Regression (#378)', () => {
 
       // Set custom independent preferences
       act(() => {
-        useUiStore.getState().toggleTheme() // 'dark' -> 'light'
         useUiStore.getState().setViewMode('list')
         useUiStore.getState().toggleStarred(sampleItem1)
       })
-      expect(useUiStore.getState().theme).toBe('light')
       expect(useUiStore.getState().viewMode).toBe('list')
       expect(useUiStore.getState().isStarred(sampleItem1.url)).toBe(true)
 
@@ -219,7 +216,6 @@ describe('UI State Management & Interaction Regression (#378)', () => {
       expect(useFilterStore.getState().onlyBargain).toBe(false)
 
       // Independent preferences MUST be preserved!
-      expect(useUiStore.getState().theme).toBe('light')
       expect(useUiStore.getState().viewMode).toBe('list')
       expect(useUiStore.getState().isStarred(sampleItem1.url)).toBe(true)
     })
@@ -235,13 +231,32 @@ describe('UI State Management & Interaction Regression (#378)', () => {
       const diagBtn = screen.getByRole('button', { name: /Diagnosztika/i })
       fireEvent.click(diagBtn)
       expect(useUiStore.getState().isDiagnosticsModalOpen).toBe(true)
-      expect(screen.getByText('Portál Diagnosztika & Állapotjelentés')).toBeTruthy()
+      expect(await screen.findByText('Portál Diagnosztika & Állapotjelentés')).toBeTruthy()
 
       // Close modal
       const closeBtn = screen.getByRole('button', { name: 'Bezárás' })
       fireEvent.click(closeBtn)
       expect(useUiStore.getState().isDiagnosticsModalOpen).toBe(false)
       expect(screen.queryByText('Portál Diagnosztika & Állapotjelentés')).toBeNull()
+    })
+
+    it('lazy-loads and closes Ingatlan.com HTML import modal via UI store toggle', async () => {
+      renderApp()
+
+      expect(screen.queryByTestId('ingatlancom-import-modal')).toBeNull()
+
+      act(() => {
+        useUiStore.getState().setIngatlanComImportModalOpen(true)
+      })
+      expect(useUiStore.getState().isIngatlanComImportModalOpen).toBe(true)
+      const modal = await screen.findByTestId('ingatlancom-import-modal')
+      expect(modal).toBeTruthy()
+
+      const [closeBtn] = within(modal).getAllByRole('button', { name: 'Bezárás' })
+      if (!closeBtn) throw new Error('Close button not found')
+      fireEvent.click(closeBtn)
+      expect(useUiStore.getState().isIngatlanComImportModalOpen).toBe(false)
+      expect(screen.queryByTestId('ingatlancom-import-modal')).toBeNull()
     })
 
     it('collapses and expands search filter panel, rendering summary chips', () => {

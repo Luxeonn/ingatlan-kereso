@@ -1,6 +1,6 @@
 import type { IngatlanItem } from '../types/property'
 import { getEffectiveSqmPrice } from './formatters'
-import { isListingNew } from './listingFilters'
+import { isItemBargain, isListingNew } from './listingFilters'
 import {
   type BargainItem,
   type CityStat,
@@ -144,25 +144,22 @@ export function buildCityComparison(
 }
 
 function checkBargainStatus(
-  isExplicitBargain: boolean,
+  item: IngatlanItem,
   sqmPrice: number,
   bucketMedian: number,
-  cityAvg: number,
 ): boolean {
-  if (isExplicitBargain) return true
-  if (sqmPrice <= 0) return false
-  if (bucketMedian > 0) return sqmPrice <= bucketMedian * 0.8
-  if (cityAvg > 0) return sqmPrice <= cityAvg * 0.85
-  return false
+  if (isItemBargain(item)) return true
+  if (sqmPrice <= 0 || bucketMedian <= 0) return false
+  const roundedPctBelow = Math.round(((bucketMedian - sqmPrice) / bucketMedian) * 1000) / 10
+  return roundedPctBelow >= 20
 }
 
 function resolvePointSegment(
   isBargain: boolean,
-  isPriceDrop: boolean,
   refPrice: number,
   sqmPrice: number,
 ): 'bargain' | 'fair' | 'premium' {
-  if (isBargain || isPriceDrop) return 'bargain'
+  if (isBargain) return 'bargain'
   if (refPrice > 0 && sqmPrice > refPrice * 1.25) return 'premium'
   return 'fair'
 }
@@ -194,7 +191,7 @@ function getReferenceSqmPrice(
 interface ScatterEvaluationResult {
   point: ScatterPoint
   deal?: BargainItem
-  isBargainOrPriceDrop: boolean
+  isBargain: boolean
 }
 
 function evaluateScatterPoint(
@@ -221,9 +218,9 @@ function evaluateScatterPoint(
     avgPricePerSqm,
   )
 
-  const isBargain = checkBargainStatus(Boolean(item.isBargain), sqmPrice, bucketMedian, refPrice)
+  const isBargain = checkBargainStatus(item, sqmPrice, bucketMedian)
   const isPriceDrop = hasPriceDrop(item)
-  const segment = resolvePointSegment(isBargain, isPriceDrop, refPrice, sqmPrice)
+  const segment = resolvePointSegment(isBargain, refPrice, sqmPrice)
 
   const point: ScatterPoint = {
     id: item.id || item.url,
@@ -243,12 +240,13 @@ function evaluateScatterPoint(
   }
 
   let deal: BargainItem | undefined
-  if (isBargain && refPrice > 0) {
-    const diff = refPrice - sqmPrice
+  const refMedianForDeal = bucketMedian > 0 ? bucketMedian : item.referenceMedianPricePerSquareMeter ?? 0
+  if (isBargain && refMedianForDeal > 0 && sqmPrice > 0) {
+    const diff = refMedianForDeal - sqmPrice
     deal = {
       item,
-      cityAvgSqmPrice: Math.round(refPrice),
-      discountPercent: Math.round((diff / refPrice) * 100),
+      cityAvgSqmPrice: Math.round(refMedianForDeal),
+      discountPercent: Math.round((diff / refMedianForDeal) * 100),
       sqmDiffFt: diff,
     }
   }
@@ -256,7 +254,7 @@ function evaluateScatterPoint(
   return {
     point,
     deal,
-    isBargainOrPriceDrop: isBargain || isPriceDrop,
+    isBargain,
   }
 }
 
@@ -274,21 +272,28 @@ export function buildScatterAndBargainData(
 ): ScatterAndBargainData {
   const scatterData: ScatterPoint[] = []
   const belowMarketDeals: BargainItem[] = []
+  const countedIds = new Set<string>()
   let detectedBargainsCount = 0
 
-  items.forEach((item) => {
+  items.forEach((item, index) => {
     const evaluated = evaluateScatterPoint(item, segmentMap, cityAvgSqmMap, avgPricePerSqm)
-    if (!evaluated) return
-    scatterData.push(evaluated.point)
-    if (evaluated.deal) {
-      belowMarketDeals.push(evaluated.deal)
-    }
-    if (evaluated.isBargainOrPriceDrop) {
+    const key = item.url || item.id || String(index)
+    if (evaluated) {
+      scatterData.push(evaluated.point)
+      if (evaluated.deal) {
+        belowMarketDeals.push(evaluated.deal)
+      }
+      if (evaluated.isBargain && !countedIds.has(key)) {
+        countedIds.add(key)
+        detectedBargainsCount++
+      }
+    } else if (isItemBargain(item) && !countedIds.has(key)) {
+      countedIds.add(key)
       detectedBargainsCount++
     }
   })
 
-  belowMarketDeals.sort((a, b) => b.discountPercent - a.discountPercent)
+  belowMarketDeals.sort((a, b) => b.discountPercent - a.discountPercent || b.sqmDiffFt - a.sqmDiffFt)
 
   return {
     scatterData,

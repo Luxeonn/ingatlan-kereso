@@ -1,6 +1,5 @@
 package ingatlanok.web;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -13,5 +12,4 @@ import ingatlanok.model.TrackedCityInfo;
 public record CitiesResponseDto(
     List<PredefinedCity> predefined,
     Map<String, List<String>> presets,
-    List<TrackedCityInfo> trackedCities)
-    implements Serializable {}
+    List<TrackedCityInfo> trackedCities) {}

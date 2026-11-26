@@ -1,7 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,26 +24,20 @@ import ingatlanok.model.PropertyType;
 @Table(
     name = "properties",
     indexes = {
-      @Index(name = "idx_properties_url", columnList = "url", unique = true),
-      @Index(name = "idx_properties_city_key", columnList = "normalizedCity"),
       @Index(name = "idx_properties_discovered", columnList = "discoveredAt"),
-      @Index(name = "idx_properties_portal", columnList = "portal"),
       @Index(name = "idx_properties_city_portal", columnList = "normalizedCity,portal"),
+      @Index(name = "idx_properties_city_hidden_disc", columnList = "normalizedCity,hidden,discoveredAt"),
       @Index(name = "idx_properties_price", columnList = "priceMillions"),
       @Index(name = "idx_properties_area", columnList = "areaSqm"),
-      @Index(name = "idx_properties_rooms", columnList = "rooms"),
-      @Index(name = "idx_properties_viewed", columnList = "viewed"),
       @Index(name = "idx_properties_price_delta", columnList = "priceDelta"),
-      @Index(name = "idx_properties_property_type", columnList = "property_type"),
-      @Index(name = "idx_properties_canonical_id", columnList = "canonicalId"),
-      @Index(name = "idx_properties_hidden", columnList = "hidden")
+      @Index(name = "idx_properties_canonical_id", columnList = "canonicalId")
     })
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class PropertyEntity implements Serializable {
+public class PropertyEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

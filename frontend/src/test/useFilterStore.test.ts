@@ -111,9 +111,6 @@ describe('useFilterStore', () => {
     })
 
     it('updates boolean search flags and persists preferences in localStorage', () => {
-      useFilterStore.getState().setAutoOpen(true)
-      expect(useFilterStore.getState().criteria.autoOpenBrowser).toBe(true)
-
       useFilterStore.getState().setExcludeViewed(true)
       expect(useFilterStore.getState().criteria.excludeViewed).toBe(true)
       expect(localStorage.getItem('preferred_exclude_viewed')).toBe('true')
@@ -130,15 +127,12 @@ describe('useFilterStore', () => {
       expect(localStorage.getItem('preferred_sort_option')).toBe('area_desc')
     })
 
-    it('updates onlyNew, onlyBargain, and minQualityScore', () => {
+    it('updates onlyNew and onlyBargain', () => {
       useFilterStore.getState().setOnlyNew(true)
       expect(useFilterStore.getState().onlyNew).toBe(true)
 
       useFilterStore.getState().setOnlyBargain(true)
       expect(useFilterStore.getState().onlyBargain).toBe(true)
-
-      useFilterStore.getState().setMinQualityScore(85)
-      expect(useFilterStore.getState().minQualityScore).toBe(85)
     })
 
     it('updates quickSearchQuery, selectedPortalFilter, and showHidden', () => {
@@ -183,7 +177,6 @@ describe('useFilterStore', () => {
       useFilterStore.getState().setExcludeNoImage(true)
       useFilterStore.getState().setSortOption('bargain_desc')
       useFilterStore.getState().setExcludeViewed(true)
-      useFilterStore.getState().setMinQualityScore(70)
 
       useFilterStore.getState().resetToDefaults()
 
@@ -199,7 +192,6 @@ describe('useFilterStore', () => {
       expect(state.criteria.excludeViewed).toBe(false)
       expect(localStorage.getItem('preferred_sort_option')).toBe('price_asc')
       expect(localStorage.getItem('preferred_exclude_viewed')).toBe('false')
-      expect(state.minQualityScore).toBe(0)
       expect(state.quickSearchQuery).toBe('')
       expect(state.selectedPortalFilter).toBe('all')
       expect(window.history.replaceState).toHaveBeenCalled()
@@ -207,7 +199,7 @@ describe('useFilterStore', () => {
 
     it('synchronizes state from URL query parameters via syncFromUrl', () => {
       setLocation(
-        'https://example.com/?cities=Debrecen,Nyíregyháza&type=lakas&minPrice=40&maxPrice=80&sort=price_desc&onlyBargain=true&minQuality=75',
+        'https://example.com/?cities=Debrecen,Nyíregyháza&type=lakas&minPrice=40&maxPrice=80&sort=price_desc&onlyBargain=true',
       )
 
       useFilterStore.getState().syncFromUrl()
@@ -219,7 +211,6 @@ describe('useFilterStore', () => {
       expect(state.criteria.maxPriceMillion).toBe(80)
       expect(state.sortOption).toBe('price_desc')
       expect(state.onlyBargain).toBe(true)
-      expect(state.minQualityScore).toBe(75)
     })
   })
 })

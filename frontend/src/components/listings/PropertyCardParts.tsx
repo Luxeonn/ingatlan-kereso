@@ -7,20 +7,17 @@ import {
   Info,
   Trash2,
   RotateCcw,
-  Ruler,
-  BedDouble,
 } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import {
   getPropertyTypeConfig,
+  getCrossPortalSpread,
   formatPriceMillion,
-  formatPricePerSqm,
-  formatArea,
-  formatRooms,
 } from '../../utils/formatters'
 import { BargainBadge } from './BargainBadge'
 import { cn } from '../../utils/cn'
 import { isListingNew } from '../../utils/listingFilters'
+export { PropertyParametersChips, type PropertyParametersChipsProps } from './PropertyParametersChips'
 
 export interface PropertyThumbnailProps {
   item: IngatlanItem
@@ -82,7 +79,7 @@ export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
       onClick={onThumbnailClick ?? onOpen}
       {...listA11yProps}
       className={cn(
-        'relative cursor-pointer overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] shrink-0',
+        'relative cursor-pointer overflow-hidden rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] shrink-0',
         isListMode
           ? 'h-36 w-full sm:h-28 sm:w-44 mb-3 sm:mb-0 focus:outline-none focus:ring-2 focus:ring-blue-500/50'
           : 'mb-3 h-40 w-full',
@@ -113,7 +110,7 @@ export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
         <span
           data-testid="property-portal-badge"
           className={cn(
-            'absolute top-2 left-2 rounded-md px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase backdrop-blur-md shadow-sm',
+            'absolute top-2 left-2 rounded-md bg-slate-950/88 px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase shadow-sm',
             portalStyle.bg,
           )}
         >
@@ -124,7 +121,7 @@ export const PropertyThumbnail: FC<PropertyThumbnailProps> = ({
       {item.newConstruction && (
         <span
           data-testid="new-construction-badge"
-          className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md border border-cyan-400/40 bg-slate-900/85 px-2 py-0.5 text-[11px] font-bold text-cyan-300 shadow-sm backdrop-blur-sm"
+          className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md border border-cyan-400/40 bg-slate-950/90 px-2 py-0.5 text-[11px] font-bold text-cyan-300 shadow-sm"
         >
           <Building2 className="h-3 w-3" />
           <span>Új építésű</span>
@@ -145,18 +142,7 @@ export interface PropertyCardBadgesProps {
   onRestore?: () => void
 }
 
-interface PropertyActionButtonsProps {
-  item: IngatlanItem
-  sourcesCount: number
-  isDrawerOpen: boolean
-  isStarred: boolean
-  onToggleDrawer: () => void
-  onToggleStarred: () => void
-  onHide?: () => void
-  onRestore?: () => void
-}
-
-const PropertyActionButtons: FC<PropertyActionButtonsProps> = ({
+const PropertyActionButtons: FC<PropertyCardBadgesProps> = ({
   item,
   sourcesCount,
   isDrawerOpen,
@@ -183,10 +169,10 @@ const PropertyActionButtons: FC<PropertyActionButtonsProps> = ({
         onToggleDrawer()
       }}
       className={cn(
-        'flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer',
+        'flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer tabular-nums',
         isDrawerOpen
-          ? 'border-blue-500/40 bg-blue-500/20 text-blue-300 shadow-sm'
-          : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-blue-400 hover:border-blue-500/30',
+          ? 'border-blue-500/40 bg-[var(--accent-soft)] text-blue-600 shadow-sm'
+          : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-blue-600 hover:border-blue-500/30',
       )}
     >
       <Info className="h-3.5 w-3.5" aria-hidden="true" />
@@ -203,11 +189,11 @@ const PropertyActionButtons: FC<PropertyActionButtonsProps> = ({
       className={cn(
         'flex items-center justify-center rounded-lg border p-1.5 text-xs transition-all cursor-pointer',
         isStarred
-          ? 'border-amber-500/40 bg-amber-500/15 text-amber-400 shadow-sm'
-          : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-400',
+          ? 'border-amber-500/40 bg-[var(--status-warn-bg)] text-amber-700 shadow-sm'
+          : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-700',
       )}
     >
-      <Star className={cn('h-3.5 w-3.5', isStarred ? 'fill-amber-400 text-amber-400' : '')} />
+      <Star className={cn('h-3.5 w-3.5', isStarred ? 'fill-amber-500 text-amber-700' : '')} />
     </button>
 
     {item.hidden && onRestore && (
@@ -220,7 +206,7 @@ const PropertyActionButtons: FC<PropertyActionButtonsProps> = ({
         }}
         aria-label="Hirdetés visszaállítása"
         title="Hirdetés visszaállítása"
-        className="flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2 py-1 text-xs font-semibold text-purple-300 hover:bg-purple-500/25 transition-all cursor-pointer"
+        className="flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-500/25 transition-all cursor-pointer"
       >
         <RotateCcw className="h-3.5 w-3.5" />
         <span className="text-[11px]">Visszaállítás</span>
@@ -237,7 +223,7 @@ const PropertyActionButtons: FC<PropertyActionButtonsProps> = ({
         }}
         aria-label="Hirdetés elrejtése"
         title="Hirdetés elrejtése"
-        className="flex items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] p-1.5 text-xs text-[var(--text-secondary)] hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer"
+        className="flex items-center justify-center rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-xs text-[var(--text-secondary)] hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-700 transition-all cursor-pointer"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -245,80 +231,61 @@ const PropertyActionButtons: FC<PropertyActionButtonsProps> = ({
   </div>
 )
 
-export const PropertyCardBadges: FC<PropertyCardBadgesProps> = ({
-  item,
-  sourcesCount,
-  isDrawerOpen,
-  isStarred,
-  onToggleDrawer,
-  onToggleStarred,
-  onHide,
-  onRestore,
-}) => (
-  <div className="flex items-center justify-between gap-2 min-h-[28px]">
-    <div className="flex items-center gap-1.5 flex-nowrap overflow-hidden">
-      {isListingNew(item) && (
-        <span className="flex shrink-0 items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400 animate-pulse">
-          <Sparkles className="h-3 w-3" /> ÚJ
-        </span>
-      )}
-
-      {item.priceDelta !== null && item.priceDelta !== undefined && item.priceDelta < 0 && (
-        <span className="flex shrink-0 items-center gap-1 rounded-md bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[11px] font-bold text-rose-400">
-          <TrendingDown className="h-3 w-3" />
-          {Math.abs(Math.round(item.priceChangePercent || 0))}%
-        </span>
-      )}
-
-      <BargainBadge item={item} />
-    </div>
-
-    <PropertyActionButtons
-      item={item}
-      sourcesCount={sourcesCount}
-      isDrawerOpen={isDrawerOpen}
-      isStarred={isStarred}
-      onToggleDrawer={onToggleDrawer}
-      onToggleStarred={onToggleStarred}
-      onHide={onHide}
-      onRestore={onRestore}
-    />
-  </div>
-)
-
-export interface PropertyParametersChipsProps {
-  floorArea?: number | null
-  rooms?: number | null
-  sqmPrice?: number | null
+function resolveNonBargainMarketLabel(item: IngatlanItem): string | null {
+  if (item.isBargain) return null
+  const pct = item.percentageBelowMedian
+  if (pct === null || pct === undefined || (item.referenceSampleSize ?? 0) < 5) return null
+  return pct >= 0 ? `-${Math.round(pct)}% medián` : `+${Math.abs(Math.round(pct))}% medián`
 }
 
-export const PropertyParametersChips: FC<PropertyParametersChipsProps> = ({
-  floorArea,
-  rooms,
-  sqmPrice,
-}) => (
-  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[var(--text-secondary)]">
-    {floorArea !== null && floorArea !== undefined && floorArea > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
-        <Ruler className="h-3.5 w-3.5 text-purple-400" />
-        <span>{formatArea(floorArea)}</span>
-      </span>
-    )}
+export const PropertyCardBadges: FC<PropertyCardBadgesProps> = (props) => {
+  const { item } = props
+  const spreadInfo = getCrossPortalSpread(item)
+  const marketLabel = resolveNonBargainMarketLabel(item)
+  const hasPriceDrop = item.priceDelta !== null && item.priceDelta !== undefined && item.priceDelta < 0
 
-    {rooms !== null && rooms !== undefined && rooms > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
-        <BedDouble className="h-3.5 w-3.5 text-teal-400" />
-        <span>{formatRooms(rooms)}</span>
-      </span>
-    )}
+  return (
+    <div className="flex items-center justify-between gap-2 min-h-[28px]">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {isListingNew(item) && (
+          <span className="flex shrink-0 items-center gap-1 rounded-md bg-[var(--status-bargain-bg)] border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-[var(--status-bargain-fg)]">
+            <Sparkles className="h-3 w-3" /> ÚJ
+          </span>
+        )}
 
-    {sqmPrice !== null && sqmPrice !== undefined && sqmPrice > 0 && (
-      <span className="flex items-center gap-1 rounded-md bg-[var(--bg-input)] px-2 py-1 font-medium border border-[var(--border-color)]">
-        <span>{formatPricePerSqm(sqmPrice)}</span>
-      </span>
-    )}
-  </div>
-)
+        {hasPriceDrop && (
+          <span className="flex shrink-0 items-center gap-1 rounded-md bg-[var(--status-danger-bg)] border border-rose-500/30 px-2 py-0.5 text-[11px] font-bold text-[var(--status-danger-fg)] tabular-nums">
+            <TrendingDown className="h-3 w-3" />
+            {Math.abs(Math.round(item.priceChangePercent || 0))}%
+          </span>
+        )}
+
+        <BargainBadge item={item} />
+
+        {marketLabel && (
+          <span
+            data-testid="market-position-pill"
+            className="rounded-md border border-[var(--border-hairline)] bg-[var(--bg-input)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)] tabular-nums"
+          >
+            {marketLabel}
+          </span>
+        )}
+
+        {spreadInfo && (
+          <span
+            data-testid="cross-portal-spread-pill"
+            title={`Árkülönbség a portálok között: -${spreadInfo.spreadMillion} M Ft (legolcsóbb: ${spreadInfo.cheapestPortal})`}
+            className="rounded-md border border-indigo-500/30 bg-[var(--status-info-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--status-info-fg)] tabular-nums"
+          >
+            -{spreadInfo.spreadMillion} M árrés
+          </span>
+        )}
+      </div>
+
+      <PropertyActionButtons {...props} />
+    </div>
+  )
+}
 
 export interface PropertyPriceSectionProps {
   priceMillion?: number | null
@@ -333,12 +300,14 @@ export const PropertyPriceSection: FC<PropertyPriceSectionProps> = ({
 }) => (
   <div
     className={cn(
-      'flex items-center justify-between border-t border-[var(--border-color)] pt-3',
-      viewMode === 'list' ? 'sm:border-t-0 sm:pt-0 sm:flex-col sm:items-end sm:justify-center sm:gap-1 shrink-0' : 'mt-4',
+      'flex items-center justify-between border-t border-[var(--border-hairline)] pt-3 tabular-nums',
+      viewMode === 'list'
+        ? 'sm:border-t-0 sm:pt-0 sm:flex-col sm:items-end sm:justify-center sm:gap-1.5 shrink-0'
+        : 'mt-4',
     )}
   >
     <div className={cn(viewMode === 'list' ? 'sm:text-right' : '')}>
-      <div className="text-base font-extrabold text-blue-400">
+      <div className="text-base font-extrabold text-blue-600">
         {priceMillion !== null && priceMillion !== undefined ? formatPriceMillion(priceMillion) : rawPrice}
       </div>
     </div>

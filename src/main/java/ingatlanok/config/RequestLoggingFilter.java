@@ -8,8 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -20,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Assigns a correlation id to every request (MDC key {@code cid}, echoed in {@code
  * X-Correlation-Id}) and logs one line when the request starts and one when it ends.
  */
+@Slf4j
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class RequestLoggingFilter extends OncePerRequestFilter {
@@ -28,7 +28,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
   public static final String MDC_KEY = "cid";
 
   private static final Pattern VALID_ID = Pattern.compile("^[A-Za-z0-9._-]{8,64}$");
-  private static final Logger LOGGER = LoggerFactory.getLogger(RequestLoggingFilter.class);
 
   static String resolveId(String incoming) {
     if (incoming != null && VALID_ID.matcher(incoming.trim()).matches()) {
@@ -45,11 +44,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     MDC.put(MDC_KEY, cid);
     response.setHeader(HEADER, cid);
     long start = System.nanoTime();
-    LOGGER.info("Kérés: {} {}", request.getMethod(), request.getRequestURI());
+    log.info("Kérés: {} {}", request.getMethod(), request.getRequestURI());
     try {
       filterChain.doFilter(request, response);
     } finally {
-      LOGGER.info(
+      log.info(
           "Válasz: {} {} -> {} ({} ms)",
           request.getMethod(),
           request.getRequestURI(),

@@ -17,6 +17,15 @@ const DEFAULT_CITIES = [
   'Veszprém', 'Eger', 'Érd', 'Sopron', 'Mikepércs', 'Hajdúsámson', 'Bocskaikert', 'Józsa', 'Ebes'
 ]
 
+function extractCityName(item: unknown): string {
+  if (typeof item === 'string') return item.trim()
+  if (item && typeof item === 'object') {
+    const rec = item as { name?: string; key?: string }
+    return (rec.name || rec.key || '').trim()
+  }
+  return ''
+}
+
 export const CitySelector: FC<CitySelectorProps> = ({
   selectedCities,
   onAddCity,
@@ -31,12 +40,30 @@ export const CitySelector: FC<CitySelectorProps> = ({
 
   useOutsideDismiss(containerRef, isOpen, closeDropdown)
 
+  const cityMetaMap = useMemo(() => {
+    const map = new Map<string, { county?: string; description?: string }>()
+    if (Array.isArray(citiesData?.predefined)) {
+      for (const item of citiesData.predefined) {
+        if (item && typeof item === 'object') {
+          const name = (item.name || item.key || '').trim()
+          if (name) {
+            map.set(name.toLowerCase(), {
+              county: item.county,
+              description: item.description,
+            })
+          }
+        }
+      }
+    }
+    return map
+  }, [citiesData?.predefined])
+
   const allCities = useMemo(() => {
     if (!citiesData?.predefined || !Array.isArray(citiesData.predefined)) {
       return DEFAULT_CITIES
     }
     const extracted = citiesData.predefined
-      .map((item) => (item?.name || item?.key || '').trim())
+      .map((item) => extractCityName(item))
       .filter((name): name is string => Boolean(name && name.length > 0))
 
     return extracted.length > 0 ? extracted : DEFAULT_CITIES
@@ -45,11 +72,13 @@ export const CitySelector: FC<CitySelectorProps> = ({
   const filteredCities = useMemo(() => {
     const q = query.trim().toLowerCase()
     return allCities.filter((city) => {
-      const matches = !q || city.toLowerCase().includes(q)
+      const meta = cityMetaMap.get(city.toLowerCase())
+      const matchesCity = !q || city.toLowerCase().includes(q)
+      const matchesCounty = Boolean(q && meta?.county?.toLowerCase().includes(q))
       const notSelected = !selectedCities.includes(city)
-      return matches && notSelected
+      return (matchesCity || matchesCounty) && notSelected
     })
-  }, [allCities, query, selectedCities])
+  }, [allCities, cityMetaMap, query, selectedCities])
 
   const getTrackedCount = (city: string): number | null => {
     if (!citiesData?.trackedCities) return null
@@ -87,23 +116,21 @@ export const CitySelector: FC<CitySelectorProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-1.5" ref={containerRef}>
-      <label className="text-xs font-semibold text-[var(--text-secondary)]">
+    <div className="flex flex-col gap-2" ref={containerRef}>
+      <label className="text-sm font-bold text-[var(--text-primary)]">
         Keresési Települések (Többvárosos Szűrés)
       </label>
 
-      {/* Chips box & input */}
       <div
         onClick={() => setIsOpen(true)}
-        className="relative flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] p-1.5 transition-colors focus-within:border-blue-500"
+        className="relative flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 transition-colors focus-within:border-blue-500"
       >
-        <MapPin className="ml-1 h-4 w-4 text-blue-400 shrink-0" />
+        <MapPin className="ml-1 h-4 w-4 text-blue-600 shrink-0" />
 
-        {/* Selected chips */}
         {selectedCities.map((city) => (
           <span
             key={city}
-            className="flex items-center gap-1 rounded-md bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-400 border border-blue-500/30"
+            className="flex items-center gap-1 rounded-lg bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-600 border border-blue-500/30"
           >
             {city}
             <button
@@ -112,14 +139,13 @@ export const CitySelector: FC<CitySelectorProps> = ({
                 e.stopPropagation()
                 onRemoveCity(city)
               }}
-              className="hover:text-red-400 transition-colors"
+              className="hover:text-red-700 transition-colors cursor-pointer"
             >
               <X className="h-3 w-3" />
             </button>
           </span>
         ))}
 
-        {/* Text input */}
         <input
           type="text"
           value={query}
@@ -135,35 +161,46 @@ export const CitySelector: FC<CitySelectorProps> = ({
 
         <ChevronDown className="mr-1 h-4 w-4 text-[var(--text-secondary)] shrink-0 cursor-pointer" />
 
-        {/* Dropdown menu */}
         {isOpen && filteredCities.length > 0 && (
-          <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-1 shadow-2xl backdrop-blur-md">
-            {filteredCities.map((city) => (
-              <button
-                key={city}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSelect(city)
-                }}
-                className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-blue-600 hover:text-white transition-colors"
-              >
-                <span>{city}</span>
-                {(() => {
-                  const count = getTrackedCount(city)
-                  return count !== null && count !== undefined && count > 0 ? (
-                    <span className="text-[10px] opacity-75">
+          <div className="absolute left-0 top-full z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-1 shadow-2xl backdrop-blur-md">
+            {filteredCities.map((city) => {
+              const meta = cityMetaMap.get(city.toLowerCase())
+              const count = getTrackedCount(city)
+              return (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleSelect(city)
+                  }}
+                  className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold">{city}</span>
+                    {meta?.county && (
+                      <span className="rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)]">
+                        {meta.county}
+                      </span>
+                    )}
+                    {meta?.description && (
+                      <span className="hidden sm:inline truncate text-[10px] opacity-70">
+                        · {meta.description}
+                      </span>
+                    )}
+                  </div>
+                  {count !== null && count !== undefined && count > 0 && (
+                    <span className="text-[10px] opacity-75 tabular-nums shrink-0">
                       {count} találat
                     </span>
-                  ) : null
-                })()}
-              </button>
-            ))}
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
 
-      {/* Presets */}
       <PresetButtons onSelectPreset={onSetCities} />
     </div>
   )

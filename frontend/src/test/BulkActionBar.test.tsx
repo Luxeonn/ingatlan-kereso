@@ -56,7 +56,7 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     expect(screen.getByTitle('Lista nézet')).toBeTruthy()
   })
 
-  it('AC3: displays the 3 default pinned quick filters: Alkalmi vétel, Csak új találatok, Elrejtettek', () => {
+  it('AC3: displays the 3 default pinned quick filters: Alkalmi vétel, Új találatok, Töröltek', () => {
     render(
       <BulkActionBar
         items={sampleItems}
@@ -68,19 +68,18 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
 
     const filterRow = screen.getByTestId('filter-chips-row')
     expect(within(filterRow).getByTestId('bargain-filter-toggle')).toBeTruthy()
-    expect(within(filterRow).getByRole('button', { name: /Csak új találatok/i })).toBeTruthy()
+    expect(within(filterRow).getByRole('button', { name: /Új találatok/i })).toBeTruthy()
     expect(within(filterRow).getByTestId('hidden-filter-toggle')).toBeTruthy()
 
     // Non-default filters are not pinned initially
-    expect(within(filterRow).queryByRole('button', { name: /Megtekintettek rejtése/i })).toBeNull()
-    expect(within(filterRow).queryByRole('button', { name: /Csak új építésű/i })).toBeNull()
-    expect(within(filterRow).queryByRole('button', { name: /Több forrásosak rejtése/i })).toBeNull()
-    expect(within(filterRow).queryByRole('button', { name: /Csak több forrásosak/i })).toBeNull()
+    expect(within(filterRow).queryByRole('button', { name: /Megtekintettek/i })).toBeNull()
+    expect(within(filterRow).queryByRole('button', { name: /Új építésű/i })).toBeNull()
+    expect(within(filterRow).queryByRole('button', { name: /Összevontak/i })).toBeNull()
     expect(within(filterRow).queryByTestId('exclude-no-image-filter')).toBeNull()
 
-    // Selector button shows (3/8)
+    // Selector button shows (3/7)
     const selectorBtn = within(filterRow).getByTestId('quick-filter-selector-btn')
-    expect(selectorBtn.textContent).toContain('Szűrők (3/8)')
+    expect(selectorBtn.textContent).toContain('Szűrők (3/7)')
   })
 
   it('AC4: allows customizing pinned quick filters via popover (max 3), disables unchecked options at limit, and persists to localStorage', () => {
@@ -103,7 +102,6 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     const hiddenCheckbox = screen.getByTestId('quick-filter-checkbox-hidden') as HTMLInputElement
     const excludeViewedCheckbox = screen.getByTestId('quick-filter-checkbox-excludeViewed') as HTMLInputElement
     const newConstructionCheckbox = screen.getByTestId('quick-filter-checkbox-onlyNewConstruction') as HTMLInputElement
-    const excludeMultiCheckbox = screen.getByTestId('quick-filter-checkbox-excludeMultiSource') as HTMLInputElement
     const onlyMultiCheckbox = screen.getByTestId('quick-filter-checkbox-onlyMultiSource') as HTMLInputElement
 
     // Initially 3 are checked, and remaining unchecked options are enabled (can pin up to all 7)
@@ -114,32 +112,29 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     expect(excludeViewedCheckbox.disabled).toBe(false)
     expect(newConstructionCheckbox.checked).toBe(false)
     expect(newConstructionCheckbox.disabled).toBe(false)
-    expect(excludeMultiCheckbox.checked).toBe(false)
-    expect(excludeMultiCheckbox.disabled).toBe(false)
     expect(onlyMultiCheckbox.checked).toBe(false)
     expect(onlyMultiCheckbox.disabled).toBe(false)
 
     // Uncheck 'hidden' -> now 2/7 selected, unchecked options become enabled
     fireEvent.click(hiddenCheckbox)
     expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew'])
-    expect(selectorBtn.textContent).toContain('Szűrők (2/8)')
+    expect(selectorBtn.textContent).toContain('Szűrők (2/7)')
     expect(screen.queryByTestId('hidden-filter-toggle')).toBeNull()
     expect(excludeViewedCheckbox.disabled).toBe(false)
     expect(newConstructionCheckbox.disabled).toBe(false)
-    expect(excludeMultiCheckbox.disabled).toBe(false)
     expect(onlyMultiCheckbox.disabled).toBe(false)
 
-    // Check 'excludeViewed' -> back to 3/8 selected
+    // Check 'excludeViewed' -> back to 3/7 selected
     fireEvent.click(excludeViewedCheckbox)
     expect(useUiStore.getState().pinnedQuickFilters).toEqual(['bargain', 'onlyNew', 'excludeViewed'])
-    expect(selectorBtn.textContent).toContain('Szűrők (3/8)')
+    expect(selectorBtn.textContent).toContain('Szűrők (3/7)')
 
     // Verify localStorage persistence
     const stored = JSON.parse(localStorage.getItem('pinned_quick_filters') || '[]')
     expect(stored).toEqual(['bargain', 'onlyNew', 'excludeViewed'])
 
-    // Verify the newly pinned 'Megtekintettek rejtése' button is rendered and interactive
-    const excludeViewedChip = screen.getByRole('button', { name: /Megtekintettek rejtése/i })
+    // Verify the newly pinned 'Megtekintettek' button is rendered and interactive
+    const excludeViewedChip = screen.getByRole('button', { name: /Megtekintettek/i })
     expect(excludeViewedChip).toBeTruthy()
     fireEvent.click(excludeViewedChip)
     expect(useFilterStore.getState().criteria.excludeViewed).toBe(true)
@@ -149,7 +144,7 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     expect(screen.queryByTestId('quick-filter-selector-popover')).toBeNull()
   })
 
-  it('allows pinning and toggling the excludeMultiSource quick filter (#369)', () => {
+  it('allows pinning and toggling the excludeMultiSource quick filter via 3-state Összevontak (#369)', () => {
     render(
       <BulkActionBar
         items={sampleItems}
@@ -158,27 +153,17 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
       />,
     )
 
-    // Open popover, uncheck onlyNew and check excludeMultiSource
     fireEvent.click(screen.getByTestId('quick-filter-selector-btn'))
     fireEvent.click(screen.getByTestId('quick-filter-checkbox-onlyNew'))
-    fireEvent.click(screen.getByTestId('quick-filter-checkbox-excludeMultiSource'))
+    fireEvent.click(screen.getByTestId('quick-filter-checkbox-onlyMultiSource'))
+    fireEvent.click(screen.getByTestId('tri-state-onlyMultiSource-exclude'))
 
-    expect(useUiStore.getState().pinnedQuickFilters).toContain('excludeMultiSource')
-
-    // Pinned chip renders with title and test-id
-    const multiChip = screen.getByTestId('exclude-multi-source-toggle')
-    expect(multiChip).toBeTruthy()
-    expect(multiChip.getAttribute('aria-pressed')).toBe('false')
-
-    // Clicking toggles excludeMultiSource in useFilterStore and updates storage
-    fireEvent.click(multiChip)
+    expect(useUiStore.getState().pinnedQuickFilters).toContain('onlyMultiSource')
     expect(useFilterStore.getState().excludeMultiSource).toBe(true)
-    expect(multiChip.getAttribute('aria-pressed')).toBe('true')
     expect(localStorage.getItem('preferred_exclude_multi_source')).toBe('true')
 
-    fireEvent.click(multiChip)
+    fireEvent.click(screen.getByTestId('tri-state-onlyMultiSource-all'))
     expect(useFilterStore.getState().excludeMultiSource).toBe(false)
-    expect(multiChip.getAttribute('aria-pressed')).toBe('false')
   })
 
   it('allows pinning and toggling onlyMultiSource with mutual exclusion against excludeMultiSource (#436)', () => {
@@ -191,21 +176,17 @@ describe('BulkActionBar & Customizable QuickFilterChipsRow (#359)', () => {
     )
 
     fireEvent.click(screen.getByTestId('quick-filter-selector-btn'))
-    fireEvent.click(screen.getByTestId('quick-filter-checkbox-excludeMultiSource'))
     fireEvent.click(screen.getByTestId('quick-filter-checkbox-onlyMultiSource'))
 
-    const excludeChip = screen.getByTestId('exclude-multi-source-toggle')
-    const onlyChip = screen.getByTestId('only-multi-source-toggle')
-
-    fireEvent.click(excludeChip)
+    fireEvent.click(screen.getByTestId('tri-state-onlyMultiSource-exclude'))
     expect(useFilterStore.getState().excludeMultiSource).toBe(true)
     expect(useFilterStore.getState().onlyMultiSource).toBe(false)
 
+    const onlyChip = screen.getByTestId('only-multi-source-toggle')
     fireEvent.click(onlyChip)
     expect(useFilterStore.getState().onlyMultiSource).toBe(true)
     expect(useFilterStore.getState().excludeMultiSource).toBe(false)
     expect(onlyChip.getAttribute('aria-pressed')).toBe('true')
-    expect(excludeChip.getAttribute('aria-pressed')).toBe('false')
   })
 
   it('verifies sort select does not contain Ft/m² options (#369)', () => {
@@ -306,7 +287,6 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
         items={clusteredItems}
         rawItems={clusteredItems}
         totalRawCount={2}
-        visibleCount={1}
       />,
     )
 
@@ -405,7 +385,7 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     expect(screen.getByTestId('bargain-filter-count').textContent).toBe('2')
     expect(screen.getByTestId('only-new-filter-count').textContent).toBe('2')
     expect(screen.getByTestId('hidden-filter-count').textContent).toBe('4')
-    expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('2')
+    expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('1')
     expect(screen.getByTestId('only-new-construction-filter-count').textContent).toBe('1')
     expect(screen.getByTestId('exclude-multi-source-filter-count').textContent).toBe('2')
     expect(screen.getByTestId('only-multi-source-filter-count').textContent).toBe('1')
@@ -429,7 +409,7 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     expect(screen.queryByTestId('exclude-no-image-filter-count')).toBeNull()
   })
 
-  it('pins, toggles, and counts items with valid images on exclude-no-image-filter (#460)', () => {
+  it('pins, toggles, and counts items without valid images on exclude-no-image-filter (#460, #503)', () => {
     useUiStore.setState({ pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS] })
     const itemsMixedImages: IngatlanItem[] = [
       createMockIngatlanItem({ id: 'img-1', imageUrl: 'https://dh.hu/1.jpg' }),
@@ -444,13 +424,14 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
           { portal: 'oc', url: 'https://oc.hu/4', imageUrl: 'https://oc.hu/4.jpg' },
         ],
       }),
+      createMockIngatlanItem({ id: 'img-5', imageUrl: 'https://dh.hu/5.jpg' }),
     ]
 
     render(
       <BulkActionBar
         items={itemsMixedImages}
         rawItems={itemsMixedImages}
-        totalRawCount={4}
+        totalRawCount={5}
       />,
     )
 
@@ -465,5 +446,46 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
     fireEvent.click(chip)
     expect(useFilterStore.getState().excludeNoImage).toBe(true)
     expect(chip.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('counts viewed items accurately on exclude-viewed-filter-count (#503)', () => {
+    useUiStore.setState({ pinnedQuickFilters: ['excludeViewed'] })
+    const itemsMixedViewed: IngatlanItem[] = [
+      createMockIngatlanItem({ id: 'v-1', viewed: true }),
+      createMockIngatlanItem({ id: 'v-2', viewed: true }),
+      createMockIngatlanItem({ id: 'v-3', viewed: false }),
+      createMockIngatlanItem({ id: 'v-4', viewed: false }),
+      createMockIngatlanItem({ id: 'v-5', viewed: false }),
+    ]
+
+    render(
+      <BulkActionBar
+        items={itemsMixedViewed}
+        rawItems={itemsMixedViewed}
+        totalRawCount={5}
+      />,
+    )
+
+    expect(screen.getByTestId('exclude-viewed-filter-count').textContent).toBe('2')
+  })
+
+  it('keeps onlyNew chip count in sync with sessionViewedUrls grace period (#502)', () => {
+    useUiStore.setState({ pinnedQuickFilters: [...DEFAULT_PINNED_QUICK_FILTERS] })
+    const items: IngatlanItem[] = [
+      createMockIngatlanItem({ id: 'n1', url: 'https://dh.hu/n1', isNew: true, viewed: false }),
+      createMockIngatlanItem({ id: 'n2', url: 'https://oc.hu/n2', isNew: false, viewed: true }),
+      createMockIngatlanItem({ id: 'n3', url: 'https://dh.hu/n3', isNew: false, viewed: false }),
+    ]
+
+    render(
+      <BulkActionBar
+        items={items}
+        rawItems={items}
+        totalRawCount={3}
+        sessionViewedUrls={new Set(['https://oc.hu/n2'])}
+      />,
+    )
+
+    expect(screen.getByTestId('only-new-filter-count').textContent).toBe('2')
   })
 })

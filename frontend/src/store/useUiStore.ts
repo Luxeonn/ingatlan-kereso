@@ -3,6 +3,9 @@ import type { IngatlanItem } from '../types/property'
 
 export type DashboardTab = 'listings' | 'analytics'
 export type ListingSubView = 'listings' | 'favorites' | 'archive'
+export type ViewMode = 'grid' | 'list' | 'table'
+export type ArchiveSubMode = 'all' | 'hidden' | 'discounted'
+
 export type QuickFilterId =
   | 'bargain'
   | 'onlyNew'
@@ -33,10 +36,10 @@ export const DEFAULT_PINNED_QUICK_FILTERS: QuickFilterId[] = [
 export const MAX_PINNED_QUICK_FILTERS = ALL_QUICK_FILTER_IDS.length
 
 interface UiState {
-  theme: 'dark' | 'light'
-  viewMode: 'grid' | 'list'
+  viewMode: ViewMode
   dashboardTab: DashboardTab
   listingSubView: ListingSubView
+  archiveSubMode: ArchiveSubMode
   isDiagnosticsModalOpen: boolean
   isIngatlanComImportModalOpen: boolean
   isFiltersCollapsed: boolean
@@ -44,30 +47,18 @@ interface UiState {
   starredItemsCache: Record<string, IngatlanItem>
   pinnedQuickFilters: QuickFilterId[]
   selectedCardUrls: string[]
-  toggleTheme: () => void
-  setViewMode: (mode: 'grid' | 'list') => void
+  setViewMode: (mode: ViewMode) => void
   setDashboardTab: (tab: DashboardTab) => void
   setListingSubView: (subView: ListingSubView) => void
+  setArchiveSubMode: (mode: ArchiveSubMode) => void
   setDiagnosticsModalOpen: (open: boolean) => void
   setIngatlanComImportModalOpen: (open: boolean) => void
   setFiltersCollapsed: (collapsed: boolean) => void
   toggleStarred: (itemOrUrl: IngatlanItem | string) => void
   isStarred: (url: string) => boolean
   togglePinnedQuickFilter: (id: QuickFilterId) => void
-  setPinnedQuickFilters: (ids: QuickFilterId[]) => void
   toggleCardSelection: (url: string) => void
   clearCardSelection: () => void
-  setSelectedCardUrls: (urls: string[]) => void
-}
-
-function getInitialTheme(): 'dark' | 'light' {
-  if (typeof window === 'undefined') return 'dark'
-  const saved = localStorage.getItem('theme')
-  if (saved === 'light' || saved === 'dark') return saved
-  if (typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-  }
-  return 'dark'
 }
 
 function getInitialStarredUrls(): string[] {
@@ -122,20 +113,15 @@ function savePinnedQuickFilters(ids: QuickFilterId[]): void {
 }
 
 export const useUiStore = create<UiState>((set, get) => {
-  const initialTheme = getInitialTheme()
   if (typeof document !== 'undefined') {
-    if (initialTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
+    document.documentElement.classList.remove('dark')
   }
 
   return {
-    theme: initialTheme,
     viewMode: 'grid',
     dashboardTab: 'listings',
     listingSubView: 'listings',
+    archiveSubMode: 'all',
     isDiagnosticsModalOpen: false,
     isIngatlanComImportModalOpen: false,
     isFiltersCollapsed: false,
@@ -143,19 +129,6 @@ export const useUiStore = create<UiState>((set, get) => {
     starredItemsCache: getInitialStarredItemsCache(),
     pinnedQuickFilters: getInitialPinnedQuickFilters(),
     selectedCardUrls: [],
-    toggleTheme: () =>
-      set((state) => {
-        const next = state.theme === 'dark' ? 'light' : 'dark'
-        if (typeof document !== 'undefined') {
-          if (next === 'dark') {
-            document.documentElement.classList.add('dark')
-          } else {
-            document.documentElement.classList.remove('dark')
-          }
-        }
-        localStorage.setItem('theme', next)
-        return { theme: next }
-      }),
     setViewMode: (mode) => set((state) => (state.viewMode === mode ? state : { viewMode: mode })),
     setDashboardTab: (tab) =>
       set((state) => (state.dashboardTab === tab ? state : { dashboardTab: tab })),
@@ -165,6 +138,7 @@ export const useUiStore = create<UiState>((set, get) => {
           ? state
           : { listingSubView: subView, dashboardTab: 'listings' },
       ),
+    setArchiveSubMode: (archiveSubMode) => set({ archiveSubMode }),
     setDiagnosticsModalOpen: (open) => set({ isDiagnosticsModalOpen: open }),
     setIngatlanComImportModalOpen: (open) => set({ isIngatlanComImportModalOpen: open }),
     setFiltersCollapsed: (collapsed) => set({ isFiltersCollapsed: collapsed }),
@@ -189,7 +163,6 @@ export const useUiStore = create<UiState>((set, get) => {
           localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
           localStorage.setItem('starred_items_cache', JSON.stringify(nextCache))
         } catch {
-          // If storage quota exceeded, attempt to prune cached items not in nextUrls or trim oldest
           try {
             const prunedCache: Record<string, IngatlanItem> = {}
             nextUrls.slice(-30).forEach((u) => {
@@ -198,7 +171,6 @@ export const useUiStore = create<UiState>((set, get) => {
             localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
             localStorage.setItem('starred_items_cache', JSON.stringify(prunedCache))
           } catch {
-            // Still failing: ensure starred_urls alone is safely stored
             try {
               localStorage.setItem('starred_urls', JSON.stringify(nextUrls))
             } catch {
@@ -226,13 +198,6 @@ export const useUiStore = create<UiState>((set, get) => {
         savePinnedQuickFilters(next)
         return { pinnedQuickFilters: next }
       }),
-    setPinnedQuickFilters: (ids) =>
-      set(() => {
-        const valid = ids.filter((id) => ALL_QUICK_FILTER_IDS.includes(id))
-        const next = Array.from(new Set(valid)).slice(0, MAX_PINNED_QUICK_FILTERS)
-        savePinnedQuickFilters(next)
-        return { pinnedQuickFilters: next }
-      }),
     toggleCardSelection: (url) =>
       set((state) => {
         if (!url) return state
@@ -244,7 +209,5 @@ export const useUiStore = create<UiState>((set, get) => {
         }
       }),
     clearCardSelection: () => set({ selectedCardUrls: [] }),
-    setSelectedCardUrls: (urls) =>
-      set({ selectedCardUrls: Array.from(new Set(urls.filter(Boolean))) }),
   }
 })

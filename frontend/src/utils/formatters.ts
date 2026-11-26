@@ -1,6 +1,6 @@
 import {
   Building2, Home, Trees, Warehouse, Factory, HelpCircle,
-  ShieldCheck, ShieldAlert, ShieldX, type LucideIcon,
+  type LucideIcon,
 } from 'lucide-react'
 import type { CanonicalPropertyType, IngatlanItem } from '../types/property'
 import { PORTAL_IDS, type PortalId } from '../types/portal'
@@ -21,8 +21,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Lakás',
     icon: Building2,
     colorClasses: {
-      badge: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-      icon: 'text-indigo-400',
+      badge: 'bg-indigo-500/15 text-indigo-700 border-indigo-500/30',
+      icon: 'text-indigo-700',
     },
   },
   HAZ: {
@@ -30,8 +30,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Ház',
     icon: Home,
     colorClasses: {
-      badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-      icon: 'text-amber-400',
+      badge: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
+      icon: 'text-amber-700',
     },
   },
   TELEK: {
@@ -39,8 +39,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Telek',
     icon: Trees,
     colorClasses: {
-      badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-      icon: 'text-emerald-400',
+      badge: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30',
+      icon: 'text-emerald-700',
     },
   },
   GARAZS: {
@@ -48,8 +48,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Garázs',
     icon: Warehouse,
     colorClasses: {
-      badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
-      icon: 'text-cyan-400',
+      badge: 'bg-cyan-500/15 text-cyan-700 border-cyan-500/30',
+      icon: 'text-cyan-700',
     },
   },
   IPARI_KERESKEDELMI: {
@@ -57,8 +57,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Ipari / Kereskedelmi',
     icon: Factory,
     colorClasses: {
-      badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-      icon: 'text-purple-400',
+      badge: 'bg-purple-500/15 text-purple-700 border-purple-500/30',
+      icon: 'text-purple-700',
     },
   },
   EGYEB_ISMERETLEN: {
@@ -66,8 +66,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Egyéb',
     icon: HelpCircle,
     colorClasses: {
-      badge: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
-      icon: 'text-slate-400',
+      badge: 'bg-slate-500/15 text-slate-600 border-slate-500/30',
+      icon: 'text-slate-600',
     },
   },
 }
@@ -103,72 +103,6 @@ export function normalizePropertyType(rawType?: string | null): CanonicalPropert
 
 export function getPropertyTypeConfig(rawType?: string | null): PropertyTypeConfig {
   return PROPERTY_TYPE_CONFIGS[normalizePropertyType(rawType)]
-}
-
-export type QualityTierKey = 'EXCELLENT' | 'ACCEPTABLE' | 'SUSPICIOUS'
-
-export interface QualityConfig {
-  key: QualityTierKey
-  ratingLabel: string
-  icon: LucideIcon
-  buttonClasses: string
-  badgeClass: string
-  textClass: string
-  pillClass: string
-  popoverBorderClass: string
-  headerTextClass: string
-  barClass: string
-}
-
-export function clampQualityScore(score?: number | null): number | null {
-  if (score === null || score === undefined || isNaN(score)) return null
-  return Math.max(0, Math.min(100, Math.round(score)))
-}
-
-export function getQualityConfig(score: number): QualityConfig {
-  if (score >= 85) {
-    return {
-      key: 'EXCELLENT',
-      ratingLabel: 'Kiváló adatminőség',
-      icon: ShieldCheck,
-      buttonClasses:
-        'bg-emerald-500/15 border-emerald-500/30 hover:bg-emerald-500/25 text-emerald-400 focus:ring-emerald-400/50',
-      badgeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
-      textClass: 'text-emerald-400',
-      pillClass: 'bg-emerald-500/25 text-emerald-300',
-      popoverBorderClass: 'border-emerald-500/30',
-      headerTextClass: 'text-emerald-400',
-      barClass: 'bg-emerald-400',
-    }
-  }
-  if (score >= 70) {
-    return {
-      key: 'ACCEPTABLE',
-      ratingLabel: 'Elfogadható adatminőség',
-      icon: ShieldAlert,
-      buttonClasses:
-        'bg-amber-500/15 border-amber-500/30 hover:bg-amber-500/25 text-amber-400 focus:ring-amber-400/50',
-      badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
-      textClass: 'text-amber-400',
-      pillClass: 'bg-amber-500/25 text-amber-300',
-      popoverBorderClass: 'border-amber-500/30',
-      headerTextClass: 'text-amber-400',
-      barClass: 'bg-amber-400',
-    }
-  }
-  return {
-    key: 'SUSPICIOUS',
-    ratingLabel: 'Gyanús / hiányos adat',
-    icon: ShieldX,
-    buttonClasses:
-      'bg-rose-500/15 border-rose-500/30 hover:bg-rose-500/25 text-rose-400 focus:ring-rose-400/50',
-    badgeClass: 'bg-rose-500/15 border-rose-500/30 text-rose-400',
-    textClass: 'text-rose-400',
-    pillClass: 'bg-rose-500/25 text-rose-300',
-    popoverBorderClass: 'border-rose-500/30',
-    headerTextClass: 'text-rose-400',
-    barClass: 'bg-rose-500',
-  }
 }
 
 export function getEffectivePrice(item: IngatlanItem): { priceFt?: number; priceMillion?: number } {
@@ -302,12 +236,12 @@ const PORTAL_DOMAINS: Array<{ domain: string; portalId: string; portalName: stri
 ]
 
 export const PORTAL_COLORS: Record<PortalId, { bg: string; text: string; border: string }> = {
-  dh: { bg: 'bg-orange-500/10 text-orange-400 border-orange-500/30', text: 'text-orange-400', border: 'border-orange-500/40' },
-  oc: { bg: 'bg-red-500/10 text-red-400 border-red-500/30', text: 'text-red-400', border: 'border-red-500/40' },
-  jofogas: { bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', text: 'text-emerald-400', border: 'border-emerald-500/40' },
-  ingatlanbazar: { bg: 'bg-purple-500/10 text-purple-400 border-purple-500/30', text: 'text-purple-400', border: 'border-purple-500/40' },
-  koltozzbe: { bg: 'bg-teal-500/10 text-teal-400 border-teal-500/30', text: 'text-teal-400', border: 'border-teal-500/40' },
-  ingatlancom: { bg: 'bg-sky-500/10 text-sky-400 border-sky-500/30', text: 'text-sky-400', border: 'border-sky-500/40' },
+  dh: { bg: 'bg-orange-500/10 text-orange-700 border-orange-500/30', text: 'text-orange-700', border: 'border-orange-500/40' },
+  oc: { bg: 'bg-red-500/10 text-red-700 border-red-500/30', text: 'text-red-700', border: 'border-red-500/40' },
+  jofogas: { bg: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30', text: 'text-emerald-700', border: 'border-emerald-500/40' },
+  ingatlanbazar: { bg: 'bg-purple-500/10 text-purple-700 border-purple-500/30', text: 'text-purple-700', border: 'border-purple-500/40' },
+  koltozzbe: { bg: 'bg-teal-500/10 text-teal-700 border-teal-500/30', text: 'text-teal-700', border: 'border-teal-500/40' },
+  ingatlancom: { bg: 'bg-sky-500/10 text-sky-700 border-sky-500/30', text: 'text-sky-700', border: 'border-sky-500/40' },
 }
 
 const PORTAL_MATCHERS: ReadonlyArray<readonly [PortalId, readonly string[]]> = [
@@ -350,26 +284,13 @@ export function getPrimaryPortalKey(item: IngatlanItem): NormalizedPortalKey {
   return primary
 }
 
-export function getItemPortalKeys(item: IngatlanItem): Set<string> {
-  const keys = new Set<string>()
-  const primary = getPrimaryPortalKey(item)
-  if (primary) keys.add(primary)
-  if (Array.isArray(item.sourceListings)) {
-    for (const sl of item.sourceListings) {
-      const sk = normalizePortalKey(sl.portal) || (sl.url ? normalizePortalKey(detectPortalFromUrl(sl.url).portalId) : '')
-      if (sk && sk !== 'egyeb') keys.add(sk)
-    }
-  }
-  return keys
-}
-
 export function getPortalStyle(portalId: string): { bg: string; text: string; border: string } {
   const key = normalizePortalKey(portalId)
   if (key && key !== 'egyeb' && Object.prototype.hasOwnProperty.call(PORTAL_COLORS, key)) {
     const style = PORTAL_COLORS[key as PortalId]
     if (style) return style
   }
-  return { bg: 'bg-blue-500/10 text-blue-400 border-blue-500/30', text: 'text-blue-400', border: 'border-blue-500/40' }
+  return { bg: 'bg-blue-500/10 text-blue-600 border-blue-500/30', text: 'text-blue-600', border: 'border-blue-500/40' }
 }
 
 export function detectPortalFromUrl(url: string): { portalId: string; portalName: string } {
@@ -387,4 +308,4 @@ export function detectPortalFromUrl(url: string): { portalId: string; portalName
   return { portalId: 'egyeb', portalName: 'Hirdetés' }
 }
 
-export { formatOverrideEndpointLabel } from './dedupFormatters'
+export { formatOverrideEndpointLabel, getCrossPortalSpread } from './dedupFormatters'

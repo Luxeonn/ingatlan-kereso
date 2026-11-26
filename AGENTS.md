@@ -2,7 +2,7 @@
 
 ## Project Structure & Modules
 
-The backend is a Java 25 Spring Boot application. Production code lives in `src/main/java/ingatlanok/`, with HTTP endpoints in `web/`, presentation facades/DTOs in `presentation/`, web/security config in `config/`, service facades in `service/`, business logic in `core/`, domain types in `model/`, persistence in `persistence/`, and portal integrations in `portal/` (each documented with a `package-info.java` module map), plus Python/Node sidecars in `tools/`. Backend tests and shared Object Mother builders (`TestFixtures.java`) are under `src/test/`. The React 19, TypeScript, and Vite frontend is in `frontend/src/`; unit tests and shared mock factories (`testFixtures.ts`) are in `frontend/src/test/` and browser tests in `frontend/e2e/`. `openapi/api-spec.yaml` is the API contract; regenerate frontend API types with `npm run generate-api` from `frontend/`. See `docs/architecture.md` for layer boundaries.
+The backend is a Java 25 Spring Boot application. Production code lives in `src/main/java/ingatlanok/`, with HTTP endpoints in `web/`, presentation facades/DTOs in `presentation/`, web/security config in `config/`, business logic in `core/`, domain types in `model/`, persistence in `persistence/`, and portal integrations in `portal/` (each documented with a `package-info.java` module map), plus the Node.js Playwright sidecar in `tools/`. Backend tests and shared Object Mother builders (`TestFixtures.java`) are under `src/test/`. The React 19, TypeScript, and Vite frontend is in `frontend/src/`; unit tests and shared mock factories (`testFixtures.ts`) are in `frontend/src/test/` and browser tests in `frontend/e2e/`. `openapi/api-spec.yaml` is the API contract; regenerate frontend API types with `npm run generate-api` from `frontend/`. See `docs/architecture.md` for layer boundaries.
 
 ## Build, Test, and Development
 
@@ -34,9 +34,7 @@ Add JUnit 5 tests under the matching `src/test/java` package (reusing `ingatlano
 
 ## Commits & Pull Requests
 
-Request GitHub Copilot as reviewer on every PR you create (`gh pr edit <id> --add-reviewer "@copilot"`). Agents must always set Copilot as a reviewer.
-
-Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use a descriptive branch prefix such as `feature/`, `fix/`, `docs/`, `refactor/`, or `chore/`; target `develop` by default. PRs must use concise, high-signal Hungarian descriptions adhering strictly to the template's 2 core sections (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`), link related issues with closing keywords (`Closes #<id>`), and strictly enforce clean UTF-8 encoding (`gh pr create --body-file ...`) without BOM to prevent mojibake. Automated PR workflows enforce Conventional Commit titles (`pr-build.yml`), branch currency against `develop` (`pr-guards.yml`), and compliance + unconditional `validate-skills.sh -v` + OpenAPI/DTO sync checks (`pr-compliance.yml`, which exempts `dependabot` and `develop -> main` release PRs as documented in `docs/pr-compliance.md`). All required CI checks must pass before merge.
+Use Conventional Commit subjects, such as `feat(search): add area filter`, `fix(portal): handle missing prices`, or `docs: clarify setup`. Use the mandatory issue-based branch name `ik-<issue-number>` (e.g., `ik-503` for issue `#503`) and target `develop` by default. PRs must use concise, high-signal Hungarian descriptions adhering strictly to the template's 2 core sections (`🎯 Miért készült?`, `🛠️ Mit módosít / Mit javít?`), link related issues with closing keywords (`Closes #<id>`), and strictly enforce clean UTF-8 encoding (`gh pr create --body-file ...`) without BOM to prevent mojibake. Automated PR workflows enforce Conventional Commit titles (`pr-build.yml`), branch currency against `develop` (`pr-guards.yml`), and compliance + unconditional `validate-skills.sh -v` + OpenAPI/DTO sync checks (`pr-compliance.yml`, which exempts `dependabot` and `develop -> main` release PRs as documented in `docs/pr-compliance.md`). All required CI checks must pass before merge.
 
 ## Issue Creation & Tracking Guidelines
 
@@ -83,4 +81,29 @@ Use `.env.example` as the configuration reference; never commit secrets or real 
   - **Java (`src/main/java/ingatlanok/`):** Raw types and unchecked casts (`-Werror -Xlint:rawtypes,unchecked,cast`), `@SuppressWarnings` annotations in production code (Checkstyle `noSuppressWarnings`), reflective class loading (`Class.forName`), stringly-typed closed domain sets (`PropertyType`, `ListingStatus`, `ListingObservation.StatusEvent`, `PortalScrapeStatus`, `SearchExecutionStatus`, `SidecarStatus`, `DedupOverrideType`), untyped `Map<String, Object>` or wildcard `ResponseEntity<?>` in `@RestController` (`CONTROLLERS_DO_NOT_RETURN_OBJECT_MAPS_OR_WILDCARDS`), and raw `Object[]` projections in Spring Data JPA repositories (`REPOSITORIES_DO_NOT_RETURN_OBJECT_ARRAYS`, all enforced by `ArchitectureRulesTest.java`).
 - **Allowlist-Only Exception Governance:** Any unavoidable transitional or third-party type-safety exception must be narrowly scoped to the exact file and construct and documented with an `ALLOW-*` entry and justification in [docs/architecture/type-safety/allowlist.md](docs/architecture/type-safety/allowlist.md), verified deterministically by `scripts/validate-skills.sh`.
 - **Self-Check Non-Tampering & CODEOWNERS Protection:** AI agents and developers **must never** disable, weaken, or bypass their own verification checks (`build.gradle.kts`, `config/checkstyle/checkstyle.xml`, `frontend/eslint.config.js`, `frontend/tsconfig.json`, `ArchitectureRulesTest.java`, `scripts/validate-skills.sh`, `scripts/verify-pr-compliance.mjs`, `.github/workflows/*`, or `docs/architecture/type-safety/allowlist.md`). All governance, workflow, compiler, and linter configuration files are protected by [.github/CODEOWNERS](.github/CODEOWNERS) and require explicit human repository owner review.
+
+## Narrow-Scope Subagent Team, Issue Routing & PR Hooks (Mandatory Daily Workflow)
+
+**Default-to-Delegation Policy:** In daily development, AI orchestrators **must actively and frequently delegate** tasks to the 8 narrow-scope custom subagents in `.agents/agents/` (`invoke_subagent`) based on the task or GitHub issue rather than executing multi-domain work monolithically. Narrow scopes reduce errors, eliminate confirmation bias, and enforce least-privilege tool boundaries (read-only design, research, and PR review; test-only QA).
+
+### Issue-Driven Subagent Routing Matrix
+
+Whenever starting from a GitHub issue (`#<id>` / `ik-<id>`), inspect it first (`gh issue view <id>`) and automatically dispatch the matching subagent(s) (running independent roles in parallel):
+
+| Task / Issue Signal (Labels, Scope, or Paths) | Primary Subagent | Mandatory Handoff / Sequence |
+| :--- | :--- | :--- |
+| Growth ideas, roadmap, proptech/UX research | `product-researcher` *(read-only)* | Drafts prioritized options + issue proposals for human approval |
+| UI/UX redesign, layout, CSS tokens, WCAG 2.2 AA | `ui-designer` *(read-only)* | Outputs implementation spec -> `frontend-developer` |
+| Bugfix, business logic regression, E2E, Golden Dataset | `qa-test-engineer` *(tests/fixtures only)* | Writes failing Red test first -> owning implementer (Green) |
+| REST (`web/`), `presentation/`, `service/`, `persistence/`, `openapi/api-spec.yaml` | `backend-developer` | Owns OpenAPI spec -> `frontend-developer` (`npm run generate-api`) |
+| React 19, TypeScript 5.9, Tailwind v4, Zustand, Recharts (`frontend/src/`) | `frontend-developer` | Consumes generated API types and `ui-designer` specs |
+| 6 portal engines (`portal/`), `tools/` sidecars, `HttpFetcher`, `PropertyParser` | `scraper-engineer` | Enforces 0-crash resilience & cross-portal consistency |
+| `DeduplicationEngine`, `core/dedup/*`, `MarketAnalyticsEngine`, `DataQualityEngine`, `ListingNormalizer` | `domain-algorithm-engineer` | Enforces mathematical invariants & Golden Dataset parity |
+| Pre-PR / staged diff / code quality & compliance audit | `pr-quality-reviewer` *(read-only)* | Mandatory fail-closed gate before opening any PR |
+
+### Antigravity Lifecycle Hooks (`.agents/hooks.json`)
+
+- **`pr-publish-guard` (`PreToolUse` on `run_command`):** Automatically executes `.agents/hooks/pr-publish-guard.mjs` before `gh pr create`, `gh pr merge`, or `git push`. Blocks auto-merge, direct pushes to `main`/`develop`, non-`ik-<issue>` branches, non-Conventional Commit titles, UTF-8 BOM or non-compliant PR bodies (`scripts/verify-pr-compliance.mjs`), uncommitted tracked files, and failing `scripts/validate-skills.sh`.
+- **`issue-subagent-router` (`SessionStart` / `PreInvocation`):** Automatically runs `.agents/hooks/issue-subagent-router.mjs` to detect issue references and domain signals and remind/route daily prompts to the matching narrow-scope subagent(s).
+
 

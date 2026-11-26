@@ -46,7 +46,6 @@ describe('filterUrlSync utility', () => {
       expect(result.criteria?.propertyType).toBe('HAZ')
       expect(result.criteria?.minPriceMillion).toBe(55)
       expect(result.sort).toBeUndefined()
-      expect(result.minQualityScore).toBeUndefined()
     })
 
     it('parses valid multiple cities, property type, and numeric bounds', () => {
@@ -71,20 +70,18 @@ describe('filterUrlSync utility', () => {
       expect(result.criteria?.city).toBe('Eger')
     })
 
-    it('parses boolean flags, portals, and quality score correctly', () => {
+    it('parses boolean flags and portals correctly', () => {
       setLocation(
-        'https://example.com/?portals=dh,oc&autoOpen=true&excludeViewed=true&onlyNewConstruction=true&onlyNew=true&onlyBargain=true&excludeMulti=1&minQuality=80&sort=bargain_desc',
+        'https://example.com/?portals=dh,oc&excludeViewed=true&onlyNewConstruction=true&onlyNew=true&onlyBargain=true&excludeMulti=1&sort=bargain_desc',
       )
 
       const result = parseUrlParams()
       expect(result.criteria?.portals).toEqual(['dh', 'oc'])
-      expect(result.criteria?.autoOpenBrowser).toBe(true)
       expect(result.criteria?.excludeViewed).toBe(true)
       expect(result.criteria?.onlyNewConstruction).toBe(true)
       expect(result.onlyNew).toBe(true)
       expect(result.onlyBargain).toBe(true)
       expect(result.excludeMultiSource).toBe(true)
-      expect(result.minQualityScore).toBe(80)
       expect(result.sort).toBe('bargain_desc')
     })
 
@@ -115,7 +112,6 @@ describe('filterUrlSync utility', () => {
       minArea: 90, // default
       maxArea: 200, // default
       portals: ['dh', 'oc', 'jofogas', 'ingatlancom', 'ingatlanbazar', 'koltozzbe'],
-      autoOpenBrowser: false,
       excludeViewed: false,
       onlyDiscounted: false,
       onlyNewConstruction: false,
@@ -141,7 +137,6 @@ describe('filterUrlSync utility', () => {
         minArea: 75,
         maxArea: 160,
         portals: ['dh', 'oc'],
-        autoOpenBrowser: true,
         excludeViewed: true,
         onlyNewConstruction: true,
       }
@@ -155,7 +150,6 @@ describe('filterUrlSync utility', () => {
       expect(params.get('minArea')).toBe('75')
       expect(params.get('maxArea')).toBe('160')
       expect(params.get('portals')).toBe('dh,oc')
-      expect(params.get('autoOpen')).toBe('true')
       expect(params.get('excludeViewed')).toBe('true')
       expect(params.get('onlyNewConstruction')).toBe('true')
     })
@@ -166,7 +160,6 @@ describe('filterUrlSync utility', () => {
         onlyNew: true,
         onlyBargain: true,
         excludeMultiSource: true,
-        minQualityScore: 70,
       }
 
       const params = new URLSearchParams()
@@ -176,7 +169,7 @@ describe('filterUrlSync utility', () => {
       expect(params.get('onlyBargain')).toBe('true')
       expect(params.get('hideMulti')).toBe('1')
       expect(params.get('onlyMulti')).toBeNull()
-      expect(params.get('minQuality')).toBe('70')
+      expect(params.get('minQuality')).toBeNull()
 
       const onlyMultiParams = new URLSearchParams()
       appendUiFilterParams(onlyMultiParams, {
@@ -206,7 +199,6 @@ describe('filterUrlSync utility', () => {
         onlyBargain: true,
         excludeMultiSource: false,
         excludeNoImage: true,
-        minQualityScore: 85,
       }
 
       const params = new URLSearchParams()
@@ -227,7 +219,6 @@ describe('filterUrlSync utility', () => {
       expect(parsed.sort).toBe('price_desc')
       expect(parsed.onlyBargain).toBe(true)
       expect(parsed.excludeNoImage).toBe(true)
-      expect(parsed.minQualityScore).toBe(85)
     })
   })
 })

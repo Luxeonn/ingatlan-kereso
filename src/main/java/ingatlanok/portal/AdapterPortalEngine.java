@@ -5,7 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import ingatlanok.common.AppLogger;
+import lombok.extern.slf4j.Slf4j;
+
 import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PortalScrapeResult;
 import ingatlanok.model.PortalScrapeStatus;
@@ -13,9 +14,8 @@ import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawExtractionResult;
 import ingatlanok.model.raw.RawPropertyListing;
 
+@Slf4j
 public class AdapterPortalEngine implements PortalEngine {
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(AdapterPortalEngine.class);
 
   private final PortalAdapter adapter;
   private final RawListingNormalizer normalizer;
@@ -48,7 +48,7 @@ public class AdapterPortalEngine implements PortalEngine {
         : descriptor.homepageUrl();
 
     List<ExtractionStrategy> strategies = adapter.getStrategies();
-    LOGGER.info("[{}] Portál lekérdezés: {}", descriptor.name(), defaultSearchUrl);
+    log.info("[{}] Portál lekérdezés: {}", descriptor.name(), defaultSearchUrl);
     if (strategies == null || strategies.isEmpty()) {
       long elapsed = System.currentTimeMillis() - startTime;
       return PortalScrapeResult.empty(descriptor.id(), descriptor.name(), defaultSearchUrl, elapsed);
@@ -70,14 +70,14 @@ public class AdapterPortalEngine implements PortalEngine {
         }
         if (result.status() == PortalScrapeStatus.BOT_PROTECTED) {
           lastBotProtected = result;
-          LOGGER.warn("Bot protection triggerelve a(z) {} stratégia futásakor: {}",
+          log.warn("Bot protection triggerelve a(z) {} stratégia futásakor: {}",
               strategy.method(), result.message());
         } else if (result.status() == PortalScrapeStatus.FAILED) {
           lastFailure = result;
-          LOGGER.warn("Hiba a(z) {} stratégia futásakor: {}", strategy.method(), result.message());
+          log.warn("Hiba a(z) {} stratégia futásakor: {}", strategy.method(), result.message());
         }
       } catch (Exception e) {
-        LOGGER.error("Kivétel a(z) {} stratégia végrehajtásakor: {}", strategy.method(), e.getMessage(), e);
+        log.error("Kivétel a(z) {} stratégia végrehajtásakor: {}", strategy.method(), e.getMessage(), e);
       }
     }
 
@@ -104,7 +104,7 @@ public class AdapterPortalEngine implements PortalEngine {
       IngatlanItem item = effectiveNormalizer.normalize(raw, descriptor, safeCriteria, now);
       if (item == null) {
         rejected++;
-        LOGGER.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
+        log.debug("[{}] Elutasított nyers hirdetés: {}", descriptor.name(), raw.url());
       } else if (PortalSupport.markProcessedListing(
           processedUrls, processedNativeIds, item.getUrl(), raw.nativeId())) {
         normalizedItems.add(item);
@@ -112,7 +112,7 @@ public class AdapterPortalEngine implements PortalEngine {
         duplicates++;
       }
     }
-    LOGGER.info(
+    log.info(
         "[{}] Adattisztítás: {} nyers -> {} érvényes (elutasítva: {}, duplikált URL: {})",
         descriptor.name(),
         result.listings().size(),
@@ -181,10 +181,6 @@ public class AdapterPortalEngine implements PortalEngine {
       );
     }
     return PortalScrapeResult.empty(descriptor.id(), descriptor.name(), defaultSearchUrl, elapsed);
-  }
-
-  public PortalAdapter getAdapter() {
-    return adapter;
   }
 
   public RawListingNormalizer getNormalizer() {

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.CorsFilter;
@@ -23,8 +24,10 @@ import org.springframework.web.filter.CorsFilter;
 import ingatlanok.common.JsonSupport;
 import ingatlanok.config.RequestLoggingFilter;
 import ingatlanok.config.SecurityHeadersFilter;
+import ingatlanok.model.PropertyType;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.SearchPreset;
+import ingatlanok.presentation.IngatlanComHtmlImportRequestDto;
 
 @SpringBootTest
 @DisplayName("RestApiControllerValidationTest - Külső API határ runtime validációs negatív tesztek (#403)")
@@ -297,5 +300,107 @@ class RestApiControllerValidationTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.message").value("Hiányzó 'id' vagy 'url' paraméter!"));
+  }
+
+  @Test
+  @DisplayName("GET /api/properties/* történeti és megfigyelési végpontok - hiányzó, üres és >1000 kulcs")
+  void testPropertyLookupEndpointsValidation() throws Exception {
+    String oversized = "x".repeat(1001);
+    for (String suffix : List.of("price-history", "status-log", "observations")) {
+      String queryPath = "/api/properties/" + suffix;
+      expectBadRequest(get(queryPath), queryPath, "Hiányzó 'id' vagy 'url' paraméter!");
+      expectBadRequest(
+          get(queryPath).param("id", "   "), queryPath, "Hiányzó 'id' vagy 'url' paraméter!");
+      expectBadRequest(
+          get(queryPath).param("url", "   "), queryPath, "Hiányzó 'id' vagy 'url' paraméter!");
+      expectBadRequest(
+          get(queryPath).param("id", oversized),
+          queryPath,
+          "A megadott azonosító vagy URL túl hosszú!");
+      expectBadRequest(
+          get(queryPath).param("url", oversized),
+          queryPath,
+          "A megadott azonosító vagy URL túl hosszú!");
+
+      String blankPath = "/api/properties/   /" + suffix;
+      expectBadRequest(get(blankPath), "/api/properties/%20%20%20/" + suffix, "Hiányzó 'id' vagy 'url' paraméter!");
+      String oversizedPath = "/api/properties/" + oversized + "/" + suffix;
+      expectBadRequest(
+          get(oversizedPath), oversizedPath, "A megadott azonosító vagy URL túl hosszú!");
+    }
+  }
+
+  @Test
+  @DisplayName("GET /api/properties/discounted, POST /items/viewed, /history/clear és /import-html")
+  void testRemainingEndpointValidationBoundaries() throws Exception {
+    String oversizedCity = "C".repeat(201);
+    String oversizedUrl = "https://dh.hu/" + "a".repeat(987);
+    String oversizedImportUrl = "https://ingatlan.com/" + "u".repeat(1980);
+
+    expectBadRequest(
+        get("/api/properties/discounted").param("city", oversizedCity),
+        "/api/properties/discounted",
+        "A település neve túl hosszú");
+
+    mockMvc
+        .perform(post("/api/items/viewed").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.marked").value(false));
+
+    expectBadRequest(
+        post("/api/items/viewed")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(JsonSupport.mapper().writeValueAsString(new MarkViewedRequest(oversizedUrl))),
+        "/api/items/viewed",
+        "Az URL túl hosszú!");
+
+    expectBadRequest(
+        post("/api/history/clear")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(JsonSupport.mapper().writeValueAsString(new ClearHistoryRequest(oversizedCity))),
+        "/api/history/clear",
+        "A település neve túl hosszú");
+    expectBadRequest(
+        post("/api/history/clear").param("city", oversizedCity),
+        "/api/history/clear",
+        "A település neve túl hosszú");
+
+    expectBadRequest(
+        post("/api/portals/ingatlancom/import-html").contentType(MediaType.APPLICATION_JSON),
+        "/api/portals/ingatlancom/import-html",
+        "Érvénytelen kéréstörzs (hibás JSON formátum)");
+    expectBadRequest(
+        post("/api/portals/ingatlancom/import-html")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new IngatlanComHtmlImportRequestDto(
+                            "<html></html>", null, oversizedCity, PropertyType.HAZ))),
+        "/api/portals/ingatlancom/import-html",
+        "A település neve túl hosszú");
+    expectBadRequest(
+        post("/api/portals/ingatlancom/import-html")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new IngatlanComHtmlImportRequestDto(
+                            "<html></html>", oversizedImportUrl, "Debrecen", PropertyType.HAZ))),
+        "/api/portals/ingatlancom/import-html",
+        "A forrás URL túl hosszú");
+  }
+
+  private void expectBadRequest(
+      MockHttpServletRequestBuilder request, String expectedPath, String expectedMessage)
+      throws Exception {
+    mockMvc
+        .perform(request)
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.error").value("Bad Request"))
+        .andExpect(jsonPath("$.message").value(expectedMessage))
+        .andExpect(jsonPath("$.path").value(expectedPath));
   }
 }

@@ -49,8 +49,7 @@ import ingatlanok.portal.ingatlancom.IngatlanComUrlBuilder;
 import ingatlanok.portal.jofogas.JofogasHtmlStrategy;
 import ingatlanok.portal.jofogas.JofogasRawParser;
 import ingatlanok.portal.jofogas.JofogasUrlBuilder;
-import ingatlanok.portal.koltozzbe.KoltozzbeHtmlStrategy;
-import ingatlanok.portal.koltozzbe.KoltozzbeJsonLdStrategy;
+import ingatlanok.portal.koltozzbe.KoltozzbeExtractionStrategy;
 import ingatlanok.portal.koltozzbe.KoltozzbeRawParser;
 import ingatlanok.portal.koltozzbe.KoltozzbeUrlBuilder;
 import ingatlanok.testsupport.TestFixtures;
@@ -348,17 +347,11 @@ class ScraperResilienceAndRetryIntegrationTest {
     assertEquals(PortalScrapeStatus.FAILED, jfResult.status(),
         "Jófogásnak letöltési hiba esetén FAILED státuszt kell adnia");
 
-    KoltozzbeHtmlStrategy kbHtmlStrategy = new KoltozzbeHtmlStrategy(
-        new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), url -> null);
-    RawExtractionResult kbHtmlResult = kbHtmlStrategy.extract(criteria);
-    assertEquals(PortalScrapeStatus.FAILED, kbHtmlResult.status(),
-        "Költözzbe HTML-nek letöltési hiba esetén FAILED státuszt kell adnia");
-
-    KoltozzbeJsonLdStrategy kbJsonStrategy = new KoltozzbeJsonLdStrategy(
-        new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), url -> null);
-    RawExtractionResult kbJsonResult = kbJsonStrategy.extract(criteria);
-    assertEquals(PortalScrapeStatus.FAILED, kbJsonResult.status(),
-        "Költözzbe JSON-LD-nek letöltési hiba esetén FAILED státuszt kell adnia");
+    KoltozzbeExtractionStrategy kbStrategy = new KoltozzbeExtractionStrategy(
+        new KoltozzbeUrlBuilder(), new KoltozzbeRawParser(), url -> null, 2);
+    RawExtractionResult kbResult = kbStrategy.extract(criteria);
+    assertEquals(PortalScrapeStatus.FAILED, kbResult.status(),
+        "Költözzbe stratégiának letöltési hiba esetén FAILED státuszt kell adnia");
 
     IngatlanBazarApiStrategy ibStrategy = new IngatlanBazarApiStrategy(
         new IngatlanBazarQueryBuilder(), new IngatlanBazarRawParser(), url -> null);

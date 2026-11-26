@@ -347,23 +347,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/open-urls": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** URL-ek megnyitása és megtekintettként megjelölése */
-        post: operations["openUrls"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/items/viewed": {
         parameters: {
             query?: never;
@@ -536,11 +519,6 @@ export interface components {
             path: string;
         };
         ErrorResponse: components["schemas"]["ApiErrorResponse"];
-        OpenUrlsResponse: {
-            success: boolean;
-            count: number;
-        };
-        OpenUrlsResponseDto: components["schemas"]["OpenUrlsResponse"];
         MarkViewedResponse: {
             success: boolean;
             marked: boolean;
@@ -748,8 +726,6 @@ export interface components {
             minRooms?: number;
             /** @default [] */
             portals: string[];
-            /** @default false */
-            autoOpenBrowser: boolean;
             /** @default false */
             excludeViewed: boolean;
             /** @default false */
@@ -1617,30 +1593,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardResponseDto"];
-                };
-            };
-        };
-    };
-    openUrls: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": string[];
-            };
-        };
-        responses: {
-            /** @description Sikeres megnyitás és státusz frissítés eredménye */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OpenUrlsResponse"];
                 };
             };
         };

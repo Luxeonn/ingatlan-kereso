@@ -27,7 +27,7 @@ interface PropertyCardProps {
   onRestore?: (item: IngatlanItem) => void
   onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
   onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
-  viewMode?: 'grid' | 'list'
+  viewMode?: 'grid' | 'list' | 'table'
 }
 
 function getCardBorderClass(
@@ -84,8 +84,8 @@ const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
     <h3
       onClick={onOpen}
       className={cn(
-        'cursor-pointer text-sm font-bold text-[var(--text-primary)] line-clamp-2 hover:text-blue-400 transition-colors',
-        isNew && !viewed ? 'pulse-title text-emerald-300' : '',
+        'cursor-pointer text-sm font-bold text-[var(--text-primary)] line-clamp-2 hover:text-blue-600 transition-colors',
+        isNew && !viewed ? 'pulse-title text-emerald-700' : '',
       )}
       title={title}
     >
@@ -93,7 +93,7 @@ const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
     </h3>
 
     <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
-      <MapPin className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+      <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
       <span className="font-semibold text-[var(--text-primary)]">{city}</span>
       {location && location !== city && (
         <span className="truncate">({location})</span>
@@ -217,6 +217,47 @@ function useCardSelection(url: string | undefined) {
   return { isSelected, toggleFromEvent }
 }
 
+interface CardDetailsOverlayProps {
+  isOpen: boolean
+  isListMode: boolean
+  item: IngatlanItem
+  onClose: () => void
+  onMarkViewed: (url: string) => void
+  onSplitSource?: (sourceUrl: string, clusterUrls: string[]) => Promise<boolean | void> | void
+  onUndoOverride?: (overrideId: number) => Promise<boolean | void> | void
+}
+
+const CardDetailsOverlay: FC<CardDetailsOverlayProps> = ({
+  isOpen,
+  isListMode,
+  item,
+  onClose,
+  onMarkViewed,
+  onSplitSource,
+  onUndoOverride,
+}) => {
+  if (!isOpen) return null
+  if (isListMode) {
+    return (
+      <PropertyDetailsDrawer
+        item={item}
+        onMarkViewed={onMarkViewed}
+        onSplitSource={onSplitSource}
+        onUndoOverride={onUndoOverride}
+      />
+    )
+  }
+  return (
+    <PropertyDetailsModal
+      item={item}
+      onClose={onClose}
+      onMarkViewed={onMarkViewed}
+      onSplitSource={onSplitSource}
+      onUndoOverride={onUndoOverride}
+    />
+  )
+}
+
 export const PropertyCard: FC<PropertyCardProps> = ({
   item,
   onMarkViewed,
@@ -237,10 +278,10 @@ export const PropertyCard: FC<PropertyCardProps> = ({
   const portalStyle = getPortalStyle(getPortalIdentifier(item))
   const { priceMillion } = getEffectivePrice(item)
   const sqmPrice = getEffectiveSqmPrice(item) ?? undefined
-  const floorArea = item.detailsInfo?.areaSquareMeters
-  const rooms = item.detailsInfo?.roomCount
   const effectiveImageUrl = getEffectiveImageUrl(item)
   const hasValidImage = Boolean(effectiveImageUrl) && !imageError
+  const isListMode = viewMode === 'list'
+  const cardViewMode: 'grid' | 'list' = isListMode ? 'list' : 'grid'
 
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev)
 
@@ -258,16 +299,12 @@ export const PropertyCard: FC<PropertyCardProps> = ({
       toggleFromEvent(e)
       return
     }
-    if (viewMode === 'list') {
+    if (isListMode) {
       e.stopPropagation()
       toggleDrawer()
       return
     }
     handleOpen(e)
-  }
-
-  const handleCardClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (isSelectionModifier(e)) toggleFromEvent(e)
   }
 
   const handleHide = onHide
@@ -277,8 +314,6 @@ export const PropertyCard: FC<PropertyCardProps> = ({
       }
     : undefined
 
-  const handleRestore = onRestore ? () => onRestore(item) : undefined
-
   return (
     <div
       data-testid="property-card"
@@ -286,9 +321,11 @@ export const PropertyCard: FC<PropertyCardProps> = ({
       data-multisource={sourcesCount > 1 ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
       aria-pressed={isSelected}
-      onClick={handleCardClick}
+      onClick={(e) => {
+        if (isSelectionModifier(e)) toggleFromEvent(e)
+      }}
       className={cn(
-        'group relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
+        'group relative flex flex-col justify-between overflow-visible hover:z-30 focus-within:z-30 rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
         getCardBorderClass(isSelected, isStarred, item.viewed, sourcesCount > 1),
         isHiding ? 'opacity-0 scale-95 transition-all duration-150 pointer-events-none' : '',
       )}
@@ -308,28 +345,31 @@ export const PropertyCard: FC<PropertyCardProps> = ({
         portalStyle={portalStyle}
         priceMillion={priceMillion}
         sqmPrice={sqmPrice}
-        floorArea={floorArea}
-        rooms={rooms}
+        floorArea={item.detailsInfo?.areaSquareMeters}
+        rooms={item.detailsInfo?.roomCount}
         imageUrl={effectiveImageUrl}
         hasValidImage={hasValidImage}
         isDrawerOpen={isDrawerOpen}
         isStarred={isStarred}
-        viewMode={viewMode}
+        viewMode={cardViewMode}
         onOpen={handleOpen}
         onThumbnailClick={handleThumbnailClick}
         onImageError={() => setImageError(true)}
         onToggleDrawer={toggleDrawer}
         onToggleStarred={() => toggleStarred(item)}
         onHide={handleHide}
-        onRestore={handleRestore}
+        onRestore={onRestore ? () => onRestore(item) : undefined}
       />
 
-      {isDrawerOpen &&
-        (viewMode === 'list' ? (
-          <PropertyDetailsDrawer item={item} onMarkViewed={onMarkViewed} onSplitSource={onSplitSource} onUndoOverride={onUndoOverride} />
-        ) : (
-          <PropertyDetailsModal item={item} onClose={() => setIsDrawerOpen(false)} onMarkViewed={onMarkViewed} onSplitSource={onSplitSource} onUndoOverride={onUndoOverride} />
-        ))}
+      <CardDetailsOverlay
+        isOpen={isDrawerOpen}
+        isListMode={isListMode}
+        item={item}
+        onClose={() => setIsDrawerOpen(false)}
+        onMarkViewed={onMarkViewed}
+        onSplitSource={onSplitSource}
+        onUndoOverride={onUndoOverride}
+      />
     </div>
   )
 }

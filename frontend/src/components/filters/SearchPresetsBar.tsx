@@ -181,97 +181,105 @@ export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
   return (
     <div
       data-testid="search-presets-bar"
-      className="mb-3 flex flex-wrap items-center gap-2 border-b border-[var(--border-color)] pb-3 text-xs"
+      className="mt-4 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 sm:p-4"
     >
-      <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-        <Bookmark className="h-3.5 w-3.5 text-blue-400" />
-        <span>Keresési sablonok:</span>
-      </div>
-
-      {isLoading && (
-        <div className="flex items-center gap-1 text-[var(--text-secondary)]">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span>Betöltés...</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-hairline)] pb-2.5">
+        <div className="flex items-center gap-2">
+          <Bookmark className="h-4 w-4 text-blue-600" />
+          <span className="text-sm font-bold text-[var(--text-primary)]">Keresési sablonok</span>
+          {presets.length > 0 && (
+            <span className="rounded-full bg-[var(--bg-card)] border border-[var(--border-hairline)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-secondary)] tabular-nums">
+              {presets.length}
+            </span>
+          )}
         </div>
-      )}
 
-      {isError && (
-        <span role="alert" className="text-rose-400 italic">
-          Nem sikerült betölteni a keresési sablonokat.
-        </span>
-      )}
+        <div className="flex flex-wrap items-center gap-2">
+          <PresetFeedbackBanners
+            successMessage={successMessage}
+            errorMessage={errorMessage}
+            onClearSuccess={() => setSuccessMessage(null)}
+            onClearError={() => setErrorMessage(null)}
+          />
 
-      {!isLoading && !isError && presets.length === 0 && !isCreating && (
-        <span className="text-[var(--text-secondary)] italic">
-          Nincsenek mentett sablonok.
-        </span>
-      )}
-
-      {/* Preset Chips */}
-      {presets.map((preset) => {
-        const isActive = activePresetId === preset.id
-        const isEditing = editingPresetId === preset.id
-
-        if (isEditing) {
-          return (
-            <PresetEditForm
-              key={preset.id}
-              presetId={preset.id}
-              editingName={editingName}
-              isPending={updateMutation.isPending}
+          {isCreating ? (
+            <PresetCreateForm
+              name={newPresetName}
+              isPending={createMutation.isPending}
               onNameChange={(val) => {
-                setEditingName(val)
+                setNewPresetName(val)
                 if (errorMessage) setErrorMessage(null)
               }}
-              onSave={handleSaveEdit}
-              onCancel={handleCancelEdit}
+              onSave={handleSaveNew}
+              onCancel={handleCancelCreate}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={handleStartCreate}
+              data-testid="save-preset-button"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-600 hover:text-white cursor-pointer"
+            >
+              <BookmarkPlus className="h-3.5 w-3.5" />
+              <span>Mentés sablonként</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-3 text-xs">
+        {isLoading && (
+          <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+            <span>Betöltés...</span>
+          </div>
+        )}
+
+        {isError && (
+          <span role="alert" className="font-medium text-rose-700">
+            Nem sikerült betölteni a keresési sablonokat.
+          </span>
+        )}
+
+        {!isLoading && !isError && presets.length === 0 && !isCreating && (
+          <span className="text-[var(--text-secondary)] italic">
+            Nincsenek mentett sablonok.
+          </span>
+        )}
+
+        {presets.map((preset) => {
+          const isActive = activePresetId === preset.id
+          const isEditing = editingPresetId === preset.id
+
+          if (isEditing) {
+            return (
+              <PresetEditForm
+                key={preset.id}
+                presetId={preset.id}
+                editingName={editingName}
+                isPending={updateMutation.isPending}
+                onNameChange={(val) => {
+                  setEditingName(val)
+                  if (errorMessage) setErrorMessage(null)
+                }}
+                onSave={handleSaveEdit}
+                onCancel={handleCancelEdit}
+              />
+            )
+          }
+
+          return (
+            <PresetChip
+              key={preset.id}
+              preset={preset}
+              isActive={isActive}
+              onSelect={handleSelectPreset}
+              onStartEdit={handleStartEdit}
+              onDelete={handleDelete}
             />
           )
-        }
-
-        return (
-          <PresetChip
-            key={preset.id}
-            preset={preset}
-            isActive={isActive}
-            onSelect={handleSelectPreset}
-            onStartEdit={handleStartEdit}
-            onDelete={handleDelete}
-          />
-        )
-      })}
-
-      {/* Inline Create Form */}
-      {isCreating ? (
-        <PresetCreateForm
-          name={newPresetName}
-          isPending={createMutation.isPending}
-          onNameChange={(val) => {
-            setNewPresetName(val)
-            if (errorMessage) setErrorMessage(null)
-          }}
-          onSave={handleSaveNew}
-          onCancel={handleCancelCreate}
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={handleStartCreate}
-          data-testid="save-preset-button"
-          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-[var(--border-color)] bg-transparent px-2.5 py-1 font-semibold text-blue-400 transition-colors hover:border-blue-400 hover:bg-blue-500/10 cursor-pointer"
-        >
-          <BookmarkPlus className="h-3.5 w-3.5" />
-          <span>Mentés sablonként</span>
-        </button>
-      )}
-
-      {/* Inline Status and Error Feedback Banners */}
-      <PresetFeedbackBanners
-        successMessage={successMessage}
-        errorMessage={errorMessage}
-        onClearSuccess={() => setSuccessMessage(null)}
-        onClearError={() => setErrorMessage(null)}
-      />
+        })}
+      </div>
     </div>
   )
 }

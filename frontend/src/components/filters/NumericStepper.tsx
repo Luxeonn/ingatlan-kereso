@@ -57,8 +57,8 @@ export const NumericStepper: FC<NumericStepperProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-[var(--text-secondary)]">
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-bold text-[var(--text-primary)]">
         {label}
       </label>
       <div className="flex h-10 items-center overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] shadow-inner transition-colors focus-within:border-blue-500">

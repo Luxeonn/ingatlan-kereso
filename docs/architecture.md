@@ -40,7 +40,7 @@ flowchart TD
     end
 
     subgraph Core ["Core Business Logic & Orchestration"]
-        Orchestrator["SearchExecutionEngine / IngatlanSearchService"]
+        Orchestrator["SearchExecutionEngine"]
         Normalizer["ListingNormalizer (Canonical PropertyType)"]
         Filter["PropertyFilterEngine"]
         Dedup["DeduplicationEngine\n(URL Dedup, Multi-Signal Clustering & DedupOverrides)"]
@@ -67,7 +67,7 @@ flowchart TD
         P3["JofogasPortalEngine (jofogas.hu)"]
         P4["KoltozzbePortalEngine (koltozzbe.hu)"]
         P5["IngatlanBazarPortalEngine (ingatlanbazar.hu)"]
-        P6["IngatlanComPortalEngine\n(IngatlanComSidecarStrategy -> tools/sidecar.py / sidecar-playwright.mjs + WAF Fallback)"]
+        P6["IngatlanComPortalEngine\n(IngatlanComSidecarStrategy -> tools/sidecar-playwright.mjs + WAF Fallback)"]
 
         Registry --> P1 & P2 & P3 & P4 & P5 & P6
     end
@@ -110,7 +110,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │                  IngatlanComHtmlImportRequestDto, IngatlanComHtmlImportResponseDto
     │  - web: RestApiController, DedupController, GlobalExceptionHandler, HistoryQueryDto,
     │         StatusResponseDto, CitiesResponseDto, ApiErrorResponse, PropertyHideResponseDto,
-    │         MarkViewedResponseDto, OpenUrlsResponseDto, ClearHistoryResponseDto, ActionSuccessResponseDto,
+    │         MarkViewedResponseDto, ClearHistoryResponseDto, ActionSuccessResponseDto,
     │         ClearHistoryRequest, MarkViewedRequest, PropertyBatchActionRequest
     │  - config: WebCorsConfig, SecurityHeadersFilter, RequestLoggingFilter
     ▼
@@ -124,13 +124,12 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │  - core.normalization: ListingNormalizer, ListingValidator
     │  - model: IngatlanItem, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult,
     │           PropertyType, ListingStatus, PortalId, PortalScrapeStatus, SearchExecutionStatus,
-    │           ListingSortOption, CurrencyCode, Property, SourceListing, ListingObservation,
+    │           ListingSortOption, SourceListing, ListingObservation,
     │           PriceHistoryEntry, StatusLogEntry, SearchPreset, DedupOverride, DedupOverrideType,
     │           MarketStats, MarketSegmentStats, PriceDropItem, MarketSegmentKey,
-    │           QualityScore, QualityDeduction, QualityDeductionRule, Money, Area, RoomCount,
-    │           CanonicalId, PropertyId, TrackedCityInfo, PredefinedCity, ValidationGroups,
+    │           QualityScore, QualityDeduction, QualityDeductionRule,
+    │           TrackedCityInfo, PredefinedCity, ValidationGroups,
     │           PortalScrapeResult, model.raw.{ExtractionMethod, RawExtractionResult, RawPropertyListing}
-    │  - service: IngatlanSearchService
     ▼
 [Layer 3: Pluggable Portal Engines (Open/Closed Principle)]
     │  - portal: PortalEngine, AdapterPortalEngine, AbstractAdapterPortalEngine, PortalAdapter,
@@ -139,11 +138,11 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
     │            PortalUrlBuilder, HtmlListingParser, RawListingNormalizer,
     │            PageStepOutcome, PaginationState, PaginationStopReason
     │  - portal.{dh, oc, jofogas, koltozzbe, ingatlanbazar, ingatlancom}
-    │  - portal.sidecar: SidecarCliExecutor, SidecarResponse, SidecarStatus (tools/sidecar.py, tools/sidecar-playwright.mjs)
+    │  - portal.sidecar: SidecarCliExecutor, SidecarResponse, SidecarStatus (tools/sidecar-playwright.mjs)
     ▼
 [Layer 4: Decoupled Persistence & 3-Tier Storage]
        - persistence: ListingStorage, ConfigStorage, DedupOverrideStorage, JpaIngatlanStorage,
-                      JpaDedupOverrideStorage, InMemoryListingStorage, OffsetPageRequest, PropertySearchCriteria
+                      JpaDedupOverrideStorage, OffsetPageRequest, PropertySearchCriteria
        - persistence.entity: PropertyEntity, PropertyEntityFields, ListingObservationEntity, PriceHistoryEntity,
                              StatusLogEntity, ConfigEntity, SearchPresetEntity, DedupOverrideEntity
        - persistence.repository: PropertyRepository, ListingObservationRepository, PriceHistoryRepository,
@@ -159,7 +158,7 @@ The codebase strictly enforces unidirectional dependencies across four decoupled
 1. **Layer 1 never enters Layer 2, 3, or 4 (Zero-Exception ArchUnit)**: Neither `core`, `portal`, nor `persistence` may import `@RestController`, `HttpServletRequest`, presentation DTOs (`ingatlanok.presentation.*`), or web-specific types (`ArchitectureRulesTest` enforces `CORE_DOES_NOT_DEPEND_ON_PRESENTATION` with zero exceptions).
 2. **Core delegates to Storage Interfaces**: Layer 2 interacts with persistence exclusively through `ListingStorage`, `ConfigStorage`, and `DedupOverrideStorage` interfaces, never raw SQL, Hibernate sessions, or Spring Data repositories directly.
 3. **Open/Closed Portal Engines**: New property portals extend `AbstractAdapterPortalEngine` (`PortalEngine`) as Spring `@Component` beans and register automatically in `PortalEngineRegistry` without modifying `SearchExecutionEngine`.
-4. **Leaf Utilities (`common`)**: Pure helpers (`HttpFetcher`, `PropertyParser`, `SlugUtils`, `CityUtils`, `BrowserUtils`, `AppLogger`, `JsonSupport`, `common.city.*`, `common.resilience.*`) have zero dependencies on business logic or storage.
+4. **Leaf Utilities (`common`)**: Pure helpers (`HttpFetcher`, `PropertyParser`, `SlugUtils`, `CityUtils`, `JsonSupport`, `common.city.*`, `common.resilience.*`) have zero dependencies on business logic or storage.
 5. **Code Generation & Compile-Time Mapping (Lombok & MapStruct)**: Models, presentation DTOs, and JPA entities use Lombok `@Getter`/`@Builder`/`@NoArgsConstructor` (omitting `@Setter` on read-only DTOs and value objects, preferring Java `record` types for immutable DTOs/value carriers, and forbidding `@Data`, `@EqualsAndHashCode`, `@ToString`, and `@SneakyThrows` via Checkstyle). Cross-layer object conversions (`JpaEntityMapper`, `PresentationMapper`, `SearchPresetMapper`) use MapStruct with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.ERROR`.
 6. **File-Length Modularity & AI Token-Efficiency Tooling**: Production Java files are capped at `FileLength <= 450` lines (2-space indentation, strict whitespace tokens) and frontend TypeScript/React files at `max-lines <= 350` lines (excluding blanks/comments). Each backend package documents its entry points in `package-info.java`, shared Object Mother builders (`TestFixtures.java` and `testFixtures.ts`) eliminate test setup boilerplate, `logback-test.xml` suppresses `INFO` noise during test runs, and `scripts/ai-verify.sh` provides compact verification summaries.
 
@@ -179,7 +178,7 @@ The backend exclusively processes and emits JSON. The browser client is served i
 
 ### 3.2 REST API Endpoint Catalog
 
-All 27 paths (30 HTTP operations) defined in `openapi/api-spec.yaml` and served by `RestApiController` and `DedupController`:
+All 26 paths (29 HTTP operations) defined in `openapi/api-spec.yaml` and served by `RestApiController` and `DedupController`:
 
 | Endpoint | HTTP Method | Request Body / Query Params | Response Type | Description |
 | :--- | :---: | :--- | :--- | :--- |
@@ -206,7 +205,6 @@ All 27 paths (30 HTTP operations) defined in `openapi/api-spec.yaml` and served 
 | `/api/properties/discounted` | `GET` | `city` (optional) | `List<IngatlanItem>` | All properties with recorded negative price deltas. |
 | `/api/portals/ingatlancom/import-html` | `POST` | `IngatlanComHtmlImportRequestDto` | `IngatlanComHtmlImportResponseDto` | Parses and imports user-supplied Ingatlan.com search result HTML. |
 | `/api/search` | `POST` | `SearchCriteria` (optional) | `DashboardResponseDto` | Executes parallel scraping, normalization, deduplication, quality scoring, analytics, and returns aggregated results. |
-| `/api/open-urls` | `POST` | `List<String>` (URLs) | `OpenUrlsResponseDto` | Marks listings as viewed and returns processed count. |
 | `/api/items/viewed` | `POST` | `MarkViewedRequest` | `MarkViewedResponseDto` | Marks a single listing as viewed. |
 | `/api/history/clear` | `POST` | `ClearHistoryRequest` / `city` param (optional) | `ClearHistoryResponseDto` | Clears history for a specific city or entire database. |
 | `/api/dedup/split` | `POST` | `DedupSplitRequestDto` | `DedupActionResponseDto` | Persists `FORCE_SPLIT` override(s) to split a deduplicated cluster. |

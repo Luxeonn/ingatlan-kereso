@@ -10,8 +10,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -40,6 +38,7 @@ import ingatlanok.persistence.ConfigStorage;
 import ingatlanok.persistence.ListingStorage;
 import ingatlanok.portal.PortalDescriptor;
 import ingatlanok.portal.PortalEngineRegistry;
+import ingatlanok.presentation.ArchivePresentationService;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DashboardResponseDto;
 import ingatlanok.presentation.IngatlanComHtmlImportRequestDto;
@@ -49,11 +48,10 @@ import ingatlanok.presentation.IngatlanComHtmlImportResponseDto;
 @RequestMapping("/api")
 public class RestApiController {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RestApiController.class);
-
   private final ListingStorage listingStorage;
   private final ConfigStorage configStorage;
   private final DashboardPresentationService dashboardPresentationService;
+  private final ArchivePresentationService archivePresentationService;
   private final PortalEngineRegistry portalEngineRegistry;
 
   @Value("${server.port:8080}")
@@ -64,10 +62,12 @@ public class RestApiController {
       ListingStorage listingStorage,
       @Autowired(required = false) ConfigStorage configStorage,
       DashboardPresentationService dashboardPresentationService,
+      ArchivePresentationService archivePresentationService,
       PortalEngineRegistry portalEngineRegistry) {
     this.listingStorage = listingStorage;
     this.configStorage = configStorage;
     this.dashboardPresentationService = dashboardPresentationService;
+    this.archivePresentationService = archivePresentationService;
     this.portalEngineRegistry = portalEngineRegistry;
   }
 
@@ -201,57 +201,65 @@ public class RestApiController {
             ? query
             : new HistoryQueryDto(
                 null, false, null, null, null, null, null, null, null, false, false, "DISCOVERED_DESC", 50, 0);
-    List<IngatlanItem> dtoList = listingStorage.findByCriteria(effectiveQuery.toCriteria());
+    List<IngatlanItem> dtoList = archivePresentationService.getHistory(effectiveQuery.toCriteria());
     return ResponseEntity.ok(dtoList);
   }
 
-  @GetMapping({"/properties/price-history", "/properties/{id}/price-history"})
-  public ResponseEntity<List<PriceHistoryEntry>> getPriceHistory(
-      @PathVariable(value = "id", required = false) String pathId,
-      @RequestParam(value = "id", required = false) String paramId,
-      @RequestParam(value = "url", required = false) String paramUrl) {
-    String key = resolveListingKey(pathId, paramId, paramUrl);
-    List<PriceHistoryEntry> history = listingStorage.getPriceHistory(key);
+  @GetMapping("/properties/price-history")
+  public ResponseEntity<List<PriceHistoryEntry>> getPriceHistoryByParam(
+      @Valid @ModelAttribute PropertyLookupQueryDto query) {
+    List<PriceHistoryEntry> history = listingStorage.getPriceHistory(query.resolveKey());
     return ResponseEntity.ok(history);
   }
 
-  @GetMapping({"/properties/status-log", "/properties/{id}/status-log"})
-  public ResponseEntity<List<StatusLogEntry>> getStatusLog(
-      @PathVariable(value = "id", required = false) String pathId,
-      @RequestParam(value = "id", required = false) String paramId,
-      @RequestParam(value = "url", required = false) String paramUrl) {
-    String key = resolveListingKey(pathId, paramId, paramUrl);
-    List<StatusLogEntry> log = listingStorage.getStatusLog(key);
+  @GetMapping("/properties/{id}/price-history")
+  public ResponseEntity<List<PriceHistoryEntry>> getPriceHistoryById(
+      @PathVariable("id")
+          @NotBlank(message = "Hiányzó 'id' vagy 'url' paraméter!")
+          @Size(max = 1000, message = "A megadott azonosító vagy URL túl hosszú!")
+          String id) {
+    List<PriceHistoryEntry> history = listingStorage.getPriceHistory(id);
+    return ResponseEntity.ok(history);
+  }
+
+  @GetMapping("/properties/status-log")
+  public ResponseEntity<List<StatusLogEntry>> getStatusLogByParam(
+      @Valid @ModelAttribute PropertyLookupQueryDto query) {
+    List<StatusLogEntry> log = listingStorage.getStatusLog(query.resolveKey());
     return ResponseEntity.ok(log);
   }
 
-  @GetMapping({"/properties/observations", "/properties/{id}/observations"})
-  public ResponseEntity<List<ListingObservation>> getListingObservations(
-      @PathVariable(value = "id", required = false) String pathId,
-      @RequestParam(value = "id", required = false) String paramId,
-      @RequestParam(value = "url", required = false) String paramUrl) {
-    String key = resolveListingKey(pathId, paramId, paramUrl);
-    List<ListingObservation> observations = listingStorage.getListingObservations(key);
+  @GetMapping("/properties/{id}/status-log")
+  public ResponseEntity<List<StatusLogEntry>> getStatusLogById(
+      @PathVariable("id")
+          @NotBlank(message = "Hiányzó 'id' vagy 'url' paraméter!")
+          @Size(max = 1000, message = "A megadott azonosító vagy URL túl hosszú!")
+          String id) {
+    List<StatusLogEntry> log = listingStorage.getStatusLog(id);
+    return ResponseEntity.ok(log);
+  }
+
+  @GetMapping("/properties/observations")
+  public ResponseEntity<List<ListingObservation>> getListingObservationsByParam(
+      @Valid @ModelAttribute PropertyLookupQueryDto query) {
+    List<ListingObservation> observations =
+        listingStorage.getListingObservations(query.resolveKey());
     return ResponseEntity.ok(observations);
   }
 
-  private String resolveListingKey(String pathId, String paramId, String paramUrl) {
-    String key =
-        pathId != null && !pathId.isBlank()
-            ? pathId
-            : (paramId != null && !paramId.isBlank() ? paramId : paramUrl);
-    if (key == null || key.isBlank()) {
-      throw new IllegalArgumentException("Hiányzó 'id' vagy 'url' paraméter!");
-    }
-    if (key.length() > 1000) {
-      throw new IllegalArgumentException("A megadott azonosító vagy URL túl hosszú!");
-    }
-    return key;
+  @GetMapping("/properties/{id}/observations")
+  public ResponseEntity<List<ListingObservation>> getListingObservationsById(
+      @PathVariable("id")
+          @NotBlank(message = "Hiányzó 'id' vagy 'url' paraméter!")
+          @Size(max = 1000, message = "A megadott azonosító vagy URL túl hosszú!")
+          String id) {
+    List<ListingObservation> observations = listingStorage.getListingObservations(id);
+    return ResponseEntity.ok(observations);
   }
 
   @GetMapping("/properties/hidden")
   public ResponseEntity<List<IngatlanItem>> getHiddenProperties() {
-    List<IngatlanItem> hidden = listingStorage.getHiddenProperties();
+    List<IngatlanItem> hidden = archivePresentationService.getHiddenProperties();
     return ResponseEntity.ok(hidden);
   }
 
@@ -303,14 +311,16 @@ public class RestApiController {
 
   @GetMapping("/properties/discounted")
   public ResponseEntity<List<IngatlanItem>> getDiscountedProperties(
-      @RequestParam(value = "city", required = false) String city) {
-    List<IngatlanItem> discounted = listingStorage.getDiscountedProperties(city);
+      @RequestParam(value = "city", required = false)
+          @Size(max = 200, message = "A település neve túl hosszú")
+          String city) {
+    List<IngatlanItem> discounted = archivePresentationService.getDiscountedProperties(city);
     return ResponseEntity.ok(discounted);
   }
 
   @PostMapping("/portals/ingatlancom/import-html")
   public ResponseEntity<IngatlanComHtmlImportResponseDto> importIngatlanComHtml(
-      @Valid @RequestBody(required = false) IngatlanComHtmlImportRequestDto body) {
+      @Valid @RequestBody IngatlanComHtmlImportRequestDto body) {
     return ResponseEntity.ok(dashboardPresentationService.importIngatlanComHtml(body));
   }
 
@@ -322,20 +332,9 @@ public class RestApiController {
     return ResponseEntity.ok(result);
   }
 
-  @PostMapping("/open-urls")
-  public ResponseEntity<OpenUrlsResponseDto> openUrls(
-      @RequestBody(required = false) List<String> urls) {
-    if (urls != null && !urls.isEmpty()) {
-      for (String url : urls) {
-        listingStorage.markAsViewed(url);
-      }
-    }
-    return ResponseEntity.ok(OpenUrlsResponseDto.of(true, urls != null ? urls.size() : 0));
-  }
-
   @PostMapping("/items/viewed")
   public ResponseEntity<MarkViewedResponseDto> markViewed(
-      @RequestBody(required = false) MarkViewedRequest body) {
+      @Valid @RequestBody(required = false) MarkViewedRequest body) {
     String url = body != null ? body.url() : null;
     boolean marked = false;
     if (url != null && !url.isBlank()) {
@@ -346,8 +345,10 @@ public class RestApiController {
 
   @PostMapping("/history/clear")
   public ResponseEntity<ClearHistoryResponseDto> clearHistory(
-      @RequestBody(required = false) ClearHistoryRequest body,
-      @RequestParam(value = "city", required = false) String paramCity) {
+      @Valid @RequestBody(required = false) ClearHistoryRequest body,
+      @RequestParam(value = "city", required = false)
+          @Size(max = 200, message = "A település neve túl hosszú")
+          String paramCity) {
     String city = paramCity;
     if ((city == null || city.isBlank()) && body != null && body.city() != null) {
       city = body.city();

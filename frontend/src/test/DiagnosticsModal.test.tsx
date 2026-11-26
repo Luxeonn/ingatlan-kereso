@@ -83,6 +83,14 @@ describe('DiagnosticsModal (#360)', () => {
     fireEvent.click(icLinkBtn)
     expect(openExternalUrlSpy).toHaveBeenCalledWith('https://ingatlan.com/lista/elado+haz+debrecen')
 
+    const dhMessage = screen.getByTestId('portal-message-dh')
+    expect(dhMessage.className).toContain('--status-bargain-bg')
+    expect(dhMessage.className).not.toContain('--status-danger-bg')
+
+    const ocMessage = screen.getByTestId('portal-message-oc')
+    expect(ocMessage.className).toContain('bg-slate-100')
+    expect(ocMessage.className).not.toContain('--status-danger-bg')
+
     const exportBtn = screen.getByRole('button', { name: /Export/i })
     fireEvent.click(exportBtn)
     expect(writeTextMock).toHaveBeenCalledTimes(1)

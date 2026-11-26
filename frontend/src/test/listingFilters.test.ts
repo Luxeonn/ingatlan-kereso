@@ -130,15 +130,6 @@ describe('listingFilters utility', () => {
       expect(filtered[0]!.id).toBe('2')
     })
 
-    it('filters by minQualityScore', () => {
-      const highQuality = applyItemFilters(items, { minQualityScore: 80 })
-      expect(highQuality).toHaveLength(1)
-      expect(highQuality[0]!.id).toBe('1')
-
-      const all = applyItemFilters(items, { minQualityScore: 50 })
-      expect(all).toHaveLength(2)
-    })
-
     it('filters by selectedPortalFilter matching only the primary winning portal (#432)', () => {
       const dhItems = applyItemFilters(items, { selectedPortalFilter: 'dh' })
       expect(dhItems).toHaveLength(1)

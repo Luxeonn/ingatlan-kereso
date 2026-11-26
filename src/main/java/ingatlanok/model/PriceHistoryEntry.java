@@ -1,7 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 public record PriceHistoryEntry(
     int id,
     String propertyId,
@@ -12,5 +10,4 @@ public record PriceHistoryEntry(
     Long pricePerSqm,
     Long previousPriceAmount,
     Long priceDelta,
-    Double changePercent)
-    implements Serializable {}
+    Double changePercent) {}

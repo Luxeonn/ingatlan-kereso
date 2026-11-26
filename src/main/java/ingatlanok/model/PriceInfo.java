@@ -1,26 +1,29 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
-
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-public class PriceInfo implements Serializable {
+/**
+ * Immutable value object representing parsed listing price information.
+ */
+@Builder
+public record PriceInfo(
+    String rawText,
+    Long amountHuf,
+    Double amountMillion,
+    String currency) {
 
-  private String rawText;
-  private Long amountHuf;
-  private Double amountMillion;
-  private String currency = "HUF";
+  public PriceInfo {
+    if (currency == null || currency.isBlank()) {
+      currency = "HUF";
+    }
+  }
 
-  @Builder
+  public PriceInfo() {
+    this(null, null, null, "HUF");
+  }
+
   public PriceInfo(String rawText, Long amountHuf, Double amountMillion) {
-    this.rawText = rawText;
-    this.amountHuf = amountHuf;
-    this.amountMillion = amountMillion;
-    this.currency = "HUF";
+    this(rawText, amountHuf, amountMillion, "HUF");
   }
 
   @Override

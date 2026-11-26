@@ -29,7 +29,7 @@ class TestFixturesTest {
         TestFixtures.validResidentialItem("res-2", "Szeged", 60_000_000L, 80.0, 3.0);
     customRes.setPriceDelta(-3_000_000L);
     assertEquals(-3_000_000L, customRes.getPriceDelta());
-    assertEquals(750_000L, customRes.getDetailsInfo().getPricePerSquareMeter());
+    assertEquals(750_000L, customRes.getDetailsInfo().pricePerSquareMeter());
 
     IngatlanItem plot = TestFixtures.validPlotItem("plot-1", "Debrecen", 25_000_000L, 1000.0);
     QualityEvaluation plotEval = qualityEngine.evaluate(plot);

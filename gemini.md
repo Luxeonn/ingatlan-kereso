@@ -25,7 +25,7 @@ flowchart TD
     end
 
     subgraph Service ["Core & Scraper Layer"]
-        Orchestrator["IngatlanSearchService / SearchExecutionEngine"]
+        Orchestrator["SearchExecutionEngine"]
         Normalizer["ListingNormalizer (Canonical PropertyType)"]
         Portals["Portal Engines (AbstractAdapterPortalEngine): DH | OC | Jofogas | Koltozzbe | IngatlanBazar | IngatlanCom (+ Sidecar)"]
         Import["IngatlanComHtmlImportService & PersistedFallbackMerger"]
@@ -69,9 +69,9 @@ ingatlan-kereso/
 │   ├── verify-pr-compliance.{mjs,sh}            # PR template, issue link, and DTO/OpenAPI sync validator + test-verify-pr-compliance.mjs
 │   └── validate-skills.sh                       # Offline specialist-skill & architectural guardrail validator (7 checks: [1/7]–[7/7])
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 25, Spring Boot 4.1.2, -Werror, JaCoCo >=80%)
-├── Dockerfile & docker-compose.yml              # Multi-stage Temurin JRE 25 (+ Python/Playwright Chromium) & 3-tier stack
+├── Dockerfile & docker-compose.yml              # Multi-stage Temurin JRE 25 (+ Node.js/Playwright Chromium) & 3-tier stack
 ├── docs/architecture.md                         # Authoritative system architecture reference
-├── tools/                                       # sidecar.py, scrapers/ingatlancom.py, sidecar-playwright.mjs (Node/Python sidecars)
+├── tools/                                       # sidecar-playwright.mjs (Node.js Playwright Chromium sidecar)
 ├── frontend/                                    # Decoupled React 19 + TypeScript + Vite SPA (ESLint max-lines <= 350)
 │   ├── src/
 │   │   ├── api/                                 # client.ts (openapi-fetch), cityApi.ts, dedupApi.ts, portalApi.ts, presetApi.ts, propertyApi.ts, searchApi.ts
@@ -88,10 +88,10 @@ ingatlan-kereso/
 │   └── eslint.config.js & vite.config.ts        # Zero-warning ESLint & Vite config
 ├── src/main/java/ingatlanok/
 │   ├── IngatlanApplication.java & CliSearchRunner.java # Spring Boot & CLI hybrid entry points
-│   ├── common/                                  # HttpFetcher (SSRF sink), PropertyParser, CityUtils, SlugUtils, BrowserUtils, resilience/
+│   ├── common/                                  # HttpFetcher (SSRF sink), PropertyParser, CityUtils, SlugUtils, resilience/
 │   ├── core/                                    # Layer 2: SearchExecutionEngine, ParallelPortalScrapeExecutor, SearchPersistenceSynchronizer, PersistedFallbackMerger, IngatlanComHtmlImportService, ListingNormalizer, PropertyFilterEngine, DeduplicationEngine (+ core/dedup/*), DataQualityEngine, MarketAnalyticsEngine, MarketStatisticsCalculator
-│   ├── model/                                   # Canonical PropertyType, DedupOverride, DedupOverrideType, SearchPreset, Property, SourceListing, ListingObservation, IngatlanItem, MarketStats, MarketSegmentStats, PriceDropItem, QualityScore, QualityDeduction, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult
-│   ├── persistence/                             # Layer 4: ListingStorage, ConfigStorage, DedupOverrideStorage, JpaIngatlanStorage, JpaDedupOverrideStorage, InMemoryListingStorage, service/{PropertyPersistenceHelper,SearchPresetPersistenceHelper}, mapper/{JpaEntityMapper,SearchPresetMapper}, entity/*, repository/*
+│   ├── model/                                   # Canonical PropertyType, DedupOverride, DedupOverrideType, SearchPreset, SourceListing, ListingObservation, IngatlanItem, MarketStats, MarketSegmentStats, PriceDropItem, QualityScore, QualityDeduction, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult
+│   ├── persistence/                             # Layer 4: ListingStorage, ConfigStorage, DedupOverrideStorage, JpaIngatlanStorage, JpaDedupOverrideStorage, service/{PropertyPersistenceHelper,SearchPresetPersistenceHelper}, mapper/{JpaEntityMapper,SearchPresetMapper}, entity/*, repository/*
 │   ├── portal/                                  # Layer 3: PortalEngine, AbstractAdapterPortalEngine, AbstractPortalAdapter, AbstractPaginatedExtractionStrategy, AbstractPaginatedHtmlStrategy, PortalEngineRegistry, sidecar/{SidecarCliExecutor,SidecarResponse,SidecarStatus}, dh/, oc/, jofogas/, koltozzbe/, ingatlanbazar/, ingatlancom/
 │   ├── presentation/                            # Layer 1a: DashboardPresentationService, DedupPresentationService, PresentationMapper, DashboardResponseDto, Dedup*Dto, IngatlanComHtmlImport*Dto, MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, PortalStatusDto
 │   ├── config/                                  # Layer 1b: WebCorsConfig, SecurityHeadersFilter, RequestLoggingFilter
@@ -134,7 +134,7 @@ ingatlan-kereso/
 | **Jófogás Ingatlan** | `jofogas.hu` | Live Jsoup DOM | Query-based parsing with price and location regex cleaning |
 | **Költözzbe** | `koltozzbe.hu` | Live DOM & JSON-LD | Dual strategy: HTML cards and Schema.org JSON-LD |
 | **Ingatlanbazár** | `ingatlanbazar.hu` | Live Internal REST API | High-speed JSON endpoints (`/api/property-search`) with cached location codes |
-| **Ingatlan.com** | `ingatlan.com` | Sidecar + HTML Import / Fallback | `IngatlanComSidecarStrategy` (`SidecarCliExecutor` → `tools/sidecar.py` / `tools/sidecar-playwright.mjs`, 120s budget in `ParallelPortalScrapeExecutor`), `PersistedFallbackMerger`, manual HTML import (`IngatlanComHtmlImportService`), and graceful `BOT_PROTECTED` fallback when WAF blocks |
+| **Ingatlan.com** | `ingatlan.com` | Sidecar + HTML Import / Fallback | `IngatlanComSidecarStrategy` (`SidecarCliExecutor` → `tools/sidecar-playwright.mjs`, 120s budget in `ParallelPortalScrapeExecutor`), `PersistedFallbackMerger`, manual HTML import (`IngatlanComHtmlImportService`), and graceful `BOT_PROTECTED` fallback when WAF blocks |
 
 ---
 
@@ -142,11 +142,11 @@ ingatlan-kereso/
 
 > [!IMPORTANT]
 > 1. **Direct Pushes Prohibited:** Never push directly to `main` or `develop`.
-> 2. **Git Worktrees & Branch Naming:** Start all branches from `develop` (`feature/<short-desc>`, `fix/<short-desc>`, `docs/<short-desc>`, `refactor/<short-desc>`, `chore/<short-desc>`), using dedicated worktrees (`git worktree add -b <branch-name> ../worktrees/<branch-name> develop`) when isolating concurrent work.
+> 2. **Git Worktrees & Branch Naming:** Start all branches from `develop` using the mandatory issue-based format `ik-<issue-number>` (e.g., `ik-503` for issue `#503`), using dedicated worktrees (`git worktree add -b ik-<id> ../worktrees/ik-<id> develop`) when isolating concurrent work.
 > 3. **Atomic Commits:** Commit each coherent logical increment with a Conventional Commits message (`feat: ...`, `fix: ...`, `docs: ...`). Never squash unrelated work or push mechanical fixup chains.
 > 4. **Pipeline Concurrency:** Cancel obsolete workflow runs (`gh run cancel <run-id>`).
 > 5. **PR Conventions & UTF-8 Encoding:**
->    - **Title & Labels:** English Conventional Commit title; apply labels (`enhancement`, `bug`, `documentation`) and request `@copilot` review (`gh pr edit <id> --add-reviewer "@copilot"`).
+>    - **Title & Labels:** English Conventional Commit title; apply labels (`enhancement`, `bug`, `documentation`).
 >    - **Hungarian 2-Section Body:** Write concise, high-signal Hungarian descriptions strictly with: **🎯 Miért készült?** and **🛠️ Mit módosít / Mit javít?**, ending with `Closes #<id>` / `Fixes #<id>`. Always pass `--body-file` encoded in clean UTF-8 without BOM.
 >    - **Direct PR Link:** Always include a clickable GitHub PR link in the final response.
 > 6. **Green Gate & Never Auto-Merge:** PRs are mergeable only when 100% of CI checks are green. Never run `gh pr merge`; merging is reserved for the human repository owner.
@@ -155,6 +155,7 @@ ingatlan-kereso/
 > 9. **Issue-Scope Boundary & Anti-Scope-Creep Guardrails:** Modifications must be strictly confined to the issue's stated goals and acceptance criteria. Unsolicited refactoring, technology version bumps, package reorganizations, or API/DB contract shifts are prohibited. Out-of-scope improvements must be documented as separate proposed issues; never execute them opportunistically. Any supporting change required to meet acceptance criteria must be explicitly justified in the Hungarian PR body.
 > 10. **Adversarial Self-Review Protocol (Anti-Tunnel-Vision & Confirmation-Bias Gate):** Before opening any PR, agents must systematically audit their own implementation against four critical invariants: (1) **Multi-Source Domain Invariant** (no direct `item.priceInfo.amountHuf` / `item.detailsInfo.pricePerSquareMeter` access, use `getEffectivePrice`/`getEffectiveSqmPrice` from `frontend/src/utils/formatters.ts`), (2) **Multi-City & Partial Failure Invariant** (proper handling of mixed portal/city statuses), (3) **End-to-End Contract Traceability** (DTO -> `api-spec.yaml` -> `generated-api.ts` -> UI components), and (4) **Hermetic Test Isolation** (no production `app.test-mode` branching, zero `synchronized` carrier-pinning in Java 25).
 > 11. **Cross-Portal Bug & Fix Consistency Rule:** Whenever a scraping, pagination, URL-building, or parsing bug is discovered or fixed in one portal engine, always audit all other portal engines (`dh`, `oc`, `jofogas`, `koltozzbe`, `ingatlanbazar`, `ingatlancom`) for the same defect and apply the fix uniformly across every affected portal.
+> 12. **Mandatory Subagent Delegation & Issue Routing:** Actively delegate daily development tasks and GitHub issues to the 8 narrow-scope custom subagents in `.agents/agents/` (`invoke_subagent`) according to Section 7 below; always run `pr-quality-reviewer` before opening a PR.
 
 ---
 
@@ -175,3 +176,24 @@ Never push unverified code to remote. Run fast iterative checks via `bash script
   bash scripts/validate-skills.sh -v
   ```
 - **AppSec & Spring CLI:** Route all external scraping HTTP calls through `HttpFetcher` (SSRF protection) and keep `@ConditionalOnProperty(name = "cli")` on `CliSearchRunner` synchronized via `System.setProperty("cli", "true")` in `IngatlanApplication.main()`.
+
+---
+
+## 7. Narrow-Scope Subagent Team, Issue Routing & PR Lifecycle Hooks
+
+In daily development, prefer delegating work via `invoke_subagent` to the 8 specialized agents in `.agents/agents/` as frequently as the task warrants (in parallel where independent, or chained across handoffs). Before starting an issue (`#<id>` / `ik-<id>`), run `gh issue view <id>` and route automatically:
+
+| Agent (`.agents/agents/<name>/agent.md`) | Write Scope | Automatic Delegation Triggers |
+| :--- | :--- | :--- |
+| **`product-researcher`** | Read-only | Product/UX/data growth research, Impact/Effort roadmap, GitHub Issue drafts |
+| **`ui-designer`** | Read-only | Modern UI/UX specs, Tailwind v4 + CSS tokens, 360px–4K layout, WCAG 2.2 AA |
+| **`qa-test-engineer`** | Tests & fixtures only | Regression Test First (**Red** failing tests first), Golden Dataset, Playwright E2E, coverage |
+| **`backend-developer`** | Java web/pres/service/JPA + OpenAPI | REST controllers, MapStruct DTOs, JPA persistence, `openapi/api-spec.yaml` owner |
+| **`frontend-developer`** | `frontend/src/**` | React 19, TypeScript 5.9, Tailwind v4, `npm run generate-api`, Recharts, Zustand |
+| **`scraper-engineer`** | `portal/**`, `tools/**`, `HttpFetcher`, `PropertyParser` | All 6 portals, Playwright/Python sidecars, HTML import, SSRF & cross-portal fixes |
+| **`domain-algorithm-engineer`** | `core/` domain engines | `DeduplicationEngine`, `core/dedup/*`, `MarketAnalyticsEngine`, `DataQualityEngine`, `ListingNormalizer` |
+| **`pr-quality-reviewer`** | Read-only | Mandatory pre-PR diff, Clean Code, type-safety, ArchUnit & compliance gate (`FINDING`/`NO_FINDING`) |
+
+**Automated Lifecycle Hooks (`.agents/hooks.json`):**
+- **`pr-publish-guard` (`PreToolUse` on `run_command`):** Runs `.agents/hooks/pr-publish-guard.mjs` before `gh pr create`, `gh pr merge`, or `git push` to block auto-merge, direct pushes to `main`/`develop`, invalid branch/title formats, UTF-8 BOM or non-compliant PR bodies (`verify-pr-compliance.mjs`), dirty tracked files, and failing `scripts/validate-skills.sh`.
+- **`issue-subagent-router` (`SessionStart` / `PreInvocation`):** Runs `.agents/hooks/issue-subagent-router.mjs` to map issue numbers and domain keywords to the exact subagent pipeline automatically.

@@ -59,7 +59,7 @@ class DeduplicationEngineRationalizationTest {
     assertEquals(1, clustered.size(), "A két hirdetést egyetlen kártyává kell összevonni");
     IngatlanItem primary = clustered.get(0);
     assertEquals(2, primary.getSourcesCount());
-    assertEquals(95_000_000L, primary.getPriceInfo().getAmountHuf(), "A legalacsonyabb ár a Jófogás 95M Ft");
+    assertEquals(95_000_000L, primary.getPriceInfo().amountHuf(), "A legalacsonyabb ár a Jófogás 95M Ft");
     assertEquals(2, primary.getSourceListings().size());
   }
 

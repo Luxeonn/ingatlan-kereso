@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.CorsFilter;
@@ -87,24 +88,26 @@ class DedupControllerTest {
     seedListing("2", "oc", "https://oc.hu/m2", "Eger", PropertyType.LAKAS, 50_000_000L, 60.0);
 
     // 1 item
-    mockMvc
-        .perform(
-            post("/api/dedup/merge")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonSupport.mapper().writeValueAsString(new DedupMergeRequestDto(List.of("https://dh.hu/m1")))))
-        .andExpect(status().isBadRequest());
+    expectBadRequest(
+        post("/api/dedup/merge")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(new DedupMergeRequestDto(List.of("https://dh.hu/m1")))),
+        "/api/dedup/merge",
+        "Legalább 2 és legfeljebb 30 URL adható meg");
 
     // >30 items
     List<String> tooMany = new ArrayList<>();
     for (int i = 0; i < 31; i++) {
       tooMany.add("https://dh.hu/item-" + i);
     }
-    mockMvc
-        .perform(
-            post("/api/dedup/merge")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonSupport.mapper().writeValueAsString(new DedupMergeRequestDto(tooMany))))
-        .andExpect(status().isBadRequest());
+    expectBadRequest(
+        post("/api/dedup/merge")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(JsonSupport.mapper().writeValueAsString(new DedupMergeRequestDto(tooMany))),
+        "/api/dedup/merge",
+        "Legalább 2 és legfeljebb 30 URL adható meg");
 
     // Unknown URL
     mockMvc
@@ -116,7 +119,11 @@ class DedupControllerTest {
                         .writeValueAsString(
                             new DedupMergeRequestDto(
                                 List.of("https://dh.hu/m1", "https://dh.hu/unknown")))))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.error").value("Bad Request"))
+        .andExpect(jsonPath("$.message").isNotEmpty())
+        .andExpect(jsonPath("$.path").value("/api/dedup/merge"));
 
     // Different cities
     mockMvc
@@ -128,7 +135,11 @@ class DedupControllerTest {
                         .writeValueAsString(
                             new DedupMergeRequestDto(
                                 List.of("https://dh.hu/m1", "https://oc.hu/m2")))))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.error").value("Bad Request"))
+        .andExpect(jsonPath("$.message").isNotEmpty())
+        .andExpect(jsonPath("$.path").value("/api/dedup/merge"));
   }
 
   @Test
@@ -301,5 +312,207 @@ class DedupControllerTest {
 
     // Missing query params returns 400
     mockMvc.perform(get("/api/dedup/overrides")).andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName(
+      "GET /api/properties/hidden, /api/history és /api/properties/discounted alkalmazza a"
+          + " FORCE_MERGE deduplikációt (#500)")
+  void testArchiveEndpointsDeduplicateWithOverrides() throws Exception {
+    String urlHiddenA = "https://dh.hu/hidden-merge-1";
+    String urlHiddenB = "https://oc.hu/hidden-merge-2";
+    seedListing("h1", "dh", urlHiddenA, "Debrecen", PropertyType.HAZ, 87_500_000L, 125.0);
+    seedListing("h2", "oc", urlHiddenB, "Debrecen", PropertyType.HAZ, 89_000_000L, 125.0);
+    // Hide both
+    listingStorage.hideProperty(urlHiddenA);
+    listingStorage.hideProperty(urlHiddenB);
+
+    // Seed two active history items (distinct areas so heuristic won't merge, only FORCE_MERGE)
+    String urlHistA = "https://dh.hu/hist-merge-1";
+    String urlHistB = "https://oc.hu/hist-merge-2";
+    seedListing("ha1", "dh", urlHistA, "Debrecen", PropertyType.LAKAS, 40_000_000L, 50.0);
+    seedListing("ha2", "oc", urlHistB, "Debrecen", PropertyType.LAKAS, 95_000_000L, 130.0);
+
+    // Seed two discounted active items
+    String urlDiscA = "https://jofogas.hu/disc-merge-1";
+    String urlDiscB = "https://koltozzbe.hu/disc-merge-2";
+    seedListing("da1", "jofogas", urlDiscA, "Debrecen", PropertyType.HAZ, 70_000_000L, 100.0);
+    seedListing("da2", "koltozzbe", urlDiscB, "Debrecen", PropertyType.HAZ, 75_000_000L, 160.0);
+    // Re-save with lower prices to produce priceDelta < 0 for /api/properties/discounted
+    seedListing("da1", "jofogas", urlDiscA, "Debrecen", PropertyType.HAZ, 65_000_000L, 100.0);
+    seedListing("da2", "koltozzbe", urlDiscB, "Debrecen", PropertyType.HAZ, 70_000_000L, 160.0);
+
+    // Force merge hidden pair, history pair, and discounted pair
+    overrideStorage.saveOverride(urlHiddenA, urlHiddenB, DedupOverrideType.FORCE_MERGE, "debrecen");
+    overrideStorage.saveOverride(urlHistA, urlHistB, DedupOverrideType.FORCE_MERGE, "debrecen");
+    overrideStorage.saveOverride(urlDiscA, urlDiscB, DedupOverrideType.FORCE_MERGE, "debrecen");
+
+    // 1. GET /api/properties/hidden returns 1 merged cluster with sourcesCount == 2
+    mockMvc
+        .perform(get("/api/properties/hidden"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].sourcesCount").value(2))
+        .andExpect(jsonPath("$[0].manuallyMerged").value(true));
+
+    // 2. GET /api/history merges history pair and discounted pair into 2 clusters (instead of 4)
+    mockMvc
+        .perform(get("/api/history").param("city", "Debrecen"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(2)))
+        .andExpect(jsonPath("$[0].sourcesCount").value(2))
+        .andExpect(jsonPath("$[1].sourcesCount").value(2));
+
+    // 3. GET /api/properties/discounted merges discounted pair into 1 cluster
+    mockMvc
+        .perform(get("/api/properties/discounted").param("city", "Debrecen"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].sourcesCount").value(2))
+        .andExpect(jsonPath("$[0].manuallyMerged").value(true));
+  }
+
+  @Test
+  @DisplayName("POST /api/dedup/split és merge - Üres/hiányzó törzs és Bean Validation 400 válaszok")
+  void testSplitAndMergeBadRequestResponses() throws Exception {
+    String oversizedUrl = "https://dh.hu/" + "a".repeat(987);
+
+    expectBadRequest(
+        post("/api/dedup/split").contentType(MediaType.APPLICATION_JSON),
+        "/api/dedup/split",
+        "Érvénytelen kéréstörzs (hibás JSON formátum)");
+    expectBadRequest(
+        post("/api/dedup/split").contentType(MediaType.APPLICATION_JSON).content(""),
+        "/api/dedup/split",
+        "Érvénytelen kéréstörzs (hibás JSON formátum)");
+    expectBadRequest(
+        post("/api/dedup/split")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new DedupSplitRequestDto("   ", List.of("https://dh.hu/1")))),
+        "/api/dedup/split",
+        "A leválasztandó forrás URL kötelező");
+    expectBadRequest(
+        post("/api/dedup/split")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new DedupSplitRequestDto("https://dh.hu/1", List.of()))),
+        "/api/dedup/split",
+        "Legalább 1 érvényes URL megadása kötelező");
+    expectBadRequest(
+        post("/api/dedup/split")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new DedupSplitRequestDto("https://dh.hu/1", List.of("   ")))),
+        "/api/dedup/split",
+        "Üres URL nem engedélyezett");
+    expectBadRequest(
+        post("/api/dedup/split")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new DedupSplitRequestDto(oversizedUrl, List.of("https://dh.hu/1")))),
+        "/api/dedup/split",
+        "Az URL túl hosszú!");
+    expectBadRequest(
+        post("/api/dedup/split")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new DedupSplitRequestDto("https://dh.hu/1", List.of(oversizedUrl)))),
+        "/api/dedup/split",
+        "Az URL túl hosszú!");
+
+    expectBadRequest(
+        post("/api/dedup/merge").contentType(MediaType.APPLICATION_JSON),
+        "/api/dedup/merge",
+        "Érvénytelen kéréstörzs (hibás JSON formátum)");
+    expectBadRequest(
+        post("/api/dedup/merge").contentType(MediaType.APPLICATION_JSON).content(""),
+        "/api/dedup/merge",
+        "Érvénytelen kéréstörzs (hibás JSON formátum)");
+    expectBadRequest(
+        post("/api/dedup/merge")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new DedupMergeRequestDto(List.of("https://dh.hu/1", "   ")))),
+        "/api/dedup/merge",
+        "Üres URL nem engedélyezett");
+    expectBadRequest(
+        post("/api/dedup/merge")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                JsonSupport.mapper()
+                    .writeValueAsString(
+                        new DedupMergeRequestDto(List.of("https://dh.hu/1", oversizedUrl)))),
+        "/api/dedup/merge",
+        "Az URL túl hosszú!");
+  }
+
+  @Test
+  @DisplayName("GET /api/dedup/overrides és DELETE /api/dedup/overrides/{id} - Bean Validation 400")
+  void testOverridesAndDeleteValidationResponses() throws Exception {
+    String oversizedUrl = "https://dh.hu/" + "a".repeat(987);
+
+    expectBadRequest(
+        get("/api/dedup/overrides"),
+        "/api/dedup/overrides",
+        "A lekérdezett URL paraméter kötelező");
+    expectBadRequest(
+        get("/api/dedup/overrides").param("url", "   "),
+        "/api/dedup/overrides",
+        "A lekérdezett URL paraméter kötelező");
+    expectBadRequest(
+        get("/api/dedup/overrides").param("urls", "   "),
+        "/api/dedup/overrides",
+        "A lekérdezett URL paraméter kötelező");
+    expectBadRequest(
+        get("/api/dedup/overrides").param("url", oversizedUrl),
+        "/api/dedup/overrides",
+        "Az URL túl hosszú!");
+    expectBadRequest(
+        get("/api/dedup/overrides").param("urls", oversizedUrl),
+        "/api/dedup/overrides",
+        "Az URL túl hosszú!");
+
+    MockHttpServletRequestBuilder tooManyUrlsReq = get("/api/dedup/overrides");
+    for (int i = 0; i < 31; i++) {
+      tooManyUrlsReq.param("urls", "https://dh.hu/item-" + i);
+    }
+    expectBadRequest(
+        tooManyUrlsReq,
+        "/api/dedup/overrides",
+        "Egyszerre legfeljebb 30 URL kérdezhető le");
+
+    expectBadRequest(
+        delete("/api/dedup/overrides/0"),
+        "/api/dedup/overrides/0",
+        "Érvénytelen felülbírálás azonosító");
+    expectBadRequest(
+        delete("/api/dedup/overrides/-1"),
+        "/api/dedup/overrides/-1",
+        "Érvénytelen felülbírálás azonosító");
+  }
+
+  private void expectBadRequest(
+      MockHttpServletRequestBuilder request, String expectedPath, String expectedMessage)
+      throws Exception {
+    mockMvc
+        .perform(request)
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.error").value("Bad Request"))
+        .andExpect(jsonPath("$.message").value(expectedMessage))
+        .andExpect(jsonPath("$.path").value(expectedPath));
   }
 }

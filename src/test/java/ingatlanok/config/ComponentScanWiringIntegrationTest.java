@@ -44,7 +44,6 @@ import ingatlanok.portal.oc.OtthonCentrumPortalEngine;
 import ingatlanok.portal.oc.OtthonCentrumUrlBuilder;
 import ingatlanok.presentation.DashboardPresentationService;
 import ingatlanok.presentation.DedupPresentationService;
-import ingatlanok.service.IngatlanSearchService;
 
 @SpringBootTest
 @DisplayName("ComponentScanWiringIntegrationTest - Spring automatikus DI gráf és singleton ellenőrzése (#472)")
@@ -78,7 +77,6 @@ class ComponentScanWiringIntegrationTest {
   @Autowired private IngatlanComHtmlImportService htmlImportService;
   @Autowired private DashboardPresentationService dashboardPresentationService;
   @Autowired private DedupPresentationService dedupPresentationService;
-  @Autowired private IngatlanSearchService ingatlanSearchService;
   @Autowired private ListingStorage listingStorage;
   @Autowired private ConfigStorage configStorage;
 
@@ -138,6 +136,5 @@ class ComponentScanWiringIntegrationTest {
     assertNotNull(htmlImportService);
     assertNotNull(dashboardPresentationService);
     assertNotNull(dedupPresentationService);
-    assertNotNull(ingatlanSearchService);
   }
 }
