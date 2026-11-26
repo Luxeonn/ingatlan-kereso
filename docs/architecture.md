@@ -179,7 +179,7 @@ The backend exclusively processes and emits JSON. The browser client is served i
 
 ### 3.2 REST API Endpoint Catalog
 
-All 27 paths (30 HTTP operations) defined in `openapi/api-spec.yaml` and served by `RestApiController` and `DedupController`:
+All 26 paths (29 HTTP operations) defined in `openapi/api-spec.yaml` and served by `RestApiController` and `DedupController`:
 
 | Endpoint | HTTP Method | Request Body / Query Params | Response Type | Description |
 | :--- | :---: | :--- | :--- | :--- |
