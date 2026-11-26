@@ -1,12 +1,10 @@
 package ingatlanok.core.dedup;
 
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ingatlanok.common.CityUtils;
 import ingatlanok.common.SlugUtils;
 import ingatlanok.model.IngatlanItem;
 
@@ -25,19 +23,6 @@ public final class LocationConflictDetector {
 
   private static final Pattern BP_DISTRICT_URL_PATTERN =
       Pattern.compile("(?iuU)(?:budapest|bp)[-_/]?([1-9]|1[0-9]|2[0-3])[-_]?(?:kerület|ker)");
-
-  private static final Pattern STREET_NAME_PATTERN =
-      Pattern.compile(
-          "(?iuU)([A-ZÁÉÍÓÖŐÚÜŰa-záéíóöőúüű0-9.\\- ]{2,40}?)\\s+"
-              + "(utcájában|utcában|utcán|utcája|utcai(?!\\s+kert\\b)|utca|u\\.|u\\b"
-              + "|útban|úton|útja|úti|út|ut"
-              + "|téren|téri|tere|tér|ter"
-              + "|körúton|körúti|korut|körút"
-              + "|fasoron|fasori|fasor"
-              + "|sétányon|sétányi|setany|sétány"
-              + "|soron|sori|sora|sor"
-              + "|dűlőben|dűlőn|dűlői|dűlő|dulo"
-              + "|közben|közi|köz|koz)\\b");
 
   private LocationConflictDetector() {}
 
@@ -82,8 +67,10 @@ public final class LocationConflictDetector {
       district = extractBudapestDistrict(combined);
     }
 
-    String quarter = extractQuarter(location, title, details, url, normalizedCity, isBudapest);
-    String street = extractStreet(title, location, details, url, normalizedCity);
+    String quarter = isBudapest
+        ? null
+        : QuarterLocationExtractor.extract(location, title, details, url, normalizedCity);
+    String street = StreetLocationExtractor.extract(title, location, details, url, normalizedCity);
 
     return new ExtractedLocation(district, quarter, street);
   }
@@ -208,200 +195,6 @@ public final class LocationConflictDetector {
       }
     }
     return null;
-  }
-
-  private static String extractQuarter(
-      String location, String title, String details, String url,
-      String normalizedCity, boolean isBudapest) {
-    if (isBudapest) {
-      return null;
-    }
-    String commaQuarter = extractCommaQuarter(location, normalizedCity, false);
-    if (commaQuarter != null) {
-      return commaQuarter;
-    }
-    String titleQuarter = extractCommaQuarter(title, normalizedCity, true);
-    if (titleQuarter != null) {
-      return titleQuarter;
-    }
-    String textSlug = SlugUtils.toSlug(
-        (details + " " + location + " " + title + " " + extractUrlPathText(url)).trim());
-    for (String compound : LocationDictionaries.COMPOUND_QUARTERS) {
-      if (textSlug.equals(compound)
-          || textSlug.startsWith(compound + "-")
-          || textSlug.contains("-" + compound)) {
-        return normalizeQuarterSynonym(compound);
-      }
-    }
-    for (String q : LocationDictionaries.QUARTERS) {
-      if (matchesSlugWordPrefix(textSlug, q)) {
-        return normalizeQuarterSynonym(q);
-      }
-    }
-    return null;
-  }
-
-  private static String extractCommaQuarter(
-      String source, String normalizedCity, boolean requireCityPrefix) {
-    if (source == null || !source.contains(",")) {
-      return null;
-    }
-    String[] parts = source.split(",", 2);
-    if (parts.length <= 1) {
-      return null;
-    }
-    if (requireCityPrefix && !CityUtils.normalizeCityKey(parts[0].trim()).equals(normalizedCity)) {
-      return null;
-    }
-    String suffix = requireCityPrefix
-        ? parts[1].trim().split("\\s+[-|]\\s+|,", 2)[0].trim()
-        : parts[1].trim();
-    if (extractStreet("", suffix, "", "", normalizedCity) != null) {
-      return null;
-    }
-    String q = normalizeQuarterSynonym(SlugUtils.toSlug(suffix));
-    if (isQuarterNoise(q, requireCityPrefix) || q.isBlank() || q.equals(normalizedCity)) {
-      return null;
-    }
-    return q;
-  }
-
-  private static boolean isQuarterNoise(String slug, boolean strictTitleCheck) {
-    if (slug == null || slug.isBlank() || slug.equals("em") || slug.endsWith("-em")) {
-      return true;
-    }
-    for (String token : LocationDictionaries.QUARTER_NOISE_TOKENS) {
-      if (slug.contains(token)) {
-        return true;
-      }
-    }
-    return strictTitleCheck && hasTitleNonQuarterToken(slug);
-  }
-
-  private static boolean hasTitleNonQuarterToken(String slug) {
-    if (slug.chars().anyMatch(Character::isDigit)) {
-      return true;
-    }
-    for (String part : slug.split("-")) {
-      if (LocationDictionaries.TITLE_COMMA_NON_QUARTER_TOKENS.contains(part)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static boolean matchesSlugWordPrefix(String slug, String prefix) {
-    if (slug == null || slug.isBlank() || prefix == null || prefix.isBlank()) {
-      return false;
-    }
-    String[] tokens = slug.split("-");
-    for (int i = 0; i < tokens.length; i++) {
-      if (isQuarterTokenMatch(tokens[i], prefix)
-          && !isProximityPostposition(i + 1 < tokens.length ? tokens[i + 1] : null)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static boolean isQuarterTokenMatch(String token, String prefix) {
-    if (token == null || !token.startsWith(prefix)) {
-      return false;
-    }
-    String suffix = token.substring(prefix.length());
-    return !suffix.startsWith("ias") && !suffix.startsWith("ies") && !suffix.startsWith("kozel");
-  }
-
-  private static boolean isProximityPostposition(String nextToken) {
-    if (nextToken == null || nextToken.isBlank()) {
-      return false;
-    }
-    return nextToken.startsWith("kozel")
-        || nextToken.startsWith("mellett")
-        || nextToken.startsWith("hatar")
-        || nextToken.startsWith("irany");
-  }
-
-  private static String normalizeQuarterSynonym(String quarter) {
-    if (quarter == null) {
-      return null;
-    }
-    for (Map.Entry<String, String> entry : LocationDictionaries.QUARTER_SYNONYMS) {
-      if (quarter.startsWith(entry.getKey())) {
-        return entry.getValue();
-      }
-    }
-    return quarter;
-  }
-
-  private static String extractStreet(
-      String title, String location, String details, String url, String normalizedCity) {
-    String combined = (title + " " + location + " " + details).trim();
-    String found = findStreetInText(combined, normalizedCity);
-    if (found != null) {
-      return found;
-    }
-    return findStreetInText(extractUrlPathText(url), normalizedCity);
-  }
-
-  private static String findStreetInText(String text, String normalizedCity) {
-    if (text == null || text.isBlank()) {
-      return null;
-    }
-    Matcher m = STREET_NAME_PATTERN.matcher(text);
-    while (m.find()) {
-      String cleaned = cleanStreetStem(m.group(1), normalizedCity);
-      if (cleaned != null) {
-        return cleaned;
-      }
-    }
-    return null;
-  }
-
-  private static String extractUrlPathText(String url) {
-    if (url == null || url.isBlank()) {
-      return "";
-    }
-    int schemeIdx = url.indexOf("://");
-    int pathStart = url.indexOf('/', schemeIdx >= 0 ? schemeIdx + 3 : 0);
-    if (pathStart < 0) {
-      return "";
-    }
-    return url.substring(pathStart).split("[?#]", 2)[0]
-        .replace('/', ' ').replace('-', ' ').replace('_', ' ').trim();
-  }
-
-  private static String cleanStreetStem(String rawPrefix, String normalizedCity) {
-    String slug = SlugUtils.toSlug(rawPrefix != null ? rawPrefix.trim() : "");
-    if (slug.isBlank()) {
-      return null;
-    }
-    String[] tokens = slug.split("-");
-    int start = 0;
-    while (start < tokens.length - 1 && isLeadingStreetNoise(tokens[start], normalizedCity)) {
-      start++;
-    }
-    if (LocationDictionaries.INVALID_STREET_STEMS.contains(tokens[tokens.length - 1])) {
-      return null;
-    }
-    String stem = String.join("-", Arrays.copyOfRange(tokens, start, tokens.length));
-    return stem.length() >= 3 && !LocationDictionaries.INVALID_STREET_STEMS.contains(stem) ? stem : null;
-  }
-
-  private static boolean isLeadingStreetNoise(String token, String normalizedCity) {
-    if (LocationDictionaries.STREET_LEADING_PREFIXES.contains(token)
-        || LocationDictionaries.BP_DISTRICT_NAMES.containsKey(token)) {
-      return true;
-    }
-    if (normalizedCity != null && !normalizedCity.isBlank() && token.startsWith(normalizedCity)) {
-      return true;
-    }
-    for (String q : LocationDictionaries.QUARTERS) {
-      if (isQuarterTokenMatch(token, q)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private static Integer romanToNumber(String roman) {
