@@ -263,12 +263,10 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
         rawItems={rawItems}
         totalRawCount={totalRawCount}
         sessionViewedUrls={sessionViewedUrls}
-        onMarkAllViewed={(allItems) => allItems.forEach((i) => onMarkViewed(i.url))}
         onClearHistory={mode === 'archive' ? onClearHistory : undefined}
         isClearingHistory={isClearingHistory}
         onMergeSelected={onMergeSelected}
         isMerging={isMerging}
-        visibleCount={visibleItems.length}
         hiddenCount={hiddenCount}
       />
 

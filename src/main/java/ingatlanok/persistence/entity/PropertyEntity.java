@@ -24,8 +24,6 @@ import ingatlanok.model.PropertyType;
 @Table(
     name = "properties",
     indexes = {
-      @Index(name = "idx_properties_url", columnList = "url", unique = true),
-      @Index(name = "idx_properties_city_key", columnList = "normalizedCity"),
       @Index(name = "idx_properties_discovered", columnList = "discoveredAt"),
       @Index(name = "idx_properties_city_portal", columnList = "normalizedCity,portal"),
       @Index(name = "idx_properties_city_hidden_disc", columnList = "normalizedCity,hidden,discoveredAt"),

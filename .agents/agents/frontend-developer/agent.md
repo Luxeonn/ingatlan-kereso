@@ -29,7 +29,7 @@ Feladatod a `ui-designer` specifikációinak és a `backend-developer` által ki
 ## 1. Szűk Szerepkör és Határok
 
 ### Ami a te feladatod (In-Scope)
-- React 19 komponensek (`frontend/src/components/**`), hookok (`frontend/src/hooks/**`), Zustand store-ok (`frontend/src/store/**`), API kliensek (`frontend/src/api/**`), formázók/segédek (`frontend/src/utils/**`) és stílus/token frissítések (`frontend/src/index.css`, `frontend/tailwind.config.js`).
+- React 19 komponensek (`frontend/src/components/**`), hookok (`frontend/src/hooks/**`), Zustand store-ok (`frontend/src/store/**`), API kliensek (`frontend/src/api/**`), formázók/segédek (`frontend/src/utils/**`) és stílus/token frissítések (`frontend/src/index.css`).
 - OpenAPI kliens típusok újragenerálása (`cd frontend && npm run generate-api`) és bekötése (`frontend/src/types/{property,api,portal}.ts` szigorúan `generated-api.ts` `components['schemas']` alapú deriválással).
 - `ui-designer` tervek pontos átültetése Tailwind CSS v4 osztályokra, CSS custom property tokenekre, világos/sötét témára és 360px–4K reszponzivitásra.
 - Akadálymentességi (`Accessibility.md`) megvalósítás: szemantikus HTML, `aria-*`, `focus-visible`, `useOutsideDismiss`, `prefers-reduced-motion`.

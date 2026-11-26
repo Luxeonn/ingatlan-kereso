@@ -11,7 +11,6 @@ import ingatlanok.model.IngatlanItem;
 import ingatlanok.model.PropertyType;
 import ingatlanok.model.QualityDeduction;
 import ingatlanok.model.QualityDeductionRule;
-import ingatlanok.model.QualityScore;
 
 /**
  * Deterministic rule-based data quality and reliability scoring engine (#267).
@@ -57,10 +56,6 @@ public class DataQualityEngine {
       deductions = deductions != null ? List.copyOf(deductions) : List.of();
       structuredDeductions =
           structuredDeductions != null ? List.copyOf(structuredDeductions) : List.of();
-    }
-
-    public QualityScore toQualityScore() {
-      return QualityScore.of(score);
     }
   }
 
@@ -204,11 +199,6 @@ public class DataQualityEngine {
       this.score -= points;
       this.deductions.add(reason);
       this.structuredDeductions.add(new QualityDeduction(rule, points, reason));
-    }
-
-    void deduct(int points, String reason) {
-      this.score -= points;
-      this.deductions.add(reason);
     }
   }
 

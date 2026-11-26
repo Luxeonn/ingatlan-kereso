@@ -1,6 +1,8 @@
 package ingatlanok.portal;
 
-import ingatlanok.common.AppLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.RawExtractionResult;
 
@@ -14,7 +16,7 @@ public abstract class AbstractPaginatedExtractionStrategy implements ExtractionS
 
   public static final int DEFAULT_MAX_PAGES = 20;
 
-  protected final AppLogger logger = AppLogger.getLogger(getClass());
+  protected final Logger logger = LoggerFactory.getLogger(getClass());
   protected final int maxPages;
 
   protected AbstractPaginatedExtractionStrategy(int maxPages, int defaultMaxPages) {

@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Locale;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
 
 /** Pure header, response, status, and URI helpers for {@link HttpFetcher}. */
+@Slf4j
 final class HttpFetcherHelper {
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(HttpFetcher.class);
 
   private HttpFetcherHelper() {}
 
@@ -66,7 +66,7 @@ final class HttpFetcherHelper {
     try {
       Document document = response.parse();
       long elapsed = System.currentTimeMillis() - startTime;
-      LOGGER.info(
+      log.info(
           "HTTP {} Document sikeres [{} ms] (cím: '{}'): {}",
           method,
           elapsed,
@@ -74,7 +74,7 @@ final class HttpFetcherHelper {
           targetUrl);
       return document;
     } catch (IOException e) {
-      LOGGER.error(
+      log.error(
           "Hiba a letöltött HTML Document feldolgozásakor -> URL: {} ({})",
           targetUrl,
           e.getMessage());
@@ -90,7 +90,7 @@ final class HttpFetcherHelper {
     String body = response.body();
     long elapsed = System.currentTimeMillis() - startTime;
     int length = body != null ? body.length() : 0;
-    LOGGER.info("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
+    log.info("HTTP GET JSON sikeres [{} ms, {} bájt] -> URL: {}", elapsed, length, targetUrl);
     return body;
   }
 

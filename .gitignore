@@ -73,7 +73,6 @@ logs/
 # General & runtime log files
 *.log
 *.txt
-!tools/requirements.txt
 !requirements*.txt
 
 # Launcher scripts

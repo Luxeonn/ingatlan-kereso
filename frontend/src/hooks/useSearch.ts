@@ -230,18 +230,13 @@ export function useSearch() {
     [data?.items],
   )
 
-  const hiddenItems = useMemo(
-    () => filterAndSortItems(hiddenSearchItems, { ...sharedFilterOptions, onlyNew: false }),
-    [hiddenSearchItems, sharedFilterOptions],
-  )
-
   const processedItems = useMemo(() => {
     if (showHidden) {
-      return hiddenItems
+      return filterAndSortItems(hiddenSearchItems, { ...sharedFilterOptions, onlyNew: false })
     }
     const baseItems = includeHidden ? [...activeSearchItems, ...hiddenSearchItems] : activeSearchItems
     return filterAndSortItems(baseItems, { ...sharedFilterOptions, onlyNew, excludeNew })
-  }, [showHidden, includeHidden, hiddenItems, activeSearchItems, hiddenSearchItems, sharedFilterOptions, onlyNew, excludeNew])
+  }, [showHidden, includeHidden, activeSearchItems, hiddenSearchItems, sharedFilterOptions, onlyNew, excludeNew])
 
   const archiveItems = useMemo(
     () => filterAndSortItems(historyQuery.data ?? [], { ...sharedFilterOptions, onlyNew: false }),
@@ -301,14 +296,12 @@ export function useSearch() {
     items: processedItems,
     rawItems: showHidden ? hiddenSearchItems : activeSearchItems,
     rawCount: showHidden ? hiddenSearchItems.length : activeSearchItems.length,
-    filteredCount: processedItems.length,
     archiveItems,
     rawArchiveItems: historyQuery.data ?? [],
     isArchiveLoading: historyQuery.isLoading,
     favoriteItems,
     rawFavoriteItems,
     favoritesCount: rawFavoriteItems.length,
-    hiddenItems,
     hiddenCount: hiddenSearchItems.length,
     toastMessage,
     toastUndoItem,

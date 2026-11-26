@@ -192,7 +192,6 @@ describe('ListingsPanel component (#264)', () => {
         totalRawCount={2}
         searchCount={2}
         favoritesCount={5}
-        archiveCount={12}
         isLoading={false}
         hasSearched={true}
         mode="listings"

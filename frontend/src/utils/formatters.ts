@@ -284,19 +284,6 @@ export function getPrimaryPortalKey(item: IngatlanItem): NormalizedPortalKey {
   return primary
 }
 
-export function getItemPortalKeys(item: IngatlanItem): Set<string> {
-  const keys = new Set<string>()
-  const primary = getPrimaryPortalKey(item)
-  if (primary) keys.add(primary)
-  if (Array.isArray(item.sourceListings)) {
-    for (const sl of item.sourceListings) {
-      const sk = normalizePortalKey(sl.portal) || (sl.url ? normalizePortalKey(detectPortalFromUrl(sl.url).portalId) : '')
-      if (sk && sk !== 'egyeb') keys.add(sk)
-    }
-  }
-  return keys
-}
-
 export function getPortalStyle(portalId: string): { bg: string; text: string; border: string } {
   const key = normalizePortalKey(portalId)
   if (key && key !== 'egyeb' && Object.prototype.hasOwnProperty.call(PORTAL_COLORS, key)) {

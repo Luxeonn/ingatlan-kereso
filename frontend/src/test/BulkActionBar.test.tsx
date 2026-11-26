@@ -287,7 +287,6 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
         items={clusteredItems}
         rawItems={clusteredItems}
         totalRawCount={2}
-        visibleCount={1}
       />,
     )
 

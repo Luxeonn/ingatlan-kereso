@@ -36,13 +36,13 @@ A te szupererőd az elfogulatlan hibabizonyítás (**Regression Test First — R
   - Multi-source invariáns, partial failure (`BOT_PROTECTED` / `PARTIAL_SUCCESS`), akadálymentesség és UI regressziós tesztek.
 - **Playwright E2E tesztek (`frontend/e2e/**`)**:
   - Teljes felhasználói folyamatok determinisztikus mockolt API-val (`frontend/e2e/helpers/mockApi.ts`): keresés, szűrés, rendezés, görgetési pozíció megőrzés, kézi dedup split/merge, HTML import, hibakezelés.
-- **Sidecar tesztek (`tools/sidecar-playwright.test.mjs`, `tools/tests/**`)**.
+- **Sidecar tesztek (`tools/sidecar-playwright.test.mjs`)**.
 
 ### Ami SZIGORÚAN TILOS (Explicit Non-Goals)
 - **SOHA NEM MÓDOSÍTHATSZ produkciós kódot!** Tilos bármilyen szerkesztés ezekben a könyvtárakban:
   - `src/main/**`
   - `frontend/src/**` *(kivéve `frontend/src/test/**`)*
-  - `tools/sidecar-playwright.mjs`, `tools/sidecar.py`, `tools/scrapers/**`
+  - `tools/sidecar-playwright.mjs`
   - `openapi/**`, `.github/**`, `build.gradle.kts`, `config/**`, `scripts/**`
 - **Miért?** Ha a tesztíró és a hibajavító ugyanaz a szerep, kialakul a megerősítési torzítás (confirmation bias). Te elfogulatlanul megírod a pontos, specifikáció-alapú bukó Red tesztet, és átadod a javítást a megfelelő implementáló ügynöknek (`backend-developer`, `frontend-developer`, `scraper-engineer` vagy `domain-algorithm-engineer`).
 - **Soha ne „zöldíts ki” bukó tesztet az elvárt érték felpuhításával** és ne módosítsd automatikusan a Golden Dataset elvárt eredményeit!

@@ -49,21 +49,16 @@ class KoltozzbeAdapterTest {
         getClass().getResourceAsStream("/fixtures/koltozzbe/sample-koltozzbe.html").readAllBytes());
     Document doc = Jsoup.parse(html, KoltozzbeUrlBuilder.BASE_URL);
 
-    KoltozzbeJsonLdStrategy jsonLdStrategy = new KoltozzbeJsonLdStrategy(
+    KoltozzbeExtractionStrategy strategy = new KoltozzbeExtractionStrategy(
         new KoltozzbeUrlBuilder(),
         new KoltozzbeRawParser(),
-        url -> doc
-    );
-
-    KoltozzbeHtmlStrategy htmlStrategy = new KoltozzbeHtmlStrategy(
-        new KoltozzbeUrlBuilder(),
-        new KoltozzbeRawParser(),
-        url -> doc
+        url -> doc,
+        1
     );
 
     KoltozzbePortalAdapter adapter = new KoltozzbePortalAdapter(
         new KoltozzbeUrlBuilder(),
-        List.of(jsonLdStrategy, htmlStrategy)
+        List.of(strategy)
     );
 
     AdapterPortalEngine engine = new AdapterPortalEngine(adapter);
@@ -74,9 +69,10 @@ class KoltozzbeAdapterTest {
     PortalScrapeResult result = engine.scrape(criteria);
 
     assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
-    assertEquals(1, result.getItems().size());
-    assertEquals("1002", result.getItems().get(0).getId());
-    assertEquals(95_000_000L, result.getItems().get(0).getPriceInfo().amountHuf());
+    assertEquals(2, result.getItems().size());
+    assertEquals("1001", result.getItems().get(0).getId());
+    assertEquals("1002", result.getItems().get(1).getId());
+    assertEquals(95_000_000L, result.getItems().get(1).getPriceInfo().amountHuf());
   }
 
   @Test

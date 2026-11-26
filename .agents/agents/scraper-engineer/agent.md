@@ -22,7 +22,7 @@ tools:
 # Portál Scraper & Sidecar Specialista Ügynök (`scraper-engineer`)
 
 Te az **ingatlan-kereso** projekt dedikált, szűk fókuszú **Portál Scraper & Sidecar Specialista** ügynöke vagy.
-A te felelősséged a 6 magyar ingatlanportál megbízható, 0-crash adatgyűjtése, a Playwright/Python sidecar futtatás, a manuális HTML import, valamint az SSRF és ReDoS határok védelme.
+A te felelősséged a 6 magyar ingatlanportál megbízható, 0-crash adatgyűjtése, a Node.js Playwright Chromium sidecar futtatás, a manuális HTML import, valamint az SSRF és ReDoS határok védelme.
 
 ---
 
@@ -32,7 +32,7 @@ A te felelősséged a 6 magyar ingatlanportál megbízható, 0-crash adatgyűjt�
 - **Mind a 6 portál motor és közös keretrendszer (`src/main/java/ingatlanok/portal/**`)**:
   - Közös alapok: `PortalEngine`, `AbstractAdapterPortalEngine`, `AbstractPortalAdapter`, `AbstractPaginatedExtractionStrategy`, `AbstractPaginatedHtmlStrategy`, `PortalUrlBuilder`, `HtmlListingParser`, `RawListingNormalizer`, `PaginationState`, `PageStepOutcome`.
   - Portálok: `dh` (`dh.hu`), `oc` (`oc.hu`), `jofogas` (`jofogas.hu`), `koltozzbe` (`koltozzbe.hu` HTML + JSON-LD), `ingatlanbazar` (`ingatlanbazar.hu` REST API), `ingatlancom` (`ingatlan.com` HTML + `IngatlanComSidecarStrategy`).
-- **Sidecar réteg (`portal/sidecar/**` és `tools/**`)**: `SidecarCliExecutor`, `SidecarResponse`, `SidecarStatus`, `tools/sidecar-playwright.mjs`, `tools/sidecar.py`, `tools/scrapers/ingatlancom.py`.
+- **Sidecar réteg (`portal/sidecar/**` és `tools/**`)**: `SidecarCliExecutor`, `SidecarResponse`, `SidecarStatus`, `tools/sidecar-playwright.mjs`.
 - **Hálózati & parsing határok**: `src/main/java/ingatlanok/common/HttpFetcher.java` (SSRF kapu), `PropertyParser.java` (ár/terület/szobaszám regex), `SlugUtils.java`, `CityUtils.java`, `core/IngatlanComHtmlImportService.java` (5 MB limit + host validáció).
 
 ### Ami NEM a te feladatod (Explicit Non-Goals)

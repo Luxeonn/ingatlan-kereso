@@ -25,7 +25,7 @@ flowchart TD
     end
 
     subgraph Service ["Core & Scraper Layer"]
-        Orchestrator["IngatlanSearchService / SearchExecutionEngine"]
+        Orchestrator["SearchExecutionEngine"]
         Normalizer["ListingNormalizer (Canonical PropertyType)"]
         Portals["Portal Engines (AbstractAdapterPortalEngine): DH | OC | Jofogas | Koltozzbe | IngatlanBazar | IngatlanCom (+ Sidecar)"]
         Import["IngatlanComHtmlImportService & PersistedFallbackMerger"]
@@ -69,9 +69,9 @@ ingatlan-kereso/
 │   ├── verify-pr-compliance.{mjs,sh}            # PR template, issue link, and DTO/OpenAPI sync validator + test-verify-pr-compliance.mjs
 │   └── validate-skills.sh                       # Offline specialist-skill & architectural guardrail validator (7 checks: [1/7]–[7/7])
 ├── build.gradle.kts                             # Gradle Kotlin DSL (Java 25, Spring Boot 4.1.2, -Werror, JaCoCo >=80%)
-├── Dockerfile & docker-compose.yml              # Multi-stage Temurin JRE 25 (+ Python/Playwright Chromium) & 3-tier stack
+├── Dockerfile & docker-compose.yml              # Multi-stage Temurin JRE 25 (+ Node.js/Playwright Chromium) & 3-tier stack
 ├── docs/architecture.md                         # Authoritative system architecture reference
-├── tools/                                       # sidecar.py, scrapers/ingatlancom.py, sidecar-playwright.mjs (Node/Python sidecars)
+├── tools/                                       # sidecar-playwright.mjs (Node.js Playwright Chromium sidecar)
 ├── frontend/                                    # Decoupled React 19 + TypeScript + Vite SPA (ESLint max-lines <= 350)
 │   ├── src/
 │   │   ├── api/                                 # client.ts (openapi-fetch), cityApi.ts, dedupApi.ts, portalApi.ts, presetApi.ts, propertyApi.ts, searchApi.ts
@@ -88,10 +88,10 @@ ingatlan-kereso/
 │   └── eslint.config.js & vite.config.ts        # Zero-warning ESLint & Vite config
 ├── src/main/java/ingatlanok/
 │   ├── IngatlanApplication.java & CliSearchRunner.java # Spring Boot & CLI hybrid entry points
-│   ├── common/                                  # HttpFetcher (SSRF sink), PropertyParser, CityUtils, SlugUtils, BrowserUtils, resilience/
+│   ├── common/                                  # HttpFetcher (SSRF sink), PropertyParser, CityUtils, SlugUtils, resilience/
 │   ├── core/                                    # Layer 2: SearchExecutionEngine, ParallelPortalScrapeExecutor, SearchPersistenceSynchronizer, PersistedFallbackMerger, IngatlanComHtmlImportService, ListingNormalizer, PropertyFilterEngine, DeduplicationEngine (+ core/dedup/*), DataQualityEngine, MarketAnalyticsEngine, MarketStatisticsCalculator
-│   ├── model/                                   # Canonical PropertyType, DedupOverride, DedupOverrideType, SearchPreset, Property, SourceListing, ListingObservation, IngatlanItem, MarketStats, MarketSegmentStats, PriceDropItem, QualityScore, QualityDeduction, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult
-│   ├── persistence/                             # Layer 4: ListingStorage, ConfigStorage, DedupOverrideStorage, JpaIngatlanStorage, JpaDedupOverrideStorage, InMemoryListingStorage, service/{PropertyPersistenceHelper,SearchPresetPersistenceHelper}, mapper/{JpaEntityMapper,SearchPresetMapper}, entity/*, repository/*
+│   ├── model/                                   # Canonical PropertyType, DedupOverride, DedupOverrideType, SearchPreset, SourceListing, ListingObservation, IngatlanItem, MarketStats, MarketSegmentStats, PriceDropItem, QualityScore, QualityDeduction, PriceInfo, PropertyDetails, PortalSource, SearchCriteria, SearchResult
+│   ├── persistence/                             # Layer 4: ListingStorage, ConfigStorage, DedupOverrideStorage, JpaIngatlanStorage, JpaDedupOverrideStorage, service/{PropertyPersistenceHelper,SearchPresetPersistenceHelper}, mapper/{JpaEntityMapper,SearchPresetMapper}, entity/*, repository/*
 │   ├── portal/                                  # Layer 3: PortalEngine, AbstractAdapterPortalEngine, AbstractPortalAdapter, AbstractPaginatedExtractionStrategy, AbstractPaginatedHtmlStrategy, PortalEngineRegistry, sidecar/{SidecarCliExecutor,SidecarResponse,SidecarStatus}, dh/, oc/, jofogas/, koltozzbe/, ingatlanbazar/, ingatlancom/
 │   ├── presentation/                            # Layer 1a: DashboardPresentationService, DedupPresentationService, PresentationMapper, DashboardResponseDto, Dedup*Dto, IngatlanComHtmlImport*Dto, MarketStatsDto, MarketSegmentStatsDto, PriceDropItemDto, PortalStatusDto
 │   ├── config/                                  # Layer 1b: WebCorsConfig, SecurityHeadersFilter, RequestLoggingFilter
@@ -134,7 +134,7 @@ ingatlan-kereso/
 | **Jófogás Ingatlan** | `jofogas.hu` | Live Jsoup DOM | Query-based parsing with price and location regex cleaning |
 | **Költözzbe** | `koltozzbe.hu` | Live DOM & JSON-LD | Dual strategy: HTML cards and Schema.org JSON-LD |
 | **Ingatlanbazár** | `ingatlanbazar.hu` | Live Internal REST API | High-speed JSON endpoints (`/api/property-search`) with cached location codes |
-| **Ingatlan.com** | `ingatlan.com` | Sidecar + HTML Import / Fallback | `IngatlanComSidecarStrategy` (`SidecarCliExecutor` → `tools/sidecar.py` / `tools/sidecar-playwright.mjs`, 120s budget in `ParallelPortalScrapeExecutor`), `PersistedFallbackMerger`, manual HTML import (`IngatlanComHtmlImportService`), and graceful `BOT_PROTECTED` fallback when WAF blocks |
+| **Ingatlan.com** | `ingatlan.com` | Sidecar + HTML Import / Fallback | `IngatlanComSidecarStrategy` (`SidecarCliExecutor` → `tools/sidecar-playwright.mjs`, 120s budget in `ParallelPortalScrapeExecutor`), `PersistedFallbackMerger`, manual HTML import (`IngatlanComHtmlImportService`), and graceful `BOT_PROTECTED` fallback when WAF blocks |
 
 ---
 
@@ -146,7 +146,7 @@ ingatlan-kereso/
 > 3. **Atomic Commits:** Commit each coherent logical increment with a Conventional Commits message (`feat: ...`, `fix: ...`, `docs: ...`). Never squash unrelated work or push mechanical fixup chains.
 > 4. **Pipeline Concurrency:** Cancel obsolete workflow runs (`gh run cancel <run-id>`).
 > 5. **PR Conventions & UTF-8 Encoding:**
->    - **Title & Labels:** English Conventional Commit title; apply labels (`enhancement`, `bug`, `documentation`) and request `@copilot` review (`gh pr edit <id> --add-reviewer "@copilot"`).
+>    - **Title & Labels:** English Conventional Commit title; apply labels (`enhancement`, `bug`, `documentation`).
 >    - **Hungarian 2-Section Body:** Write concise, high-signal Hungarian descriptions strictly with: **🎯 Miért készült?** and **🛠️ Mit módosít / Mit javít?**, ending with `Closes #<id>` / `Fixes #<id>`. Always pass `--body-file` encoded in clean UTF-8 without BOM.
 >    - **Direct PR Link:** Always include a clickable GitHub PR link in the final response.
 > 6. **Green Gate & Never Auto-Merge:** PRs are mergeable only when 100% of CI checks are green. Never run `gh pr merge`; merging is reserved for the human repository owner.

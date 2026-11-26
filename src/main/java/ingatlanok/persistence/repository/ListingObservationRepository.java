@@ -18,10 +18,6 @@ public interface ListingObservationRepository extends JpaRepository<ListingObser
           + " OR lo.canonicalId = :key ORDER BY lo.id ASC")
   List<ListingObservationEntity> findByUrlOrPropertyIdOrCanonicalId(@Param("key") String key);
 
-  List<ListingObservationEntity> findByUrlOrderByIdAsc(String url);
-
-  List<ListingObservationEntity> findByCanonicalIdOrderByIdAsc(String canonicalId);
-
   @Modifying
   @Query("DELETE FROM ListingObservationEntity lo WHERE lo.url IN :urls")
   void deleteByUrlIn(@Param("urls") List<String> urls);

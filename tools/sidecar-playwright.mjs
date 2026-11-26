@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Local Node.js + Playwright (--headless=new) fallback sidecar for Ingatlan.com
- * Used automatically by SidecarCliExecutor when Python + curl_cffi is not installed locally.
+ * Local Node.js + Playwright (--headless=new) sidecar for Ingatlan.com
+ * Invoked automatically by SidecarCliExecutor.
  */
 
 import fs from 'node:fs'

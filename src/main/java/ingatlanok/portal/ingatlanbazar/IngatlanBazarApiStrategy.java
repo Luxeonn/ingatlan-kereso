@@ -3,7 +3,8 @@ package ingatlanok.portal.ingatlanbazar;
 import java.util.List;
 import java.util.function.Function;
 
-import ingatlanok.common.AppLogger;
+import lombok.extern.slf4j.Slf4j;
+
 import ingatlanok.common.HttpFetcher;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
@@ -13,11 +14,10 @@ import ingatlanok.portal.PageStepOutcome;
 import ingatlanok.portal.PaginationState;
 import ingatlanok.portal.PaginationStopReason;
 
+@Slf4j
 public class IngatlanBazarApiStrategy extends AbstractPaginatedExtractionStrategy {
 
   public static final int DEFAULT_MAX_PAGES = AbstractPaginatedExtractionStrategy.DEFAULT_MAX_PAGES;
-
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanBazarApiStrategy.class);
 
   private final IngatlanBazarQueryBuilder queryBuilder;
   private final IngatlanBazarRawParser rawParser;
@@ -82,14 +82,14 @@ public class IngatlanBazarApiStrategy extends AbstractPaginatedExtractionStrateg
     try {
       json = jsonFetcher.apply(pageUrl);
     } catch (Exception e) {
-      LOGGER.error("Hiba az Ingatlanbazár {}. oldal API lekérésekor: {}", page, e.getMessage(), e);
+      log.error("Hiba az Ingatlanbazár {}. oldal API lekérésekor: {}", page, e.getMessage(), e);
       return page == 1 && state.isEmpty()
           ? PageStepOutcome.abortFirstPageFailure(e.getMessage())
           : PageStepOutcome.stop(PaginationStopReason.INTERMEDIATE_PAGE_EXCEPTION);
     }
 
     if (json == null || json.isBlank()) {
-      LOGGER.warn("Nem sikerült letölteni az Ingatlanbazár {}. oldal JSON választ: {}", page, pageUrl);
+      log.warn("Nem sikerült letölteni az Ingatlanbazár {}. oldal JSON választ: {}", page, pageUrl);
       return page == 1 && state.isEmpty()
           ? PageStepOutcome.abortFirstPageFailure("Nem sikerült elérni az Ingatlanbazár REST API-t")
           : PageStepOutcome.stop(PaginationStopReason.INTERMEDIATE_PAGE_FETCH_FAILED);

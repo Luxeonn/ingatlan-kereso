@@ -221,7 +221,7 @@ export const PresetCreateForm: FC<PresetCreateFormProps> = ({
       type="button"
       onClick={onCancel}
       title="Mégse"
-      className="rounded p-0.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] cursor-pointer"
+      className="rounded p-0.5 text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] cursor-pointer"
     >
       <X className="h-3.5 w-3.5" />
     </button>

@@ -628,7 +628,7 @@ export async function evaluateCommand(cmd, options = {}) {
         reason: [
           'PR feladási hook (pr-publish-guard) blokkolta a műveletet:',
           ...violations.map((v) => `- ${v}`),
-          'Javítsd a fenti hibákat, futtasd a pr-quality-reviewer auditot, és próbáld újra. (Ne felejtsd el PR nyitás után: gh pr edit <id> --add-reviewer "@copilot".)',
+          'Javítsd a fenti hibákat, futtasd a pr-quality-reviewer auditot, és próbáld újra.',
         ].join('\n'),
       };
     }

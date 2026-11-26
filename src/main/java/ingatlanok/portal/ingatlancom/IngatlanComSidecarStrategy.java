@@ -8,7 +8,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import ingatlanok.common.AppLogger;
+import lombok.extern.slf4j.Slf4j;
+
 import ingatlanok.common.CityUtils;
 import ingatlanok.model.SearchCriteria;
 import ingatlanok.model.raw.ExtractionMethod;
@@ -19,11 +20,11 @@ import ingatlanok.portal.PortalSupport;
 import ingatlanok.portal.sidecar.SidecarCliExecutor;
 import ingatlanok.portal.sidecar.SidecarResponse;
 
+@Slf4j
 public class IngatlanComSidecarStrategy implements ExtractionStrategy {
 
   public static final int DEFAULT_MAX_PAGES = 20;
 
-  private static final AppLogger LOGGER = AppLogger.getLogger(IngatlanComSidecarStrategy.class);
   private static final long CACHE_TTL_MS = 180_000L; // 3 minutes TTL to avoid Cloudflare 429 burst limit
   private static final Map<String, CachedResult> RESPONSE_CACHE = new ConcurrentHashMap<>();
 
@@ -60,7 +61,7 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
     CachedResult cached = RESPONSE_CACHE.get(searchUrl);
     long now = System.currentTimeMillis();
     if (cached != null && (now - cached.timestampMs()) < CACHE_TTL_MS) {
-      LOGGER.info(
+      log.info(
           "Ingatlan.com: Sidecar gyorsítótár találat ({} db hirdetés) -> {}",
           cached.listings().size(),
           searchUrl);
@@ -72,7 +73,7 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
       return RawExtractionResult.empty(method(), searchUrl);
     }
 
-    LOGGER.info("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása (maxPages={})...", maxPages);
+    log.info("Ingatlan.com: Sidecar modul detektálva, lekérdezés indítása (maxPages={})...", maxPages);
     try {
       Optional<SidecarResponse> sidecarResp =
           SidecarCliExecutor.execute("ingatlancom", safeCriteria, maxPages);
@@ -86,14 +87,14 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
             RESPONSE_CACHE.put(
                 searchUrl,
                 new CachedResult(List.copyOf(rawListings), details, warningMessage, now));
-            LOGGER.info(
+            log.info(
                 "Ingatlan.com: Sidecar sikeresen kinyert {} db hirdetést ({})",
                 rawListings.size(),
                 details);
             return RawExtractionResult.success(rawListings, method(), details, warningMessage);
           }
         } else if (cached != null && !cached.listings().isEmpty()) {
-          LOGGER.warn(
+          log.warn(
               "Ingatlan.com: Sidecar hiba ({}), korábbi gyorsítótárazott találatok ({} db) visszaadása",
               resp.getErrorMessage(),
               cached.listings().size());
@@ -106,7 +107,7 @@ public class IngatlanComSidecarStrategy implements ExtractionStrategy {
         }
       }
     } catch (Exception e) {
-      LOGGER.error("Ingatlan.com: Hiba a sidecar végrehajtás során: {}", e.getMessage(), e);
+      log.error("Ingatlan.com: Hiba a sidecar végrehajtás során: {}", e.getMessage(), e);
     }
 
     return RawExtractionResult.empty(method(), searchUrl);
