@@ -63,9 +63,9 @@ class OtthonCentrumLiveHtmlParsingTest {
     IngatlanItem h526137 = byId.get("H526137");
     assertNotNull(h526137, "H526137 szerepel az 1. oldalon");
     assertEquals("https://www.oc.hu/ingatlanok/H526137", h526137.getUrl());
-    assertEquals(84_990_000L, h526137.getPriceInfo().getAmountHuf());
-    assertEquals(110.0, h526137.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(4.0, h526137.getDetailsInfo().getRoomCount());
+    assertEquals(84_990_000L, h526137.getPriceInfo().amountHuf());
+    assertEquals(110.0, h526137.getDetailsInfo().areaSquareMeters());
+    assertEquals(4.0, h526137.getDetailsInfo().roomCount());
     assertEquals("Debrecen", h526137.getCity());
     assertEquals("Debrecen, Belváros", h526137.getLocation());
     assertNotNull(h526137.getImageUrl());
@@ -75,18 +75,18 @@ class OtthonCentrumLiveHtmlParsingTest {
     IngatlanItem dhz = byId.get("DHZ090164");
     assertNotNull(dhz, "DHZ090164 szerepel a 2. chunkban");
     assertEquals("https://www.oc.hu/ingatlanok/DHZ090164", dhz.getUrl());
-    assertEquals(99_900_000L, dhz.getPriceInfo().getAmountHuf());
-    assertEquals(142.0, dhz.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(5.0, dhz.getDetailsInfo().getRoomCount());
+    assertEquals(99_900_000L, dhz.getPriceInfo().amountHuf());
+    assertEquals(142.0, dhz.getDetailsInfo().areaSquareMeters());
+    assertEquals(5.0, dhz.getDetailsInfo().roomCount());
     assertEquals("Debrecen", dhz.getCity());
     assertEquals("Debrecen, Júlia-telep", dhz.getLocation());
 
     IngatlanItem projectP4922 = byId.get("P4922");
     assertNotNull(projectP4922, "Az /uj-lakas/P4922 projektkártya nem veszhet el");
     assertEquals("https://www.oc.hu/uj-lakas/P4922", projectP4922.getUrl());
-    assertEquals(105_000_000L, projectP4922.getPriceInfo().getAmountHuf());
-    assertEquals(95.0, projectP4922.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.0, projectP4922.getDetailsInfo().getRoomCount());
+    assertEquals(105_000_000L, projectP4922.getPriceInfo().amountHuf());
+    assertEquals(95.0, projectP4922.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.0, projectP4922.getDetailsInfo().roomCount());
     assertEquals("Debrecen", projectP4922.getCity());
     assertEquals("Debrecen, Felső-Józsa", projectP4922.getLocation());
   }

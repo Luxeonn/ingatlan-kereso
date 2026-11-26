@@ -4,12 +4,11 @@ buildscript {
     }
     configurations.classpath {
         resolutionStrategy {
-            force("org.apache.httpcomponents.client5:httpclient5:5.6.5")
-            force("org.apache.httpcomponents.core5:httpcore5:5.5")
-            force("org.apache.httpcomponents.core5:httpcore5-h2:5.5")
-            force("org.springframework:spring-core:7.1.0")
-            force("tools.jackson.core:jackson-core:3.3.0")
-            force("tools.jackson.core:jackson-databind:3.3.0")
+            // Bump buildscript transitive dependencies above plugin defaults (CVE pins)
+            force("org.apache.httpcomponents.core5:httpcore5:5.5") // 5.4.4 -> 5.5
+            force("org.apache.httpcomponents.core5:httpcore5-h2:5.5") // 5.4.4 -> 5.5
+            force("tools.jackson.core:jackson-core:3.3.0") // 3.1.8 -> 3.3.0
+            force("tools.jackson.core:jackson-databind:3.3.0") // 3.1.8 -> 3.3.0
         }
     }
 }
@@ -26,10 +25,8 @@ plugins {
 group = "hu.pushinsky.viktor"
 version = providers.gradleProperty("releaseVersion").getOrElse("1.0.0")
 
-extra["tomcat.version"] = "11.0.27"
-extra["jackson-bom.version"] = "3.1.7"
-extra["postgresql.version"] = "42.7.14"
-extra["log4j2.version"] = "2.26.1"
+// Bump Tomcat embed above Spring Boot 4.2.0 BOM default (11.0.27 -> 11.0.29)
+extra["tomcat.version"] = "11.0.29"
 
 repositories {
     mavenCentral()
@@ -53,14 +50,8 @@ val archunitVersion = "1.5.1"
 
 dependencies {
     constraints {
+        // Track Tomcat embed CVE pin (enforced via extra["tomcat.version"] above BOM 11.0.27 -> 11.0.29)
         implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.29")
-        implementation("tools.jackson.core:jackson-core:3.3.0")
-        implementation("tools.jackson.core:jackson-databind:3.3.0")
-        implementation("org.postgresql:postgresql:42.7.14")
-        implementation("org.apache.logging.log4j:log4j-api:2.26.1")
-        implementation("org.apache.httpcomponents.client5:httpclient5:5.6.5")
-        implementation("org.apache.httpcomponents.core5:httpcore5:5.5")
-        implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.5")
     }
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -148,9 +139,10 @@ checkstyle {
 
 configurations.matching { it.name.startsWith("checkstyle") }.configureEach {
     resolutionStrategy {
-        force("org.codehaus.plexus:plexus-utils:4.2.0")
-        force("commons-beanutils:commons-beanutils:1.11.0")
-        force("com.google.guava:guava:33.8.0-jre")
+        // Bump Checkstyle plugin transitive dependencies above tool defaults (CVE pins)
+        force("org.codehaus.plexus:plexus-utils:4.2.0") // 3.3.0 -> 4.2.0
+        force("commons-beanutils:commons-beanutils:1.11.0") // 1.10.1 -> 1.11.0
+        force("com.google.guava:guava:33.8.0-jre") // 33.4.0-jre -> 33.8.0-jre (CVE-2026-102554)
     }
 }
 

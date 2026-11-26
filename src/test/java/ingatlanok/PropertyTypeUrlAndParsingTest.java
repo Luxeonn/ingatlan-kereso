@@ -140,48 +140,48 @@ class PropertyTypeUrlAndParsingTest {
     String cardLakas = "4025 Debrecen Belváros | 2 szoba | 55 m² 45 000 000 Ft";
     PriceInfo priceLakas = PropertyParser.parsePrice(cardLakas);
     PropertyDetails detailsLakas = PropertyParser.parseDetails(cardLakas, priceLakas);
-    assertEquals(45_000_000L, priceLakas.getAmountHuf());
-    assertEquals(45.0, priceLakas.getAmountMillion());
-    assertEquals(55.0, detailsLakas.getAreaSquareMeters());
-    assertEquals(2.0, detailsLakas.getRoomCount());
+    assertEquals(45_000_000L, priceLakas.amountHuf());
+    assertEquals(45.0, priceLakas.amountMillion());
+    assertEquals(55.0, detailsLakas.areaSquareMeters());
+    assertEquals(2.0, detailsLakas.roomCount());
 
     String cardHaz = "Prémium 4200 Hajdúszoboszló Kertváros | 4 szoba | 120 m² 105 000 000 Ft";
     PriceInfo priceHaz = PropertyParser.parsePrice(cardHaz);
     PropertyDetails detailsHaz = PropertyParser.parseDetails(cardHaz, priceHaz);
-    assertEquals(105_000_000L, priceHaz.getAmountHuf());
-    assertEquals(105.0, priceHaz.getAmountMillion());
-    assertEquals(120.0, detailsHaz.getAreaSquareMeters());
-    assertEquals(4.0, detailsHaz.getRoomCount());
+    assertEquals(105_000_000L, priceHaz.amountHuf());
+    assertEquals(105.0, priceHaz.amountMillion());
+    assertEquals(120.0, detailsHaz.areaSquareMeters());
+    assertEquals(4.0, detailsHaz.roomCount());
 
     String cardGarazs = "Debrecen Egyetemváros eladó garázs 18 m² 6,5 M Ft";
     PriceInfo priceGarazs = PropertyParser.parsePrice(cardGarazs);
     PropertyDetails detailsGarazs = PropertyParser.parseDetails(cardGarazs, priceGarazs);
-    assertEquals(6_500_000L, priceGarazs.getAmountHuf());
-    assertEquals(6.5, priceGarazs.getAmountMillion());
-    assertEquals(18.0, detailsGarazs.getAreaSquareMeters());
+    assertEquals(6_500_000L, priceGarazs.amountHuf());
+    assertEquals(6.5, priceGarazs.amountMillion());
+    assertEquals(18.0, detailsGarazs.areaSquareMeters());
 
     String cardTelek = "Hajdúszoboszló belterületi építési telek 800 m² 22 000 000 Ft";
     PriceInfo priceTelek = PropertyParser.parsePrice(cardTelek);
     PropertyDetails detailsTelek = PropertyParser.parseDetails(cardTelek, priceTelek);
-    assertEquals(22_000_000L, priceTelek.getAmountHuf());
-    assertEquals(22.0, priceTelek.getAmountMillion());
-    assertEquals(800.0, detailsTelek.getAreaSquareMeters());
+    assertEquals(22_000_000L, priceTelek.amountHuf());
+    assertEquals(22.0, priceTelek.amountMillion());
+    assertEquals(800.0, detailsTelek.areaSquareMeters());
 
     String cardNyaralo = "Balatonföldvár üdülőövezet 60 m² • 2 szoba 35,9M Ft";
     PriceInfo priceNyaralo = PropertyParser.parsePrice(cardNyaralo);
     PropertyDetails detailsNyaralo = PropertyParser.parseDetails(cardNyaralo, priceNyaralo);
-    assertEquals(35_900_000L, priceNyaralo.getAmountHuf());
-    assertEquals(35.9, priceNyaralo.getAmountMillion());
-    assertEquals(60.0, detailsNyaralo.getAreaSquareMeters());
-    assertEquals(2.0, detailsNyaralo.getRoomCount());
+    assertEquals(35_900_000L, priceNyaralo.amountHuf());
+    assertEquals(35.9, priceNyaralo.amountMillion());
+    assertEquals(60.0, detailsNyaralo.areaSquareMeters());
+    assertEquals(2.0, detailsNyaralo.roomCount());
 
     String cardIroda = "Szeged Belvárosi Iroda 110 m² | 3 szoba 75 000 000 Ft";
     PriceInfo priceIroda = PropertyParser.parsePrice(cardIroda);
     PropertyDetails detailsIroda = PropertyParser.parseDetails(cardIroda, priceIroda);
-    assertEquals(75_000_000L, priceIroda.getAmountHuf());
-    assertEquals(75.0, priceIroda.getAmountMillion());
-    assertEquals(110.0, detailsIroda.getAreaSquareMeters());
-    assertEquals(3.0, detailsIroda.getRoomCount());
+    assertEquals(75_000_000L, priceIroda.amountHuf());
+    assertEquals(75.0, priceIroda.amountMillion());
+    assertEquals(110.0, detailsIroda.areaSquareMeters());
+    assertEquals(3.0, detailsIroda.roomCount());
   }
 
   @Test

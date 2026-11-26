@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -9,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 /**
  * Lifecycle status of a property listing across portal aggregations (#401 / JAVA-001).
  */
-public enum ListingStatus implements Serializable {
+public enum ListingStatus {
   ACTIVE,
   PRICE_DROP,
   PRICE_INCREASE,

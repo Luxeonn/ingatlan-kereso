@@ -72,7 +72,7 @@ class KoltozzbeAdapterTest {
     assertEquals(2, result.getItems().size());
     assertEquals("1001", result.getItems().get(0).getId());
     assertEquals("1002", result.getItems().get(1).getId());
-    assertEquals(95_000_000L, result.getItems().get(1).getPriceInfo().getAmountHuf());
+    assertEquals(95_000_000L, result.getItems().get(1).getPriceInfo().amountHuf());
   }
 
   @Test

@@ -1,7 +1,5 @@
 package ingatlanok.persistence.entity;
 
-import java.io.Serializable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -28,7 +26,7 @@ import lombok.Setter;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class PriceHistoryEntity implements Serializable {
+public class PriceHistoryEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

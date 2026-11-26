@@ -21,15 +21,15 @@ public final class ClusterConsolidationHelper {
   public static boolean hasPositiveArea(IngatlanItem item) {
     return item != null
         && item.getDetailsInfo() != null
-        && item.getDetailsInfo().getAreaSquareMeters() != null
-        && item.getDetailsInfo().getAreaSquareMeters() > 0;
+        && item.getDetailsInfo().areaSquareMeters() != null
+        && item.getDetailsInfo().areaSquareMeters() > 0;
   }
 
   public static boolean hasPositiveRooms(IngatlanItem item) {
     return item != null
         && item.getDetailsInfo() != null
-        && item.getDetailsInfo().getRoomCount() != null
-        && item.getDetailsInfo().getRoomCount() > 0;
+        && item.getDetailsInfo().roomCount() != null
+        && item.getDetailsInfo().roomCount() > 0;
   }
 
   public static void adoptMissingDetailsFromCluster(IngatlanItem primary, List<IngatlanItem> cluster) {
@@ -46,11 +46,11 @@ public final class ClusterConsolidationHelper {
 
   private static Double findFirstPositiveArea(IngatlanItem primary, List<IngatlanItem> cluster) {
     if (hasPositiveArea(primary)) {
-      return primary.getDetailsInfo().getAreaSquareMeters();
+      return primary.getDetailsInfo().areaSquareMeters();
     }
     for (IngatlanItem member : cluster) {
       if (hasPositiveArea(member)) {
-        return member.getDetailsInfo().getAreaSquareMeters();
+        return member.getDetailsInfo().areaSquareMeters();
       }
     }
     return null;
@@ -58,23 +58,23 @@ public final class ClusterConsolidationHelper {
 
   private static Double findFirstPositiveRooms(IngatlanItem primary, List<IngatlanItem> cluster) {
     if (hasPositiveRooms(primary)) {
-      return primary.getDetailsInfo().getRoomCount();
+      return primary.getDetailsInfo().roomCount();
     }
     for (IngatlanItem member : cluster) {
       if (hasPositiveRooms(member)) {
-        return member.getDetailsInfo().getRoomCount();
+        return member.getDetailsInfo().roomCount();
       }
     }
     return null;
   }
 
   private static void enrichPrimaryDetails(IngatlanItem primary, Double area, Double rooms) {
-    Long priceHuf = primary.getPriceInfo() != null ? primary.getPriceInfo().getAmountHuf() : null;
+    Long priceHuf = primary.getPriceInfo() != null ? primary.getPriceInfo().amountHuf() : null;
     Long sqmPrice = (area != null && area > 0 && priceHuf != null && priceHuf > 0)
         ? Math.round((double) priceHuf / area)
         : null;
 
-    String currentRaw = primary.getDetailsInfo() != null ? primary.getDetailsInfo().getRawText() : null;
+    String currentRaw = primary.getDetailsInfo() != null ? primary.getDetailsInfo().rawText() : null;
     String newRaw = (currentRaw != null && !currentRaw.isBlank())
         ? currentRaw
         : formatDetailsText(area, rooms);
@@ -114,12 +114,12 @@ public final class ClusterConsolidationHelper {
   }
 
   public static Long resolveSourcePricePerM2(IngatlanItem item, Long priceHuf, Double fallbackArea) {
-    if (item.getDetailsInfo() != null && item.getDetailsInfo().getPricePerSquareMeter() != null
-        && item.getDetailsInfo().getPricePerSquareMeter() > 0) {
-      return item.getDetailsInfo().getPricePerSquareMeter().longValue();
+    if (item.getDetailsInfo() != null && item.getDetailsInfo().pricePerSquareMeter() != null
+        && item.getDetailsInfo().pricePerSquareMeter() > 0) {
+      return item.getDetailsInfo().pricePerSquareMeter().longValue();
     }
     Double area = hasPositiveArea(item)
-        ? item.getDetailsInfo().getAreaSquareMeters()
+        ? item.getDetailsInfo().areaSquareMeters()
         : fallbackArea;
     if (priceHuf != null && area != null && area > 0) {
       return Math.round((double) priceHuf / area);
@@ -174,11 +174,11 @@ public final class ClusterConsolidationHelper {
       return normalizePortalName(portal);
     }
     if (item.getSource() != null) {
-      String sourceId = item.getSource().getPortalId();
+      String sourceId = item.getSource().portalId();
       if (sourceId != null && !sourceId.isBlank()) {
         return normalizePortalName(sourceId);
       }
-      String sourceName = item.getSource().getPortalName();
+      String sourceName = item.getSource().portalName();
       if (sourceName != null && !sourceName.isBlank()) {
         return normalizePortalName(sourceName);
       }
@@ -188,7 +188,7 @@ public final class ClusterConsolidationHelper {
 
   private static String normalizePortalName(String raw) {
     String lower = raw.trim().toLowerCase(Locale.ROOT);
-    String portalId = PortalSource.of(lower).getPortalId();
+    String portalId = PortalSource.of(lower).portalId();
     if ("jf".equals(portalId)) {
       return "jofogas";
     }
@@ -228,8 +228,8 @@ public final class ClusterConsolidationHelper {
    * Checks whether two items' areas are both positive and within the allowed difference ratio.
    */
   public static boolean isWithinAreaRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
-    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
-    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
+    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().areaSquareMeters() : null;
+    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().areaSquareMeters() : null;
     if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
       return false;
     }
@@ -241,8 +241,8 @@ public final class ClusterConsolidationHelper {
    * Checks whether two items' prices are both positive and within the allowed difference ratio.
    */
   public static boolean isWithinPriceRatio(IngatlanItem a, IngatlanItem b, double maxRatio) {
-    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
-    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
+    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().amountHuf() : null;
+    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().amountHuf() : null;
     if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
       return false;
     }
@@ -254,8 +254,8 @@ public final class ClusterConsolidationHelper {
    * Checks whether two items have room counts compatible within {@code maxDiff} (or one is missing).
    */
   public static boolean hasCompatibleRoomCount(IngatlanItem a, IngatlanItem b, double maxDiff) {
-    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
-    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
+    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().roomCount() : null;
+    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().roomCount() : null;
     if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
       return true;
     }
@@ -269,22 +269,22 @@ public final class ClusterConsolidationHelper {
     List<IngatlanItem> activeWithPrice = cluster.stream()
         .filter(Objects::nonNull)
         .filter(i -> i.getStatus() == null || i.getStatus() == ListingStatus.ACTIVE)
-        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
-            && i.getPriceInfo().getAmountHuf() > 0)
+        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().amountHuf() != null
+            && i.getPriceInfo().amountHuf() > 0)
         .toList();
     if (!activeWithPrice.isEmpty()) {
       return activeWithPrice.stream()
-          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
+          .min(Comparator.comparingLong(i -> i.getPriceInfo().amountHuf()))
           .orElse(cluster.get(0));
     }
     List<IngatlanItem> anyWithPrice = cluster.stream()
         .filter(Objects::nonNull)
-        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().getAmountHuf() != null
-            && i.getPriceInfo().getAmountHuf() > 0)
+        .filter(i -> i.getPriceInfo() != null && i.getPriceInfo().amountHuf() != null
+            && i.getPriceInfo().amountHuf() > 0)
         .toList();
     if (!anyWithPrice.isEmpty()) {
       return anyWithPrice.stream()
-          .min(Comparator.comparingLong(i -> i.getPriceInfo().getAmountHuf()))
+          .min(Comparator.comparingLong(i -> i.getPriceInfo().amountHuf()))
           .orElse(cluster.get(0));
     }
     return cluster.get(0);

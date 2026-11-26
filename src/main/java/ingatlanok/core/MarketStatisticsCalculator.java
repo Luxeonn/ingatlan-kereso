@@ -64,11 +64,11 @@ public class MarketStatisticsCalculator {
     PropertyDetails details = item.getDetailsInfo();
     PriceInfo price = item.getPriceInfo();
     Long effectiveAmount = resolveEffectiveAmountHuf(item, price);
-    Double area = details != null ? details.getAreaSquareMeters() : null;
+    Double area = details != null ? details.areaSquareMeters() : null;
     if (hasValidPositive(effectiveAmount, area) && differsFromPrimaryPrice(effectiveAmount, price)) {
       return Math.round((double) effectiveAmount / area);
     }
-    Long directSqm = details != null ? details.getPricePerSquareMeter() : null;
+    Long directSqm = details != null ? details.pricePerSquareMeter() : null;
     if (directSqm != null && directSqm > 0) {
       return directSqm;
     }
@@ -82,13 +82,13 @@ public class MarketStatisticsCalculator {
   }
 
   private boolean differsFromPrimaryPrice(Long effectiveAmount, PriceInfo price) {
-    return price == null || price.getAmountHuf() == null || !effectiveAmount.equals(price.getAmountHuf());
+    return price == null || price.amountHuf() == null || !effectiveAmount.equals(price.amountHuf());
   }
 
   private Long resolveEffectiveAmountHuf(IngatlanItem item, PriceInfo price) {
     List<SourceListing> sources = item.getSourceListings();
     if (sources == null || sources.isEmpty()) {
-      return price != null ? price.getAmountHuf() : null;
+      return price != null ? price.amountHuf() : null;
     }
     Long minActive = null;
     for (SourceListing src : sources) {
@@ -96,7 +96,7 @@ public class MarketStatisticsCalculator {
         minActive = src.getPriceHuf();
       }
     }
-    return minActive != null ? minActive : (price != null ? price.getAmountHuf() : null);
+    return minActive != null ? minActive : (price != null ? price.amountHuf() : null);
   }
 
   private boolean isActivePositiveSource(SourceListing src) {
@@ -159,9 +159,9 @@ public class MarketStatisticsCalculator {
         bucketPricesM2.add(pm2);
       }
       if (bi.getPriceInfo() != null
-          && bi.getPriceInfo().getAmountMillion() != null
-          && bi.getPriceInfo().getAmountMillion() > 0) {
-        bucketPricesM.add(bi.getPriceInfo().getAmountMillion());
+          && bi.getPriceInfo().amountMillion() != null
+          && bi.getPriceInfo().amountMillion() > 0) {
+        bucketPricesM.add(bi.getPriceInfo().amountMillion());
       }
     }
   }

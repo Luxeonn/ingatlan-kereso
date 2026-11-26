@@ -604,26 +604,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/DashboardResponseDto'
 
-  /api/open-urls:
-    post:
-      summary: URL-ek megnyitása és megtekintettként megjelölése
-      operationId: openUrls
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                type: string
-      responses:
-        '200':
-          description: Sikeres megnyitás és státusz frissítés eredménye
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OpenUrlsResponse'
-
   /api/items/viewed:
     post:
       summary: Egy adott hirdetés megtekintettként történő megjelölése
@@ -859,20 +839,6 @@ components:
 
     ErrorResponse:
       $ref: '#/components/schemas/ApiErrorResponse'
-
-    OpenUrlsResponse:
-      type: object
-      required:
-        - success
-        - count
-      properties:
-        success:
-          type: boolean
-        count:
-          type: integer
-
-    OpenUrlsResponseDto:
-      $ref: '#/components/schemas/OpenUrlsResponse'
 
     MarkViewedResponse:
       type: object
@@ -1359,9 +1325,6 @@ components:
           items:
             type: string
           default: []
-        autoOpenBrowser:
-          type: boolean
-          default: false
         excludeViewed:
           type: boolean
           default: false

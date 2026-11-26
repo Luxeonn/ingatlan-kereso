@@ -11,7 +11,6 @@ export const DEFAULT_MOCK_CONFIG: SearchCriteria = {
   maxArea: 150,
   propertyType: 'LAKAS',
   portals: ['dh', 'oc', 'jofogas', 'koltozzbe', 'ingatlanbazar', 'ingatlancom'],
-  autoOpenBrowser: false,
   excludeViewed: false,
   onlyDiscounted: false,
   onlyNewConstruction: false,

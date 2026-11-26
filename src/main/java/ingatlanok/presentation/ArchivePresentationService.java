@@ -1,8 +1,8 @@
 package ingatlanok.presentation;
 
 import java.util.List;
-import java.util.Objects;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import ingatlanok.core.DataQualityEngine;
@@ -17,20 +17,12 @@ import ingatlanok.persistence.PropertySearchCriteria;
  * quality evaluation across all archive endpoints.
  */
 @Service
+@RequiredArgsConstructor
 public class ArchivePresentationService {
 
   private final ListingStorage listingStorage;
   private final DeduplicationEngine dedupEngine;
   private final DataQualityEngine qualityEngine;
-
-  public ArchivePresentationService(
-      ListingStorage listingStorage,
-      DeduplicationEngine dedupEngine,
-      DataQualityEngine qualityEngine) {
-    this.listingStorage = Objects.requireNonNull(listingStorage);
-    this.dedupEngine = Objects.requireNonNull(dedupEngine);
-    this.qualityEngine = Objects.requireNonNull(qualityEngine);
-  }
 
   public List<IngatlanItem> getHiddenProperties() {
     return deduplicateAndEvaluate(listingStorage.getHiddenProperties());

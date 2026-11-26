@@ -59,17 +59,17 @@ class KoltozzbeLiveHtmlParsingTest {
 
     IngatlanItem h10911678 = byId.get("10911678");
     assertNotNull(h10911678);
-    assertEquals(106_000_000L, h10911678.getPriceInfo().getAmountHuf());
-    assertEquals(132.0, h10911678.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(4.5, h10911678.getDetailsInfo().getRoomCount());
+    assertEquals(106_000_000L, h10911678.getPriceInfo().amountHuf());
+    assertEquals(132.0, h10911678.getDetailsInfo().areaSquareMeters());
+    assertEquals(4.5, h10911678.getDetailsInfo().roomCount());
     assertEquals("Debrecen", h10911678.getCity());
     assertEquals("Debrecen, Buzogány utca", h10911678.getLocation());
 
     IngatlanItem h10841919 = byId.get("10841919");
     assertNotNull(h10841919);
-    assertEquals(109_000_000L, h10841919.getPriceInfo().getAmountHuf());
-    assertEquals(157.0, h10841919.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.5, h10841919.getDetailsInfo().getRoomCount());
+    assertEquals(109_000_000L, h10841919.getPriceInfo().amountHuf());
+    assertEquals(157.0, h10841919.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.5, h10841919.getDetailsInfo().roomCount());
   }
 
   @Test

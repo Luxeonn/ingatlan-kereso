@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -59,7 +60,6 @@ class OpenApiSpecIntegrityTest {
             "/api/properties/discounted:",
             "/api/portals/ingatlancom/import-html:",
             "/api/search:",
-            "/api/open-urls:",
             "/api/items/viewed:",
             "/api/history/clear:",
             "/api/presets:",
@@ -184,24 +184,35 @@ class OpenApiSpecIntegrityTest {
       Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
       assertNotNull(properties, "Nincsenek 'properties' definiálva a sémában: " + schemaName);
 
-      for (Method method : dtoClass.getDeclaredMethods()) {
-        if (!Modifier.isPublic(method.getModifiers()) || method.getParameterCount() > 0) {
-          continue;
-        }
-        String name = method.getName();
-        String propName = null;
-        if (name.startsWith("get") && name.length() > 3 && !name.equals("getClass")) {
-          propName = Character.toLowerCase(name.charAt(3)) + name.substring(4);
-        } else if (name.startsWith("is") && name.length() > 2) {
-          propName = Character.toLowerCase(name.charAt(2)) + name.substring(3);
-        }
-
-        if (propName != null) {
+      if (dtoClass.isRecord()) {
+        for (RecordComponent component : dtoClass.getRecordComponents()) {
+          String propName = component.getName();
           assertTrue(
               properties.containsKey(propName),
               String.format(
-                  "A(z) %s DTO getteréből származtatott '%s' tulajdonság hiányzik az OpenAPI '%s' sémájából!",
+                  "A(z) %s DTO rekord komponensének ('%s') szerepelnie kell az OpenAPI '%s' sémájából!",
                   schemaName, propName, schemaName));
+        }
+      } else {
+        for (Method method : dtoClass.getDeclaredMethods()) {
+          if (!Modifier.isPublic(method.getModifiers()) || method.getParameterCount() > 0) {
+            continue;
+          }
+          String name = method.getName();
+          String propName = null;
+          if (name.startsWith("get") && name.length() > 3 && !name.equals("getClass")) {
+            propName = Character.toLowerCase(name.charAt(3)) + name.substring(4);
+          } else if (name.startsWith("is") && name.length() > 2) {
+            propName = Character.toLowerCase(name.charAt(2)) + name.substring(3);
+          }
+
+          if (propName != null) {
+            assertTrue(
+                properties.containsKey(propName),
+                String.format(
+                    "A(z) %s DTO getteréből származtatott '%s' tulajdonság hiányzik az OpenAPI '%s' sémájából!",
+                    schemaName, propName, schemaName));
+          }
         }
       }
     }

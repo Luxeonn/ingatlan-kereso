@@ -1,6 +1,5 @@
 package ingatlanok.web;
 
-import java.io.Serializable;
 import java.time.Instant;
 
 /**
@@ -11,8 +10,7 @@ public record ApiErrorResponse(
     int status,
     String error,
     String message,
-    String path)
-    implements Serializable {
+    String path) {
 
   public static ApiErrorResponse of(int status, String error, String message, String path) {
     return new ApiErrorResponse(Instant.now(), status, error, message, path);

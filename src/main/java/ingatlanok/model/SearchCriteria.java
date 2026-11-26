@@ -1,6 +1,5 @@
 package ingatlanok.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +16,7 @@ import ingatlanok.common.SlugUtils;
 
 @Getter
 @Setter
-public class SearchCriteria implements Serializable {
+public class SearchCriteria {
 
   @Size(max = 200, message = "A település neve túl hosszú (max. 200 karakter)!")
   private String city = "Hajdúszoboszló";
@@ -43,7 +42,6 @@ public class SearchCriteria implements Serializable {
   @PositiveOrZero(message = "A minimum szobaszám nem lehet negatív")
   private Integer minRooms;
   private List<String> portals = new ArrayList<>();
-  private boolean autoOpenBrowser = false;
   private boolean excludeViewed = false;
   private boolean onlyDiscounted = false;
   private boolean onlyNewConstruction = false;
@@ -118,7 +116,6 @@ public class SearchCriteria implements Serializable {
     clone.setMaxArea(this.maxArea);
     clone.setMinRooms(this.minRooms);
     clone.setPortals(this.portals != null ? new ArrayList<>(this.portals) : new ArrayList<>());
-    clone.setAutoOpenBrowser(this.autoOpenBrowser);
     clone.setExcludeViewed(this.excludeViewed);
     clone.setOnlyDiscounted(this.onlyDiscounted);
     clone.setOnlyNewConstruction(this.onlyNewConstruction);
@@ -192,10 +189,10 @@ public class SearchCriteria implements Serializable {
     }
 
     Double area =
-        (item.getDetailsInfo() != null) ? item.getDetailsInfo().getAreaSquareMeters() : null;
+        (item.getDetailsInfo() != null) ? item.getDetailsInfo().areaSquareMeters() : null;
     if (area == null && item.getDetails() != null) {
       PropertyDetails parsed = PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo());
-      area = parsed.getAreaSquareMeters();
+      area = parsed.areaSquareMeters();
     }
     if (!PropertyParser.isAreaInRange(area, minArea, maxArea)) {
       return false;

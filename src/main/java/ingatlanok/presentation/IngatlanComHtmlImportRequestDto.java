@@ -12,6 +12,6 @@ public record IngatlanComHtmlImportRequestDto(
     @NotBlank(message = "Az importálandó HTML tartalom nem lehet üres")
         @Size(max = 5_242_880, message = "A HTML tartalom mérete meghaladja a 5 MB korlátot")
         String html,
-    String sourceUrl,
-    String city,
+    @Size(max = 2000, message = "A forrás URL túl hosszú") String sourceUrl,
+    @Size(max = 200, message = "A település neve túl hosszú") String city,
     PropertyType propertyType) {}

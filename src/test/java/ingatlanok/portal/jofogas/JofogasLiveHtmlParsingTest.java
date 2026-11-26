@@ -51,7 +51,7 @@ class JofogasLiveHtmlParsingTest {
     assertFalse(
         result.getItems().stream()
             .anyMatch(item -> item.getDetailsInfo() != null
-                && Double.valueOf(1350.0).equals(item.getDetailsInfo().getAreaSquareMeters())),
+                && Double.valueOf(1350.0).equals(item.getDetailsInfo().areaSquareMeters())),
         "A címben szereplő 1350 nm-es telekméret nem írhatja felül az épület alapterületét");
 
     Map<String, IngatlanItem> byId = result.getItems().stream()
@@ -59,23 +59,23 @@ class JofogasLiveHtmlParsingTest {
 
     IngatlanItem ad146862190 = byId.get("146862190");
     assertNotNull(ad146862190);
-    assertEquals(91_900_000L, ad146862190.getPriceInfo().getAmountHuf());
-    assertEquals(90.0, ad146862190.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(5.0, ad146862190.getDetailsInfo().getRoomCount());
+    assertEquals(91_900_000L, ad146862190.getPriceInfo().amountHuf());
+    assertEquals(90.0, ad146862190.getDetailsInfo().areaSquareMeters());
+    assertEquals(5.0, ad146862190.getDetailsInfo().roomCount());
     assertEquals("Debrecen", ad146862190.getCity());
     assertEquals("Debrecen, Alsó-Józsa", ad146862190.getLocation());
 
     IngatlanItem ad153288767 = byId.get("153288767");
     assertNotNull(ad153288767);
-    assertEquals(109_999_000L, ad153288767.getPriceInfo().getAmountHuf());
-    assertEquals(120.0, ad153288767.getDetailsInfo().getAreaSquareMeters());
+    assertEquals(109_999_000L, ad153288767.getPriceInfo().amountHuf());
+    assertEquals(120.0, ad153288767.getDetailsInfo().areaSquareMeters());
     assertEquals("Debrecen, Júliakert", ad153288767.getLocation());
 
     IngatlanItem ad157303459 = byId.get("157303459");
     assertNotNull(ad157303459);
-    assertEquals(115_000_000L, ad157303459.getPriceInfo().getAmountHuf());
-    assertEquals(150.0, ad157303459.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(5.0, ad157303459.getDetailsInfo().getRoomCount());
+    assertEquals(115_000_000L, ad157303459.getPriceInfo().amountHuf());
+    assertEquals(150.0, ad157303459.getDetailsInfo().areaSquareMeters());
+    assertEquals(5.0, ad157303459.getDetailsInfo().roomCount());
     assertEquals("Debrecen, Lenc-telep", ad157303459.getLocation());
   }
 

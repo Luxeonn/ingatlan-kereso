@@ -295,8 +295,8 @@ public final class ClusterMatchScorer {
   }
 
   private static double scorePriceProximity(IngatlanItem a, IngatlanItem b) {
-    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().getAmountHuf() : null;
-    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().getAmountHuf() : null;
+    Long priceA = a.getPriceInfo() != null ? a.getPriceInfo().amountHuf() : null;
+    Long priceB = b.getPriceInfo() != null ? b.getPriceInfo().amountHuf() : null;
     if (priceA == null || priceB == null || priceA <= 0 || priceB <= 0) {
       return 0.0;
     }
@@ -306,8 +306,8 @@ public final class ClusterMatchScorer {
   }
 
   private static double scoreAreaProximity(IngatlanItem a, IngatlanItem b) {
-    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
-    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
+    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().areaSquareMeters() : null;
+    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().areaSquareMeters() : null;
     if (areaA == null || areaB == null || areaA <= 0 || areaB <= 0) {
       return 0.0;
     }
@@ -319,8 +319,8 @@ public final class ClusterMatchScorer {
   }
 
   private static double scoreRoomProximity(IngatlanItem a, IngatlanItem b) {
-    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
-    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
+    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().roomCount() : null;
+    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().roomCount() : null;
     if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
       return 0.0;
     }

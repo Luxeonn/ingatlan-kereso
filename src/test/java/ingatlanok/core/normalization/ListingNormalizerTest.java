@@ -102,11 +102,11 @@ class ListingNormalizerTest {
     assertEquals("DH-999", item.getId());
     assertEquals("https://dh.hu/ingatlan/elado/lakas/debrecen/999", item.getUrl());
     assertEquals("https://dh.hu/images/dh999.jpg", item.getImageUrl());
-    assertEquals(52_000_000L, item.getPriceInfo().getAmountHuf());
-    assertEquals(52.0, item.getPriceInfo().getAmountMillion());
-    assertEquals(65.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(2.0, item.getDetailsInfo().getRoomCount());
-    assertEquals(Math.round(52_000_000.0 / 65.0), item.getDetailsInfo().getPricePerSquareMeter());
+    assertEquals(52_000_000L, item.getPriceInfo().amountHuf());
+    assertEquals(52.0, item.getPriceInfo().amountMillion());
+    assertEquals(65.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(2.0, item.getDetailsInfo().roomCount());
+    assertEquals(Math.round(52_000_000.0 / 65.0), item.getDetailsInfo().pricePerSquareMeter());
     assertTrue(item.isNewConstruction());
     assertEquals(PropertyType.LAKAS, item.getPropertyType());
   }

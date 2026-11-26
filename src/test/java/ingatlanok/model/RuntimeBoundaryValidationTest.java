@@ -18,7 +18,14 @@ import org.junit.jupiter.api.Test;
 import ingatlanok.core.normalization.ListingValidator;
 import ingatlanok.model.raw.RawPropertyListing;
 import ingatlanok.portal.PortalDescriptor;
+import ingatlanok.presentation.DedupMergeRequestDto;
+import ingatlanok.presentation.DedupSplitRequestDto;
+import ingatlanok.presentation.IngatlanComHtmlImportRequestDto;
+import ingatlanok.web.ClearHistoryRequest;
+import ingatlanok.web.DedupOverridesQueryDto;
 import ingatlanok.web.HistoryQueryDto;
+import ingatlanok.web.MarkViewedRequest;
+import ingatlanok.web.PropertyLookupQueryDto;
 
 @DisplayName("RuntimeBoundaryValidationTest - Domain és külső határ típusbiztonsági validációs egységtesztek (#403)")
 class RuntimeBoundaryValidationTest {
@@ -213,5 +220,152 @@ class RuntimeBoundaryValidationTest {
         .locationText("Debrecen")
         .build();
     assertFalse(validator.isValid(nullByteText, desc));
+  }
+
+  @Test
+  @DisplayName("DedupSplitRequestDto Bean Validation - Happy path, 1000/30 határérték és hibás esetek")
+  void testDedupSplitRequestDtoValidation() {
+    String url1000 = "https://dh.hu/" + "a".repeat(986);
+    String url1001 = url1000 + "b";
+    List<String> exactly30 = createUrls(30, 1000);
+    List<String> thirtyOne = createUrls(31, 30);
+
+    assertTrue(
+        validator.validate(new DedupSplitRequestDto(url1000, List.of(url1000))).isEmpty());
+    assertTrue(validator.validate(new DedupSplitRequestDto(url1000, exactly30)).isEmpty());
+
+    assertFalse(
+        validator.validate(new DedupSplitRequestDto("   ", List.of("https://dh.hu/1"))).isEmpty());
+    assertFalse(
+        validator.validate(new DedupSplitRequestDto(null, List.of("https://dh.hu/1"))).isEmpty());
+    assertFalse(
+        validator.validate(new DedupSplitRequestDto(url1001, List.of("https://dh.hu/1"))).isEmpty());
+    assertFalse(validator.validate(new DedupSplitRequestDto("https://dh.hu/1", List.of())).isEmpty());
+    assertFalse(
+        validator.validate(new DedupSplitRequestDto("https://dh.hu/1", List.of("  "))).isEmpty());
+    assertFalse(
+        validator.validate(new DedupSplitRequestDto("https://dh.hu/1", List.of(url1001))).isEmpty());
+    assertFalse(validator.validate(new DedupSplitRequestDto("https://dh.hu/1", thirtyOne)).isEmpty());
+  }
+
+  @Test
+  @DisplayName("DedupMergeRequestDto Bean Validation - Happy path, 2..30 és 1000 határértékek")
+  void testDedupMergeRequestDtoValidation() {
+    String url1000 = "https://dh.hu/" + "a".repeat(986);
+    String url1001 = url1000 + "b";
+
+    assertTrue(
+        validator
+            .validate(new DedupMergeRequestDto(List.of("https://dh.hu/1", "https://oc.hu/2")))
+            .isEmpty());
+    assertTrue(validator.validate(new DedupMergeRequestDto(createUrls(30, 1000))).isEmpty());
+
+    assertFalse(validator.validate(new DedupMergeRequestDto(null)).isEmpty());
+    assertFalse(validator.validate(new DedupMergeRequestDto(List.of("https://dh.hu/1"))).isEmpty());
+    assertFalse(validator.validate(new DedupMergeRequestDto(createUrls(31, 30))).isEmpty());
+    assertFalse(
+        validator.validate(new DedupMergeRequestDto(List.of("https://dh.hu/1", "  "))).isEmpty());
+    assertFalse(
+        validator.validate(new DedupMergeRequestDto(List.of("https://dh.hu/1", url1001))).isEmpty());
+  }
+
+  @Test
+  @DisplayName("DedupOverridesQueryDto Bean Validation - URL, 30 egyedi elem és határértékek")
+  void testDedupOverridesQueryDtoValidation() {
+    String url1000 = "https://dh.hu/" + "a".repeat(986);
+    String url1001 = url1000 + "b";
+    List<String> thirtyDistinct = createUrls(30, 40);
+
+    assertTrue(validator.validate(new DedupOverridesQueryDto(url1000, null)).isEmpty());
+    assertTrue(validator.validate(new DedupOverridesQueryDto(null, createUrls(30, 1000))).isEmpty());
+    assertTrue(
+        validator
+            .validate(new DedupOverridesQueryDto(thirtyDistinct.get(0), thirtyDistinct))
+            .isEmpty());
+
+    assertFalse(validator.validate(new DedupOverridesQueryDto(null, null)).isEmpty());
+    assertFalse(validator.validate(new DedupOverridesQueryDto("   ", List.of("  "))).isEmpty());
+    assertFalse(validator.validate(new DedupOverridesQueryDto(url1001, null)).isEmpty());
+    assertFalse(validator.validate(new DedupOverridesQueryDto(null, List.of(url1001))).isEmpty());
+    assertFalse(validator.validate(new DedupOverridesQueryDto(null, createUrls(31, 40))).isEmpty());
+    assertFalse(
+        validator
+            .validate(new DedupOverridesQueryDto("https://dh.hu/extra", thirtyDistinct))
+            .isEmpty());
+  }
+
+  @Test
+  @DisplayName("PropertyLookupQueryDto, MarkViewedRequest és ClearHistoryRequest határérték validáció")
+  void testRequestLookupAndSimpleDtosValidation() {
+    String len1000 = "x".repeat(1000);
+    String len1001 = "x".repeat(1001);
+    String city200 = "B".repeat(200);
+    String city201 = "B".repeat(201);
+
+    assertTrue(validator.validate(new PropertyLookupQueryDto(len1000, null)).isEmpty());
+    assertTrue(validator.validate(new PropertyLookupQueryDto(null, len1000)).isEmpty());
+    assertFalse(validator.validate(new PropertyLookupQueryDto(null, null)).isEmpty());
+    assertFalse(validator.validate(new PropertyLookupQueryDto("  ", "")).isEmpty());
+    assertFalse(validator.validate(new PropertyLookupQueryDto(len1001, null)).isEmpty());
+    assertFalse(validator.validate(new PropertyLookupQueryDto(null, len1001)).isEmpty());
+
+    assertTrue(validator.validate(new MarkViewedRequest(null)).isEmpty());
+    assertTrue(validator.validate(new MarkViewedRequest("")).isEmpty());
+    assertTrue(validator.validate(new MarkViewedRequest(len1000)).isEmpty());
+    assertFalse(validator.validate(new MarkViewedRequest(len1001)).isEmpty());
+
+    assertTrue(validator.validate(new ClearHistoryRequest(null)).isEmpty());
+    assertTrue(validator.validate(new ClearHistoryRequest("")).isEmpty());
+    assertTrue(validator.validate(new ClearHistoryRequest(city200)).isEmpty());
+    assertFalse(validator.validate(new ClearHistoryRequest(city201)).isEmpty());
+  }
+
+  @Test
+  @DisplayName("IngatlanComHtmlImportRequestDto Bean Validation - Happy path, 200/2000/5MB határok")
+  void testIngatlanComHtmlImportRequestDtoValidation() {
+    String url2000 = "https://ingatlan.com/" + "u".repeat(1979);
+    String url2001 = url2000 + "x";
+    String city200 = "D".repeat(200);
+    String city201 = "D".repeat(201);
+
+    assertTrue(
+        validator
+            .validate(
+                new IngatlanComHtmlImportRequestDto(
+                    "<html></html>", url2000, city200, PropertyType.LAKAS))
+            .isEmpty());
+
+    assertFalse(
+        validator
+            .validate(new IngatlanComHtmlImportRequestDto("   ", null, "Debrecen", PropertyType.HAZ))
+            .isEmpty());
+    assertFalse(
+        validator
+            .validate(
+                new IngatlanComHtmlImportRequestDto(
+                    "<html></html>", url2001, "Debrecen", PropertyType.HAZ))
+            .isEmpty());
+    assertFalse(
+        validator
+            .validate(
+                new IngatlanComHtmlImportRequestDto(
+                    "<html></html>", "https://ingatlan.com/lista", city201, PropertyType.HAZ))
+            .isEmpty());
+    assertFalse(
+        validator
+            .validate(
+                new IngatlanComHtmlImportRequestDto(
+                    "h".repeat(5_242_881), null, "Debrecen", PropertyType.HAZ))
+            .isEmpty());
+  }
+
+  private List<String> createUrls(int count, int targetLength) {
+    List<String> urls = new ArrayList<>(count);
+    for (int i = 0; i < count; i++) {
+      String prefix = "https://dh.hu/item-" + i + "-";
+      int padding = Math.max(0, targetLength - prefix.length());
+      urls.add(prefix + "a".repeat(padding));
+    }
+    return urls;
   }
 }

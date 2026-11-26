@@ -46,15 +46,15 @@ class DashboardPresentationServiceTest {
     MarketStatsDto stats = service.calculateMarketStats(List.of(item1, item2));
 
     assertNotNull(stats);
-    assertEquals(50.0, stats.getAveragePriceMillion(), "Átlagár (40 + 60) / 2 = 50 M Ft");
-    assertEquals(40.0, stats.getMinPriceMillion());
-    assertEquals(60.0, stats.getMaxPriceMillion());
+    assertEquals(50.0, stats.averagePriceMillion(), "Átlagár (40 + 60) / 2 = 50 M Ft");
+    assertEquals(40.0, stats.minPriceMillion());
+    assertEquals(60.0, stats.maxPriceMillion());
     assertEquals(
         1_100_000L,
-        stats.getAveragePricePerM2(),
+        stats.averagePricePerM2(),
         "Átlagos m2 ár (1.000.000 + 1.200.000) / 2 = 1.100.000 Ft/m²");
-    assertEquals(50.0, stats.getNewRatePercent(), "2 elemből 1 új = 50%");
-    assertEquals(2, stats.getCityBreakdown().get("Debrecen"));
+    assertEquals(50.0, stats.newRatePercent(), "2 elemből 1 új = 50%");
+    assertEquals(2, stats.cityBreakdown().get("Debrecen"));
   }
 
   @Test
@@ -63,8 +63,8 @@ class DashboardPresentationServiceTest {
     MarketStatsDto stats = service.calculateMarketStats(List.of());
 
     assertNotNull(stats);
-    assertNull(stats.getAveragePriceMillion());
-    assertNull(stats.getAveragePricePerM2());
+    assertNull(stats.averagePriceMillion());
+    assertNull(stats.averagePricePerM2());
   }
 
   @Test
@@ -77,7 +77,7 @@ class DashboardPresentationServiceTest {
 
     var dash = mapper.toDashboardResponseDto(null, MarketStatsDto.builder().build(), null);
     assertNotNull(dash);
-    assertTrue(dash.getPortalStatuses().isEmpty());
+    assertTrue(dash.portalStatuses().isEmpty());
 
     IngatlanItem item = new IngatlanItem();
     item.setId("x");
@@ -87,8 +87,8 @@ class DashboardPresentationServiceTest {
     assertEquals("x", sl.getExternalListingId());
 
     PriceDropItemDto drop = mapper.toPriceDropItemDto(item, 500L);
-    assertNull(drop.getCurrentPriceHuf());
-    assertEquals(500L, drop.getPricePerM2());
+    assertNull(drop.currentPriceHuf());
+    assertEquals(500L, drop.pricePerM2());
   }
 
   private DashboardPresentationService createService() {

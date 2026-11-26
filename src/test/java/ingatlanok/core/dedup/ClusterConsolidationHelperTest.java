@@ -52,10 +52,10 @@ class ClusterConsolidationHelperTest {
         primary, List.of(primary, memberWithArea, memberWithRooms));
 
     assertNotNull(primary.getDetailsInfo());
-    assertEquals(60.0, primary.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.0, primary.getDetailsInfo().getRoomCount());
-    assertEquals(500_000L, primary.getDetailsInfo().getPricePerSquareMeter());
-    assertEquals("60 m² • 3 szoba", primary.getDetailsInfo().getRawText());
+    assertEquals(60.0, primary.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.0, primary.getDetailsInfo().roomCount());
+    assertEquals(500_000L, primary.getDetailsInfo().pricePerSquareMeter());
+    assertEquals("60 m² • 3 szoba", primary.getDetailsInfo().rawText());
     assertEquals("60 m² • 3 szoba", primary.getDetails());
   }
 
@@ -73,8 +73,8 @@ class ClusterConsolidationHelperTest {
         primary, List.of(primary, memberWithHalfRooms));
 
     assertNotNull(primary.getDetailsInfo());
-    assertEquals(2.5, primary.getDetailsInfo().getRoomCount());
-    assertEquals("55 m² • 2.5 szoba", primary.getDetailsInfo().getRawText());
+    assertEquals(2.5, primary.getDetailsInfo().roomCount());
+    assertEquals("55 m² • 2.5 szoba", primary.getDetailsInfo().rawText());
     assertEquals("55 m² • 2.5 szoba", primary.getDetails());
   }
 

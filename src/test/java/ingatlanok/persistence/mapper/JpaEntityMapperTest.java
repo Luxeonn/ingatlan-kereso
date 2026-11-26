@@ -83,13 +83,13 @@ class JpaEntityMapperTest {
     assertEquals(-1_000_000L, item.getPriceDelta());
 
     assertNotNull(item.getPriceInfo());
-    assertEquals(55_000_000L, item.getPriceInfo().getAmountHuf());
-    assertEquals(55.0, item.getPriceInfo().getAmountMillion());
+    assertEquals(55_000_000L, item.getPriceInfo().amountHuf());
+    assertEquals(55.0, item.getPriceInfo().amountMillion());
 
     assertNotNull(item.getDetailsInfo());
-    assertEquals(55.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(2.0, item.getDetailsInfo().getRoomCount());
-    assertEquals(1_000_000L, item.getDetailsInfo().getPricePerSquareMeter());
+    assertEquals(55.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(2.0, item.getDetailsInfo().roomCount());
+    assertEquals(1_000_000L, item.getDetailsInfo().pricePerSquareMeter());
   }
 
   @Test
@@ -192,10 +192,10 @@ class JpaEntityMapperTest {
     mapper.normalizeItem(item);
 
     assertNotNull(item.getPriceInfo());
-    assertEquals(45_500_000L, item.getPriceInfo().getAmountHuf());
+    assertEquals(45_500_000L, item.getPriceInfo().amountHuf());
     assertNotNull(item.getDetailsInfo());
-    assertEquals(75.0, item.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.0, item.getDetailsInfo().getRoomCount());
+    assertEquals(75.0, item.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.0, item.getDetailsInfo().roomCount());
   }
 
   @Test

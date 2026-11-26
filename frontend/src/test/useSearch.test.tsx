@@ -24,7 +24,6 @@ vi.mock('../api/dedupApi', () => ({
 
 vi.mock('../api/propertyApi', () => ({
   markAsViewed: vi.fn(),
-  openUrls: vi.fn(),
   getHistory: vi.fn(),
   clearHistory: vi.fn(),
   hideProperty: vi.fn(),
@@ -89,7 +88,6 @@ describe('useSearch custom hook and race condition protection (#378)', () => {
     vi.mocked(propertyApi.hideProperty).mockResolvedValue({ success: true } as never)
     vi.mocked(propertyApi.restoreProperty).mockResolvedValue({ success: true } as never)
     vi.mocked(propertyApi.clearHistory).mockResolvedValue({ success: true } as never)
-    vi.mocked(propertyApi.openUrls).mockResolvedValue({ success: true } as never)
   })
 
   it('initializes with default empty state', () => {

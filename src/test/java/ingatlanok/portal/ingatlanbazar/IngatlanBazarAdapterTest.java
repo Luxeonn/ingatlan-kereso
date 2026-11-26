@@ -66,7 +66,7 @@ class IngatlanBazarAdapterTest {
     assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
     assertEquals(2, result.getItems().size());
     assertEquals("IB999", result.getItems().get(0).getId());
-    assertEquals(92_000_000L, result.getItems().get(0).getPriceInfo().getAmountHuf());
+    assertEquals(92_000_000L, result.getItems().get(0).getPriceInfo().amountHuf());
     assertEquals(
         "https://images2.ingatlanbazar.hu/static/property/images/b3/4c/44/2d/b34c442d-c20e-11f1-b393-bc2411815210/4455ddbb-8d38-453a-a0c7-063fd4872b56_485x354.jpg",
         result.getItems().get(0).getImageUrl());

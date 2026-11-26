@@ -29,23 +29,23 @@ class PropertyParserTest {
   void testParsePrice() {
     PriceInfo p1 = PropertyParser.parsePrice("Eladó lakás 54 M Ft");
     assertNotNull(p1);
-    assertEquals(54.0, p1.getAmountMillion());
-    assertEquals(54_000_000L, p1.getAmountHuf());
+    assertEquals(54.0, p1.amountMillion());
+    assertEquals(54_000_000L, p1.amountHuf());
 
     PriceInfo p2 = PropertyParser.parsePrice("Ikerház 45,5 M Ft");
     assertNotNull(p2);
-    assertEquals(45.5, p2.getAmountMillion());
-    assertEquals(45_500_000L, p2.getAmountHuf());
+    assertEquals(45.5, p2.amountMillion());
+    assertEquals(45_500_000L, p2.amountHuf());
 
     PriceInfo p3 = PropertyParser.parsePrice("Tégla lakás 35 000 000 Ft");
     assertNotNull(p3);
-    assertEquals(35.0, p3.getAmountMillion());
-    assertEquals(35_000_000L, p3.getAmountHuf());
+    assertEquals(35.0, p3.amountMillion());
+    assertEquals(35_000_000L, p3.amountHuf());
 
     PriceInfo p4 = PropertyParser.parsePrice("Nincs ár");
     assertNotNull(p4);
-    assertNull(p4.getAmountHuf());
-    assertEquals("Ár a hirdetésben", p4.getRawText());
+    assertNull(p4.amountHuf());
+    assertEquals("Ár a hirdetésben", p4.rawText());
   }
 
   @Test
@@ -66,45 +66,45 @@ class PropertyParserTest {
     PriceInfo price = PropertyParser.parsePrice("50 M Ft");
     PropertyDetails d1 = PropertyParser.parseDetails("2 szoba • 50 m²", price);
     assertNotNull(d1);
-    assertEquals(50.0, d1.getAreaSquareMeters());
-    assertEquals(2.0, d1.getRoomCount());
-    assertEquals(1_000_000L, d1.getPricePerSquareMeter(), "50M Ft / 50 m² = 1.000.000 Ft/m²");
+    assertEquals(50.0, d1.areaSquareMeters());
+    assertEquals(2.0, d1.roomCount());
+    assertEquals(1_000_000L, d1.pricePerSquareMeter(), "50M Ft / 50 m² = 1.000.000 Ft/m²");
 
     PropertyDetails d2 = PropertyParser.parseDetails("75 m² 3 szoba", price);
     assertNotNull(d2);
-    assertEquals(75.0, d2.getAreaSquareMeters());
-    assertEquals(3.0, d2.getRoomCount());
-    assertEquals(666_667L, d2.getPricePerSquareMeter());
+    assertEquals(75.0, d2.areaSquareMeters());
+    assertEquals(3.0, d2.roomCount());
+    assertEquals(666_667L, d2.pricePerSquareMeter());
 
     PriceInfo p20M = PropertyParser.parsePrice("20 M Ft");
     PropertyDetails dNm = PropertyParser.parseDetails("35 nm-es lakás eladó Miskolc 1 szoba", p20M);
     assertNotNull(dNm);
-    assertEquals(35.0, dNm.getAreaSquareMeters());
-    assertEquals(1.0, dNm.getRoomCount());
-    assertEquals(571_429L, dNm.getPricePerSquareMeter());
+    assertEquals(35.0, dNm.areaSquareMeters());
+    assertEquals(1.0, dNm.roomCount());
+    assertEquals(571_429L, dNm.pricePerSquareMeter());
 
     PropertyDetails dM2 = PropertyParser.parseDetails("45,5 m2 2 szoba", p20M);
     assertNotNull(dM2);
-    assertEquals(45.5, dM2.getAreaSquareMeters());
-    assertEquals(2.0, dM2.getRoomCount());
+    assertEquals(45.5, dM2.areaSquareMeters());
+    assertEquals(2.0, dM2.roomCount());
 
     PropertyDetails dNegyzetmeter = PropertyParser.parseDetails("100 négyzetméter", p20M);
     assertNotNull(dNegyzetmeter);
-    assertEquals(100.0, dNegyzetmeter.getAreaSquareMeters());
+    assertEquals(100.0, dNegyzetmeter.areaSquareMeters());
 
     PropertyDetails halfRoomDetails = PropertyParser.parseDetails("132 m² 4 + 1 szoba", p20M);
-    assertEquals(132.0, halfRoomDetails.getAreaSquareMeters());
-    assertEquals(4.5, halfRoomDetails.getRoomCount());
+    assertEquals(132.0, halfRoomDetails.areaSquareMeters());
+    assertEquals(4.5, halfRoomDetails.roomCount());
 
     PropertyDetails plusRoomDetails = PropertyParser.parseDetails("5+ szoba • 90 m²", p20M);
-    assertEquals(90.0, plusRoomDetails.getAreaSquareMeters());
-    assertEquals(5.0, plusRoomDetails.getRoomCount());
+    assertEquals(90.0, plusRoomDetails.areaSquareMeters());
+    assertEquals(5.0, plusRoomDetails.roomCount());
 
     PriceInfo rangePrice = PropertyParser.parsePrice("105-125 M Ft");
-    assertEquals(105_000_000L, rangePrice.getAmountHuf());
+    assertEquals(105_000_000L, rangePrice.amountHuf());
     PropertyDetails rangeDetails = PropertyParser.parseDetails("95-117 m² 3-4 szoba", rangePrice);
-    assertEquals(95.0, rangeDetails.getAreaSquareMeters());
-    assertEquals(3.0, rangeDetails.getRoomCount());
+    assertEquals(95.0, rangeDetails.areaSquareMeters());
+    assertEquals(3.0, rangeDetails.roomCount());
   }
 
   @Test
