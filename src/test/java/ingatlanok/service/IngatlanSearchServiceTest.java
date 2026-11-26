@@ -114,7 +114,7 @@ class IngatlanSearchServiceTest {
 
     Long previousPrice = null;
     for (ingatlanok.model.IngatlanItem item : items) {
-      Long currentPrice = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
+      Long currentPrice = item.getPriceInfo() != null ? item.getPriceInfo().amountHuf() : null;
       if (currentPrice != null) {
         if (previousPrice != null) {
           assertTrue(
@@ -153,13 +153,13 @@ class IngatlanSearchServiceTest {
 
     list.sort(
         (a, b) -> {
-          Long priceA = (a.getPriceInfo() != null) ? a.getPriceInfo().getAmountHuf() : null;
+          Long priceA = (a.getPriceInfo() != null) ? a.getPriceInfo().amountHuf() : null;
           if (priceA == null && a.getPrice() != null) {
-            priceA = ingatlanok.common.PropertyParser.parsePrice(a.getPrice()).getAmountHuf();
+            priceA = ingatlanok.common.PropertyParser.parsePrice(a.getPrice()).amountHuf();
           }
-          Long priceB = (b.getPriceInfo() != null) ? b.getPriceInfo().getAmountHuf() : null;
+          Long priceB = (b.getPriceInfo() != null) ? b.getPriceInfo().amountHuf() : null;
           if (priceB == null && b.getPrice() != null) {
-            priceB = ingatlanok.common.PropertyParser.parsePrice(b.getPrice()).getAmountHuf();
+            priceB = ingatlanok.common.PropertyParser.parsePrice(b.getPrice()).amountHuf();
           }
 
           if (priceA != null && priceB != null) {

@@ -126,8 +126,8 @@ public abstract class JpaEntityMapper {
   @Mapping(
       target = "priceRaw",
       expression =
-          "java((item.getPriceInfo() != null && item.getPriceInfo().getRawText() != null)"
-              + " ? item.getPriceInfo().getRawText()"
+          "java((item.getPriceInfo() != null && item.getPriceInfo().rawText() != null)"
+              + " ? item.getPriceInfo().rawText()"
               + " : (item.getPrice() != null ? item.getPrice() : \"\"))")
   @Mapping(target = "priceAmount", source = "item.priceInfo.amountHuf")
   @Mapping(target = "priceMillions", source = "item.priceInfo.amountMillion")

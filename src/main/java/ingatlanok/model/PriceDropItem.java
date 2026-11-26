@@ -1,33 +1,25 @@
 package ingatlanok.model;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * Immutable domain value object representing a listing with a registered price reduction.
  */
-@Getter
 @Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@NoArgsConstructor
-public class PriceDropItem {
-
-  private String id;
-  private String url;
-  private String title;
-  private String city;
-  private String portal;
-  private PropertyType propertyType;
-  private Long currentPriceHuf;
-  private Double currentPriceMillion;
-  private Long priceDelta;
-  private Double changePercent;
-  private Long pricePerM2;
-  private String imageUrl;
-  private String lastPriceChangeAt;
+public record PriceDropItem(
+    String id,
+    String url,
+    String title,
+    String city,
+    String portal,
+    PropertyType propertyType,
+    Long currentPriceHuf,
+    Double currentPriceMillion,
+    Long priceDelta,
+    Double changePercent,
+    Long pricePerM2,
+    String imageUrl,
+    String lastPriceChangeAt) {
 
   public static PriceDropItem from(IngatlanItem item, Long pricePerM2) {
     if (item == null) {
@@ -41,8 +33,8 @@ public class PriceDropItem {
         .city(item.getCity())
         .portal(item.getPortal())
         .propertyType(item.getPropertyType())
-        .currentPriceHuf(priceInfo != null ? priceInfo.getAmountHuf() : null)
-        .currentPriceMillion(priceInfo != null ? priceInfo.getAmountMillion() : null)
+        .currentPriceHuf(priceInfo != null ? priceInfo.amountHuf() : null)
+        .currentPriceMillion(priceInfo != null ? priceInfo.amountMillion() : null)
         .priceDelta(item.getPriceDelta())
         .changePercent(item.getPriceChangePercent())
         .pricePerM2(pricePerM2)

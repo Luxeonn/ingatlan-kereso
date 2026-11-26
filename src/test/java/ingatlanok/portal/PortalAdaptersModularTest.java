@@ -93,7 +93,7 @@ class PortalAdaptersModularTest {
 
     assertEquals(1, items.size());
     assertEquals("12345", items.get(0).getId());
-    assertEquals(52_000_000L, items.get(0).getPriceInfo().getAmountHuf());
+    assertEquals(52_000_000L, items.get(0).getPriceInfo().amountHuf());
     assertEquals("https://dh.hu/images/dh123.jpg", items.get(0).getImageUrl());
     assertTrue(items.get(0).isNewConstruction());
   }
@@ -134,7 +134,7 @@ class PortalAdaptersModularTest {
 
     assertEquals(1, items.size());
     assertEquals("H45678", items.get(0).getId());
-    assertEquals(75_000_000L, items.get(0).getPriceInfo().getAmountHuf());
+    assertEquals(75_000_000L, items.get(0).getPriceInfo().amountHuf());
   }
 
   @Test
@@ -227,8 +227,8 @@ class PortalAdaptersModularTest {
 
     assertEquals(1, items.size());
     assertEquals("IB999", items.get(0).getId());
-    assertEquals(92_000_000L, items.get(0).getPriceInfo().getAmountHuf());
-    assertEquals(115.0, items.get(0).getDetailsInfo().getAreaSquareMeters());
+    assertEquals(92_000_000L, items.get(0).getPriceInfo().amountHuf());
+    assertEquals(115.0, items.get(0).getDetailsInfo().areaSquareMeters());
   }
 
   @Test
@@ -382,9 +382,9 @@ class PortalAdaptersModularTest {
 
     assertEquals("35344073", parsedCards.get(1).getId());
     assertEquals("https://ingatlan.com/35344073", parsedCards.get(1).getUrl());
-    assertEquals(68_500_000L, parsedCards.get(1).getPriceInfo().getAmountHuf());
-    assertEquals(97.0, parsedCards.get(1).getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.5, parsedCards.get(1).getDetailsInfo().getRoomCount());
+    assertEquals(68_500_000L, parsedCards.get(1).getPriceInfo().amountHuf());
+    assertEquals(97.0, parsedCards.get(1).getDetailsInfo().areaSquareMeters());
+    assertEquals(3.5, parsedCards.get(1).getDetailsInfo().roomCount());
     assertTrue(parsedCards.get(1).isNewConstruction());
   }
 

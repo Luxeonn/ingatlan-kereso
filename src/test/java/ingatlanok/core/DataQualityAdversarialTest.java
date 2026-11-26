@@ -292,8 +292,8 @@ class DataQualityAdversarialTest {
     MarketStats stats = analyticsEngine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertEquals(5, stats.getResidentialSampleSize(), "Only the 5 clean listings should be sampled");
-    assertEquals(800_000L, stats.getResidentialMedianPricePerM2(), "Median must remain completely unskewed at 800k");
+    assertEquals(5, stats.residentialSampleSize(), "Only the 5 clean listings should be sampled");
+    assertEquals(800_000L, stats.residentialMedianPricePerM2(), "Median must remain completely unskewed at 800k");
   }
 
   @Test

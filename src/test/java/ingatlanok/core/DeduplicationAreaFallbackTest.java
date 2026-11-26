@@ -51,7 +51,7 @@ class DeduplicationAreaFallbackTest {
     IngatlanItem primary = clustered.get(0);
     assertEquals(6, primary.getSourcesCount());
     assertEquals(6, primary.getSourceListings().size());
-    assertEquals(22_000_000L, primary.getPriceInfo().getAmountHuf());
+    assertEquals(22_000_000L, primary.getPriceInfo().amountHuf());
   }
 
   @Test
@@ -80,7 +80,7 @@ class DeduplicationAreaFallbackTest {
     IngatlanItem primary = clustered.get(0);
     assertEquals(5, primary.getSourcesCount());
     assertEquals(5, primary.getSourceListings().size());
-    assertEquals(20_000_000L, primary.getPriceInfo().getAmountHuf());
+    assertEquals(20_000_000L, primary.getPriceInfo().amountHuf());
   }
 
   @Test
@@ -127,9 +127,9 @@ class DeduplicationAreaFallbackTest {
 
     // Alapterület öröklésének ellenőrzése
     assertNotNull(primary.getDetailsInfo());
-    assertEquals(35.0, primary.getDetailsInfo().getAreaSquareMeters(), "A konszolidált tétel örökölte a 35 m²-t");
+    assertEquals(35.0, primary.getDetailsInfo().areaSquareMeters(), "A konszolidált tétel örökölte a 35 m²-t");
     long expectedPricePerM2 = Math.round(20_000_000.0 / 35.0);
-    assertEquals(expectedPricePerM2, primary.getDetailsInfo().getPricePerSquareMeter());
+    assertEquals(expectedPricePerM2, primary.getDetailsInfo().pricePerSquareMeter());
 
     // Forráslistában is meg kell jelennie a számított m² árnak
     for (SourceListing source : primary.getSourceListings()) {

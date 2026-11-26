@@ -171,63 +171,63 @@ class MarketAnalyticsEmpiricalStressTest {
 
     MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
-    assertEquals(5, stats.getSegments().size());
+    assertEquals(5, stats.segments().size());
 
     // Validate Budapest LAKAS
-    MarketSegmentStats bpLakas = stats.getSegments().stream()
-        .filter(s -> "Budapest".equals(s.getCity()) && PropertyType.LAKAS == s.getPropertyType())
+    MarketSegmentStats bpLakas = stats.segments().stream()
+        .filter(s -> "Budapest".equals(s.city()) && PropertyType.LAKAS == s.propertyType())
         .findFirst().orElseThrow();
-    assertEquals(6, bpLakas.getSampleSize());
-    assertFalse(bpLakas.isInsufficientData());
-    assertEquals(1_000_000L, bpLakas.getMedianPricePerM2());
-    assertEquals(1, bpLakas.getBargainCount());
+    assertEquals(6, bpLakas.sampleSize());
+    assertFalse(bpLakas.insufficientData());
+    assertEquals(1_000_000L, bpLakas.medianPricePerM2());
+    assertEquals(1, bpLakas.bargainCount());
 
     // Validate Budapest HAZ
-    MarketSegmentStats bpHaz = stats.getSegments().stream()
-        .filter(s -> "Budapest".equals(s.getCity()) && PropertyType.HAZ == s.getPropertyType())
+    MarketSegmentStats bpHaz = stats.segments().stream()
+        .filter(s -> "Budapest".equals(s.city()) && PropertyType.HAZ == s.propertyType())
         .findFirst().orElseThrow();
-    assertEquals(5, bpHaz.getSampleSize());
-    assertFalse(bpHaz.isInsufficientData());
-    assertEquals(800_000L, bpHaz.getMedianPricePerM2());
-    assertEquals(1, bpHaz.getBargainCount());
+    assertEquals(5, bpHaz.sampleSize());
+    assertFalse(bpHaz.insufficientData());
+    assertEquals(800_000L, bpHaz.medianPricePerM2());
+    assertEquals(1, bpHaz.bargainCount());
 
     // Validate Debrecen LAKAS
-    MarketSegmentStats debLakas = stats.getSegments().stream()
-        .filter(s -> "Debrecen".equals(s.getCity()) && PropertyType.LAKAS == s.getPropertyType())
+    MarketSegmentStats debLakas = stats.segments().stream()
+        .filter(s -> "Debrecen".equals(s.city()) && PropertyType.LAKAS == s.propertyType())
         .findFirst().orElseThrow();
-    assertEquals(5, debLakas.getSampleSize());
-    assertFalse(debLakas.isInsufficientData());
-    assertEquals(700_000L, debLakas.getMedianPricePerM2());
-    assertEquals(0, debLakas.getBargainCount());
+    assertEquals(5, debLakas.sampleSize());
+    assertFalse(debLakas.insufficientData());
+    assertEquals(700_000L, debLakas.medianPricePerM2());
+    assertEquals(0, debLakas.bargainCount());
 
     // Validate Szeged TELEK
-    MarketSegmentStats szegTelek = stats.getSegments().stream()
-        .filter(s -> "Szeged".equals(s.getCity()) && PropertyType.TELEK == s.getPropertyType())
+    MarketSegmentStats szegTelek = stats.segments().stream()
+        .filter(s -> "Szeged".equals(s.city()) && PropertyType.TELEK == s.propertyType())
         .findFirst().orElseThrow();
-    assertEquals(5, szegTelek.getSampleSize());
-    assertFalse(szegTelek.isInsufficientData());
-    assertEquals(30_000L, szegTelek.getMedianPricePerM2());
-    assertEquals(1, szegTelek.getBargainCount());
+    assertEquals(5, szegTelek.sampleSize());
+    assertFalse(szegTelek.insufficientData());
+    assertEquals(30_000L, szegTelek.medianPricePerM2());
+    assertEquals(1, szegTelek.bargainCount());
 
     // Validate Pecs GARAZS (insufficient data)
-    MarketSegmentStats pecsGarazs = stats.getSegments().stream()
-        .filter(s -> "Pecs".equals(s.getCity()) && PropertyType.GARAZS == s.getPropertyType())
+    MarketSegmentStats pecsGarazs = stats.segments().stream()
+        .filter(s -> "Pecs".equals(s.city()) && PropertyType.GARAZS == s.propertyType())
         .findFirst().orElseThrow();
-    assertEquals(4, pecsGarazs.getSampleSize());
-    assertTrue(pecsGarazs.isInsufficientData());
-    assertNull(pecsGarazs.getMedianPricePerM2());
-    assertEquals(0, pecsGarazs.getBargainCount());
+    assertEquals(4, pecsGarazs.sampleSize());
+    assertTrue(pecsGarazs.insufficientData());
+    assertNull(pecsGarazs.medianPricePerM2());
+    assertEquals(0, pecsGarazs.bargainCount());
 
     // Core invariant: sum of segment bargains == total bargains
-    int sumSegmentBargains = stats.getSegments().stream()
-        .mapToInt(MarketSegmentStats::getBargainCount)
+    int sumSegmentBargains = stats.segments().stream()
+        .mapToInt(MarketSegmentStats::bargainCount)
         .sum();
-    assertEquals(3, stats.getBargainCount());
+    assertEquals(3, stats.bargainCount());
     assertEquals(3, sumSegmentBargains);
 
     // Total items: 6 + 5 + 5 + 5 + 4 = 25
     // Bargain rate: 3 / 25 = 12.0%
-    assertEquals(12.0, stats.getBargainRatePercent());
+    assertEquals(12.0, stats.bargainRatePercent());
   }
 
   @Test
@@ -281,12 +281,12 @@ class MarketAnalyticsEmpiricalStressTest {
         .build();
 
     assertNotEquals(original, modified);
-    assertEquals(0, original.getBargainCount(), "Original instance bargainCount must remain 0");
-    assertEquals(5, modified.getBargainCount(), "Modified instance bargainCount must be 5");
-    assertEquals(original.getCity(), modified.getCity());
-    assertEquals(original.getPropertyType(), modified.getPropertyType());
-    assertEquals(original.getMedianPricePerM2(), modified.getMedianPricePerM2());
-    assertEquals(original.getSampleSize(), modified.getSampleSize());
+    assertEquals(0, original.bargainCount(), "Original instance bargainCount must remain 0");
+    assertEquals(5, modified.bargainCount(), "Modified instance bargainCount must be 5");
+    assertEquals(original.city(), modified.city());
+    assertEquals(original.propertyType(), modified.propertyType());
+    assertEquals(original.medianPricePerM2(), modified.medianPricePerM2());
+    assertEquals(original.sampleSize(), modified.sampleSize());
   }
 
   @Test
@@ -316,9 +316,9 @@ class MarketAnalyticsEmpiricalStressTest {
     assertFalse(item1994.isBargain(), "800,600 vs 1M (19.94% -> 19.9% below) must NOT be a bargain");
     assertEquals(19.9, item1994.getPercentageBelowMedian());
 
-    assertEquals(1, stats.getBargainCount());
-    MarketSegmentStats segment = stats.getSegments().getFirst();
-    assertEquals(1, segment.getBargainCount());
+    assertEquals(1, stats.bargainCount());
+    MarketSegmentStats segment = stats.segments().getFirst();
+    assertEquals(1, segment.bargainCount());
   }
 
   @Test
@@ -347,29 +347,29 @@ class MarketAnalyticsEmpiricalStressTest {
     assertNotNull(stats);
 
     // Invariant 1: Sum of segment bargains == total bargains
-    int totalBargainsInSegments = stats.getSegments().stream()
-        .mapToInt(MarketSegmentStats::getBargainCount)
+    int totalBargainsInSegments = stats.segments().stream()
+        .mapToInt(MarketSegmentStats::bargainCount)
         .sum();
-    assertEquals(stats.getBargainCount(), totalBargainsInSegments,
+    assertEquals(stats.bargainCount(), totalBargainsInSegments,
         "Total bargains must equal the sum of segment bargains");
 
     // Invariant 2: For every segment, bargainCount equals actual count of items in that segment with isBargain == true
-    for (MarketSegmentStats seg : stats.getSegments()) {
+    for (MarketSegmentStats seg : stats.segments()) {
       long itemsMarkedBargainInSeg = randomItems.stream()
-          .filter(it -> seg.getCity().equalsIgnoreCase(it.getCity()) && seg.getPropertyType() == it.getPropertyType())
+          .filter(it -> seg.city().equalsIgnoreCase(it.getCity()) && seg.propertyType() == it.getPropertyType())
           .filter(IngatlanItem::isBargain)
           .count();
-      assertEquals(seg.getBargainCount(), (int) itemsMarkedBargainInSeg,
+      assertEquals(seg.bargainCount(), (int) itemsMarkedBargainInSeg,
           "Segment bargainCount must match items in that segment with isBargain == true");
 
       // Invariant 3: If insufficientData, sampleSize < 5 and median is null and bargainCount is 0
-      if (seg.isInsufficientData()) {
-        assertTrue(seg.getSampleSize() < 5);
-        assertNull(seg.getMedianPricePerM2());
-        assertEquals(0, seg.getBargainCount());
+      if (seg.insufficientData()) {
+        assertTrue(seg.sampleSize() < 5);
+        assertNull(seg.medianPricePerM2());
+        assertEquals(0, seg.bargainCount());
       } else {
-        assertTrue(seg.getSampleSize() >= 5);
-        assertNotNull(seg.getMedianPricePerM2());
+        assertTrue(seg.sampleSize() >= 5);
+        assertNotNull(seg.medianPricePerM2());
       }
     }
   }

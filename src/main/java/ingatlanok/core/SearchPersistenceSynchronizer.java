@@ -87,7 +87,7 @@ public class SearchPersistenceSynchronizer {
   }
 
   public String resolvePortalCountKey(IngatlanItem item) {
-    String portalId = item.getSource() != null ? item.getSource().getPortalId() : null;
+    String portalId = item.getSource() != null ? item.getSource().portalId() : null;
     if (portalId != null && !portalId.isBlank()) {
       Optional<PortalEngine> engineOpt = portalRegistry.getEngine(portalId);
       if (engineOpt.isPresent()) {
@@ -97,8 +97,8 @@ public class SearchPersistenceSynchronizer {
     String rawPortal =
         item.getPortal() != null && !item.getPortal().isBlank()
             ? item.getPortal().trim()
-            : (item.getSource() != null && item.getSource().getPortalName() != null
-                ? item.getSource().getPortalName().trim()
+            : (item.getSource() != null && item.getSource().portalName() != null
+                ? item.getSource().portalName().trim()
                 : "Ismeretlen");
     return resolvePortalCountKeyByName(rawPortal);
   }
@@ -174,14 +174,14 @@ public class SearchPersistenceSynchronizer {
   }
 
   private boolean matchesPortalId(IngatlanItem item, String portalId) {
-    String itemPortalId = item.getSource() != null ? item.getSource().getPortalId() : null;
+    String itemPortalId = item.getSource() != null ? item.getSource().portalId() : null;
     return portalId != null && itemPortalId != null && portalId.equalsIgnoreCase(itemPortalId);
   }
 
   private boolean matchesPortalName(IngatlanItem item, String portalName) {
     String itemPortalName =
-        item.getSource() != null && item.getSource().getPortalName() != null
-            ? item.getSource().getPortalName()
+        item.getSource() != null && item.getSource().portalName() != null
+            ? item.getSource().portalName()
             : item.getPortal();
     return portalName != null
         && itemPortalName != null
@@ -190,8 +190,8 @@ public class SearchPersistenceSynchronizer {
 
   private boolean matchesPortalIdToName(IngatlanItem item, String portalId) {
     String itemPortalName =
-        item.getSource() != null && item.getSource().getPortalName() != null
-            ? item.getSource().getPortalName()
+        item.getSource() != null && item.getSource().portalName() != null
+            ? item.getSource().portalName()
             : item.getPortal();
     return portalId != null && itemPortalName != null && portalId.equalsIgnoreCase(itemPortalName);
   }

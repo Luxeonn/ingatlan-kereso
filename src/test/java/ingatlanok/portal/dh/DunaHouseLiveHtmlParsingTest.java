@@ -71,25 +71,25 @@ class DunaHouseLiveHtmlParsingTest {
       assertEquals(PropertyType.HAZ, item.getPropertyType(), "Hibás ingatlantípus: " + ctx);
 
       assertNotNull(item.getPriceInfo(), "Hiányzó priceInfo: " + ctx);
-      assertNotNull(item.getPriceInfo().getAmountHuf(), "Hiányzó ár (HUF): " + ctx);
-      assertNotNull(item.getPriceInfo().getAmountMillion(), "Hiányzó ár (M Ft): " + ctx);
-      double million = item.getPriceInfo().getAmountMillion();
+      assertNotNull(item.getPriceInfo().amountHuf(), "Hiányzó ár (HUF): " + ctx);
+      assertNotNull(item.getPriceInfo().amountMillion(), "Hiányzó ár (M Ft): " + ctx);
+      double million = item.getPriceInfo().amountMillion();
       assertTrue(million >= 70.0 && million <= 120.0,
           "Ár kívül esik a 70-120 M Ft sávon (" + million + "): " + ctx);
 
       assertNotNull(item.getDetailsInfo(), "Hiányzó detailsInfo: " + ctx);
-      assertNotNull(item.getDetailsInfo().getAreaSquareMeters(), "Hiányzó alapterület: " + ctx);
-      assertTrue(item.getDetailsInfo().getAreaSquareMeters() >= 90.0
-          && item.getDetailsInfo().getAreaSquareMeters() <= 200.0,
-          "Alapterület kívül esik a 90-200 m2 sávon (" + item.getDetailsInfo().getAreaSquareMeters() + "): " + ctx);
+      assertNotNull(item.getDetailsInfo().areaSquareMeters(), "Hiányzó alapterület: " + ctx);
+      assertTrue(item.getDetailsInfo().areaSquareMeters() >= 90.0
+          && item.getDetailsInfo().areaSquareMeters() <= 200.0,
+          "Alapterület kívül esik a 90-200 m2 sávon (" + item.getDetailsInfo().areaSquareMeters() + "): " + ctx);
 
-      assertNotNull(item.getDetailsInfo().getRoomCount(), "Hiányzó szobaszám: " + ctx);
-      assertTrue(item.getDetailsInfo().getRoomCount() >= 1.0, "Érvénytelen szobaszám: " + ctx);
+      assertNotNull(item.getDetailsInfo().roomCount(), "Hiányzó szobaszám: " + ctx);
+      assertTrue(item.getDetailsInfo().roomCount() >= 1.0, "Érvénytelen szobaszám: " + ctx);
 
-      assertNotNull(item.getDetailsInfo().getPricePerSquareMeter(), "Hiányzó m2 ár: " + ctx);
-      long expectedSqm = Math.round(item.getPriceInfo().getAmountHuf() / item.getDetailsInfo().getAreaSquareMeters());
-      assertTrue(Math.abs(item.getDetailsInfo().getPricePerSquareMeter() - expectedSqm) <= 1,
-          "Hibás m2 ár számítás (" + item.getDetailsInfo().getPricePerSquareMeter()
+      assertNotNull(item.getDetailsInfo().pricePerSquareMeter(), "Hiányzó m2 ár: " + ctx);
+      long expectedSqm = Math.round(item.getPriceInfo().amountHuf() / item.getDetailsInfo().areaSquareMeters());
+      assertTrue(Math.abs(item.getDetailsInfo().pricePerSquareMeter() - expectedSqm) <= 1,
+          "Hibás m2 ár számítás (" + item.getDetailsInfo().pricePerSquareMeter()
               + " vs " + expectedSqm + "): " + ctx);
 
       assertNotNull(item.getImageUrl(), "Hiányzó kép URL: " + ctx);
@@ -97,17 +97,17 @@ class DunaHouseLiveHtmlParsingTest {
     }
 
     IngatlanItem first = items.stream().filter(i -> "HZ083898".equals(i.getId())).findFirst().orElseThrow();
-    assertEquals(94_900_000L, first.getPriceInfo().getAmountHuf());
-    assertEquals(103.0, first.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.0, first.getDetailsInfo().getRoomCount());
+    assertEquals(94_900_000L, first.getPriceInfo().amountHuf());
+    assertEquals(103.0, first.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.0, first.getDetailsInfo().roomCount());
 
     IngatlanItem newProject = items.stream()
         .filter(i -> "PR058883-HZ-28925".equals(i.getId()))
         .findFirst()
         .orElseThrow();
-    assertEquals(120_000_000L, newProject.getPriceInfo().getAmountHuf());
-    assertEquals(111.0, newProject.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(4.0, newProject.getDetailsInfo().getRoomCount());
+    assertEquals(120_000_000L, newProject.getPriceInfo().amountHuf());
+    assertEquals(111.0, newProject.getDetailsInfo().areaSquareMeters());
+    assertEquals(4.0, newProject.getDetailsInfo().roomCount());
     assertTrue(newProject.isNewConstruction(), "Újépítésű projekt jelölőnek true-nak kell lennie");
   }
 }

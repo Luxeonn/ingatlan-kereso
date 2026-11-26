@@ -1,80 +1,67 @@
 package ingatlanok.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * Immutable domain value object holding aggregated market statistics, medians, segment breakdowns,
  * and price-drop metrics produced by {@link ingatlanok.core.MarketAnalyticsEngine}.
  */
-@Getter
 @Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@NoArgsConstructor
-public class MarketStats {
+public record MarketStats(
+    Double averagePriceMillion,
+    Long averagePricePerM2,
+    Double minPriceMillion,
+    Double maxPriceMillion,
+    Double newRatePercent,
+    Map<String, Integer> cityBreakdown,
+    Long medianPricePerM2,
+    Integer totalSampleSize,
+    Boolean insufficientData,
+    Long residentialMedianPricePerM2,
+    Long residentialAveragePricePerM2,
+    Integer residentialSampleSize,
+    Boolean residentialInsufficientData,
+    Long plotMedianPricePerM2,
+    Long plotAveragePricePerM2,
+    Integer plotSampleSize,
+    Boolean plotInsufficientData,
+    List<MarketSegmentStats> segments,
+    Integer priceDropCount,
+    Double priceDropRatePercent,
+    Long averagePriceDropAmountHuf,
+    Double averagePriceDropPercent,
+    List<PriceDropItem> topPriceDrops,
+    Integer bargainCount,
+    Double bargainRatePercent) {
 
-  private Double averagePriceMillion;
-  private Long averagePricePerM2;
-  private Double minPriceMillion;
-  private Double maxPriceMillion;
-  private Double newRatePercent;
-  @Builder.Default
-  private Map<String, Integer> cityBreakdown = new LinkedHashMap<>();
-
-  private Long medianPricePerM2;
-  @Builder.Default
-  private Integer totalSampleSize = 0;
-  @Builder.Default
-  private Boolean insufficientData = true;
-
-  private Long residentialMedianPricePerM2;
-  private Long residentialAveragePricePerM2;
-  @Builder.Default
-  private Integer residentialSampleSize = 0;
-  @Builder.Default
-  private Boolean residentialInsufficientData = true;
-
-  private Long plotMedianPricePerM2;
-  private Long plotAveragePricePerM2;
-  @Builder.Default
-  private Integer plotSampleSize = 0;
-  @Builder.Default
-  private Boolean plotInsufficientData = true;
-
-  @Builder.Default
-  private List<MarketSegmentStats> segments = new ArrayList<>();
-
-  @Builder.Default
-  private Integer priceDropCount = 0;
-  @Builder.Default
-  private Double priceDropRatePercent = 0.0;
-  private Long averagePriceDropAmountHuf;
-  private Double averagePriceDropPercent;
-  @Builder.Default
-  private List<PriceDropItem> topPriceDrops = new ArrayList<>();
-
-  @Builder.Default
-  private Integer bargainCount = 0;
-  @Builder.Default
-  private Double bargainRatePercent = 0.0;
-
-  public Boolean isInsufficientData() {
-    return insufficientData;
-  }
-
-  public Boolean isResidentialInsufficientData() {
-    return residentialInsufficientData;
-  }
-
-  public Boolean isPlotInsufficientData() {
-    return plotInsufficientData;
+  public MarketStats {
+    cityBreakdown =
+        cityBreakdown != null
+            ? Collections.unmodifiableMap(new LinkedHashMap<>(cityBreakdown))
+            : Map.of();
+    totalSampleSize = Objects.requireNonNullElse(totalSampleSize, 0);
+    insufficientData = Objects.requireNonNullElse(insufficientData, Boolean.TRUE);
+    residentialSampleSize = Objects.requireNonNullElse(residentialSampleSize, 0);
+    residentialInsufficientData =
+        Objects.requireNonNullElse(residentialInsufficientData, Boolean.TRUE);
+    plotSampleSize = Objects.requireNonNullElse(plotSampleSize, 0);
+    plotInsufficientData = Objects.requireNonNullElse(plotInsufficientData, Boolean.TRUE);
+    segments =
+        segments != null ? Collections.unmodifiableList(new ArrayList<>(segments)) : List.of();
+    priceDropCount = Objects.requireNonNullElse(priceDropCount, 0);
+    priceDropRatePercent = Objects.requireNonNullElse(priceDropRatePercent, 0.0);
+    topPriceDrops =
+        topPriceDrops != null
+            ? Collections.unmodifiableList(new ArrayList<>(topPriceDrops))
+            : List.of();
+    bargainCount = Objects.requireNonNullElse(bargainCount, 0);
+    bargainRatePercent = Objects.requireNonNullElse(bargainRatePercent, 0.0);
   }
 }

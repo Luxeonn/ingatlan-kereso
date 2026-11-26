@@ -68,12 +68,12 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertFalse(stats.isInsufficientData());
-    assertFalse(stats.isResidentialInsufficientData());
-    assertEquals(800_000L, stats.getResidentialMedianPricePerM2());
-    assertEquals(800_000L, stats.getMedianPricePerM2());
-    assertEquals(5, stats.getResidentialSampleSize());
-    assertEquals(5, stats.getTotalSampleSize());
+    assertFalse(stats.insufficientData());
+    assertFalse(stats.residentialInsufficientData());
+    assertEquals(800_000L, stats.residentialMedianPricePerM2());
+    assertEquals(800_000L, stats.medianPricePerM2());
+    assertEquals(5, stats.residentialSampleSize());
+    assertEquals(5, stats.totalSampleSize());
   }
 
   @Test
@@ -92,10 +92,10 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertFalse(stats.isInsufficientData());
-    assertEquals(850_000L, stats.getResidentialMedianPricePerM2());
-    assertEquals(850_000L, stats.getMedianPricePerM2());
-    assertEquals(6, stats.getResidentialSampleSize());
+    assertFalse(stats.insufficientData());
+    assertEquals(850_000L, stats.residentialMedianPricePerM2());
+    assertEquals(850_000L, stats.medianPricePerM2());
+    assertEquals(6, stats.residentialSampleSize());
   }
 
   @Test
@@ -111,13 +111,13 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertTrue(stats.isInsufficientData());
-    assertTrue(stats.isResidentialInsufficientData());
-    assertNull(stats.getResidentialMedianPricePerM2());
-    assertNull(stats.getMedianPricePerM2());
-    assertEquals(4, stats.getResidentialSampleSize());
-    assertEquals(4, stats.getTotalSampleSize());
-    assertEquals(0, stats.getBargainCount());
+    assertTrue(stats.insufficientData());
+    assertTrue(stats.residentialInsufficientData());
+    assertNull(stats.residentialMedianPricePerM2());
+    assertNull(stats.medianPricePerM2());
+    assertEquals(4, stats.residentialSampleSize());
+    assertEquals(4, stats.totalSampleSize());
+    assertEquals(0, stats.bargainCount());
 
     for (IngatlanItem item : items) {
       assertFalse(item.isBargain());
@@ -147,19 +147,19 @@ class MarketAnalyticsEngineTest {
 
     assertNotNull(stats);
     // Residential median must be 600,000 Ft/m2
-    assertEquals(600_000L, stats.getResidentialMedianPricePerM2());
-    assertEquals(5, stats.getResidentialSampleSize());
-    assertFalse(stats.isResidentialInsufficientData());
+    assertEquals(600_000L, stats.residentialMedianPricePerM2());
+    assertEquals(5, stats.residentialSampleSize());
+    assertFalse(stats.residentialInsufficientData());
 
     // Plot median must be 30,000 Ft/m2
-    assertEquals(30_000L, stats.getPlotMedianPricePerM2());
-    assertEquals(5, stats.getPlotSampleSize());
-    assertFalse(stats.isPlotInsufficientData());
+    assertEquals(30_000L, stats.plotMedianPricePerM2());
+    assertEquals(5, stats.plotSampleSize());
+    assertFalse(stats.plotInsufficientData());
 
     // Total sample size is 10
-    assertEquals(10, stats.getTotalSampleSize());
+    assertEquals(10, stats.totalSampleSize());
     // Since residential is present, top-level medianPricePerM2 reflects residential
-    assertEquals(600_000L, stats.getMedianPricePerM2());
+    assertEquals(600_000L, stats.medianPricePerM2());
   }
 
   @Test
@@ -185,7 +185,7 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertEquals(1_000_000L, stats.getResidentialMedianPricePerM2());
+    assertEquals(1_000_000L, stats.residentialMedianPricePerM2());
 
     // bargainItem: 750k vs 1M median -> 25.0% below -> isBargain = true
     assertTrue(bargainItem.isBargain());
@@ -199,8 +199,8 @@ class MarketAnalyticsEngineTest {
     assertEquals(19.0, regularItem.getPercentageBelowMedian());
     assertEquals(7, regularItem.getReferenceSampleSize());
 
-    assertEquals(1, stats.getBargainCount());
-    assertEquals(14.3, stats.getBargainRatePercent());
+    assertEquals(1, stats.bargainCount());
+    assertEquals(14.3, stats.bargainRatePercent());
   }
 
   @Test
@@ -216,18 +216,18 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertEquals(2, stats.getPriceDropCount());
-    assertEquals(50.0, stats.getPriceDropRatePercent()); // 2 out of 4 items
-    assertEquals(3_000_000L, stats.getAveragePriceDropAmountHuf()); // (4M + 2M) / 2 = 3M
-    assertEquals(7.0, stats.getAveragePriceDropPercent()); // (10.0 + 4.0) / 2 = 7.0
+    assertEquals(2, stats.priceDropCount());
+    assertEquals(50.0, stats.priceDropRatePercent()); // 2 out of 4 items
+    assertEquals(3_000_000L, stats.averagePriceDropAmountHuf()); // (4M + 2M) / 2 = 3M
+    assertEquals(7.0, stats.averagePriceDropPercent()); // (10.0 + 4.0) / 2 = 7.0
 
-    assertNotNull(stats.getTopPriceDrops());
-    assertEquals(2, stats.getTopPriceDrops().size());
+    assertNotNull(stats.topPriceDrops());
+    assertEquals(2, stats.topPriceDrops().size());
     // Largest drop first: drop1 (-4M) then drop2 (-2M)
-    assertEquals("d1", stats.getTopPriceDrops().get(0).getId());
-    assertEquals(-4_000_000L, stats.getTopPriceDrops().get(0).getPriceDelta());
-    assertEquals("d2", stats.getTopPriceDrops().get(1).getId());
-    assertEquals(-2_000_000L, stats.getTopPriceDrops().get(1).getPriceDelta());
+    assertEquals("d1", stats.topPriceDrops().get(0).id());
+    assertEquals(-4_000_000L, stats.topPriceDrops().get(0).priceDelta());
+    assertEquals("d2", stats.topPriceDrops().get(1).id());
+    assertEquals(-2_000_000L, stats.topPriceDrops().get(1).priceDelta());
   }
 
   @Test
@@ -251,9 +251,9 @@ class MarketAnalyticsEngineTest {
 
     MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
-    assertTrue(stats.isInsufficientData());
-    assertNull(stats.getMedianPricePerM2());
-    assertEquals(0, stats.getTotalSampleSize());
+    assertTrue(stats.insufficientData());
+    assertNull(stats.medianPricePerM2());
+    assertEquals(0, stats.totalSampleSize());
     assertNull(engine.resolvePricePerM2(null));
     assertNull(engine.resolvePricePerM2(emptyItem));
     assertNull(engine.resolvePricePerM2(zeroArea));
@@ -283,8 +283,8 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(itemsWithDuplicates);
     assertNotNull(stats);
     // Deduplication should ensure sample size is 5 and median is 700k, not 500k!
-    assertEquals(5, stats.getTotalSampleSize());
-    assertEquals(700_000L, stats.getResidentialMedianPricePerM2());
+    assertEquals(5, stats.totalSampleSize());
+    assertEquals(700_000L, stats.residentialMedianPricePerM2());
   }
 
   @Test
@@ -299,11 +299,11 @@ class MarketAnalyticsEngineTest {
 
     MarketStats stats = engine.calculateMarketStats(plots);
     assertNotNull(stats);
-    assertFalse(stats.isInsufficientData());
-    assertEquals(20_000L, stats.getPlotMedianPricePerM2());
-    assertEquals(20_000L, stats.getMedianPricePerM2());
-    assertEquals(0, stats.getResidentialSampleSize());
-    assertTrue(stats.isResidentialInsufficientData());
+    assertFalse(stats.insufficientData());
+    assertEquals(20_000L, stats.plotMedianPricePerM2());
+    assertEquals(20_000L, stats.medianPricePerM2());
+    assertEquals(0, stats.residentialSampleSize());
+    assertTrue(stats.residentialInsufficientData());
   }
 
   @Test
@@ -317,22 +317,22 @@ class MarketAnalyticsEngineTest {
         createItem("5", "Debrecen", PropertyType.LAKAS, 50_000_000L, 50.0, 1_000_000L, null, null));
 
     MarketStats stats = engine.calculateMarketStats(items);
-    assertNotNull(stats.getSegments());
-    assertEquals(1, stats.getSegments().size());
+    assertNotNull(stats.segments());
+    assertEquals(1, stats.segments().size());
 
-    MarketSegmentStats segment = stats.getSegments().getFirst();
-    assertEquals("Debrecen", segment.getCity());
-    assertEquals(PropertyType.LAKAS, segment.getPropertyType());
-    assertTrue(segment.isResidential());
-    assertFalse(segment.isPlot());
-    assertEquals(5, segment.getSampleSize());
-    assertFalse(segment.isInsufficientData());
-    assertEquals(800_000L, segment.getMedianPricePerM2());
-    assertEquals(800_000L, segment.getAveragePricePerM2());
-    assertEquals(40.0, segment.getMedianPriceMillion());
-    assertEquals(40.0, segment.getAveragePriceMillion());
-    assertEquals(30.0, segment.getMinPriceMillion());
-    assertEquals(50.0, segment.getMaxPriceMillion());
+    MarketSegmentStats segment = stats.segments().getFirst();
+    assertEquals("Debrecen", segment.city());
+    assertEquals(PropertyType.LAKAS, segment.propertyType());
+    assertTrue(segment.residential());
+    assertFalse(segment.plot());
+    assertEquals(5, segment.sampleSize());
+    assertFalse(segment.insufficientData());
+    assertEquals(800_000L, segment.medianPricePerM2());
+    assertEquals(800_000L, segment.averagePricePerM2());
+    assertEquals(40.0, segment.medianPriceMillion());
+    assertEquals(40.0, segment.averagePriceMillion());
+    assertEquals(30.0, segment.minPriceMillion());
+    assertEquals(50.0, segment.maxPriceMillion());
   }
 
   @Test
@@ -381,11 +381,11 @@ class MarketAnalyticsEngineTest {
 
       MarketStats stats = engine.calculateMarketStats(items);
       assertNotNull(stats, "Stats must not be null for count " + count);
-      assertTrue(stats.isInsufficientData(), "Overall insufficientData must be true for count " + count);
-      assertTrue(stats.isResidentialInsufficientData(), "Residential insufficientData must be true for count " + count);
-      assertNull(stats.getMedianPricePerM2(), "Median price per m2 must be null for count " + count);
-      assertNull(stats.getResidentialMedianPricePerM2(), "Residential median must be null for count " + count);
-      assertEquals(0, stats.getBargainCount(), "Bargain count must be 0 for count " + count);
+      assertTrue(stats.insufficientData(), "Overall insufficientData must be true for count " + count);
+      assertTrue(stats.residentialInsufficientData(), "Residential insufficientData must be true for count " + count);
+      assertNull(stats.medianPricePerM2(), "Median price per m2 must be null for count " + count);
+      assertNull(stats.residentialMedianPricePerM2(), "Residential median must be null for count " + count);
+      assertEquals(0, stats.bargainCount(), "Bargain count must be 0 for count " + count);
 
       for (IngatlanItem item : items) {
         assertFalse(item.isBargain(), "Item must not be marked as bargain when sample size < 5");
@@ -414,14 +414,14 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
     // Residential median must remain exactly 1,000,000 Ft/m² despite 15 plot listings
-    assertEquals(1_000_000L, stats.getResidentialMedianPricePerM2());
-    assertEquals(1_000_000L, stats.getMedianPricePerM2());
-    assertEquals(5, stats.getResidentialSampleSize());
+    assertEquals(1_000_000L, stats.residentialMedianPricePerM2());
+    assertEquals(1_000_000L, stats.medianPricePerM2());
+    assertEquals(5, stats.residentialSampleSize());
 
     // Plot median must be exactly 20,000 Ft/m²
-    assertEquals(20_000L, stats.getPlotMedianPricePerM2());
-    assertEquals(15, stats.getPlotSampleSize());
-    assertEquals(20, stats.getTotalSampleSize());
+    assertEquals(20_000L, stats.plotMedianPricePerM2());
+    assertEquals(15, stats.plotSampleSize());
+    assertEquals(20, stats.totalSampleSize());
   }
 
   @Test
@@ -449,7 +449,7 @@ class MarketAnalyticsEngineTest {
 
     MarketStats stats = engine.calculateMarketStats(items);
     assertNotNull(stats);
-    assertEquals(1_000_000L, stats.getResidentialMedianPricePerM2());
+    assertEquals(1_000_000L, stats.residentialMedianPricePerM2());
 
     // Exact boundary assertions
     assertTrue(item20.isBargain(), "800,000 vs 1,000,000 (20.0% below) must be marked as bargain");
@@ -486,22 +486,22 @@ class MarketAnalyticsEngineTest {
 
     assertNotNull(stats);
     // Exactly 3 drops (dropBig, dropMid, dropSmall)
-    assertEquals(3, stats.getPriceDropCount());
-    assertEquals(50.0, stats.getPriceDropRatePercent()); // 3 out of 6 items
+    assertEquals(3, stats.priceDropCount());
+    assertEquals(50.0, stats.priceDropRatePercent()); // 3 out of 6 items
 
     // Sorted descending by absolute drop magnitude: dropBig (-5M), dropMid (-2M), dropSmall (-500k)
-    assertEquals(3, stats.getTopPriceDrops().size());
-    assertEquals("dBig", stats.getTopPriceDrops().get(0).getId());
-    assertEquals(-5_000_000L, stats.getTopPriceDrops().get(0).getPriceDelta());
-    assertEquals("dMid", stats.getTopPriceDrops().get(1).getId());
-    assertEquals(-2_000_000L, stats.getTopPriceDrops().get(1).getPriceDelta());
-    assertEquals("dSmall", stats.getTopPriceDrops().get(2).getId());
-    assertEquals(-500_000L, stats.getTopPriceDrops().get(2).getPriceDelta());
+    assertEquals(3, stats.topPriceDrops().size());
+    assertEquals("dBig", stats.topPriceDrops().get(0).id());
+    assertEquals(-5_000_000L, stats.topPriceDrops().get(0).priceDelta());
+    assertEquals("dMid", stats.topPriceDrops().get(1).id());
+    assertEquals(-2_000_000L, stats.topPriceDrops().get(1).priceDelta());
+    assertEquals("dSmall", stats.topPriceDrops().get(2).id());
+    assertEquals(-500_000L, stats.topPriceDrops().get(2).priceDelta());
 
     // Average drop amount: (5M + 2M + 500k) / 3 = 2_500_000
-    assertEquals(2_500_000L, stats.getAveragePriceDropAmountHuf());
+    assertEquals(2_500_000L, stats.averagePriceDropAmountHuf());
     // Average drop percent: (10.0 + 4.0 + 1.0) / 3 = 5.0
-    assertEquals(5.0, stats.getAveragePriceDropPercent());
+    assertEquals(5.0, stats.averagePriceDropPercent());
   }
 
   @Test
@@ -532,11 +532,11 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(corruptedList);
     assertNotNull(stats);
     // itemHuge is rejected by DataQualityEngine (score < 70 due to 2T Ft price and 2B Ft/m²), so sample size is 0
-    assertEquals(0, stats.getResidentialSampleSize());
-    assertTrue(stats.isResidentialInsufficientData());
-    assertTrue(stats.isInsufficientData());
-    assertNull(stats.getMedianPricePerM2());
-    assertEquals(1, stats.getPriceDropCount());
+    assertEquals(0, stats.residentialSampleSize());
+    assertTrue(stats.residentialInsufficientData());
+    assertTrue(stats.insufficientData());
+    assertNull(stats.medianPricePerM2());
+    assertEquals(1, stats.priceDropCount());
   }
 
   @Test
@@ -557,8 +557,8 @@ class MarketAnalyticsEngineTest {
     MarketStats stats = engine.calculateMarketStats(items);
 
     assertNotNull(stats);
-    assertEquals(5, stats.getResidentialSampleSize());
-    assertEquals(900_000L, stats.getResidentialMedianPricePerM2());
+    assertEquals(5, stats.residentialSampleSize());
+    assertEquals(900_000L, stats.residentialMedianPricePerM2());
   }
 
   @Test
@@ -585,7 +585,7 @@ class MarketAnalyticsEngineTest {
 
     assertTrue(genuineBargain.getIsBargain(), "Genuine high-quality listing should qualify as bargain");
     assertFalse(fakeBargain.getIsBargain(), "Low quality score listing must NEVER qualify as bargain");
-    assertEquals(1, stats.getBargainCount());
+    assertEquals(1, stats.bargainCount());
   }
 }
 

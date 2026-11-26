@@ -177,8 +177,8 @@ public final class PropertyParser {
 
   private static Long calculateSquareMeterPrice(Double area, PriceInfo priceInfo) {
     if (area != null && area > 0 && priceInfo != null
-        && priceInfo.getAmountHuf() != null && priceInfo.getAmountHuf() > 0) {
-      return Math.round((double) priceInfo.getAmountHuf() / area);
+        && priceInfo.amountHuf() != null && priceInfo.amountHuf() > 0) {
+      return Math.round((double) priceInfo.amountHuf() / area);
     }
     return null;
   }
@@ -196,10 +196,10 @@ public final class PropertyParser {
     if (minMillion == null && maxMillion == null) {
       return true;
     }
-    if (priceInfo == null || priceInfo.getAmountMillion() == null) {
+    if (priceInfo == null || priceInfo.amountMillion() == null) {
       return false;
     }
-    double amount = priceInfo.getAmountMillion();
+    double amount = priceInfo.amountMillion();
     if (minMillion != null && amount < (minMillion - 0.001)) {
       return false;
     }
@@ -210,7 +210,7 @@ public final class PropertyParser {
   }
 
   public static boolean isAreaInRange(PropertyDetails details, Integer minArea, Integer maxArea) {
-    Double area = details != null ? details.getAreaSquareMeters() : null;
+    Double area = details != null ? details.areaSquareMeters() : null;
     return isAreaInRange(area, minArea, maxArea);
   }
 

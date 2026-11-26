@@ -1,27 +1,27 @@
 package ingatlanok.presentation;
 
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import ingatlanok.model.PortalScrapeStatus;
 
 /**
  * Presentation DTO representing the scrape execution status of a single portal (#401 / JAVA-006).
  */
-@Getter
-@NoArgsConstructor
-public class PortalStatusDto {
+@Builder(toBuilder = true)
+public record PortalStatusDto(
+    String portalId,
+    String portalName,
+    PortalScrapeStatus status,
+    int foundCount,
+    long latencyMs,
+    String fallbackUrl,
+    String message,
+    Integer httpStatusCode,
+    String technicalDetails) {
 
-  private String portalId;
-  private String portalName;
-  private PortalScrapeStatus status;
-  private int foundCount;
-  private long latencyMs;
-  private String fallbackUrl;
-  private String message;
-  private Integer httpStatusCode;
-  private String technicalDetails;
+  public PortalStatusDto {
+    status = status != null ? status : PortalScrapeStatus.FAILED;
+  }
 
   public PortalStatusDto(
       String portalId,
@@ -52,27 +52,5 @@ public class PortalStatusDto {
         message,
         null,
         null);
-  }
-
-  @Builder(toBuilder = true)
-  public PortalStatusDto(
-      String portalId,
-      String portalName,
-      PortalScrapeStatus status,
-      int foundCount,
-      long latencyMs,
-      String fallbackUrl,
-      String message,
-      Integer httpStatusCode,
-      String technicalDetails) {
-    this.portalId = portalId;
-    this.portalName = portalName;
-    this.status = status != null ? status : PortalScrapeStatus.FAILED;
-    this.foundCount = foundCount;
-    this.latencyMs = latencyMs;
-    this.fallbackUrl = fallbackUrl;
-    this.message = message;
-    this.httpStatusCode = httpStatusCode;
-    this.technicalDetails = technicalDetails;
   }
 }

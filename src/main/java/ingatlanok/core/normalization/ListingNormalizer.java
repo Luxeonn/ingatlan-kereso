@@ -212,10 +212,10 @@ public class ListingNormalizer implements RawListingNormalizer {
   private PropertyDetails parseDetailsInfo(
       RawPropertyListing raw, PriceInfo priceInfo, Double area, Double rooms) {
     PropertyDetails parsed = PropertyParser.parseDetails(raw.detailsText(), priceInfo);
-    Double finalArea = area != null ? area : (parsed != null ? parsed.getAreaSquareMeters() : null);
-    Double finalRooms = rooms != null ? rooms : (parsed != null ? parsed.getRoomCount() : null);
+    Double finalArea = area != null ? area : (parsed != null ? parsed.areaSquareMeters() : null);
+    Double finalRooms = rooms != null ? rooms : (parsed != null ? parsed.roomCount() : null);
     Long sqmPrice = calculateSqmPrice(priceInfo, finalArea);
-    String text = parsed != null && parsed.getRawText() != null ? parsed.getRawText() : "";
+    String text = parsed != null && parsed.rawText() != null ? parsed.rawText() : "";
     if (text.isBlank()) {
       if (finalArea != null && finalRooms != null) {
         text = Math.round(finalArea) + " m² • " + Math.round(finalRooms) + " szoba";
@@ -235,10 +235,10 @@ public class ListingNormalizer implements RawListingNormalizer {
 
   private Long calculateSqmPrice(PriceInfo priceInfo, Double area) {
     if (area == null || area <= 0 || priceInfo == null
-        || priceInfo.getAmountHuf() == null || priceInfo.getAmountHuf() <= 0) {
+        || priceInfo.amountHuf() == null || priceInfo.amountHuf() <= 0) {
       return null;
     }
-    return Math.round((double) priceInfo.getAmountHuf() / area);
+    return Math.round((double) priceInfo.amountHuf() / area);
   }
 
   private String resolveCity(RawPropertyListing raw, SearchCriteria criteria) {

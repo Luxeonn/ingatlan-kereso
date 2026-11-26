@@ -136,10 +136,10 @@ class SidecarCliExecutorUnitTest {
     assertEquals("https://ingatlan.com/12345", domainItem.getUrl());
     assertTrue(domainItem.isNew());
     assertNotNull(domainItem.getPriceInfo());
-    assertEquals(65.0, domainItem.getPriceInfo().getAmountMillion());
+    assertEquals(65.0, domainItem.getPriceInfo().amountMillion());
     assertNotNull(domainItem.getDetailsInfo());
-    assertEquals(72.0, domainItem.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(2.5, domainItem.getDetailsInfo().getRoomCount());
+    assertEquals(72.0, domainItem.getDetailsInfo().areaSquareMeters());
+    assertEquals(2.5, domainItem.getDetailsInfo().roomCount());
   }
 
   @Test
@@ -149,13 +149,13 @@ class SidecarCliExecutorUnitTest {
         new SidecarResponse.SidecarItem("1", "https://example.test/1", " ", null, null, null, null);
     IngatlanItem unavailable = withoutPrice.toIngatlanItem(null, "Debrecen", "today", false);
     assertEquals("Debrecen - Ingatlan (1)", unavailable.getTitle());
-    assertEquals("Ár a hirdetésben", unavailable.getPriceInfo().getRawText());
-    assertEquals(0, unavailable.getDetailsInfo().getRawText().length());
+    assertEquals("Ár a hirdetésben", unavailable.getPriceInfo().rawText());
+    assertEquals(0, unavailable.getDetailsInfo().rawText().length());
 
     SidecarResponse.SidecarItem withRawPrice =
         new SidecarResponse.SidecarItem("2", "https://example.test/2", "Ház", null, "12 M Ft", null, null);
     IngatlanItem rawPrice = withRawPrice.toIngatlanItem(null, "Szeged", "today", false);
-    assertEquals("12 M Ft", rawPrice.getPriceInfo().getRawText());
+    assertEquals("12 M Ft", rawPrice.getPriceInfo().rawText());
     assertEquals("Szeged", rawPrice.getCity());
   }
 

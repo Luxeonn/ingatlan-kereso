@@ -76,7 +76,7 @@ class KoltozzbeAdapterTest {
     assertEquals(PortalScrapeStatus.SUCCESS, result.getStatus());
     assertEquals(1, result.getItems().size());
     assertEquals("1002", result.getItems().get(0).getId());
-    assertEquals(95_000_000L, result.getItems().get(0).getPriceInfo().getAmountHuf());
+    assertEquals(95_000_000L, result.getItems().get(0).getPriceInfo().amountHuf());
   }
 
   @Test

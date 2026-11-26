@@ -99,9 +99,9 @@ public class MarketAnalyticsEngine {
       return;
     }
     if (item.getPriceInfo() != null
-        && item.getPriceInfo().getAmountMillion() != null
-        && item.getPriceInfo().getAmountMillion() > 0) {
-      pricesMillion.add(item.getPriceInfo().getAmountMillion());
+        && item.getPriceInfo().amountMillion() != null
+        && item.getPriceInfo().amountMillion() > 0) {
+      pricesMillion.add(item.getPriceInfo().amountMillion());
     }
   }
 
@@ -276,22 +276,22 @@ public class MarketAnalyticsEngine {
     if (itemPriceM2 == null
         || itemPriceM2 <= 0
         || segment == null
-        || segment.isInsufficientData()) {
+        || segment.insufficientData()) {
       return false;
     }
-    Long median = segment.getMedianPricePerM2();
+    Long median = segment.medianPricePerM2();
     return median != null && median > 0 && isEligibleForMedian(item);
   }
 
   private boolean evaluateItemBargain(
       IngatlanItem item, Long itemPriceM2, MarketSegmentStats segment) {
-    long refMedian = segment.getMedianPricePerM2();
+    long refMedian = segment.medianPricePerM2();
     double pctBelow = ((double) (refMedian - itemPriceM2) / refMedian) * 100.0;
     double roundedPctBelow = Math.round(pctBelow * 10.0) / 10.0;
 
     item.setReferenceMedianPricePerSquareMeter(refMedian);
     item.setPercentageBelowMedian(roundedPctBelow);
-    item.setReferenceSampleSize(segment.getSampleSize());
+    item.setReferenceSampleSize(segment.sampleSize());
 
     boolean isBargain = roundedPctBelow >= BARGAIN_DISCOUNT_THRESHOLD_PERCENT;
     item.setIsBargain(isBargain);
@@ -302,7 +302,7 @@ public class MarketAnalyticsEngine {
     item.setIsBargain(false);
     item.setReferenceMedianPricePerSquareMeter(null);
     item.setPercentageBelowMedian(null);
-    item.setReferenceSampleSize(segment != null ? segment.getSampleSize() : 0);
+    item.setReferenceSampleSize(segment != null ? segment.sampleSize() : 0);
   }
 
   private void finalizeSegmentBargains(

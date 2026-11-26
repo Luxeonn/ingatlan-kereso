@@ -54,9 +54,9 @@ class IngatlanBazarLiveSnapshotParsingTest {
 
     IngatlanItem hitWithUserTitle = byId.get("061862b7-c0c7-11f1-b393-bc2411815210");
     assertNotNull(hitWithUserTitle);
-    assertEquals(115_000_000L, hitWithUserTitle.getPriceInfo().getAmountHuf());
-    assertEquals(100.0, hitWithUserTitle.getDetailsInfo().getAreaSquareMeters());
-    assertEquals(3.0, hitWithUserTitle.getDetailsInfo().getRoomCount());
+    assertEquals(115_000_000L, hitWithUserTitle.getPriceInfo().amountHuf());
+    assertEquals(100.0, hitWithUserTitle.getDetailsInfo().areaSquareMeters());
+    assertEquals(3.0, hitWithUserTitle.getDetailsInfo().roomCount());
     assertEquals("Debrecen", hitWithUserTitle.getCity());
     assertEquals("Debrecen, Veres Péter-kert", hitWithUserTitle.getLocation());
     assertTrue(hitWithUserTitle.getTitle().contains("Tulajdonostól"),

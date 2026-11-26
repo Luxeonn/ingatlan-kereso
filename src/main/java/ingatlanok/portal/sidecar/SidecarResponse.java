@@ -144,8 +144,8 @@ public class SidecarResponse {
       }
 
       Long sqmPrice = null;
-      if (priceInfo.getAmountHuf() != null && areaSquareMeters != null && areaSquareMeters > 0) {
-        sqmPrice = Math.round(priceInfo.getAmountHuf() / areaSquareMeters);
+      if (priceInfo.amountHuf() != null && areaSquareMeters != null && areaSquareMeters > 0) {
+        sqmPrice = Math.round(priceInfo.amountHuf() / areaSquareMeters);
       }
 
       return PropertyDetails.builder()

@@ -90,11 +90,11 @@ public class SearchResultAggregator {
   }
 
   private static Long extractPrice(IngatlanItem item) {
-    if (item.getPriceInfo() != null && item.getPriceInfo().getAmountHuf() != null) {
-      return item.getPriceInfo().getAmountHuf();
+    if (item.getPriceInfo() != null && item.getPriceInfo().amountHuf() != null) {
+      return item.getPriceInfo().amountHuf();
     }
     if (item.getPrice() != null) {
-      return PropertyParser.parsePrice(item.getPrice()).getAmountHuf();
+      return PropertyParser.parsePrice(item.getPrice()).amountHuf();
     }
     return null;
   }

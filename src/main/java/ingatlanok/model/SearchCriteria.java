@@ -195,10 +195,10 @@ public class SearchCriteria {
     }
 
     Double area =
-        (item.getDetailsInfo() != null) ? item.getDetailsInfo().getAreaSquareMeters() : null;
+        (item.getDetailsInfo() != null) ? item.getDetailsInfo().areaSquareMeters() : null;
     if (area == null && item.getDetails() != null) {
       PropertyDetails parsed = PropertyParser.parseDetails(item.getDetails(), item.getPriceInfo());
-      area = parsed.getAreaSquareMeters();
+      area = parsed.areaSquareMeters();
     }
     if (!PropertyParser.isAreaInRange(area, minArea, maxArea)) {
       return false;

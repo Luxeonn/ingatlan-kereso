@@ -244,19 +244,19 @@ class PortalGoldenDatasetRegressionTest {
     String actualType = actual.getPropertyType() != null ? actual.getPropertyType().name() : null;
     checkField(portalId, expected.id(), "propertyType", expected.propertyType(), actualType, diffs);
 
-    Long actualHuf = actual.getPriceInfo() != null ? actual.getPriceInfo().getAmountHuf() : null;
+    Long actualHuf = actual.getPriceInfo() != null ? actual.getPriceInfo().amountHuf() : null;
     checkField(portalId, expected.id(), "priceHuf", expected.priceHuf(), actualHuf, diffs);
 
     Double actualMillion =
-        actual.getPriceInfo() != null ? actual.getPriceInfo().getAmountMillion() : null;
+        actual.getPriceInfo() != null ? actual.getPriceInfo().amountMillion() : null;
     checkField(portalId, expected.id(), "priceMillion", expected.priceMillion(), actualMillion, diffs);
 
     Double actualArea =
-        actual.getDetailsInfo() != null ? actual.getDetailsInfo().getAreaSquareMeters() : null;
+        actual.getDetailsInfo() != null ? actual.getDetailsInfo().areaSquareMeters() : null;
     checkField(portalId, expected.id(), "areaSquareMeters", expected.areaSquareMeters(), actualArea, diffs);
 
     Double actualRooms =
-        actual.getDetailsInfo() != null ? actual.getDetailsInfo().getRoomCount() : null;
+        actual.getDetailsInfo() != null ? actual.getDetailsInfo().roomCount() : null;
     checkField(portalId, expected.id(), "roomCount", expected.roomCount(), actualRooms, diffs);
 
     checkField(portalId, expected.id(), "imageUrl", expected.imageUrl(), actual.getImageUrl(), diffs);

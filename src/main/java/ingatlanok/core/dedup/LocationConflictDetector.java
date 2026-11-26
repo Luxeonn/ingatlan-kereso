@@ -90,8 +90,8 @@ public final class LocationConflictDetector {
 
   private static String extractRawDetails(IngatlanItem item) {
     String details = item.getDetails() != null ? item.getDetails() : "";
-    if (item.getDetailsInfo() != null && item.getDetailsInfo().getRawText() != null) {
-      String raw = item.getDetailsInfo().getRawText();
+    if (item.getDetailsInfo() != null && item.getDetailsInfo().rawText() != null) {
+      String raw = item.getDetailsInfo().rawText();
       if (!details.contains(raw)) {
         details = (details + " " + raw).trim();
       }

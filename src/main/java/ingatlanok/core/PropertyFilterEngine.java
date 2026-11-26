@@ -148,11 +148,11 @@ public class PropertyFilterEngine {
 
   private Double resolveArea(IngatlanItem item, PriceInfo priceInfo) {
     Double area =
-        (item.getDetailsInfo() != null) ? item.getDetailsInfo().getAreaSquareMeters() : null;
+        (item.getDetailsInfo() != null) ? item.getDetailsInfo().areaSquareMeters() : null;
     if (area == null && item.getDetails() != null && !item.getDetails().isBlank()) {
       PropertyDetails parsed = PropertyParser.parseDetails(item.getDetails(), priceInfo);
       item.setDetailsInfo(parsed);
-      area = parsed.getAreaSquareMeters();
+      area = parsed.areaSquareMeters();
     }
     return area;
   }
@@ -170,7 +170,7 @@ public class PropertyFilterEngine {
       LOGGER.warn(
           "Kiszűrt hirdetés (Ár: {} kívül esik a {}-{} M Ft sávon): portál='{}', cím='{}', "
               + "link='{}', ár='{}', méret='{}' m², település='{}'",
-          priceInfo != null ? priceInfo.getAmountMillion() : "N/A",
+          priceInfo != null ? priceInfo.amountMillion() : "N/A",
           criteria != null ? criteria.getMinPriceMillion() : "N/A",
           criteria != null ? criteria.getMaxPriceMillion() : "N/A",
           item.getPortal(),

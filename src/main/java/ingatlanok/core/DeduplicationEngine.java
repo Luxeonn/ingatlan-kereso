@@ -284,8 +284,8 @@ public class DeduplicationEngine {
       Set<String> tokensA,
       Set<String> tokensB,
       boolean hasAffirmativeLocation) {
-    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().getRoomCount() : null;
-    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().getRoomCount() : null;
+    Double roomsA = a.getDetailsInfo() != null ? a.getDetailsInfo().roomCount() : null;
+    Double roomsB = b.getDetailsInfo() != null ? b.getDetailsInfo().roomCount() : null;
     if (roomsA == null || roomsB == null || roomsA <= 0 || roomsB <= 0) {
       return true;
     }
@@ -318,8 +318,8 @@ public class DeduplicationEngine {
   }
 
   private boolean isAdaptiveAreaEligible(IngatlanItem a, IngatlanItem b, double roomDiff) {
-    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().getAreaSquareMeters() : null;
-    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().getAreaSquareMeters() : null;
+    Double areaA = a.getDetailsInfo() != null ? a.getDetailsInfo().areaSquareMeters() : null;
+    Double areaB = b.getDetailsInfo() != null ? b.getDetailsInfo().areaSquareMeters() : null;
     if (areaA == null || areaB == null) {
       return false;
     }
@@ -336,7 +336,7 @@ public class DeduplicationEngine {
     ClusterConsolidationHelper.adoptMissingDetailsFromCluster(primary, cluster);
 
     Double clusterArea = primary != null && primary.getDetailsInfo() != null
-        ? primary.getDetailsInfo().getAreaSquareMeters()
+        ? primary.getDetailsInfo().areaSquareMeters()
         : null;
 
     List<SourceListing> sourceListings = cluster.stream()
@@ -391,7 +391,7 @@ public class DeduplicationEngine {
       return null;
     }
     String portal = resolveSourcePortal(item);
-    Long priceHuf = item.getPriceInfo() != null ? item.getPriceInfo().getAmountHuf() : null;
+    Long priceHuf = item.getPriceInfo() != null ? item.getPriceInfo().amountHuf() : null;
     Long pricePerM2 = ClusterConsolidationHelper.resolveSourcePricePerM2(item, priceHuf, fallbackArea);
 
     return SourceListing.builder()
@@ -411,7 +411,7 @@ public class DeduplicationEngine {
   private String resolveSourcePortal(IngatlanItem item) {
     String portal = item.getPortal();
     if ((portal == null || portal.isBlank()) && item.getSource() != null) {
-      portal = item.getSource().getPortalName();
+      portal = item.getSource().portalName();
     }
     return (portal != null && !portal.isBlank()) ? portal : "Ismeretlen";
   }
