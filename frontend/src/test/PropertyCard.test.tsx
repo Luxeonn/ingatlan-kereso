@@ -48,12 +48,12 @@ describe('PropertyCard component (#270)', () => {
     expect(screen.getByTestId('new-construction-badge')).toBeTruthy()
 
     // Details drawer button is present on the card face (#270)
-    // Portal badge is present on thumbnail overlay (#288, #302)
+    // Portal badge is present on thumbnail bottom-left glass overlay (#535)
     const portalBadge = screen.getByTestId('property-portal-badge')
     expect(portalBadge.textContent).toContain('Duna House')
     expect(portalBadge.className).toContain('absolute')
-    expect(portalBadge.className).toContain('top-2')
-    expect(portalBadge.className).toContain('left-2')
+    expect(portalBadge.className).toContain('bottom-2.5')
+    expect(portalBadge.className).toContain('left-2.5')
 
     // Details drawer button is present on the card face (#270, #288)
     const detailsBtn = screen.getByTestId('details-button')
@@ -63,9 +63,9 @@ describe('PropertyCard component (#270)', () => {
     const img = screen.getByRole('img') as HTMLImageElement
     expect(img.getAttribute('src')).toBe('https://dh.hu/images/test-1.jpg')
 
-    // Title of new unseen item has pulse-title class
+    // Title of new unseen item must NOT have removed pulse-title animation class (#535)
     const titleEl = screen.getByText('Szép felújított lakás Debrecen belvárosában')
-    expect(titleEl.className).toContain('pulse-title')
+    expect(titleEl.className).not.toContain('pulse-title')
   })
 
   it('shows fallback placeholder with portal name when imageUrl is missing or fails to load', () => {
@@ -591,5 +591,13 @@ describe('PropertyCard component (#270)', () => {
     expect(openSpy).toHaveBeenCalledWith('https://dh.hu/ingatlan/123')
     expect(onMarkViewed).toHaveBeenCalledWith('https://dh.hu/ingatlan/123')
     expect(screen.queryByTestId('property-details-modal')).toBeNull()
+  })
+
+  it('uses w-64 h-36 thumbnail dimensions in list view so top capsules do not crowd (#535)', () => {
+    render(<PropertyCard item={mockItem} onMarkViewed={() => {}} viewMode="list" />)
+    const thumb = screen.getByTestId('property-thumbnail')
+    expect(thumb.className).toContain('w-64')
+    expect(thumb.className).toContain('h-36')
+    expect(thumb.className).not.toContain('w-52')
   })
 })

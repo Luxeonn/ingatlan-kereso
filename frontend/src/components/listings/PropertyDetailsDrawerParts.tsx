@@ -20,7 +20,7 @@ interface SourceThumbnailPreviewProps {
 const SourceThumbnailPreview: FC<SourceThumbnailPreviewProps> = ({ imageUrl, alt, onError }) => (
   <div
     data-testid="source-thumbnail-preview"
-    className="pointer-events-none absolute left-0 bottom-full mb-1.5 z-50 h-[120px] w-[160px] overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-1 shadow-xl animate-in fade-in-0 duration-150"
+    className="pointer-events-none absolute left-0 bottom-full mb-1.5 z-50 h-[120px] w-[160px] overflow-hidden rounded-xl glass-elevated p-1 animate-in fade-in-0 duration-150"
   >
     <img
       src={imageUrl}
@@ -28,7 +28,7 @@ const SourceThumbnailPreview: FC<SourceThumbnailPreviewProps> = ({ imageUrl, alt
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={onError}
-      className="h-full w-full rounded object-cover"
+      className="h-full w-full rounded-lg object-cover"
     />
   </div>
 )
@@ -81,7 +81,7 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
           setIsPreviewOpen(false)
         }
       }}
-      className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-2 first:pt-1 last:pb-1"
+      className="relative flex flex-row items-center justify-between gap-2.5 py-2 first:pt-1 last:pb-1"
     >
       {canShowPreview && (
         <SourceThumbnailPreview
@@ -91,11 +91,11 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
         />
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
         <span
           data-testid="source-portal-badge"
           className={cn(
-            'rounded-md px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase',
+            'rounded-full px-2 py-0.5 text-[11px] font-bold border tracking-wider uppercase',
             portalStyle.bg,
           )}
         >
@@ -105,7 +105,7 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
         <span
           data-testid="source-status-badge"
           className={cn(
-            'rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase',
+            'rounded-full px-2 py-0.5 text-[10px] font-bold border uppercase',
             isActive
               ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
               : 'border-slate-500/30 bg-slate-500/10 text-slate-600',
@@ -117,7 +117,7 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
         {freshness && (
           <span
             data-testid="source-freshness"
-            className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]"
+            className="flex items-center gap-1 text-[11px] text-[#42526b] tabular-nums"
             title={`Utoljára észlelve: ${freshness}`}
           >
             <Clock className="h-3 w-3 opacity-60" aria-hidden="true" />
@@ -126,13 +126,13 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
         )}
       </div>
 
-      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-        <div className="text-right">
-          <div className="text-xs font-bold text-blue-600">
+      <div className="flex items-center justify-end gap-2.5 shrink-0">
+        <div className="text-right tabular-nums">
+          <div className="text-xs font-bold text-[#0071e3]">
             {million !== null ? formatPriceMillion(million) : 'Ár a hirdetésben'}
           </div>
           {hasPrice && source.priceHuf !== undefined && source.priceHuf !== null && (
-            <div className="text-[10px] text-[var(--text-secondary)]">
+            <div className="text-[10px] text-[#42526b]">
               {formatPriceFt(source.priceHuf)}
             </div>
           )}
@@ -145,10 +145,10 @@ export const SourceItemRow: FC<SourceItemRowProps> = ({
             aria-label={`Megnyitás: ${portalName}`}
             title={`Megnyitás: ${portalName}`}
             data-testid="source-external-link"
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-600/10 hover:text-blue-600 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border-hairline)] bg-white/80 px-2.5 py-1 text-xs font-semibold text-[#0b1220] hover:border-[#0071e3]/50 hover:bg-[#0071e3]/10 hover:text-[#005bb5] active:scale-95 transition-all cursor-pointer"
           >
-            <span className="hidden xs:inline">Megnyitás</span>
-            <ExternalLink className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
+            <span>Megnyitás</span>
+            <ExternalLink className="h-3.5 w-3.5 text-[#0071e3]" aria-hidden="true" />
           </button>
         )}
 
@@ -217,10 +217,10 @@ const SplitSourceControl: FC<SplitSourceControlProps> = ({
       onClick={onRequestConfirm}
       aria-label={`Nem ugyanaz: ${portalName}`}
       title="Nem ugyanaz – forrás leválasztása"
-      className="flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-700 transition-all disabled:opacity-50"
+      className="flex items-center gap-1 rounded-full border border-[var(--border-hairline)] bg-white/80 px-2.5 py-1 text-xs font-semibold text-[#42526b] hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-700 transition-all disabled:opacity-50 cursor-pointer"
     >
       <Unlink className="h-3.5 w-3.5" aria-hidden="true" />
-      <span className="hidden sm:inline">Nem ugyanaz</span>
+      <span>Nem ugyanaz</span>
     </button>
   )
 }

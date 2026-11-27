@@ -54,14 +54,14 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-md">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+    <div className="rounded-[20px] glass-surface p-5">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
               Alkalmi Vétel és Árleszállítás Figyelő
             </h3>
-            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--status-bargain-fg)] border border-emerald-500/20">
+            <span className="rounded-full bg-[var(--status-bargain-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--status-bargain-fg)] border border-emerald-500/25">
               Bargain Hunter
             </span>
           </div>
@@ -70,29 +70,29 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center rounded-xl bg-[var(--bg-input)] p-1 border border-[var(--border-color)] text-xs">
+        <div className="flex items-center rounded-full glass-capsule p-1 text-xs tabular-nums">
           <button
             type="button"
             onClick={() => setActiveTab('belowMarket')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold transition-all cursor-pointer ${
               activeTab === 'belowMarket'
                 ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-white/60 hover:text-[var(--text-primary)]'
             }`}
           >
-            <Percent className="h-3.5 w-3.5" />
+            <Percent className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Piaci átlag alatt ({sortedBelowMarketDeals.length})</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('priceDrops')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold transition-all cursor-pointer ${
               activeTab === 'priceDrops'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                ? 'bg-[#0071e3] text-white shadow-sm'
+                : 'text-[var(--text-secondary)] hover:bg-white/60 hover:text-[var(--text-primary)]'
             }`}
           >
-            <TrendingDown className="h-3.5 w-3.5" />
+            <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Leárazások ({sortedPriceDrops.length})</span>
           </button>
         </div>
@@ -104,7 +104,7 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
             Nem található legalább 20%-kal a kategória mediánja alatti ingatlan a jelenlegi keresési halmazban.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-3 gap-4">
             {sortedBelowMarketDeals.map((deal) => {
               const key = deal.item.id || deal.item.url
               return (
@@ -126,7 +126,7 @@ export const BargainHunterTable: FC<BargainHunterTableProps> = ({
           Nem található regisztrált árcsökkenés a jelenlegi találatok között.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-3 gap-4">
           {sortedPriceDrops.map((item) => {
             const key = item.id || item.url
             return (

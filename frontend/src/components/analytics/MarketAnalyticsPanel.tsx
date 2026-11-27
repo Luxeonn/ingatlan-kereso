@@ -7,7 +7,8 @@ import { PriceDistributionChart } from './PriceDistributionChart'
 import { CityComparisonChart } from './CityComparisonChart'
 import { PriceScatterCorrelationChart } from './PriceScatterCorrelationChart'
 import { BargainHunterTable } from './BargainHunterTable'
-import { MarketKpiGrid, TopPriceDropsSection } from './MarketAnalyticsKpiSection'
+import { MarketKpiGrid } from './MarketAnalyticsKpiSection'
+import { TopPriceDropsSection } from './TopPriceDropsSection'
 import { MarketSegmentMatrixTable } from './MarketSegmentMatrixTable'
 import { useFilterStore } from '../../store/useFilterStore'
 
@@ -63,9 +64,9 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
       {analytics.totalCount === 0 && (
         <div
           data-testid="market-analytics-empty-state"
-          className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-hairline)] bg-[var(--bg-surface)] p-12 text-center"
+          className="flex flex-col items-center justify-center rounded-[20px] glass-surface border-dashed! border-[var(--border-strong)]! p-12 text-center"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-700 mb-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0071e3]/12 text-[#0071e3] mb-3">
             <Building2 className="h-7 w-7" aria-hidden="true" />
           </div>
           <h3 className="text-base font-bold text-[var(--text-primary)]">
@@ -81,7 +82,7 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
         <div
           data-testid="insufficient-data-banner"
           role="status"
-          className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-[var(--status-warn-bg)] p-4 text-[var(--status-warn-fg)] shadow-sm"
+          className="flex items-start gap-3 rounded-2xl glass-surface border-amber-500/35! bg-[var(--status-warn-bg)]! outline-1 outline-amber-500/25 p-4 text-[var(--status-warn-fg)]"
         >
           <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-[var(--status-warn-fg)]" aria-hidden="true" />
           <div className="text-xs">
@@ -116,7 +117,7 @@ export const MarketAnalyticsPanel: FC<MarketAnalyticsPanelProps> = ({
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6">
         <PriceDistributionChart
           priceBins={distribution.priceBins}
           sqmPriceBins={distribution.sqmPriceBins}

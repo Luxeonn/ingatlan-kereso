@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FC } from 'react'
+import { useCallback, useRef, useState, type ChangeEvent, type FC } from 'react'
 import {
   X,
   Upload,
@@ -12,6 +12,7 @@ import {
 import { importIngatlanComHtml } from '../../api/portalApi'
 import { useFilterStore } from '../../store/useFilterStore'
 import { useUiStore } from '../../store/useUiStore'
+import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
 import { buildIngatlanComSearchUrl } from '../../utils/ingatlanComUrl'
 import { normalizePropertyType, openExternalUrl } from '../../utils/formatters'
 
@@ -36,6 +37,13 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
 }) => {
   const { isIngatlanComImportModalOpen, setIngatlanComImportModalOpen } = useUiStore()
   const { criteria } = useFilterStore()
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeModal = useCallback(
+    () => setIngatlanComImportModalOpen(false),
+    [setIngatlanComImportModalOpen],
+  )
+
+  useOutsideDismiss(panelRef, isIngatlanComImportModalOpen, closeModal, true)
 
   const activeCity = criteria.cities?.[0] ?? criteria.city ?? 'Debrecen'
   const activeType = normalizePropertyType(criteria.propertyType)
@@ -136,19 +144,28 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
   return (
     <div
       data-testid="ingatlancom-import-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeModal()
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b1220]/25 p-4 backdrop-blur-sm animate-in fade-in duration-200"
     >
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3.5">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ingatlan.com oldalak közvetlen importálása"
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl glass-elevated"
+      >
+        <div className="flex items-center justify-between border-b border-[var(--border-hairline)] glass-chrome px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-700">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#0071e3]/12 text-[#005bb5]">
               <FileCode2 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[var(--text-primary)]">
+              <h3 className="text-sm font-bold text-[#0b1220]">
                 Ingatlan.com oldalak ({startPage}., {startPage + 1}., ...) közvetlen importálása
               </h3>
-              <p className="text-xs text-[var(--text-secondary)]">
+              <p className="text-xs text-[#42526b]">
                 A saját böngésződből lementett vagy kimásolt HTML oldalakat tartósan beolvasod az adatbázisba
               </p>
             </div>
@@ -157,16 +174,16 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
           <button
             type="button"
             aria-label="Bezárás"
-            onClick={() => setIngatlanComImportModalOpen(false)}
-            className="rounded-lg p-1 text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-[var(--text-primary)]"
+            onClick={closeModal}
+            className="rounded-full p-1.5 text-[#42526b] hover:bg-white/80 hover:text-[#0b1220] cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-3.5 space-y-2.5">
-            <p className="text-xs font-semibold text-sky-700">
+          <div className="rounded-2xl border border-[#0071e3]/20 bg-[#0071e3]/[0.05] p-3.5 space-y-2.5">
+            <p className="text-xs font-semibold text-[#005bb5]">
               1. Nyisd meg a következő oldalakat a böngésződben ({activeCity}):
             </p>
             <div className="flex flex-wrap gap-2">
@@ -188,7 +205,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
                     type="button"
                     data-testid={`open-ingatlancom-page-${pageNum}`}
                     onClick={() => openExternalUrl(pageUrl)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/30 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-500/25 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#0071e3]/30 bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#005bb5] hover:bg-[#0071e3]/10 transition-colors cursor-pointer"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     <span>{pageNum}. oldal megnyitása</span>
@@ -196,14 +213,14 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
                 )
               })}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-sky-500/15">
-              <span className="text-[11px] text-[var(--text-secondary)]">
-                2. Mentsd le az oldalt (<kbd className="rounded bg-black/30 px-1">Ctrl+S</kbd> → csak HTML), vagy F12 Konzolból másold a DOM-ot:
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-[#0071e3]/15">
+              <span className="text-[11px] text-[#42526b]">
+                2. Mentsd le az oldalt (<kbd className="rounded border border-[var(--border-hairline)] bg-white/80 px-1.5 py-0.5 font-mono text-[#0b1220]">Ctrl+S</kbd> → csak HTML), vagy F12 Konzolból másold a DOM-ot:
               </span>
               <button
                 type="button"
                 onClick={handleCopySnippet}
-                className="inline-flex items-center gap-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-input)] px-2 py-1 text-[11px] font-mono text-[var(--text-primary)] hover:border-sky-400/40"
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--border-hairline)] bg-white/80 px-2.5 py-1 text-[11px] font-mono text-[#0b1220] hover:border-[#0071e3]/40 cursor-pointer"
               >
                 {copiedSnippet ? <Check className="h-3 w-3 text-emerald-700" /> : <Copy className="h-3 w-3" />}
                 <span>{copiedSnippet ? 'Másolva!' : CONSOLE_COPY_SNIPPET}</span>
@@ -214,9 +231,9 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
           <div className="space-y-2">
             <label
               htmlFor="ingatlancom-html-file"
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-input)] px-4 py-3 text-xs font-semibold text-[var(--text-primary)] hover:border-sky-500/50 transition-colors"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--border-strong)] bg-white/60 px-4 py-3 text-xs font-semibold text-[#0b1220] hover:border-[#0071e3]/50 transition-colors"
             >
-              <Upload className="h-4 w-4 text-sky-700" />
+              <Upload className="h-4 w-4 text-[#0071e3]" />
               <span>Mentett .html fájl(ok) kiválasztása (több oldal egyszerre is)</span>
               <input
                 id="ingatlancom-html-file"
@@ -234,7 +251,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-semibold text-[var(--text-secondary)]">
+            <label className="block text-xs font-semibold text-[#42526b]">
               Vagy illeszd be a kimásolt HTML forrást:
             </label>
             <textarea
@@ -243,23 +260,23 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
               onChange={(e) => setHtmlInput(e.target.value)}
               rows={5}
               placeholder="<a href='/34567890' class='listing-card'>...</a>"
-              className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] p-3 font-mono text-xs text-[var(--text-primary)] focus:border-sky-500 focus:outline-none"
+              className="w-full rounded-xl border border-[var(--border-hairline)] bg-white/75 p-3 font-mono text-xs text-[#0b1220] placeholder:text-[#42526b]/70 focus:border-[#0071e3] focus:outline-none"
             />
             <input
               type="url"
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
               placeholder={`Forrás URL (alapértelmezett: ${defaultPageUrl})`}
-              className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-[11px] text-[var(--text-secondary)] focus:border-sky-500 focus:outline-none"
+              className="w-full rounded-full border border-[var(--border-hairline)] bg-white/75 px-3.5 py-1.5 font-mono text-[11px] text-[#42526b] focus:border-[#0071e3] focus:outline-none"
             />
           </div>
 
           {errorMsg && (
             <div
               role="alert"
-              className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-700"
+              className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-[var(--status-danger-bg)] p-3 text-xs text-[var(--status-danger-fg)]"
             >
-              <AlertCircle className="h-4 w-4 text-red-700 shrink-0" />
+              <AlertCircle className="h-4 w-4 text-[var(--status-danger-fg)] shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -268,9 +285,9 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
             <div
               data-testid="ingatlancom-import-summary"
               role="status"
-              className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700"
+              className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-[var(--status-bargain-bg)] p-3 text-xs text-[var(--status-bargain-fg)] tabular-nums"
             >
-              <Sparkles className="h-4 w-4 text-emerald-700 shrink-0" />
+              <Sparkles className="h-4 w-4 text-[var(--status-bargain-fg)] shrink-0" />
               <span>
                 {summary.parsedCount > 0
                   ? `${summary.city}: ${summary.parsedCount} kártya beolvasva -> ${summary.savedCount} egyedi (${summary.newlyAddedCount} új, ${summary.duplicateCount} frissítve). A lista frissült!`
@@ -280,11 +297,11 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--border-color)] px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--border-hairline)] glass-chrome px-5 py-3">
           <button
             type="button"
-            onClick={() => setIngatlanComImportModalOpen(false)}
-            className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-input)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            onClick={closeModal}
+            className="rounded-full border border-[var(--border-hairline)] bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-[#42526b] hover:text-[#0b1220] cursor-pointer"
           >
             Bezárás
           </button>
@@ -293,7 +310,7 @@ export const IngatlanComImportModal: FC<IngatlanComImportModalProps> = ({
             data-testid="submit-ingatlancom-import"
             disabled={isImporting}
             onClick={handleSubmitPastedHtml}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-sky-500 disabled:opacity-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#0071e3] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#0077ed] disabled:opacity-50 transition-colors cursor-pointer"
           >
             <Upload className="h-3.5 w-3.5" />
             <span>{isImporting ? 'Importálás...' : 'Importálás és keresés frissítése'}</span>

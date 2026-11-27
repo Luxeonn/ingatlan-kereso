@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import type { FC } from 'react'
 import { useState } from 'react'
 import {
   BarChart,
@@ -47,15 +47,15 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-md">
+    <div className="rounded-[20px] glass-surface p-5">
       {/* Header & Controls */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
               Település-összehasonlító Diagram
             </h3>
-            <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+            <span className="rounded-full bg-[#0071e3]/10 border border-[#0071e3]/20 px-2.5 py-0.5 text-[10px] font-bold text-[#005bb5]">
               Városok
             </span>
           </div>
@@ -67,14 +67,14 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
         {/* View and sort toggles */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Metric switcher */}
-          <div className="flex items-center rounded-xl bg-[var(--bg-input)] p-1 border border-[var(--border-color)]">
+          <div className="flex items-center rounded-full glass-capsule p-1">
             <button
               type="button"
               onClick={() => setMetric('avgSqmPrice')}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
                 metric === 'avgSqmPrice'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  ? 'bg-[#0071e3] text-white shadow-sm'
+                  : 'text-[var(--text-secondary)] hover:bg-white/60 hover:text-[var(--text-primary)]'
               }`}
             >
               Ft/m²
@@ -82,10 +82,10 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
             <button
               type="button"
               onClick={() => setMetric('avgPriceMillion')}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
                 metric === 'avgPriceMillion'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  ? 'bg-[#0071e3] text-white shadow-sm'
+                  : 'text-[var(--text-secondary)] hover:bg-white/60 hover:text-[var(--text-primary)]'
               }`}
             >
               M Ft
@@ -96,10 +96,10 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
           <button
             type="button"
             onClick={() => setSortBy(sortBy === 'metric' ? 'count' : 'metric')}
-            className="flex items-center gap-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)]"
+            className="flex items-center gap-1 rounded-full border border-[var(--border-hairline)] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-all hover:border-[#0071e3]/40 hover:text-[var(--text-primary)] cursor-pointer"
             title="Rendezési szempont váltása"
           >
-            <ArrowUpDown className="h-3.5 w-3.5" />
+            <ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{sortBy === 'metric' ? 'Ár szerint' : 'Kínálat szerint'}</span>
           </button>
         </div>
@@ -107,8 +107,8 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
 
       {/* Selected notification */}
       {selectedCity && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/30 text-emerald-700 text-xs font-semibold">
-          <MapPin className="h-3.5 w-3.5" />
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--status-bargain-bg)] px-3 py-1 border border-emerald-500/25 text-[var(--status-bargain-fg)] text-xs font-semibold">
+          <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Kiválasztott város: {selectedCity}</span>
         </div>
       )}
@@ -125,19 +125,19 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
               data={sortedData}
               margin={{ top: 15, right: 15, left: 10, bottom: 25 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.4} vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.08)" vertical={false} />
               <XAxis
                 dataKey="city"
-                stroke="var(--text-secondary)"
-                tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                stroke="#42526b"
+                tick={{ fill: '#42526b', fontSize: 11 }}
                 angle={-20}
                 textAnchor="end"
                 interval={0}
                 height={45}
               />
               <YAxis
-                stroke="var(--text-secondary)"
-                tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                stroke="#42526b"
+                tick={{ fill: '#42526b', fontSize: 11 }}
                 tickFormatter={(val) =>
                   metric === 'avgSqmPrice'
                     ? `${Math.round(val / 1000)}k`
@@ -145,15 +145,17 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
                 }
               />
               <Tooltip
+                cursor={{ fill: 'rgba(0, 113, 227, 0.06)' }}
+                wrapperStyle={{ zIndex: 30 }}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const firstItem = payload[0]
                     const data = firstItem?.payload
                     if (!isCityStat(data)) return null
                     return (
-                      <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-xl backdrop-blur-md text-xs">
+                      <div className="rounded-2xl glass-elevated p-3 text-xs tabular-nums">
                         <p className="font-bold text-[var(--text-primary)] flex items-center gap-1.5 mb-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-indigo-700" />
+                          <MapPin className="h-3.5 w-3.5 text-[#0071e3]" aria-hidden="true" />
                           <span>{data.city}</span>
                         </p>
                         <div className="space-y-1 text-[var(--text-secondary)]">
@@ -171,10 +173,10 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
                           </p>
                           <p className="flex justify-between gap-4">
                             <span>Kínálati volumen:</span>
-                            <span className="font-bold text-indigo-700">{data.count} db</span>
+                            <span className="font-bold text-[#0071e3]">{data.count} db</span>
                           </p>
                           {data.newCount > 0 && (
-                            <p className="flex justify-between gap-4 text-emerald-700">
+                            <p className="flex justify-between gap-4 text-[var(--status-bargain-fg)]">
                               <span>Új hirdetés:</span>
                               <span className="font-bold">{data.newCount} db</span>
                             </p>
@@ -189,7 +191,7 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
               <Legend
                 verticalAlign="top"
                 align="right"
-                wrapperStyle={{ paddingBottom: '10px', fontSize: '11px' }}
+                wrapperStyle={{ paddingBottom: '10px', fontSize: '11px', color: '#42526b' }}
               />
               <Bar
                 name={metric === 'avgSqmPrice' ? 'Átlagos Ft/m²' : 'Átlagos Ár (M Ft)'}
@@ -205,7 +207,7 @@ export const CityComparisonChart: FC<CityComparisonChartProps> = ({
                 {sortedData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={entry.city === selectedCity ? '#10b981' : '#6366f1'}
+                    fill={entry.city === selectedCity ? '#059669' : '#0071e3'}
                     className="transition-all duration-200 hover:opacity-80"
                   />
                 ))}

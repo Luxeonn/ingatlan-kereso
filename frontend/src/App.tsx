@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useMemo, type FC } from 'react'
-import { Header } from './components/layout/Header'
-import { WorkspaceHeaderNav, GlobalUndoToast } from './components/layout/WorkspaceChrome'
-import { SearchPanel } from './components/filters/SearchPanel'
+import { TopNavBar } from './components/layout/TopNavBar'
+import { GlobalUndoToast } from './components/layout/WorkspaceChrome'
+import { FilterSidebar } from './components/filters/FilterSidebar'
+import { CollapsedFilterSummary } from './components/filters/CollapsedFilterSummary'
+import { resolveCitiesSummary, resolveTypeLabel } from './components/filters/filterSummaryHelpers'
 import { MarketStatsBar } from './components/kpi/MarketStatsBar'
 import { ListingsPanel } from './components/listings/ListingsPanel'
 import { ArchiveSubViewToolbar } from './components/archive/ArchiveSubViewToolbar'
@@ -14,14 +16,18 @@ import { useSearch } from './hooks/useSearch'
 import { useSystemStatus } from './hooks/useSystemStatus'
 import { useHiddenProperties, useDiscountedProperties } from './hooks/useArchiveQueries'
 import { DEFAULT_PORTALS, useFilterStore } from './store/useFilterStore'
-import { useUiStore, type DashboardTab, type ListingSubView, type ArchiveSubMode } from './store/useUiStore'
+import { useUiStore, type DashboardTab, type ListingSubView } from './store/useUiStore'
 import { getLastConfig } from './api/searchApi'
 import { openExternalUrl } from './utils/formatters'
 import { filterItemsByCities } from './utils/listingFilters'
-import { extractIngatlanComFetchedPages, findPartialIngatlanComStatus } from './utils/ingatlanComUrl'
 import type { IngatlanItem } from './types/property'
-import type { DashboardResponseDto } from './types/api'
-import type { PortalStatusDto } from './types/portal'
+import {
+  resolveActiveListingsSlice,
+  computePortalBannerState,
+  isArchiveWorkspace,
+  hasExecutedOrNonLiveView,
+  resolveMedianSqmPrice,
+} from './appWorkspaceHelpers'
 
 const MarketAnalyticsPanel = lazy(() =>
   import('./components/analytics/MarketAnalyticsPanel').then((module) => ({
@@ -41,114 +47,9 @@ const IngatlanComImportModal = lazy(() =>
   })),
 )
 
-interface ActiveSliceParams {
-  listingSubView: ListingSubView
-  archiveSubMode: ArchiveSubMode
-  items: IngatlanItem[]
-  rawItems: IngatlanItem[]
-  rawCount: number
-  favoriteItems: IngatlanItem[]
-  rawFavoriteItems: IngatlanItem[]
-  archiveItems: IngatlanItem[]
-  rawArchiveItems: IngatlanItem[]
-  globalHiddenItems?: IngatlanItem[]
-  globalDiscountedItems?: IngatlanItem[]
-  isLoading: boolean
-  isArchiveLoading: boolean
-}
-
-function resolveArchiveModeSlice(params: ActiveSliceParams) {
-  const hidden = params.globalHiddenItems ?? []
-  const discounted = params.globalDiscountedItems ?? []
-  if (params.archiveSubMode === 'hidden') {
-    return {
-      activeItems: hidden,
-      activeRawItems: hidden,
-      activeRawCount: hidden.length,
-      activeLoading: params.isArchiveLoading,
-    }
-  }
-  if (params.archiveSubMode === 'discounted') {
-    return {
-      activeItems: discounted,
-      activeRawItems: discounted,
-      activeRawCount: discounted.length,
-      activeLoading: params.isArchiveLoading,
-    }
-  }
-  return {
-    activeItems: params.archiveItems,
-    activeRawItems: params.rawArchiveItems,
-    activeRawCount: params.rawArchiveItems.length,
-    activeLoading: params.isArchiveLoading,
-  }
-}
-
-function resolveActiveListingsSlice(params: ActiveSliceParams) {
-  if (params.listingSubView === 'favorites') {
-    return {
-      activeItems: params.favoriteItems,
-      activeRawItems: params.rawFavoriteItems,
-      activeRawCount: params.rawFavoriteItems.length,
-      activeLoading: false,
-    }
-  }
-  if (params.listingSubView === 'archive') {
-    return resolveArchiveModeSlice(params)
-  }
-  return {
-    activeItems: params.items,
-    activeRawItems: params.rawItems,
-    activeRawCount: params.rawCount,
-    activeLoading: params.isLoading,
-  }
-}
-
-interface PortalBannerState {
-  failures: PortalStatusDto[]
-  hasPartialIngatlanCom: boolean
-  ingatlanComMessage?: string | null
-  ingatlanComFetchedPages: number | null
-  isNarrowPortalSelection: boolean
-  showPortalBanner: boolean
-  isTotalPortalFailure: boolean
-}
-
-function computePortalBannerState(
-  data: DashboardResponseDto | null | undefined,
-  portals: string[] | null | undefined,
-  dashboardTab: DashboardTab,
-  listingSubView: ListingSubView,
-): PortalBannerState {
-  const statuses = data?.portalStatuses ?? []
-  const failures = statuses.filter((p) => p.status === 'FAILED' || p.status === 'BOT_PROTECTED')
-  const partialIngatlan = findPartialIngatlanComStatus(statuses)
-  const hasPartialIngatlanCom = Boolean(partialIngatlan)
-  const ingatlanComFetchedPages = extractIngatlanComFetchedPages(partialIngatlan)
-  const portalCount = portals?.length ?? 0
-  const isNarrowPortalSelection = portalCount > 0 && portalCount <= 2
-  const showPortalBanner =
-    (failures.length > 0 || hasPartialIngatlanCom) &&
-    dashboardTab === 'listings' &&
-    listingSubView === 'listings'
-  const isTotalPortalFailure = Boolean(
-    data &&
-      (data.executionStatus === 'TOTAL_FAILURE' ||
-        (statuses.length > 0 && failures.length === statuses.length)),
-  )
-
-  return {
-    failures,
-    hasPartialIngatlanCom,
-    ingatlanComMessage: partialIngatlan?.message,
-    ingatlanComFetchedPages,
-    isNarrowPortalSelection,
-    showPortalBanner,
-    isTotalPortalFailure,
-  }
-}
-
-function useInitialSavedCriteriaLoad(setCriteria: (criteria: ReturnType<typeof useFilterStore.getState>['criteria']) => void) {
+function useInitialSavedCriteriaLoad(
+  setCriteria: (criteria: ReturnType<typeof useFilterStore.getState>['criteria']) => void,
+) {
   const initialLoadDone = useRef(false)
   useEffect(() => {
     if (initialLoadDone.current) return
@@ -163,22 +64,116 @@ function useInitialSavedCriteriaLoad(setCriteria: (criteria: ReturnType<typeof u
   }, [setCriteria])
 }
 
-function isArchiveWorkspace(dashboardTab: DashboardTab, listingSubView: ListingSubView): boolean {
-  return dashboardTab === 'listings' && listingSubView === 'archive'
+interface WorkspaceBodyProps {
+  dashboardTab: DashboardTab
+  listingSubView: ListingSubView
+  isArchiveView: boolean
+  searchState: ReturnType<typeof useSearch>
+  slice: ReturnType<typeof resolveActiveListingsSlice>
+  scopedRawArchiveItems: IngatlanItem[]
+  scopedHiddenItems: IngatlanItem[]
+  scopedDiscountedItems: IngatlanItem[]
+  hasSearched: boolean
+  medianPricePerSqm: number | undefined
+  onTriggerSearch: () => void
+  onSubViewChange: (subView: ListingSubView) => void
+  onClearHistory: (() => void) | undefined
 }
 
-function hasExecutedOrNonLiveView(listingSubView: ListingSubView, data: DashboardResponseDto | null | undefined): boolean {
-  return listingSubView !== 'listings' || Boolean(data)
-}
+const WorkspaceBody: FC<WorkspaceBodyProps> = ({
+  dashboardTab,
+  listingSubView,
+  isArchiveView,
+  searchState,
+  slice,
+  scopedRawArchiveItems,
+  scopedHiddenItems,
+  scopedDiscountedItems,
+  hasSearched,
+  medianPricePerSqm,
+  onTriggerSearch,
+  onSubViewChange,
+  onClearHistory,
+}) => {
+  if (dashboardTab !== 'listings') {
+    return (
+      <div role="tabpanel" className="rounded-2xl glass-surface p-4">
+        <Suspense
+          fallback={<div className="min-h-64 animate-shimmer rounded-2xl border border-[var(--glass-border)]" />}
+        >
+          <MarketAnalyticsPanel
+            items={searchState.rawItems}
+            serverMarketStats={searchState.data?.marketStats}
+            onMarkViewed={searchState.markAsViewed}
+            onOpenListing={(url) => {
+              openExternalUrl(url)
+              searchState.markAsViewed(url)
+            }}
+          />
+        </Suspense>
+      </div>
+    )
+  }
 
-function resolveMedianSqmPrice(data: DashboardResponseDto | null | undefined): number | undefined {
-  const stats = data?.marketStats
-  return stats?.medianPricePerM2 ?? stats?.residentialMedianPricePerM2 ?? stats?.plotMedianPricePerM2
+  return (
+    <>
+      {!isArchiveView && (
+        <MarketStatsBar
+          data={searchState.data}
+          sessionViewedUrls={searchState.sessionViewedUrls}
+          rawItems={slice.activeRawItems}
+          serverFilteredCount={
+            listingSubView === 'listings' ? searchState.data?.filteredCount : undefined
+          }
+          medianPricePerSqm={listingSubView === 'listings' ? medianPricePerSqm : undefined}
+          showMultiSourceSummary={listingSubView === 'listings'}
+        />
+      )}
+
+      {isArchiveView && (
+        <ArchiveSubViewToolbar
+          allCount={scopedRawArchiveItems.length}
+          hiddenCount={scopedHiddenItems.length}
+          discountedCount={scopedDiscountedItems.length}
+          activeItems={slice.activeItems}
+        />
+      )}
+
+      <div role="tabpanel" className="rounded-2xl glass-surface p-4 space-y-4">
+        <ListingsPanel
+          items={slice.activeItems}
+          rawItems={slice.activeRawItems}
+          totalRawCount={slice.activeRawCount}
+          serverFilteredCount={searchState.data?.filteredCount}
+          medianPricePerSqm={medianPricePerSqm}
+          sessionViewedUrls={searchState.sessionViewedUrls}
+          isLoading={slice.activeLoading}
+          hasSearched={hasSearched}
+          mode={listingSubView}
+          subView={listingSubView}
+          onSubViewChange={onSubViewChange}
+          searchCount={searchState.rawCount}
+          favoritesCount={searchState.favoritesCount}
+          onMarkViewed={searchState.markAsViewed}
+          onTriggerSearch={onTriggerSearch}
+          onClearHistory={onClearHistory}
+          isClearingHistory={searchState.isClearingHistory}
+          onHide={searchState.hideProperty}
+          onRestore={searchState.restoreProperty}
+          onSplitSource={searchState.splitSource}
+          onUndoOverride={searchState.undoDedupOverride}
+          onMergeSelected={searchState.mergeSelected}
+          isMerging={searchState.isMerging}
+          hiddenCount={searchState.hiddenCount}
+        />
+      </div>
+    </>
+  )
 }
 
 export const App: FC = () => {
   const searchState = useSearch()
-  const { criteria, setCriteria, setAllPortals } = useFilterStore()
+  const { criteria, setCriteria, setAllPortals, setSelectedPortalFilter } = useFilterStore()
   const ui = useUiStore()
   const { data: systemStatus } = useSystemStatus()
   const isArchiveView = isArchiveWorkspace(ui.dashboardTab, ui.listingSubView)
@@ -241,108 +236,99 @@ export const App: FC = () => {
   const clearHistoryFn = isArchiveView ? () => void searchState.clearArchiveHistory() : undefined
   const medianPricePerSqm = resolveMedianSqmPrice(searchState.data)
 
-  const handleSelectListings = () => {
-    ui.setDashboardTab('listings')
-    if (ui.listingSubView === 'archive') ui.setListingSubView('listings')
-  }
-
-  const handleSelectArchive = () => {
-    ui.setDashboardTab('listings')
-    ui.setListingSubView('archive')
-  }
-
   return (
-    <div className="min-h-screen bg-[var(--bg-body)] text-[var(--text-primary)] transition-colors duration-200">
-      <Header totalInDb={systemStatus?.totalInDb} portalStatuses={searchState.data?.portalStatuses} />
+    <div className="min-h-screen text-[var(--text-primary)]">
+      <TopNavBar
+        totalInDb={systemStatus?.totalInDb}
+        portalStatuses={searchState.data?.portalStatuses}
+        listingsCount={searchState.rawCount}
+        favoritesCount={searchState.favoritesCount}
+        archiveCount={scopedRawArchiveItems.length}
+        analyticsCount={searchState.rawItems.length}
+        dashboardTab={ui.dashboardTab}
+        listingSubView={ui.listingSubView}
+        isFiltersCollapsed={ui.isFiltersCollapsed}
+        onToggleFilters={() => ui.setFiltersCollapsed(!ui.isFiltersCollapsed)}
+        onSelectListings={() => {
+          ui.setDashboardTab('listings')
+          ui.setListingSubView('listings')
+        }}
+        onSelectFavorites={() => {
+          ui.setDashboardTab('listings')
+          ui.setListingSubView('favorites')
+        }}
+        onSelectArchive={() => {
+          ui.setDashboardTab('listings')
+          ui.setListingSubView('archive')
+        }}
+        onSelectAnalytics={() => ui.setDashboardTab('analytics')}
+      />
 
-      <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 space-y-5">
-        <SearchPanel onSearch={handleSearch} isLoading={searchState.isLoading} />
-
-        {searchState.isError && <SearchErrorBanner error={searchState.error} onRetry={handleSearch} />}
-
-        {bannerState.showPortalBanner && (
-          <PartialPortalWarningBanner
-            failures={bannerState.failures}
-            isTotalFailure={bannerState.isTotalPortalFailure}
-            hasIngatlanComPartial={bannerState.hasPartialIngatlanCom}
-            ingatlanComMessage={bannerState.ingatlanComMessage}
-            showEnableAllPortals={bannerState.isNarrowPortalSelection}
-            onOpenDiagnostics={() => ui.setDiagnosticsModalOpen(true)}
-            onOpenImportModal={() => ui.setIngatlanComImportModalOpen(true)}
-            onEnableAllPortals={() => {
-              setAllPortals([...DEFAULT_PORTALS])
-              handleSearch()
-            }}
+      <div className="mx-auto flex max-w-[1640px] items-start gap-5 px-6 py-5">
+        {!ui.isFiltersCollapsed && (
+          <FilterSidebar
+            onSearch={handleSearch}
+            isLoading={searchState.isLoading}
+            showCollapseToggle={false}
           />
         )}
 
-        <NewCitiesInitializedBanner cities={searchState.data?.newCitiesInitialized} />
-        <MarketStatsBar data={searchState.data} sessionViewedUrls={searchState.sessionViewedUrls} />
+        <main className="min-w-0 flex-1 space-y-4">
+          {ui.isFiltersCollapsed && (
+            <CollapsedFilterSummary
+              citiesSummary={resolveCitiesSummary(criteria.cities, criteria.city)}
+              typeLabel={resolveTypeLabel(criteria.propertyType)}
+              minPriceMillion={criteria.minPriceMillion}
+              maxPriceMillion={criteria.maxPriceMillion}
+              minArea={criteria.minArea}
+              maxArea={criteria.maxArea}
+              portalsCount={criteria.portals.length}
+              onExpand={() => ui.setFiltersCollapsed(false)}
+              expandLabel="Szűrők módosítása"
+              expandAriaLabel="Szűrőpanel megnyitása"
+            />
+          )}
 
-        <section aria-label="Munkaterület" className="space-y-0">
-          <WorkspaceHeaderNav
+          {searchState.isError && (
+            <SearchErrorBanner error={searchState.error} onRetry={handleSearch} />
+          )}
+
+          {bannerState.showPortalBanner && (
+            <PartialPortalWarningBanner
+              failures={bannerState.failures}
+              isTotalFailure={bannerState.isTotalPortalFailure}
+              hasIngatlanComPartial={bannerState.hasPartialIngatlanCom}
+              ingatlanComMessage={bannerState.ingatlanComMessage}
+              showEnableAllPortals={bannerState.isNarrowPortalSelection}
+              onOpenDiagnostics={() => ui.setDiagnosticsModalOpen(true)}
+              onOpenImportModal={() => ui.setIngatlanComImportModalOpen(true)}
+              onEnableAllPortals={() => {
+                setAllPortals([...DEFAULT_PORTALS])
+                setSelectedPortalFilter('all')
+                handleSearch()
+              }}
+            />
+          )}
+
+          <NewCitiesInitializedBanner cities={searchState.data?.newCitiesInitialized} />
+
+          <WorkspaceBody
             dashboardTab={ui.dashboardTab}
             listingSubView={ui.listingSubView}
-            onSelectListings={handleSelectListings}
-            onSelectArchive={handleSelectArchive}
-            onSelectAnalytics={() => ui.setDashboardTab('analytics')}
+            isArchiveView={isArchiveView}
+            searchState={searchState}
+            slice={slice}
+            scopedRawArchiveItems={scopedRawArchiveItems}
+            scopedHiddenItems={scopedHiddenItems}
+            scopedDiscountedItems={scopedDiscountedItems}
+            hasSearched={hasSearched}
+            medianPricePerSqm={medianPricePerSqm}
+            onTriggerSearch={handleSearch}
+            onSubViewChange={ui.setListingSubView}
+            onClearHistory={clearHistoryFn}
           />
-
-          <div
-            role="tabpanel"
-            className="rounded-b-2xl rounded-tr-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 sm:p-5 shadow-sm space-y-4"
-          >
-            {isArchiveView && (
-              <ArchiveSubViewToolbar
-                allCount={scopedRawArchiveItems.length}
-                hiddenCount={scopedHiddenItems.length}
-                discountedCount={scopedDiscountedItems.length}
-                activeItems={slice.activeItems}
-              />
-            )}
-
-            {ui.dashboardTab === 'listings' ? (
-              <ListingsPanel
-                items={slice.activeItems}
-                rawItems={slice.activeRawItems}
-                totalRawCount={slice.activeRawCount}
-                serverFilteredCount={searchState.data?.filteredCount}
-                medianPricePerSqm={medianPricePerSqm}
-                sessionViewedUrls={searchState.sessionViewedUrls}
-                isLoading={slice.activeLoading}
-                hasSearched={hasSearched}
-                subView={ui.listingSubView}
-                onSubViewChange={ui.setListingSubView}
-                searchCount={searchState.rawCount}
-                favoritesCount={searchState.favoritesCount}
-                onMarkViewed={searchState.markAsViewed}
-                onTriggerSearch={handleSearch}
-                onClearHistory={clearHistoryFn}
-                isClearingHistory={searchState.isClearingHistory}
-                onHide={searchState.hideProperty}
-                onRestore={searchState.restoreProperty}
-                onSplitSource={searchState.splitSource}
-                onUndoOverride={searchState.undoDedupOverride}
-                onMergeSelected={searchState.mergeSelected}
-                isMerging={searchState.isMerging}
-                hiddenCount={searchState.hiddenCount}
-              />
-            ) : (
-              <Suspense fallback={<div className="min-h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]" />}>
-                <MarketAnalyticsPanel
-                  items={searchState.rawItems}
-                  serverMarketStats={searchState.data?.marketStats}
-                  onMarkViewed={searchState.markAsViewed}
-                  onOpenListing={(url) => {
-                    openExternalUrl(url)
-                    searchState.markAsViewed(url)
-                  }}
-                />
-              </Suspense>
-            )}
-          </div>
-        </section>
-      </main>
+        </main>
+      </div>
 
       <GlobalUndoToast
         toastMessage={searchState.toastMessage}

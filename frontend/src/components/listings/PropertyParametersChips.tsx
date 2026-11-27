@@ -3,6 +3,7 @@ import { Ruler, BedDouble } from 'lucide-react'
 import { formatArea, formatPricePerSqm, formatRooms } from '../../utils/formatters'
 import { useFilterStore } from '../../store/useFilterStore'
 import { cn } from '../../utils/cn'
+import { isSelectionModifier } from './propertyCardHelpers'
 
 export interface PropertyParametersChipsProps {
   floorArea?: number | null
@@ -63,14 +64,15 @@ export const PropertyParametersChips: FC<PropertyParametersChipsProps> = ({
             aria-pressed={isActive}
             title={chip.title}
             onClick={(e) => {
+              if (isSelectionModifier(e)) return
               e.stopPropagation()
               setQuickSearchQuery(isActive ? '' : chip.label.trim())
             }}
             className={cn(
-              'flex items-center gap-1 rounded-md border px-2 py-1 font-medium transition-colors cursor-pointer',
+              'flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium transition-colors cursor-pointer',
               isActive
-                ? 'border-blue-500/60 bg-blue-500/15 text-blue-700 ring-1 ring-blue-500/25'
-                : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-primary)] hover:border-blue-500/50 hover:bg-blue-500/5 hover:text-blue-700',
+                ? 'border-[#0071e3]/50 bg-[#0071e3]/12 text-[var(--status-info-fg)] ring-1 ring-[#0071e3]/20'
+                : 'border-[var(--border-hairline)] bg-white/75 text-[#0b1220] hover:border-[#0071e3]/45 hover:bg-[#0071e3]/[0.06] hover:text-[var(--status-info-fg)]',
             )}
           >
             {chip.icon}

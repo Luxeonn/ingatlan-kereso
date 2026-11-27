@@ -30,8 +30,8 @@ export const PROPERTY_TYPE_CONFIGS: Record<CanonicalPropertyType, PropertyTypeCo
     label: 'Ház',
     icon: Home,
     colorClasses: {
-      badge: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
-      icon: 'text-amber-700',
+      badge: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
+      icon: 'text-amber-800',
     },
   },
   TELEK: {

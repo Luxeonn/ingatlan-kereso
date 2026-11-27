@@ -1,4 +1,13 @@
-import { useState, useRef, useMemo, useCallback, type FC, type KeyboardEvent } from 'react'
+import {
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+  useEffect,
+  type FC,
+  type KeyboardEvent,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { MapPin, X, ChevronDown } from 'lucide-react'
 import { useCities } from '../../hooks/useCities'
 import { useOutsideDismiss } from '../../hooks/useOutsideDismiss'
@@ -11,10 +20,16 @@ interface CitySelectorProps {
   onSetCities: (cities: string[]) => void
 }
 
+interface DropdownPosition {
+  top: number
+  left: number
+  width: number
+}
+
 const DEFAULT_CITIES = [
   'Debrecen', 'Budapest', 'Szeged', 'Miskolc', 'Pécs', 'Győr', 'Nyíregyháza', 'Kecskemét',
   'Székesfehérvár', 'Szombathely', 'Szolnok', 'Tatabánya', 'Kaposvár', 'Békéscsaba', 'Zalaegerszeg',
-  'Veszprém', 'Eger', 'Érd', 'Sopron', 'Mikepércs', 'Hajdúsámson', 'Bocskaikert', 'Józsa', 'Ebes'
+  'Veszprém', 'Eger', 'Érd', 'Sopron', 'Mikepércs', 'Hajdúsámson', 'Bocskaikert', 'Józsa', 'Ebes',
 ]
 
 function extractCityName(item: unknown): string {
@@ -35,10 +50,57 @@ export const CitySelector: FC<CitySelectorProps> = ({
   const { data: citiesData } = useCities()
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState<DropdownPosition>({
+    top: 0,
+    left: 0,
+    width: 268,
+  })
   const containerRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const extraRefs = useMemo(() => [dropdownRef], [])
   const closeDropdown = useCallback(() => setIsOpen(false), [])
 
-  useOutsideDismiss(containerRef, isOpen, closeDropdown)
+  useOutsideDismiss(containerRef, isOpen, closeDropdown, true, extraRefs)
+
+  const updateDropdownPosition = useCallback(() => {
+    const anchor = anchorRef.current
+    if (!anchor) return
+    const rect = anchor.getBoundingClientRect()
+    if (rect.height > 0 && rect.width > 0) {
+      if (rect.bottom < 56) {
+        setIsOpen(false)
+        return
+      }
+      const scrollContainer = anchor.closest('.overflow-y-auto')
+      if (scrollContainer) {
+        const scrollRect = scrollContainer.getBoundingClientRect()
+        if (
+          scrollRect.height > 0 &&
+          (rect.bottom <= scrollRect.top + 4 || rect.top >= scrollRect.bottom - 4)
+        ) {
+          setIsOpen(false)
+          return
+        }
+      }
+    }
+    setDropdownPos({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width > 0 ? rect.width : 268,
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    updateDropdownPosition()
+    window.addEventListener('resize', updateDropdownPosition)
+    window.addEventListener('scroll', updateDropdownPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateDropdownPosition)
+      window.removeEventListener('scroll', updateDropdownPosition, true)
+    }
+  }, [isOpen, selectedCities.length, updateDropdownPosition])
 
   const cityMetaMap = useMemo(() => {
     const map = new Map<string, { county?: string; description?: string }>()
@@ -84,9 +146,13 @@ export const CitySelector: FC<CitySelectorProps> = ({
     if (!citiesData?.trackedCities) return null
     if (Array.isArray(citiesData.trackedCities)) {
       const found = citiesData.trackedCities.find(
-        (t) => t.name?.toLowerCase() === city.toLowerCase() || t.key?.toLowerCase() === city.toLowerCase()
+        (t) =>
+          t.name?.toLowerCase() === city.toLowerCase() ||
+          t.key?.toLowerCase() === city.toLowerCase(),
       )
-      return found !== null && found !== undefined && typeof found.count === 'number' ? found.count : null
+      return found !== null && found !== undefined && typeof found.count === 'number'
+        ? found.count
+        : null
     }
     if (typeof citiesData.trackedCities === 'object' && citiesData.trackedCities !== null) {
       if (Object.prototype.hasOwnProperty.call(citiesData.trackedCities, city)) {
@@ -115,54 +181,19 @@ export const CitySelector: FC<CitySelectorProps> = ({
     }
   }
 
-  return (
-    <div className="flex flex-col gap-2" ref={containerRef}>
-      <label className="text-sm font-bold text-[var(--text-primary)]">
-        Keresési Települések (Többvárosos Szűrés)
-      </label>
-
-      <div
-        onClick={() => setIsOpen(true)}
-        className="relative flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 transition-colors focus-within:border-blue-500"
-      >
-        <MapPin className="ml-1 h-4 w-4 text-blue-600 shrink-0" />
-
-        {selectedCities.map((city) => (
-          <span
-            key={city}
-            className="flex items-center gap-1 rounded-lg bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-600 border border-blue-500/30"
+  const dropdownNode =
+    isOpen && filteredCities.length > 0 && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            data-testid="city-selector-dropdown"
+            style={{
+              top: `${dropdownPos.top}px`,
+              left: `${dropdownPos.left}px`,
+              width: `${dropdownPos.width}px`,
+            }}
+            className="fixed z-[45] max-h-60 overflow-y-auto rounded-xl border border-[var(--border-strong)] glass-elevated p-1 shadow-2xl"
           >
-            {city}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemoveCity(city)
-              }}
-              className="hover:text-red-700 transition-colors cursor-pointer"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
-
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setIsOpen(true)
-          }}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={handleKeyDown}
-          placeholder={selectedCities.length === 0 ? 'Válassz vagy írj be egy várost...' : 'További város hozzáadása...'}
-          className="flex-1 min-w-[140px] bg-transparent text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none"
-        />
-
-        <ChevronDown className="mr-1 h-4 w-4 text-[var(--text-secondary)] shrink-0 cursor-pointer" />
-
-        {isOpen && filteredCities.length > 0 && (
-          <div className="absolute left-0 top-full z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-1 shadow-2xl backdrop-blur-md">
             {filteredCities.map((city) => {
               const meta = cityMetaMap.get(city.toLowerCase())
               const count = getTrackedCount(city)
@@ -174,7 +205,7 @@ export const CitySelector: FC<CitySelectorProps> = ({
                     e.stopPropagation()
                     handleSelect(city)
                   }}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                  className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[#0071e3] hover:text-white transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-semibold">{city}</span>
@@ -184,7 +215,7 @@ export const CitySelector: FC<CitySelectorProps> = ({
                       </span>
                     )}
                     {meta?.description && (
-                      <span className="hidden sm:inline truncate text-[10px] opacity-70">
+                      <span className="inline truncate text-[10px] opacity-70">
                         · {meta.description}
                       </span>
                     )}
@@ -197,9 +228,66 @@ export const CitySelector: FC<CitySelectorProps> = ({
                 </button>
               )
             })}
-          </div>
-        )}
+          </div>,
+          document.body,
+        )
+      : null
+
+  return (
+    <div className="flex flex-col gap-2" ref={containerRef}>
+      <label className="text-xs font-bold text-[var(--text-primary)]">
+        Keresési Települések
+      </label>
+
+      <div
+        ref={anchorRef}
+        onClick={() => setIsOpen(true)}
+        className="relative flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 transition-colors focus-within:border-[#0071e3]"
+      >
+        <MapPin className="ml-1 h-3.5 w-3.5 text-[#0071e3] shrink-0" />
+
+        {selectedCities.map((city) => (
+          <span
+            key={city}
+            className="flex items-center gap-1 rounded-lg bg-[#0071e3]/12 px-2 py-0.5 text-[11px] font-semibold text-[#005bb5] border border-[#0071e3]/25"
+          >
+            {city}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemoveCity(city)
+              }}
+              className="hover:text-rose-700 transition-colors cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+
+        <div className="flex min-w-[100px] flex-1 items-center gap-1">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setIsOpen(true)
+            }}
+            onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              selectedCities.length === 0
+                ? 'Válassz vagy írj be egy várost...'
+                : 'További város hozzáadása...'
+            }
+            className="min-w-0 flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none"
+          />
+
+          <ChevronDown className="mr-1 h-3.5 w-3.5 text-[var(--text-secondary)] shrink-0 cursor-pointer" />
+        </div>
       </div>
+
+      {dropdownNode}
 
       <PresetButtons onSelectPreset={onSetCities} />
     </div>

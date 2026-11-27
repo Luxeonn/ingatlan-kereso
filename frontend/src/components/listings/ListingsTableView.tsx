@@ -36,11 +36,11 @@ export const ListingsTableView: FC<ListingsTableViewProps> = ({
     <>
       <div
         data-testid="listings-table-view"
-        className="overflow-x-auto rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-lg"
+        className="overflow-x-auto rounded-[20px] glass-surface"
       >
         <table className="w-full border-collapse text-left text-xs tabular-nums">
           <thead>
-            <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-input)]/70 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+            <tr className="border-b border-[var(--border-hairline)] bg-white/60 text-[11px] font-bold uppercase tracking-wider text-[#42526b]">
               <th className="w-10 px-3 py-3 text-center">Kij.</th>
               <th className="px-3 py-3">Ingatlan & Lokáció</th>
               <th className="px-3 py-3">Típus</th>
@@ -48,7 +48,7 @@ export const ListingsTableView: FC<ListingsTableViewProps> = ({
                 <button
                   type="button"
                   onClick={handleSortPrice}
-                  className="inline-flex items-center gap-1 hover:text-[var(--text-primary)] cursor-pointer"
+                  className="inline-flex items-center gap-1 hover:text-[#0b1220] cursor-pointer"
                 >
                   <span>Ár (M Ft)</span>
                   <ArrowUpDown className="h-3 w-3" />
@@ -59,7 +59,7 @@ export const ListingsTableView: FC<ListingsTableViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSortOption('area_desc')}
-                  className="inline-flex items-center gap-1 hover:text-[var(--text-primary)] cursor-pointer"
+                  className="inline-flex items-center gap-1 hover:text-[#0b1220] cursor-pointer"
                 >
                   <span>Méret</span>
                   <ArrowUpDown className="h-3 w-3" />
@@ -70,7 +70,7 @@ export const ListingsTableView: FC<ListingsTableViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSortOption('bargain_desc')}
-                  className="inline-flex items-center gap-1 hover:text-[var(--text-primary)] cursor-pointer"
+                  className="inline-flex items-center gap-1 hover:text-[#0b1220] cursor-pointer"
                 >
                   <span>Medián</span>
                   <ArrowUpDown className="h-3 w-3" />

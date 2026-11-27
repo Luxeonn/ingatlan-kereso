@@ -109,4 +109,23 @@ describe('BargainBadge component (#263 & #264)', () => {
     fireEvent.blur(button)
     expect(screen.queryByTestId('bargain-popover')).toBeNull()
   })
+
+  it('keeps popover pinned when clicked after hover and closes on second click or Escape', () => {
+    render(<BargainBadge item={baseBargainItem} />)
+
+    const button = screen.getByRole('button')
+    fireEvent.mouseEnter(button)
+    expect(screen.getByTestId('bargain-popover')).toBeTruthy()
+
+    // Clicking while hovered pins the popover open instead of toggling it closed
+    fireEvent.click(button)
+    expect(screen.getByTestId('bargain-popover')).toBeTruthy()
+    fireEvent.mouseLeave(button)
+    expect(screen.getByTestId('bargain-popover')).toBeTruthy()
+
+    // Second click closes even while hovered
+    fireEvent.mouseEnter(button)
+    fireEvent.click(button)
+    expect(screen.queryByTestId('bargain-popover')).toBeNull()
+  })
 })

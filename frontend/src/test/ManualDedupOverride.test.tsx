@@ -129,6 +129,27 @@ describe('Manual Dedup Overrides UI (#461)', () => {
     expect(useUiStore.getState().selectedCardUrls).toEqual([])
   })
 
+  it('FloatingSelectionBar: document.body-ba portálozva renderelődik a glass-surface containing-block csapda elkerülésére (#535)', () => {
+    const item = createMockIngatlanItem({
+      id: 'portal-1',
+      url: 'https://dh.hu/portal-1',
+    })
+    useUiStore.setState({ selectedCardUrls: ['https://dh.hu/portal-1'] })
+
+    const { container } = render(
+      <div role="tabpanel" className="rounded-2xl glass-surface p-4">
+        <BulkActionBar items={[item]} totalRawCount={1} onMergeSelected={vi.fn()} />
+      </div>,
+    )
+
+    expect(container.querySelector('[data-testid="selection-action-bar"]')).toBeNull()
+    const actionBar = screen.getByTestId('selection-action-bar')
+    expect(actionBar.parentElement).toBe(document.body)
+    expect(actionBar.className).toContain('fixed')
+    expect(actionBar.className).toContain('bottom-6')
+    expect(actionBar.className).toContain('z-40')
+  })
+
   it('PropertyDetailsDrawer: Nem ugyanaz gomb + megerősítés és Visszavonás működése', async () => {
     vi.mocked(dedupApi.getDedupOverrides).mockResolvedValue([
       {

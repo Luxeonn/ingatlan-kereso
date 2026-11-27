@@ -214,7 +214,7 @@ test.describe('Manual Dedup Overrides E2E (#461)', () => {
 
     await page.goto('/')
     await page.getByRole('button', { name: /Ingatlanok Keresése/i }).click()
-    await expect(page.getByTestId('subview-listings')).toContainText('Hirdetések (12)')
+    await expect(page.getByTestId('tab-listings')).toContainText(/12/)
     expect(searchRequestCount).toBe(1)
 
     // Scroll down to bottom cards so the top BulkActionBar is scrolled above viewport
@@ -236,7 +236,7 @@ test.describe('Manual Dedup Overrides E2E (#461)', () => {
     // Click merge while still scrolled down -> merge + automatic follow-up /api/search fires
     await mergeBtn.click()
     await expect.poll(() => searchRequestCount).toBe(2)
-    await expect(page.getByTestId('subview-listings')).toContainText('Hirdetések (11)')
+    await expect(page.getByTestId('tab-listings')).toContainText(/11/)
     await expect(
       page.getByTestId('listings-panel').getByText('11 ingatlan (12 hirdetés)'),
     ).toBeVisible()

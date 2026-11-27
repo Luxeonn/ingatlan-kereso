@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import type { FC } from 'react'
 import { useState } from 'react'
 import {
   BarChart,
@@ -55,9 +55,9 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-5 shadow-md">
+    <div className="rounded-[20px] glass-surface p-5">
       {/* Chart Header & Metric Switcher */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
@@ -67,7 +67,7 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
                   : 'Négyzetméterár Eloszlás (Ft/m²)'
                 : 'Kínálati Ár Eloszlás (M Ft)'}
             </h3>
-            <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+            <span className="rounded-full bg-[#0071e3]/10 border border-[#0071e3]/20 px-2.5 py-0.5 text-[10px] font-bold text-[#005bb5]">
               Hisztogram
             </span>
           </div>
@@ -77,20 +77,20 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
         </div>
 
         {/* Toggle buttons */}
-        <div className="flex items-center rounded-xl bg-[var(--bg-input)] p-1 border border-[var(--border-color)]">
+        <div className="flex items-center rounded-full glass-capsule p-1">
           <button
             type="button"
             onClick={() => {
               setMetric('sqmPrice')
               setActiveBinIndex(null)
             }}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               metric === 'sqmPrice'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                ? 'bg-[#0071e3] text-white shadow-sm'
+                : 'text-[var(--text-secondary)] hover:bg-white/60 hover:text-[var(--text-primary)]'
             }`}
           >
-            <Ruler className="h-3.5 w-3.5" />
+            <Ruler className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Fajlagos ár (Ft/m²)</span>
           </button>
           <button
@@ -99,37 +99,37 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
               setMetric('price')
               setActiveBinIndex(null)
             }}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               metric === 'price'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                ? 'bg-[#0071e3] text-white shadow-sm'
+                : 'text-[var(--text-secondary)] hover:bg-white/60 hover:text-[var(--text-primary)]'
             }`}
           >
-            <DollarSign className="h-3.5 w-3.5" />
+            <DollarSign className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Kínálati ár (M Ft)</span>
           </button>
         </div>
       </div>
 
       {/* KPI Reference Badges */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 text-xs">
-        <div className="flex items-center gap-1.5 rounded-lg bg-[var(--bg-input)] px-2.5 py-1 border border-[var(--border-color)]">
-          <span className="h-2 w-2 rounded-full bg-blue-500" />
+      <div className="flex flex-wrap items-center gap-2.5 mb-4 text-xs">
+        <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-hairline)] bg-white/70 px-3 py-1 tabular-nums">
+          <span className="h-2 w-2 rounded-full bg-[#0071e3]" />
           <span className="text-[var(--text-secondary)]">Átlag:</span>
           <span className="font-bold text-[var(--text-primary)]">
             {metric === 'sqmPrice' ? formatPricePerSqm(currentAvg) : formatPriceMillion(currentAvg)}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 rounded-lg bg-[var(--bg-input)] px-2.5 py-1 border border-[var(--border-color)]">
-          <span className="h-2 w-2 rounded-full bg-amber-400" />
+        <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-hairline)] bg-white/70 px-3 py-1 tabular-nums">
+          <span className="h-2 w-2 rounded-full bg-amber-500" />
           <span className="text-[var(--text-secondary)]">Medián:</span>
           <span className="font-bold text-[var(--text-primary)]">
             {metric === 'sqmPrice' ? formatPricePerSqm(currentMedian) : formatPriceMillion(currentMedian)}
           </span>
         </div>
         {activeBinIndex !== null && activeBins[activeBinIndex] && (
-          <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 border border-emerald-500/30 text-emerald-700 font-semibold">
-            <Info className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 rounded-full bg-[var(--status-bargain-bg)] px-3 py-1 border border-emerald-500/25 text-[var(--status-bargain-fg)] font-semibold tabular-nums">
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Kijelölve: {activeBins[activeBinIndex].rangeLabel} ({activeBins[activeBinIndex].count} db)</span>
           </div>
         )}
@@ -147,29 +147,31 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
               data={activeBins}
               margin={{ top: 15, right: 15, left: -10, bottom: 25 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.4} vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.08)" vertical={false} />
               <XAxis
                 dataKey="rangeLabel"
-                stroke="var(--text-secondary)"
-                tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                stroke="#42526b"
+                tick={{ fill: '#42526b', fontSize: 11 }}
                 angle={-20}
                 textAnchor="end"
                 interval={0}
                 height={45}
               />
               <YAxis
-                stroke="var(--text-secondary)"
-                tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                stroke="#42526b"
+                tick={{ fill: '#42526b', fontSize: 11 }}
                 allowDecimals={false}
               />
               <Tooltip
+                cursor={{ fill: 'rgba(0, 113, 227, 0.06)' }}
+                wrapperStyle={{ zIndex: 30 }}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const firstItem = payload[0]
                     const data = firstItem?.payload
                     if (!isHistogramBin(data)) return null
                     return (
-                      <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-xl backdrop-blur-md text-xs">
+                      <div className="rounded-2xl glass-elevated p-3 text-xs tabular-nums">
                         <p className="font-bold text-[var(--text-primary)] mb-1">{data.rangeLabel}</p>
                         <div className="space-y-1 text-[var(--text-secondary)]">
                           <p className="flex justify-between gap-4">
@@ -178,10 +180,10 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
                           </p>
                           <p className="flex justify-between gap-4">
                             <span>Arány:</span>
-                            <span className="font-bold text-blue-600">{data.percentage}%</span>
+                            <span className="font-bold text-[#0071e3]">{data.percentage}%</span>
                           </p>
                           {data.newCount > 0 && (
-                            <p className="flex justify-between gap-4 text-emerald-700">
+                            <p className="flex justify-between gap-4 text-[var(--status-bargain-fg)]">
                               <span>Új találat:</span>
                               <span className="font-bold">{data.newCount} db</span>
                             </p>
@@ -195,7 +197,7 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
               />
               <ReferenceLine
                 y={0}
-                stroke="var(--border-color)"
+                stroke="rgba(15, 23, 42, 0.14)"
               />
               <Bar
                 dataKey="count"
@@ -210,7 +212,7 @@ export const PriceDistributionChart: FC<PriceDistributionChartProps> = ({
                 {activeBins.map((_, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={index === activeBinIndex ? '#10b981' : '#3b82f6'}
+                    fill={index === activeBinIndex ? '#059669' : '#0071e3'}
                     className="transition-all duration-200 hover:opacity-80"
                   />
                 ))}

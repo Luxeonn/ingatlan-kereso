@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { ListingsGrid } from '../components/listings/ListingsGrid'
 import { useUiStore } from '../store/useUiStore'
 import { useFilterStore } from '../store/useFilterStore'
@@ -274,6 +274,133 @@ describe('ListingsGrid component', () => {
     )
 
     expect(screen.getByTestId('infinite-scroll-sentinel').textContent).toContain('(18 / 45 db)')
+  })
+
+  it('computes virtualizer columns from container ResizeObserver width (876->2, 1036->3, 1360->4, 1560->5) and updates dynamically', () => {
+    let activeWidth = 876
+    let observerCallback: ResizeObserverCallback | null = null
+    let observedEl: Element | null = null
+
+    class MockResizeObserver implements ResizeObserver {
+      constructor(cb: ResizeObserverCallback) {
+        observerCallback = cb
+      }
+      observe = vi.fn((el: Element) => {
+        observedEl = el
+      })
+      unobserve = vi.fn()
+      disconnect = vi.fn()
+    }
+    vi.stubGlobal('ResizeObserver', MockResizeObserver)
+
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+      width: activeWidth,
+      height: 600,
+      top: 0,
+      left: 0,
+      bottom: 600,
+      right: activeWidth,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }))
+
+    const tenItems = Array.from({ length: 10 }, (_, i) =>
+      createMockIngatlanItem({
+        id: `resize-${i}`,
+        url: `https://dh.hu/resize/${i}`,
+        title: `Ingatlan ${i}`,
+      }),
+    )
+
+    const { container } = render(
+      <ListingsGrid
+        items={tenItems}
+        rawItems={tenItems}
+        totalRawCount={10}
+        isLoading={false}
+        hasSearched={true}
+        onMarkViewed={onMarkViewed}
+        onTriggerSearch={onTriggerSearch}
+      />,
+    )
+
+    // 876px -> 2 columns -> ceil(10 / 2) = 5 rows
+    expect(container.querySelectorAll('[data-index]').length).toBe(5)
+
+    const triggerContainerResize = (width: number) => {
+      activeWidth = width
+      act(() => {
+        observerCallback?.(
+          [
+            {
+              target: observedEl!,
+              contentRect: { width, height: 600 } as DOMRectReadOnly,
+              borderBoxSize: [],
+              contentBoxSize: [],
+              devicePixelContentBoxSize: [],
+            },
+          ],
+          {} as ResizeObserver,
+        )
+      })
+    }
+
+    // 1036px -> 3 columns -> ceil(10 / 3) = 4 rows
+    triggerContainerResize(1036)
+    expect(container.querySelectorAll('[data-index]').length).toBe(4)
+
+    // 1360px -> 4 columns -> ceil(10 / 4) = 3 rows
+    triggerContainerResize(1360)
+    expect(container.querySelectorAll('[data-index]').length).toBe(3)
+
+    // 1560px -> 5 columns -> ceil(10 / 5) = 2 rows
+    triggerContainerResize(1560)
+    expect(container.querySelectorAll('[data-index]').length).toBe(2)
+  })
+
+  it('applies row stacking-context classes in grid and list modes below BulkActionBar z-30 (#535)', () => {
+    const { container, rerender } = render(
+      <ListingsGrid
+        items={sampleItems}
+        rawItems={sampleItems}
+        totalRawCount={2}
+        isLoading={false}
+        hasSearched={true}
+        onMarkViewed={onMarkViewed}
+        onTriggerSearch={onTriggerSearch}
+      />,
+    )
+
+    const gridRow = container.querySelector('[data-index="0"]')
+    expect(gridRow).toBeTruthy()
+    expect(gridRow?.className).toContain('z-0')
+    expect(gridRow?.className).toContain('hover:z-10')
+    expect(gridRow?.className).toContain('focus-within:z-20')
+    expect(gridRow?.className).toContain('has-[[data-testid="bargain-popover"]]:z-20')
+    expect(gridRow?.className).not.toContain('z-30')
+
+    act(() => {
+      useUiStore.setState({ viewMode: 'list' })
+    })
+    rerender(
+      <ListingsGrid
+        items={sampleItems}
+        rawItems={sampleItems}
+        totalRawCount={2}
+        isLoading={false}
+        hasSearched={true}
+        onMarkViewed={onMarkViewed}
+        onTriggerSearch={onTriggerSearch}
+      />,
+    )
+
+    const listRow = container.querySelector('[data-index="0"]')
+    expect(listRow).toBeTruthy()
+    expect(listRow?.className).toContain('z-0')
+    expect(listRow?.className).toContain('hover:z-10')
+    expect(listRow?.className).toContain('focus-within:z-20')
+    expect(listRow?.className).toContain('has-[[data-testid="bargain-popover"]]:z-20')
   })
 })
 

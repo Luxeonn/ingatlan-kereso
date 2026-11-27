@@ -56,11 +56,15 @@ test.describe('Ingatlan Kereső - Search, Filter & Sort E2E Flow Suite (#377)', 
     await cityInput.press('Enter')
 
     // Switch property type to "Ház"
-    const houseTypeBtn = page.getByRole('button', { name: 'Ház', exact: true })
+    const houseTypeBtn = page
+      .getByTestId('search-panel-container')
+      .getByRole('button', { name: 'Ház', exact: true })
     await houseTypeBtn.click()
 
     // Toggle off Duna House portal
-    const dhToggle = page.getByRole('button', { name: /Duna House/i })
+    const dhToggle = page
+      .getByTestId('search-panel-container')
+      .getByRole('button', { name: /Duna House/i })
     await dhToggle.click()
 
     // Trigger search
@@ -177,7 +181,9 @@ test.describe('Ingatlan Kereső - Search, Filter & Sort E2E Flow Suite (#377)', 
     await expect(cards).toHaveCount(3)
 
     // Quick search by text keyword: "nagypolgári" matches only P2
-    const quickSearchInput = page.getByPlaceholder(/Keresés a találatok között/i)
+    const quickSearchInput = page
+      .getByRole('textbox', { name: /Gyorskeresés/i })
+      .or(page.getByPlaceholder(/Keresés a találatok között|Gyorskeresés/i))
     await quickSearchInput.fill('nagypolgári')
     await expect(cards).toHaveCount(1)
     await expect(cards.first()).toContainText('Belvárosi tágas nagypolgári lakás')

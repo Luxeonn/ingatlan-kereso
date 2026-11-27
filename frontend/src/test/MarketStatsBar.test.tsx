@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MarketStatsBar } from '../components/kpi/MarketStatsBar'
-import { ListingsPanel } from '../components/listings/ListingsPanel'
 import { useFilterStore } from '../store/useFilterStore'
 import { useUiStore } from '../store/useUiStore'
 import type { DashboardResponseDto } from '../types/api'
+import type { IngatlanItem } from '../types/property'
 import { createMockIngatlanItem } from './testFixtures'
 
 describe('MarketStatsBar component (3 interactive filter KPI cards)', () => {
@@ -160,25 +160,90 @@ describe('MarketStatsBar component (3 interactive filter KPI cards)', () => {
     expect(screen.getByTestId('kpi-filter-bargain').textContent).toContain('1 db')
   })
 
-  it('renders median sqm price inside ListingsPanel multi-source summary notice', () => {
+  it('renders median sqm price and multi-source summary notice inside MarketStatsBar', () => {
     const items = [
-      createMockIngatlanItem({ id: 'm-1', url: 'https://example.com/m-1', sourcesCount: 2 }),
+      createMockIngatlanItem({
+        id: 'm-1',
+        url: 'https://example.com/m-1',
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'dh', url: 'https://example.com/m-1' },
+          { portal: 'oc', url: 'https://example.com/m-1-oc' },
+        ],
+      }),
+      createMockIngatlanItem({
+        id: 'm-2',
+        url: 'https://example.com/m-2',
+        sourcesCount: 1,
+      }),
     ]
     render(
-      <ListingsPanel
-        items={items}
-        totalRawCount={1}
+      <MarketStatsBar
+        data={{ ...sampleData, items }}
+        rawItems={items}
         serverFilteredCount={1}
         medianPricePerSqm={778571}
-        isLoading={false}
-        hasSearched={true}
-        onMarkViewed={() => {}}
-        onTriggerSearch={() => {}}
       />,
     )
 
     const notice = screen.getByTestId('multi-source-summary-notice')
+    expect(notice.textContent).toContain('2 egyedi ingatlan (3 hirdetésből · 1 összevonva) · 1 szűrt')
     expect(notice.textContent).toContain('Medián m² ár:')
     expect(notice.textContent).toMatch(/778\s571 Ft\/m²/)
+  })
+
+  it('accurately calculates 6 unique properties, 9 total source listings, and 3 merged duplicates (#358, #432)', () => {
+    const sixItemsNineSources: IngatlanItem[] = [
+      createMockIngatlanItem({ id: 'dh-1', url: 'https://dh.hu/1', sourcesCount: 1 }),
+      createMockIngatlanItem({ id: 'dh-2', url: 'https://dh.hu/2', sourcesCount: 1 }),
+      createMockIngatlanItem({ id: 'dh-3', url: 'https://dh.hu/3', sourcesCount: 1 }),
+      createMockIngatlanItem({ id: 'dh-4', url: 'https://dh.hu/4', sourcesCount: 1 }),
+      createMockIngatlanItem({
+        id: 'dh-5',
+        url: 'https://dh.hu/5',
+        sourcesCount: 2,
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/5a' },
+          { portal: 'dh', url: 'https://dh.hu/5b' },
+        ],
+      }),
+      createMockIngatlanItem({
+        id: 'dh-6',
+        url: 'https://dh.hu/6',
+        sourcesCount: 1,
+        sourceListings: [
+          { portal: 'dh', url: 'https://dh.hu/6a' },
+          { portal: 'dh', url: 'https://dh.hu/6b' },
+          { portal: 'oc', url: 'https://oc.hu/6c' },
+        ],
+      }),
+    ]
+
+    render(
+      <MarketStatsBar
+        data={{ ...sampleData, items: sixItemsNineSources }}
+        rawItems={sixItemsNineSources}
+        serverFilteredCount={1}
+      />,
+    )
+
+    const notice = screen.getByTestId('multi-source-summary-notice')
+    expect(notice.textContent).toBe('6 egyedi ingatlan (9 hirdetésből · 3 összevonva) · 1 szűrt')
+  })
+
+  it('hides multi-source summary notice when showMultiSourceSummary is false', () => {
+    const items = [
+      createMockIngatlanItem({ id: 'm-1', url: 'https://example.com/m-1', sourcesCount: 2 }),
+    ]
+    render(
+      <MarketStatsBar
+        data={{ ...sampleData, items }}
+        rawItems={items}
+        medianPricePerSqm={778571}
+        showMultiSourceSummary={false}
+      />,
+    )
+
+    expect(screen.queryByTestId('multi-source-summary-notice')).toBeNull()
   })
 })

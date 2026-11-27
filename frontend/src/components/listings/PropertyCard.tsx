@@ -1,5 +1,5 @@
 import { useState, type FC, type MouseEvent } from 'react'
-import { MapPin, Check } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import type { IngatlanItem } from '../../types/property'
 import {
   getPortalStyle,
@@ -16,9 +16,15 @@ import {
   PropertyThumbnail,
 } from './PropertyCardParts'
 import { PropertyDetailsModal } from './PropertyDetailsModal'
-import { isListingNew } from '../../utils/listingFilters'
 import { useUiStore } from '../../store/useUiStore'
 import { cn } from '../../utils/cn'
+import {
+  getCardBorderClass,
+  getPortalIdentifier,
+  getSourcesCount,
+  isSelectionModifier,
+  useCardSelection,
+} from './propertyCardHelpers'
 
 interface PropertyCardProps {
   item: IngatlanItem
@@ -30,45 +36,10 @@ interface PropertyCardProps {
   viewMode?: 'grid' | 'list' | 'table'
 }
 
-function getCardBorderClass(
-  isSelected: boolean,
-  isStarred: boolean,
-  isViewed?: boolean,
-  isMultiSource?: boolean,
-): string {
-  if (isSelected) {
-    return 'border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/40 shadow-lg'
-  }
-  if (isStarred) {
-    return 'border-amber-500/50 bg-[var(--bg-card)] ring-1 ring-amber-500/30 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] hover:border-amber-500/70 hover:ring-amber-500/50'
-  }
-  if (isViewed) {
-    if (isMultiSource) {
-      return 'border-yellow-400/60 bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
-    }
-    return 'border-[var(--border-color)] bg-[var(--bg-card)]/55 opacity-70 grayscale-[15%]'
-  }
-  if (isMultiSource) {
-    return 'border-yellow-400 dark:border-yellow-500 bg-[var(--bg-card)] ring-1 ring-yellow-400/40 shadow-[0_0_12px_-3px_rgba(234,179,8,0.2)] hover:border-yellow-300 hover:ring-yellow-400/60'
-  }
-  return 'border-[var(--border-color)] bg-[var(--bg-card)] hover:border-blue-500/40'
-}
-
-function getPortalIdentifier(item: IngatlanItem): string {
-  if (item.portal) return item.portal
-  return item.source?.portalId ?? ''
-}
-
-function getSourcesCount(item: IngatlanItem): number {
-  return item.sourcesCount ?? (item.sourceListings?.length || 1)
-}
-
 interface PropertyTitleAndLocationProps {
   title?: string
   city?: string
   location?: string
-  isNew?: boolean
-  viewed?: boolean
   onOpen: (e: MouseEvent<HTMLElement>) => void
 }
 
@@ -76,25 +47,20 @@ const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
   title,
   city,
   location,
-  isNew,
-  viewed,
   onOpen,
 }) => (
   <>
     <h3
       onClick={onOpen}
-      className={cn(
-        'cursor-pointer text-sm font-bold text-[var(--text-primary)] line-clamp-2 hover:text-blue-600 transition-colors',
-        isNew && !viewed ? 'pulse-title text-emerald-700' : '',
-      )}
+      className="cursor-pointer text-sm font-bold leading-snug text-[#0b1220] line-clamp-2 hover:text-[#0071e3] transition-colors"
       title={title}
     >
       {title || 'Ingatlan hirdetés'}
     </h3>
 
-    <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
-      <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-      <span className="font-semibold text-[var(--text-primary)]">{city}</span>
+    <div className="flex items-center gap-1 text-xs text-[#42526b]">
+      <MapPin className="h-3.5 w-3.5 text-[#0071e3] shrink-0" />
+      <span className="font-semibold text-[#0b1220]">{city}</span>
       {location && location !== city && (
         <span className="truncate">({location})</span>
       )}
@@ -105,6 +71,7 @@ const PropertyTitleAndLocation: FC<PropertyTitleAndLocationProps> = ({
 interface PropertyCardContentProps {
   item: IngatlanItem
   sourcesCount: number
+  isSelected: boolean
   portalStyle: ReturnType<typeof getPortalStyle>
   priceMillion: number | null | undefined
   sqmPrice?: number
@@ -127,6 +94,7 @@ interface PropertyCardContentProps {
 const PropertyCardContent: FC<PropertyCardContentProps> = ({
   item,
   sourcesCount,
+  isSelected,
   portalStyle,
   priceMillion,
   sqmPrice,
@@ -148,11 +116,13 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
   <div
     className={cn(
       'flex flex-col justify-between w-full',
-      viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-5' : '',
+      viewMode === 'list' ? 'flex-row items-center gap-5' : '',
     )}
   >
     <PropertyThumbnail
       item={item}
+      sourcesCount={sourcesCount}
+      isSelected={isSelected}
       imageUrl={imageUrl}
       hasValidImage={hasValidImage}
       portalStyle={portalStyle}
@@ -180,8 +150,6 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
         title={item.title}
         city={item.city}
         location={item.location}
-        isNew={isListingNew(item)}
-        viewed={item.viewed}
         onOpen={onOpen}
       />
 
@@ -199,23 +167,6 @@ const PropertyCardContent: FC<PropertyCardContentProps> = ({
     />
   </div>
 )
-
-function isSelectionModifier(e?: MouseEvent<HTMLElement>): boolean {
-  return Boolean(e && (e.ctrlKey || e.metaKey))
-}
-
-function useCardSelection(url: string | undefined) {
-  const { selectedCardUrls, toggleCardSelection } = useUiStore()
-  const isSelected = Boolean(url && selectedCardUrls.includes(url))
-
-  const toggleFromEvent = (e: MouseEvent<HTMLElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (url) toggleCardSelection(url)
-  }
-
-  return { isSelected, toggleFromEvent }
-}
 
 interface CardDetailsOverlayProps {
   isOpen: boolean
@@ -325,23 +276,15 @@ export const PropertyCard: FC<PropertyCardProps> = ({
         if (isSelectionModifier(e)) toggleFromEvent(e)
       }}
       className={cn(
-        'group relative flex flex-col justify-between overflow-visible hover:z-30 focus-within:z-30 rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
+        'group relative flex flex-col justify-between overflow-visible hover:z-30 focus-within:z-30 rounded-[20px] glass-surface transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 p-4',
         getCardBorderClass(isSelected, isStarred, item.viewed, sourcesCount > 1),
         isHiding ? 'opacity-0 scale-95 transition-all duration-150 pointer-events-none' : '',
       )}
     >
-      {isSelected && (
-        <span
-          data-testid="card-selected-badge"
-          aria-hidden="true"
-          className="absolute top-2.5 right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white shadow-md"
-        >
-          <Check className="h-3.5 w-3.5 stroke-[3]" />
-        </span>
-      )}
       <PropertyCardContent
         item={item}
         sourcesCount={sourcesCount}
+        isSelected={isSelected}
         portalStyle={portalStyle}
         priceMillion={priceMillion}
         sqmPrice={sqmPrice}
