@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IngatlanComImportModal } from '../components/modals/IngatlanComImportModal'
 import { PartialPortalWarningBanner } from '../components/layout/StatusBanners'
 import {
@@ -155,5 +155,19 @@ describe('Ingatlan.com HTML import & URL builder (#455)', () => {
     expect(screen.getByTestId('open-ingatlancom-page-6')).toBeTruthy()
     expect(screen.getByTestId('open-ingatlancom-page-7')).toBeTruthy()
     expect(screen.getByTestId('open-ingatlancom-page-8')).toBeTruthy()
+  })
+
+  it('closes on outside click and Escape key', () => {
+    render(<IngatlanComImportModal />)
+    expect(screen.getByTestId('ingatlancom-import-modal')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(useUiStore.getState().isIngatlanComImportModalOpen).toBe(false)
+
+    act(() => {
+      useUiStore.setState({ isIngatlanComImportModalOpen: true })
+    })
+    fireEvent.mouseDown(document.body)
+    expect(useUiStore.getState().isIngatlanComImportModalOpen).toBe(false)
   })
 })

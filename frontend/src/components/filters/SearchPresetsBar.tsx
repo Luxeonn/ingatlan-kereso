@@ -181,20 +181,20 @@ export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
   return (
     <div
       data-testid="search-presets-bar"
-      className="mt-4 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 p-3.5 sm:p-4"
+      className="mt-2.5 rounded-xl border border-[var(--border-hairline)] bg-white/55 p-2.5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-hairline)] pb-2.5">
-        <div className="flex items-center gap-2">
-          <Bookmark className="h-4 w-4 text-blue-600" />
-          <span className="text-sm font-bold text-[var(--text-primary)]">Keresési sablonok</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-hairline)] pb-2">
+        <div className="flex items-center gap-1.5">
+          <Bookmark className="h-3.5 w-3.5 text-[#0071e3]" />
+          <span className="text-xs font-bold text-[var(--text-primary)]">Keresési sablonok</span>
           {presets.length > 0 && (
-            <span className="rounded-full bg-[var(--bg-card)] border border-[var(--border-hairline)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-secondary)] tabular-nums">
+            <span className="rounded-full bg-white/80 border border-[var(--border-hairline)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-secondary)] tabular-nums">
               {presets.length}
             </span>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 w-full justify-end">
           <PresetFeedbackBanners
             successMessage={successMessage}
             errorMessage={errorMessage}
@@ -218,16 +218,16 @@ export const SearchPresetsBar: FC<SearchPresetsBarProps> = ({ onSearch }) => {
               type="button"
               onClick={handleStartCreate}
               data-testid="save-preset-button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-600 hover:text-white cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#0071e3]/30 bg-[#0071e3]/10 px-2.5 py-1 text-[11px] font-bold text-[#005bb5] shadow-xs transition-all hover:bg-[#0071e3] hover:text-white cursor-pointer"
             >
-              <BookmarkPlus className="h-3.5 w-3.5" />
+              <BookmarkPlus className="h-3 w-3" />
               <span>Mentés sablonként</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-3 text-xs">
+      <div className="flex max-h-28 flex-wrap items-center justify-center gap-1.5 overflow-y-auto pt-2 text-xs">
         {isLoading && (
           <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />

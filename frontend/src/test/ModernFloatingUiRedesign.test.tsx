@@ -7,8 +7,7 @@ import { ListingsTableView } from '../components/listings/ListingsTableView'
 import { MarketSegmentMatrixTable } from '../components/analytics/MarketSegmentMatrixTable'
 import { ArchiveSubViewToolbar } from '../components/archive/ArchiveSubViewToolbar'
 import { NewCitiesInitializedBanner } from '../components/layout/StatusBanners'
-import { Header } from '../components/layout/Header'
-import { WorkspaceHeaderNav } from '../components/layout/WorkspaceChrome'
+import { TopNavBar } from '../components/layout/TopNavBar'
 import { BargainHunterTable } from '../components/analytics/BargainHunterTable'
 import { PropertyCard } from '../components/listings/PropertyCard'
 import { ListingsPanel } from '../components/listings/ListingsPanel'
@@ -168,11 +167,11 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       expect(onSelectSegment).toHaveBeenCalledWith('Hajdúszoboszló', 'HAZ')
     })
 
-    it('renders ArchiveSubViewToolbar, NewCitiesInitializedBanner, and Header telemetry pill', () => {
+    it('renders ArchiveSubViewToolbar, NewCitiesInitializedBanner, and TopNavBar telemetry pill', () => {
       const queryClient = new QueryClient()
       render(
         <QueryClientProvider client={queryClient}>
-          <Header
+          <TopNavBar
             totalInDb={1240}
             portalStatuses={[
               { portalId: 'dh', portalName: 'Duna House', status: 'SUCCESS', latencyMs: 100, foundCount: 10 },
@@ -278,9 +277,9 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
       expect(dropTitles).toEqual(['Nagyobb százalékos leárazás', 'Kisebb leárazás'])
     })
 
-    it('renders WorkspaceHeaderNav as bookmark-style panel tabs with tablist and tab roles', () => {
+    it('renders TopNavBar Liquid Glass navigation capsule with tablist and tab roles', () => {
       render(
-        <WorkspaceHeaderNav
+        <TopNavBar
           dashboardTab="listings"
           listingSubView="archive"
           onSelectListings={vi.fn()}
@@ -289,12 +288,15 @@ describe('Modern Floating UI Redesign & Zero-Backend Features (#497)', () => {
         />,
       )
 
-      expect(screen.getByRole('tablist')).toBeTruthy()
+      const tablist = screen.getByRole('tablist')
+      expect(tablist).toBeTruthy()
+      expect(tablist.className).toContain('glass-capsule')
+      expect(tablist.className).toContain('rounded-full')
       const archiveTab = screen.getByTestId('tab-archive')
       expect(archiveTab.getAttribute('role')).toBe('tab')
       expect(archiveTab.getAttribute('aria-selected')).toBe('true')
       expect(archiveTab.getAttribute('aria-pressed')).toBe('true')
-      expect(archiveTab.className).toContain('rounded-t-xl')
+      expect(archiveTab.className).toContain('rounded-full')
     })
 
     it('hides ListingsSubViewNav in archive mode and scopes archive items by selected cities', () => {

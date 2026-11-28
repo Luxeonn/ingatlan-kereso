@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DiagnosticsModal } from '../components/modals/DiagnosticsModal'
 import { useUiStore } from '../store/useUiStore'
@@ -97,5 +97,27 @@ describe('DiagnosticsModal (#360)', () => {
     expect(writeTextMock.mock.calls[0]![0]).toContain(
       '[DH] Duna House: SUCCESS (410ms, 15 találat) - Infó: Sikeres letöltés (15 találat) - Fallback: https://dh.hu/elado-ingatlan/haz/hajdu-bihar-megye/debrecen',
     )
+  })
+
+  it('closes on outside backdrop click and Escape key', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DiagnosticsModal portalStatuses={[]} />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByTestId('diagnostics-modal')).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(useUiStore.getState().isDiagnosticsModalOpen).toBe(false)
+
+    act(() => {
+      useUiStore.setState({ isDiagnosticsModalOpen: true })
+    })
+    fireEvent.mouseDown(document.body)
+    expect(useUiStore.getState().isDiagnosticsModalOpen).toBe(false)
   })
 })

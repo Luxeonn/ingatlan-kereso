@@ -11,7 +11,7 @@ export const SearchErrorBanner: FC<SearchErrorBannerProps> = ({ error, onRetry }
   <div
     role="alert"
     data-testid="search-error-banner"
-    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-[var(--status-danger-bg)] p-4 text-xs text-[var(--status-danger-fg)] shadow-md"
+    className="flex items-center justify-between gap-3 rounded-2xl border border-rose-500/30 glass-surface bg-[var(--status-danger-bg)] px-4 py-3 text-xs text-[var(--status-danger-fg)]"
   >
     <div className="flex items-center gap-2.5">
       <AlertCircle className="h-5 w-5 text-[var(--status-danger-fg)] shrink-0" />
@@ -25,7 +25,7 @@ export const SearchErrorBanner: FC<SearchErrorBannerProps> = ({ error, onRetry }
     <button
       type="button"
       onClick={onRetry}
-      className="rounded-lg bg-red-600 px-3.5 py-1.5 font-bold text-white hover:bg-red-500 transition-colors shrink-0 cursor-pointer"
+      className="rounded-xl bg-rose-600 px-3.5 py-1.5 font-bold text-white hover:bg-rose-500 transition-colors shrink-0 cursor-pointer"
     >
       Újrapróbálás
     </button>
@@ -57,9 +57,9 @@ export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = (
     role="status"
     data-testid="partial-portal-warning-banner"
     data-total-failure={isTotalFailure ? 'true' : 'false'}
-    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-amber-500/40 bg-[var(--status-warn-bg)] p-3 text-xs text-[var(--status-warn-fg)] shadow-sm"
+    className="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/35 glass-surface bg-[var(--status-warn-bg)] px-4 py-2.5 text-xs text-[var(--status-warn-fg)]"
   >
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 min-w-0">
       <AlertTriangle className="h-4 w-4 text-[var(--status-warn-fg)] shrink-0" />
       <span>
         {isTotalFailure ? (
@@ -82,13 +82,13 @@ export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = (
         )}
       </span>
     </div>
-    <div className="flex flex-wrap items-center gap-2 shrink-0">
+    <div className="flex items-center gap-2 shrink-0">
       {hasIngatlanComPartial && onOpenImportModal && (
         <button
           type="button"
           data-testid="open-ingatlancom-import-btn"
           onClick={onOpenImportModal}
-          className="rounded-lg border border-indigo-400/40 bg-[var(--status-info-bg)] px-2.5 py-1 font-bold text-[var(--status-info-fg)] hover:opacity-90 transition-colors cursor-pointer"
+          className="rounded-xl border border-[#0071e3]/30 bg-[var(--status-info-bg)] px-2.5 py-1 font-bold text-[var(--status-info-fg)] hover:opacity-90 transition-colors cursor-pointer"
         >
           Ingatlan.com oldalak importálása
         </button>
@@ -98,7 +98,7 @@ export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = (
           type="button"
           data-testid="enable-all-portals-rerun-btn"
           onClick={onEnableAllPortals}
-          className="rounded-lg border border-emerald-400/40 bg-[var(--status-bargain-bg)] px-2.5 py-1 font-bold text-[var(--status-bargain-fg)] hover:opacity-90 transition-colors cursor-pointer"
+          className="rounded-xl border border-emerald-500/35 bg-[var(--status-bargain-bg)] px-2.5 py-1 font-bold text-[var(--status-bargain-fg)] hover:opacity-90 transition-colors cursor-pointer"
         >
           Összes portál bekapcsolása
         </button>
@@ -106,7 +106,7 @@ export const PartialPortalWarningBanner: FC<PartialPortalWarningBannerProps> = (
       <button
         type="button"
         onClick={onOpenDiagnostics}
-        className="underline font-bold text-[var(--status-warn-fg)] hover:opacity-80 text-left sm:text-right cursor-pointer"
+        className="underline font-bold text-[var(--status-warn-fg)] hover:opacity-80 text-right cursor-pointer"
       >
         Diagnosztika megtekintése
       </button>
@@ -124,7 +124,7 @@ export const NewCitiesInitializedBanner: FC<NewCitiesInitializedBannerProps> = (
     <div
       role="status"
       data-testid="new-cities-initialized-banner"
-      className="flex items-center gap-2.5 rounded-xl border border-indigo-500/35 bg-[var(--status-info-bg)] px-3.5 py-2.5 text-xs text-[var(--status-info-fg)] shadow-sm"
+      className="flex items-center gap-2.5 rounded-2xl border border-[#0071e3]/30 glass-surface bg-[var(--status-info-bg)] px-4 py-2.5 text-xs text-[var(--status-info-fg)]"
     >
       <Sparkles className="h-4 w-4 shrink-0 text-[var(--status-info-fg)]" aria-hidden="true" />
       <span>

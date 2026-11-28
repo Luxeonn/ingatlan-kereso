@@ -57,9 +57,9 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
   return (
     <div
       data-testid="archive-subview-toolbar"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-body)]/70 px-3.5 py-3 shadow-xs"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl glass-surface px-3.5 py-2.5"
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = archiveSubMode === tab.id
@@ -71,18 +71,18 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
               aria-pressed={isActive}
               onClick={() => setArchiveSubMode(tab.id)}
               className={cn(
-                'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer tabular-nums',
+                'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer tabular-nums',
                 isActive
-                  ? 'border-blue-500/40 bg-blue-600 text-white shadow-sm'
-                  : 'border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40 hover:text-blue-700',
+                  ? 'border-[#0071e3]/40 bg-[#0071e3] text-white shadow-xs'
+                  : 'border-[var(--border-hairline)] bg-white/75 text-[var(--text-primary)] hover:border-[#0071e3]/40 hover:text-[#0071e3]',
               )}
             >
               <Icon className="h-3.5 w-3.5" />
               <span>{tab.label}</span>
               <span
                 className={cn(
-                  'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
-                  isActive ? 'bg-white/20 text-white' : 'bg-[var(--bg-input)] text-[var(--text-primary)]',
+                  'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums',
+                  isActive ? 'bg-white/25 text-white' : 'bg-black/5 text-[var(--text-primary)]',
                 )}
               >
                 {tab.count}
@@ -94,10 +94,10 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
 
       <div
         data-testid="archive-summary-notice"
-        className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs text-indigo-700 tabular-nums"
+        className="inline-flex items-center gap-1.5 rounded-full border border-[#0071e3]/20 bg-[#0071e3]/8 px-3 py-1 text-xs text-[#005bb5] tabular-nums"
       >
         <span>
-          <strong className="font-bold text-indigo-700">
+          <strong className="font-bold text-[#005bb5]">
             {summary.uniqueCount} {MODE_NOUNS[archiveSubMode]}
           </strong>
           {summary.mergedCount > 0 && (
@@ -107,7 +107,7 @@ export const ArchiveSubViewToolbar: FC<ArchiveSubViewToolbarProps> = ({
             <>
               {' '}
               · Medián m² ár:{' '}
-              <strong className="font-bold text-indigo-700">
+              <strong className="font-bold text-[#005bb5]">
                 {formatPricePerSqm(summary.medianSqmPrice)}
               </strong>
             </>

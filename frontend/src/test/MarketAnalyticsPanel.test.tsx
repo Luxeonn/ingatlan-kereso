@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MarketAnalyticsPanel } from '../components/analytics/MarketAnalyticsPanel'
+import { useFilterStore } from '../store/useFilterStore'
 import type { IngatlanItem } from '../types/property'
 
 // Mock Recharts responsive container to avoid rendering size issues in jsdom
@@ -15,6 +16,10 @@ vi.mock('recharts', async () => {
 })
 
 describe('MarketAnalyticsPanel component (#263 & #264)', () => {
+  beforeEach(() => {
+    useFilterStore.getState().resetToDefaults()
+  })
+
   const mockItems: IngatlanItem[] = [
     // 5 apartments
     {
@@ -288,5 +293,134 @@ describe('MarketAnalyticsPanel component (#263 & #264)', () => {
     const priceToggleBtn = screen.getByRole('button', { name: /Kínálati ár \(M Ft\)/i })
     fireEvent.click(priceToggleBtn)
     expect(screen.getByText(/Kínálati Ár Eloszlás \(M Ft\)/i)).toBeTruthy()
+  })
+
+  it('renders MarketSegmentMatrixTable with serverMarketStats and applies city & propertyType filter on Szűrés', () => {
+    render(
+      <MarketAnalyticsPanel
+        items={mockItems}
+        serverMarketStats={{
+          segments: [
+            {
+              city: 'Szeged',
+              propertyType: 'HAZ',
+              propertyTypeName: 'Családi ház',
+              sampleSize: 12,
+              insufficientData: false,
+              medianPricePerM2: 710_000,
+              averagePriceMillion: 82.4,
+              minPriceMillion: 65.0,
+              maxPriceMillion: 109.0,
+              bargainCount: 2,
+            },
+          ],
+        }}
+      />,
+    )
+
+    const matrixTable = screen.getByTestId('market-segment-matrix-table')
+    expect(matrixTable).toBeTruthy()
+    expect(matrixTable.className).toContain('glass-surface')
+    expect(screen.getAllByTestId('segment-matrix-row').length).toBe(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /Szűrés/i }))
+    expect(useFilterStore.getState().criteria.cities).toEqual(['Szeged'])
+    expect(useFilterStore.getState().criteria.propertyType).toBe('HAZ')
+  })
+
+  it('enforces Liquid Glass surfaces, tabular-nums, and zero font-mono/dark/responsive breakpoints (#535)', () => {
+    const { container } = render(
+      <MarketAnalyticsPanel
+        items={mockItems}
+        serverMarketStats={{
+          segments: [
+            {
+              city: 'Debrecen',
+              propertyType: 'LAKAS',
+              propertyTypeName: 'Lakás',
+              sampleSize: 5,
+              insufficientData: false,
+              medianPricePerM2: 1_000_000,
+              averagePriceMillion: 50.0,
+              minPriceMillion: 40.0,
+              maxPriceMillion: 60.0,
+              bargainCount: 1,
+            },
+          ],
+        }}
+      />,
+    )
+
+    expect(screen.getByTestId('kpi-card-lakas').className).toContain('glass-surface')
+    expect(screen.getByTestId('kpi-card-avg-price').className).toContain('glass-surface')
+    expect(screen.getByTestId('kpi-card-total-samples').className).toContain('glass-surface')
+    expect(screen.getByTestId('kpi-card-price-drops').className).toContain('glass-surface')
+    expect(screen.getByTestId('market-segment-matrix-table').className).toContain('glass-surface')
+    expect(screen.getByTestId('top-price-drops-section').className).toContain('glass-surface')
+
+    const tabularEls = container.querySelectorAll('.tabular-nums')
+    expect(tabularEls.length).toBeGreaterThan(5)
+
+    const html = container.innerHTML
+    expect(html).not.toMatch(/\b(dark|sm|md|lg):|font-mono\b/)
+  })
+
+  it('does not render duplicate struck-through original price when priceChangePercent < 0 and priceDelta is 0', () => {
+    const itemsWithZeroDelta: IngatlanItem[] = [
+      {
+        ...mockItems[0]!,
+        id: 'l-zero-delta',
+        url: 'https://example.com/l-zero-delta',
+        title: 'Lakás nulla deltával',
+        priceDelta: 0,
+        priceChangePercent: -10,
+      },
+      ...mockItems.slice(1),
+    ]
+
+    render(<MarketAnalyticsPanel items={itemsWithZeroDelta} />)
+
+    const dropCards = screen.getAllByTestId('price-drop-card')
+    expect(dropCards.length).toBe(1)
+    expect(dropCards[0]!.textContent).toContain('Lakás nulla deltával')
+    expect(dropCards[0]!.textContent).toContain('-10%')
+    expect(dropCards[0]!.querySelector('.line-through')).toBeNull()
+  })
+
+  it('uses Tailwind important modifiers and outline-1 on glass-surface overrides to avoid CSS cascade clobbering', () => {
+    const emptyView = render(<MarketAnalyticsPanel items={[]} />)
+    const emptyState = emptyView.getByTestId('market-analytics-empty-state')
+    expect(emptyState.className).toContain('border-dashed!')
+    expect(emptyState.className).toContain('border-[var(--border-strong)]!')
+    emptyView.unmount()
+
+    const fewHouses: IngatlanItem[] = Array.from({ length: 3 }, (_, i) => ({
+      id: `house-cascade-${i}`,
+      portal: 'dh',
+      url: `https://example.com/hc${i}`,
+      title: `Kiemelt Ház ${i + 1}`,
+      price: `${60 + i * 5} M Ft`,
+      location: 'Debrecen',
+      city: 'Debrecen',
+      propertyType: 'HAZ',
+      sourcesCount: 1,
+      priceInfo: { amountMillion: 60 + i * 5, amountHuf: (60 + i * 5) * 1_000_000 },
+      detailsInfo: { areaSquareMeters: 90, pricePerSquareMeter: 650_000 },
+    }))
+
+    render(<MarketAnalyticsPanel items={fewHouses} targetPropertyType="haz" />)
+
+    const banner = screen.getByTestId('insufficient-data-banner')
+    expect(banner.className).toContain('border-amber-500/35!')
+    expect(banner.className).toContain('bg-[var(--status-warn-bg)]!')
+    expect(banner.className).toContain('outline-1')
+    expect(banner.className).toContain('outline-amber-500/25')
+    expect(banner.className).not.toContain('ring-1')
+
+    const hazCard = screen.getByTestId('kpi-card-haz')
+    expect(hazCard.className).toContain('border-amber-500/45!')
+    expect(hazCard.className).toContain('outline-1')
+    expect(hazCard.className).toContain('outline-amber-500/25')
+    expect(hazCard.className).not.toContain('ring-1')
   })
 })

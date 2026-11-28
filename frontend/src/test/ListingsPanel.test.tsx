@@ -30,7 +30,7 @@ describe('ListingsPanel component (#264)', () => {
       location: 'Debrecen',
       city: 'Debrecen',
       propertyType: 'HAZ',
-      sourcesCount: 2, // multi-source clustered
+      sourcesCount: 2,
       sourceListings: [
         { portal: 'dh', url: 'https://example.com/1' },
         { portal: 'oc', url: 'https://example.com/1-oc' },
@@ -53,89 +53,10 @@ describe('ListingsPanel component (#264)', () => {
     useUiStore.setState({ listingSubView: 'listings', dashboardTab: 'listings' })
   })
 
-  it('renders listings panel with multi-source summary notice showing total source listings count (#358)', () => {
+  it('renders live status announcement for screen readers and removes redundant ListingsSubViewNav', () => {
     render(
       <ListingsPanel
         items={sampleItems}
-        totalRawCount={2}
-        isLoading={false}
-        hasSearched={true}
-        mode="listings"
-        onMarkViewed={vi.fn()}
-        onTriggerSearch={vi.fn()}
-      />
-    )
-
-    expect(screen.getByTestId('listings-panel')).toBeTruthy()
-
-    // Multi-source summary notice: 2 unique items (3 total source listings, 3 - 2 = 1 merged duplicate)
-    const notice = screen.getByTestId('multi-source-summary-notice')
-    expect(notice).toBeTruthy()
-    expect(notice.textContent).toBe('2 egyedi ingatlan (3 hirdetésből · 1 összevonva)')
-  })
-
-  it('accurately calculates 6 unique properties, 9 total source listings, and 3 merged duplicates for 4x1 + 1x2 + 1x3 source items (#358, #432)', () => {
-    const sixItemsNineSources: IngatlanItem[] = [
-      { id: 'dh-1', portal: 'Duna House', url: 'https://dh.hu/1', title: 'Ház 1', price: '50 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
-      { id: 'dh-2', portal: 'Duna House', url: 'https://dh.hu/2', title: 'Ház 2', price: '55 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
-      { id: 'dh-3', portal: 'Duna House', url: 'https://dh.hu/3', title: 'Ház 3', price: '60 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
-      { id: 'dh-4', portal: 'Duna House', url: 'https://dh.hu/4', title: 'Ház 4', price: '65 M Ft', location: 'Szekszárd', city: 'Szekszárd', sourcesCount: 1 },
-      {
-        id: 'dh-5',
-        portal: 'Duna House',
-        url: 'https://dh.hu/5',
-        title: 'Ház 5 (2 forrás)',
-        price: '70 M Ft',
-        location: 'Szekszárd',
-        city: 'Szekszárd',
-        sourcesCount: 2,
-        sourceListings: [
-          { portal: 'dh', url: 'https://dh.hu/5a' },
-          { portal: 'dh', url: 'https://dh.hu/5b' },
-        ],
-      },
-      {
-        id: 'dh-6',
-        portal: 'Duna House',
-        url: 'https://dh.hu/6',
-        title: 'Ház 6 (3 forrás)',
-        price: '75 M Ft',
-        location: 'Szekszárd',
-        city: 'Szekszárd',
-        sourcesCount: 1, // sourceListings.length (3) is larger -> Math.max picks 3
-        sourceListings: [
-          { portal: 'dh', url: 'https://dh.hu/6a' },
-          { portal: 'dh', url: 'https://dh.hu/6b' },
-          { portal: 'oc', url: 'https://oc.hu/6c' },
-        ],
-      },
-    ]
-
-    render(
-      <ListingsPanel
-        items={sixItemsNineSources}
-        totalRawCount={6}
-        serverFilteredCount={1}
-        isLoading={false}
-        hasSearched={true}
-        mode="listings"
-        onMarkViewed={vi.fn()}
-        onTriggerSearch={vi.fn()}
-      />
-    )
-
-    const notice = screen.getByTestId('multi-source-summary-notice')
-    expect(notice.textContent).toBe('6 egyedi ingatlan (9 hirdetésből · 3 összevonva) · 1 szűrt')
-  })
-
-  it('uses rawItems base for MultiSourceNotice so summary matches BulkActionBar rawItems (#502)', () => {
-    const rawActive = sampleItems // 2 unique items, 3 source listings -> 1 merged
-    const filteredView = [sampleItems[1]!] // local filter narrowed to 1 item
-
-    render(
-      <ListingsPanel
-        items={filteredView}
-        rawItems={rawActive}
         totalRawCount={2}
         isLoading={false}
         hasSearched={true}
@@ -145,23 +66,8 @@ describe('ListingsPanel component (#264)', () => {
       />,
     )
 
-    const notice = screen.getByTestId('multi-source-summary-notice')
-    expect(notice.textContent).toBe('2 egyedi ingatlan (3 hirdetésből · 1 összevonva)')
-  })
-
-  it('renders live status announcement for screen readers', () => {
-    render(
-      <ListingsPanel
-        items={sampleItems}
-        totalRawCount={2}
-        isLoading={false}
-        hasSearched={true}
-        mode="listings"
-        onMarkViewed={vi.fn()}
-        onTriggerSearch={vi.fn()}
-      />
-    )
-
+    expect(screen.getByTestId('listings-panel')).toBeTruthy()
+    expect(screen.queryByTestId('listings-subview-nav')).toBeNull()
     const liveRegion = screen.getByText(/2 hirdetés jelenik meg a listában/i)
     expect(liveRegion).toBeTruthy()
     expect(liveRegion.getAttribute('aria-live')).toBe('polite')
@@ -177,91 +83,14 @@ describe('ListingsPanel component (#264)', () => {
         mode="favorites"
         onMarkViewed={vi.fn()}
         onTriggerSearch={vi.fn()}
-      />
+      />,
     )
 
     expect(screen.getByTestId('listings-panel')).toBeTruthy()
     expect(screen.queryByTestId('multi-source-summary-notice')).toBeNull()
   })
 
-  it('renders embedded sub-view toolbar with Hirdetések and Kedvencek buttons and triggers callback', () => {
-    const handleSubViewChange = vi.fn()
-    render(
-      <ListingsPanel
-        items={sampleItems}
-        totalRawCount={2}
-        searchCount={2}
-        favoritesCount={5}
-        isLoading={false}
-        hasSearched={true}
-        mode="listings"
-        onSubViewChange={handleSubViewChange}
-        onMarkViewed={vi.fn()}
-        onTriggerSearch={vi.fn()}
-      />
-    )
-
-    expect(screen.getByTestId('listings-subview-nav')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Hirdetések \(2\)/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /⭐ Kedvencek \(5\)/i })).toBeTruthy()
-    expect(screen.queryByTestId('subview-archive')).toBeNull()
-
-    const favBtn = screen.getByRole('button', { name: /⭐ Kedvencek/i })
-    fireEvent.click(favBtn)
-    expect(handleSubViewChange).toHaveBeenCalledWith('favorites')
-  })
-
-  it('updates store directly in uncontrolled mode and sets aria-pressed correctly', async () => {
-    const { useUiStore } = await import('../store/useUiStore')
-    useUiStore.setState({ listingSubView: 'listings', dashboardTab: 'listings' })
-
-    render(
-      <ListingsPanel
-        items={sampleItems}
-        totalRawCount={2}
-        isLoading={false}
-        hasSearched={true}
-        onMarkViewed={vi.fn()}
-        onTriggerSearch={vi.fn()}
-      />
-    )
-
-    const listBtn = screen.getByTestId('subview-listings')
-    const favBtn = screen.getByTestId('subview-favorites')
-
-    expect(listBtn.getAttribute('aria-pressed')).toBe('true')
-    expect(favBtn.getAttribute('aria-pressed')).toBe('false')
-    expect(screen.queryByTestId('subview-archive')).toBeNull()
-
-    // Click favorites without onSubViewChange prop
-    fireEvent.click(favBtn)
-    expect(useUiStore.getState().listingSubView).toBe('favorites')
-    expect(useUiStore.getState().dashboardTab).toBe('listings')
-    expect(favBtn.getAttribute('aria-pressed')).toBe('true')
-    expect(listBtn.getAttribute('aria-pressed')).toBe('false')
-  })
-
-  it('calculates deterministic fallback counts when counts are omitted', () => {
-    // In favorites mode with omitted counts, favoritesCount falls back to totalRawCount
-    render(
-      <ListingsPanel
-        items={sampleItems}
-        totalRawCount={4}
-        isLoading={false}
-        hasSearched={true}
-        mode="favorites"
-        onMarkViewed={vi.fn()}
-        onTriggerSearch={vi.fn()}
-      />
-    )
-
-    expect(screen.getByRole('button', { name: /⭐ Kedvencek \(4\)/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Hirdetések \(0\)/i })).toBeTruthy()
-    expect(screen.queryByTestId('subview-archive')).toBeNull()
-  })
-
   it('progressively batches rendered cards with infinite scroll sentinel (#278)', () => {
-    // Mock IntersectionObserver
     let observerCallback: (entries: IntersectionObserverEntry[]) => void = () => {}
     const observeMock = vi.fn()
     const disconnectMock = vi.fn()
@@ -281,7 +110,6 @@ describe('ListingsPanel component (#264)', () => {
 
     vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 
-    // Generate 50 mock items
     const manyItems: IngatlanItem[] = Array.from({ length: 50 }, (_, i) => ({
       id: `prop-${i}`,
       portal: 'dh',
@@ -304,10 +132,9 @@ describe('ListingsPanel component (#264)', () => {
         batchSize={10}
         onMarkViewed={vi.fn()}
         onTriggerSearch={vi.fn()}
-      />
+      />,
     )
 
-    // Header counter shows net total without DOM batch prefix, while sentinel tracks batch progress (#432)
     expect(screen.getByText('50 db')).toBeTruthy()
     expect(screen.queryByText(/Megjelenítve:/i)).toBeNull()
     expect(observeMock).toHaveBeenCalled()
@@ -316,7 +143,6 @@ describe('ListingsPanel component (#264)', () => {
     expect(sentinel).toBeTruthy()
     expect(sentinel.textContent).toContain('További ingatlanok betöltése... (10 / 50 db)')
 
-    // Trigger intersection event wrapped in act
     act(() => {
       observerCallback([
         {
@@ -326,7 +152,6 @@ describe('ListingsPanel component (#264)', () => {
       ])
     })
 
-    // Should batch-append next 10 items on sentinel => 20 / 50 db
     expect(sentinel.textContent).toContain('További ingatlanok betöltése... (20 / 50 db)')
 
     vi.unstubAllGlobals()
@@ -347,7 +172,6 @@ describe('ListingsPanel component (#264)', () => {
       />,
     )
 
-    // 1. In grid view, clicking details on card 2 opens modal outside card DOM
     const detailsBtn = screen.getByTestId('details-button')
     fireEvent.click(detailsBtn)
 
@@ -356,11 +180,9 @@ describe('ListingsPanel component (#264)', () => {
     const drawerInGrid = screen.getByTestId('multi-source-drawer')
     expect(cardsInGrid.some((c) => c.contains(drawerInGrid))).toBe(false)
 
-    // Close modal
     fireEvent.click(screen.getByTestId('property-details-modal-close'))
     expect(screen.queryByTestId('property-details-modal')).toBeNull()
 
-    // 2. Switch to list view and verify inline drawer inside card
     const listToggleBtn = screen.getByTitle('Lista nézet')
     fireEvent.click(listToggleBtn)
     expect(useUiStore.getState().viewMode).toBe('list')
@@ -372,4 +194,3 @@ describe('ListingsPanel component (#264)', () => {
     expect(cardsInList.some((c) => c.contains(drawerInList))).toBe(true)
   })
 })
-

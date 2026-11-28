@@ -63,14 +63,14 @@ interface QuickFilterToggleButtonProps {
 }
 
 const TRI_STATE_CONTAINER_CLASSES: Record<'all' | 'only' | 'exclude', string> = {
-  all: 'border border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40',
-  only: 'border border-blue-500/50 bg-blue-500/15 text-blue-700 shadow-sm ring-1 ring-blue-500/20',
-  exclude: 'border border-rose-500/50 bg-rose-500/15 text-rose-700 shadow-sm ring-1 ring-rose-500/20',
+  all: 'border border-[var(--border-hairline)] bg-white/75 text-[#0b1220] hover:border-[#0071e3]/40',
+  only: 'border border-[#0071e3]/45 bg-[#0071e3]/12 text-[var(--status-info-fg)] shadow-sm ring-1 ring-[#0071e3]/20',
+  exclude: 'border border-rose-500/45 bg-rose-500/12 text-rose-700 shadow-sm ring-1 ring-rose-500/20',
 }
 
 const TRI_STATE_BADGE_CLASSES: Record<'all' | 'only' | 'exclude', string> = {
-  all: 'bg-[var(--bg-input)] text-[var(--text-primary)]',
-  only: 'bg-blue-600 text-white',
+  all: 'bg-[#0b1220]/[0.07] text-[#0b1220]',
+  only: 'bg-[#0071e3] text-white',
   exclude: 'bg-rose-600 text-white',
 }
 
@@ -102,7 +102,7 @@ const QuickFilterToggleButton: FC<QuickFilterToggleButtonProps> = ({
   return (
     <div
       className={cn(
-        'flex h-8 flex-1 min-w-[150px] items-stretch overflow-hidden rounded-lg transition-all',
+        'flex h-8 flex-1 min-w-[150px] items-stretch overflow-hidden rounded-full transition-all',
         containerClass,
       )}
     >
@@ -250,7 +250,7 @@ export const QuickFilterChipsRow: FC<QuickFilterChipsRowProps> = ({
             filterId="excludeViewed"
             isActive={excludeViewed}
             onClick={() => setExcludeViewed(!excludeViewed)}
-            icon={<EyeOff className="h-3.5 w-3.5 text-blue-600 shrink-0" />}
+            icon={<EyeOff className="h-3.5 w-3.5 text-[#0071e3] shrink-0" />}
             label="Megtekintettek"
             count={excludeViewedCount}
             countTestId="exclude-viewed-filter-count"

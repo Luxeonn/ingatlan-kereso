@@ -1,36 +1,88 @@
 @import "tailwindcss";
 
 :root {
-  --bg-body: #f6f8fb;
-  --bg-card: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-card-hover: #f8fafc;
-  --bg-surface-hover: #f8fafc;
-  --bg-elevated: #ffffff;
-  --bg-chrome: rgba(255, 255, 255, 0.88);
-  --bg-input: #f1f5f9;
+  /* Apple Liquid Glass Light Material Tokens */
+  --glass-chrome: rgba(255, 255, 255, 0.72);
+  --glass-surface: rgba(255, 255, 255, 0.64);
+  --glass-elevated: rgba(255, 255, 255, 0.86);
+  --glass-capsule: rgba(241, 245, 251, 0.76);
+  --glass-border: rgba(255, 255, 255, 0.68);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+
+  /* Accent & WCAG 2.2 AA Contrast Palette */
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-soft: rgba(0, 113, 227, 0.12);
+  --text-primary: #0b1220;
+  --text-secondary: #42526b;
+
+  /* Mapped Surface & Semantic Status Aliases (Light-Only) */
+  --bg-body: #f4f7fb;
+  --bg-card: rgba(255, 255, 255, 0.78);
+  --bg-surface: var(--glass-surface);
+  --bg-card-hover: rgba(255, 255, 255, 0.92);
+  --bg-surface-hover: rgba(255, 255, 255, 0.82);
+  --bg-elevated: var(--glass-elevated);
+  --bg-chrome: var(--glass-chrome);
+  --bg-input: rgba(241, 245, 249, 0.84);
   --border-color: rgba(15, 23, 42, 0.10);
   --border-hairline: rgba(15, 23, 42, 0.08);
   --border-strong: rgba(15, 23, 42, 0.16);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --accent: #2563eb;
-  --accent-soft: rgba(37, 99, 235, 0.10);
   --status-bargain-fg: #047857;
   --status-bargain-bg: rgba(5, 150, 105, 0.10);
   --status-warn-fg: #b45309;
   --status-warn-bg: rgba(217, 119, 6, 0.10);
   --status-danger-fg: #be123c;
   --status-danger-bg: rgba(225, 29, 72, 0.10);
-  --status-info-fg: #4338ca;
-  --status-info-bg: rgba(79, 70, 229, 0.10);
+  --status-info-fg: #005bb5;
+  --status-info-bg: rgba(0, 113, 227, 0.10);
 }
 
 body {
   background-color: var(--bg-body);
+  background-image:
+    radial-gradient(at 10% 10%, rgba(191, 219, 254, 0.45) 0px, transparent 50%),
+    radial-gradient(at 88% 12%, rgba(224, 231, 255, 0.45) 0px, transparent 48%),
+    radial-gradient(at 75% 88%, rgba(209, 250, 229, 0.35) 0px, transparent 50%);
+  background-attachment: fixed;
   color: var(--text-primary);
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.glass-chrome {
+  background: var(--glass-chrome);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: var(--glass-highlight), 0 8px 28px -12px rgba(11, 18, 32, 0.14);
+}
+
+.glass-surface {
+  background: var(--glass-surface);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 12px 32px -14px rgba(11, 18, 32, 0.12);
+}
+
+.glass-elevated {
+  background: var(--glass-elevated);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 20px 44px -16px rgba(11, 18, 32, 0.22);
+}
+
+.glass-capsule {
+  background: var(--glass-capsule);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: var(--glass-highlight), 0 4px 16px -6px rgba(11, 18, 32, 0.10);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Custom scrollbars */
@@ -40,7 +92,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-body);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -49,7 +101,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #42526b;
 }
 
 /* Shimmer animation */
@@ -63,28 +115,16 @@ body {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.04) 75%);
+  background: linear-gradient(90deg, rgba(11, 18, 32, 0.04) 25%, rgba(11, 18, 32, 0.09) 50%, rgba(11, 18, 32, 0.04) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.8s infinite;
 }
 
-/* Subtle title pulse for new unseen listings (#157) */
-@keyframes pulse-title-anim {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.72;
-  }
-}
-
-.pulse-title {
-  animation: pulse-title-anim 2.4s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
   .animate-shimmer,
-  .pulse-title,
   .animate-in,
   .animate-pulse,
   .animate-spin {

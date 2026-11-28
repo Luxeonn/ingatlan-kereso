@@ -5,12 +5,16 @@ export function useOutsideDismiss(
   isOpen: boolean,
   onClose: () => void,
   listenEscape = false,
+  extraRefs?: ReadonlyArray<RefObject<HTMLElement | null>>,
 ): void {
   useEffect(() => {
     if (!isOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const insideContainer = Boolean(containerRef.current?.contains(target))
+      const insideExtra = Boolean(extraRefs?.some((ref) => ref.current?.contains(target)))
+      if (!insideContainer && !insideExtra) {
         onClose()
       }
     }
@@ -32,5 +36,5 @@ export function useOutsideDismiss(
         document.removeEventListener('keydown', handleKeyDown)
       }
     }
-  }, [containerRef, isOpen, onClose, listenEscape])
+  }, [containerRef, extraRefs, isOpen, onClose, listenEscape])
 }

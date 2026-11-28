@@ -400,7 +400,7 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       )
 
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
-      expect(screen.getByTestId('multi-source-summary-notice')).toBeTruthy()
+      expect(screen.queryByTestId('listings-subview-nav')).toBeNull()
       const liveRegion = screen.getByText(/1 hirdetés jelenik meg a listában/i)
       expect(liveRegion.getAttribute('aria-live')).toBe('polite')
     })
@@ -427,16 +427,15 @@ describe('Challenger R4-2: BargainBadge, MarketAnalyticsPanel, ListingsPanel & A
       expect(useUiStore.getState().listingSubView).toBe('listings')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-      // 3. Switch to Favorites sub-view within listings panel
-      const favoritesBtn = screen.getByRole('button', { name: /⭐ Kedvencek/i })
+      // 3. Switch to Favorites tab in TopNavBar capsule
+      const favoritesBtn = screen.getByTestId('subview-favorites')
       fireEvent.click(favoritesBtn)
       expect(useUiStore.getState().dashboardTab).toBe('listings')
       expect(useUiStore.getState().listingSubView).toBe('favorites')
       expect(screen.getByTestId('listings-panel')).toBeTruthy()
 
-
-      // 5. Switch back to Hirdetések sub-view
-      const activeListingsBtn = screen.getByRole('button', { name: /Hirdetések/i })
+      // 5. Switch back to Találatok tab in TopNavBar capsule
+      const activeListingsBtn = screen.getByTestId('tab-listings')
       fireEvent.click(activeListingsBtn)
       expect(useUiStore.getState().dashboardTab).toBe('listings')
       expect(useUiStore.getState().listingSubView).toBe('listings')

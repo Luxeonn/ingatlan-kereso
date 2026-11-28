@@ -108,7 +108,7 @@ function useLoadedTimelineData(item: IngatlanItem): TimelineData {
 const TimelineSparklineBox: FC<{ sparkline: SparklineGeometry }> = ({ sparkline }) => (
   <div
     data-testid="price-history-sparkline"
-    className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-card)] px-3 py-2 tabular-nums"
+    className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-white/60 px-3 py-2 tabular-nums"
   >
     <svg
       viewBox="0 0 220 38"
@@ -124,9 +124,9 @@ const TimelineSparklineBox: FC<{ sparkline: SparklineGeometry }> = ({ sparkline 
         points={sparkline.polylinePoints}
       />
     </svg>
-    <div className="text-right text-[10px] text-[var(--text-secondary)]">
+    <div className="text-right text-[10px] text-[#42526b]">
       <div>Tartomány: {sparkline.minMillion}–{sparkline.maxMillion} M Ft</div>
-      <div className="font-bold text-[var(--text-primary)]">
+      <div className="font-bold text-[#0b1220]">
         Aktuális: {sparkline.latestMillion} M Ft
       </div>
     </div>
@@ -141,9 +141,9 @@ const TimelineDeltaRow: FC<{ priceDelta: number; priceChangePercent?: number | n
   return (
     <div
       data-testid="timeline-price-delta-row"
-      className="flex items-center justify-between rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-card)] px-2.5 py-1.5 tabular-nums"
+      className="flex items-center justify-between rounded-xl border border-[var(--border-hairline)] bg-white/60 px-2.5 py-1.5 tabular-nums"
     >
-      <span className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)]">
+      <span className="flex items-center gap-1.5 font-semibold text-[#0b1220]">
         {isDrop ? (
           <TrendingDown className="h-3.5 w-3.5 text-[var(--status-danger-fg)]" />
         ) : (
@@ -171,13 +171,13 @@ const TimelineHistoryRows: FC<{ entries: PriceHistoryEntry[] }> = ({ entries }) 
         <div
           key={entry.id ?? idx}
           data-testid="price-history-entry-row"
-          className="flex items-center justify-between rounded-md bg-[var(--bg-card)]/70 px-2.5 py-1 text-[11px] tabular-nums"
+          className="flex items-center justify-between rounded-lg bg-white/60 border border-[var(--border-hairline)] px-2.5 py-1 text-[11px] tabular-nums"
         >
-          <span className="flex items-center gap-1 text-[var(--text-secondary)]">
+          <span className="flex items-center gap-1 text-[#42526b]">
             <Clock className="h-3 w-3 opacity-60" />
             <span>{formatDate(entry.recordedAt)}</span>
           </span>
-          <span className="font-semibold text-[var(--text-primary)]">
+          <span className="font-semibold text-[#0b1220]">
             {formatPriceFt(entry.priceAmount)}
           </span>
         </div>
@@ -208,14 +208,14 @@ export const PropertyTimelineSection: FC<PropertyTimelineSectionProps> = ({ item
       className="flex flex-col gap-2 border-t border-[var(--border-hairline)] pt-3 text-xs"
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)]">
-          <History className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
+        <div className="flex items-center gap-1.5 font-semibold text-[#0b1220]">
+          <History className="h-3.5 w-3.5 text-[#0071e3]" aria-hidden="true" />
           <span>Ártörténet & Észlelési Idővonal</span>
         </div>
         {unchangedCount > 0 && (
           <span
             data-testid="timeline-unchanged-badge"
-            className="rounded-md border border-[var(--border-hairline)] bg-[var(--bg-card)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)] tabular-nums"
+            className="rounded-full border border-[var(--border-hairline)] bg-white/75 px-2.5 py-0.5 text-[10px] font-semibold text-[#42526b] tabular-nums"
           >
             {unchangedCount}× változatlan ár
           </span>

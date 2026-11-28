@@ -45,10 +45,10 @@ export const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
             type="button"
             onClick={() => setSelectedPortalFilter(chip.id)}
             className={cn(
-              'flex h-9 flex-1 min-w-[115px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-bold transition-all duration-150 cursor-pointer',
+              'flex h-8 flex-1 min-w-[115px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-bold transition-all duration-150 cursor-pointer',
               isActive
-                ? 'border-blue-500/40 bg-blue-500/15 text-blue-700 shadow-sm'
-                : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] opacity-80 hover:opacity-100 hover:border-blue-500/40',
+                ? 'border-[#0071e3]/45 bg-blue-500/15 text-[var(--status-info-fg)] shadow-sm'
+                : 'border-[var(--border-hairline)] bg-white/75 text-[#0b1220] hover:bg-white/95 hover:border-[#0071e3]/40',
             )}
           >
             <span className="truncate">{chip.label}</span>
@@ -56,8 +56,8 @@ export const PortalFilterChipsRow: FC<PortalFilterChipsRowProps> = ({
               className={cn(
                 'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums shrink-0',
                 isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-[var(--bg-input)] text-[var(--text-primary)]',
+                  ? 'bg-[#0071e3] text-white'
+                  : 'bg-[#0b1220]/[0.07] text-[#0b1220]',
               )}
             >
               {count}

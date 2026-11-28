@@ -488,4 +488,29 @@ describe('BulkActionBar result counter with multi-source listings (#358)', () =>
 
     expect(screen.getByTestId('only-new-filter-count').textContent).toBe('2')
   })
+
+  it('establishes relative z-30 stacking context on BulkActionBar and uses WCAG AA --status-info-fg on active blue-tint chips (#535)', () => {
+    const { container } = render(
+      <BulkActionBar
+        items={sampleItems}
+        rawItems={sampleItems}
+        totalRawCount={2}
+      />,
+    )
+
+    const barSurface = container.querySelector('.glass-surface')
+    expect(barSurface).toBeTruthy()
+    expect(barSurface?.className).toContain('relative')
+    expect(barSurface?.className).toContain('z-30')
+
+    const bargainToggle = screen.getByTestId('bargain-filter-toggle')
+    fireEvent.click(bargainToggle)
+    expect(bargainToggle.parentElement?.className).toContain('text-[var(--status-info-fg)]')
+
+    const portalRow = screen.getByTestId('portal-quick-filter-chips')
+    const dhChip = within(portalRow).getByRole('button', { name: /Duna House/i })
+    fireEvent.click(dhChip)
+    expect(dhChip.className).toContain('bg-blue-500/15')
+    expect(dhChip.className).toContain('text-[var(--status-info-fg)]')
+  })
 })

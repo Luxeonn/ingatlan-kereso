@@ -33,12 +33,13 @@ interface ListingsGridProps {
 
 const DEFAULT_INITIAL_BATCH_SIZE = 18
 const DEFAULT_BATCH_STEP = 18
+const GRID_GAP_PX = 16
+const MIN_CARD_WIDTH_PX = 296
 
-function calculateColumnCount(viewMode: string, width: number): number {
+function calculateColumnCount(viewMode: string, containerWidth: number): number {
   if (viewMode === 'list') return 1
-  if (width >= 1024) return 3
-  if (width >= 640) return 2
-  return 1
+  if (containerWidth <= 0) return 1
+  return Math.max(1, Math.floor((containerWidth + GRID_GAP_PX) / (MIN_CARD_WIDTH_PX + GRID_GAP_PX)))
 }
 
 function buildItemsSignature(items: IngatlanItem[]): string {
@@ -90,10 +91,17 @@ const ListingsViewportBody: FC<ListingsViewportBodyProps> = (props) => {
   const rowCount = Math.ceil(visibleItems.length / columns)
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
-    estimateSize: () => (viewMode === 'list' ? 160 : 320),
-    overscan: 1,
+    estimateSize: () => (viewMode === 'list' ? 160 : 460),
+    gap: viewMode === 'list' ? 12 : GRID_GAP_PX,
+    overscan: 4,
     scrollMargin,
   })
+
+  useEffect(() => {
+    if (typeof virtualizer.measure === 'function') {
+      virtualizer.measure()
+    }
+  }, [virtualizer, columns, viewMode])
 
   return (
     <div className="space-y-4">
@@ -116,7 +124,10 @@ const ListingsViewportBody: FC<ListingsViewportBodyProps> = (props) => {
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
                 className={cn(
-                  viewMode === 'grid' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-3',
+                  'z-0 hover:z-10 focus-within:z-20 has-[[data-testid="bargain-popover"]]:z-20',
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-[repeat(auto-fill,minmax(296px,1fr))] gap-4'
+                    : 'flex flex-col gap-3',
                 )}
                 style={{
                   position: 'absolute',
@@ -150,10 +161,10 @@ const ListingsViewportBody: FC<ListingsViewportBodyProps> = (props) => {
           ref={sentinelRef}
           data-testid="infinite-scroll-sentinel"
           onClick={onLoadMore}
-          className="flex w-full items-center justify-center py-6 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+          className="flex w-full items-center justify-center py-6 text-xs text-[#42526b] hover:text-[#0b1220] transition-colors cursor-pointer tabular-nums"
         >
           <div className="flex items-center gap-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#0071e3] border-t-transparent" />
             <span>További ingatlanok betöltése... ({visibleItems.length} / {totalItemsCount} db)</span>
           </div>
         </button>
@@ -234,13 +245,35 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
   }, [hasMore, visibleLimit, handleLoadMore])
 
   const visibleItems = items.slice(0, visibleLimit)
+  const hasItems = items.length > 0
+  const effectiveColumns = viewMode === 'list' ? 1 : columns
 
   useEffect(() => {
-    const updateColumns = () => setColumns(calculateColumnCount(viewMode, window.innerWidth))
-    updateColumns()
-    window.addEventListener('resize', updateColumns)
-    return () => window.removeEventListener('resize', updateColumns)
-  }, [viewMode])
+    if (viewMode === 'list') return undefined
+    const el = listRef.current
+    if (!el) return undefined
+
+    const measure = (reportedWidth?: number) => {
+      const rect = el.getBoundingClientRect()
+      const width =
+        reportedWidth && reportedWidth > 0
+          ? reportedWidth
+          : rect.width > 0
+            ? rect.width
+            : el.clientWidth
+      setColumns(calculateColumnCount(viewMode, width))
+      setScrollMargin(rect.top + window.scrollY)
+    }
+
+    measure()
+    if (typeof ResizeObserver === 'undefined') return undefined
+
+    const observer = new ResizeObserver((entries) => {
+      measure(entries[0]?.contentRect?.width)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [viewMode, isLoading, hasSearched, hasItems])
 
   useEffect(() => {
     const updateScrollMargin = () => {
@@ -249,7 +282,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
     updateScrollMargin()
     window.addEventListener('resize', updateScrollMargin)
     return () => window.removeEventListener('resize', updateScrollMargin)
-  }, [hasSearched, visibleItems.length, mode])
+  }, [hasSearched, visibleItems.length, mode, effectiveColumns, viewMode, isLoading])
 
   if (isLoading) return renderLoadingSkeletons()
 
@@ -276,7 +309,7 @@ export const ListingsGrid: FC<ListingsGridProps> = ({
           visibleItems={visibleItems}
           totalItemsCount={items.length}
           hasMore={hasMore}
-          columns={columns}
+          columns={effectiveColumns}
           scrollMargin={scrollMargin}
           listRef={listRef}
           sentinelRef={sentinelRef}

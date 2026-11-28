@@ -14,7 +14,7 @@ interface QuickFilterPopoverProps {
 
 const MODE_BUTTONS: Array<{ mode: TriStateMode; label: string; activeClass: string }> = [
   { mode: 'all', label: 'Mind', activeClass: 'bg-slate-700 text-white shadow-xs' },
-  { mode: 'only', label: 'Csak', activeClass: 'bg-blue-600 text-white shadow-xs' },
+  { mode: 'only', label: 'Csak', activeClass: 'bg-[#0071e3] text-white shadow-xs' },
   { mode: 'exclude', label: 'Kizár', activeClass: 'bg-rose-600 text-white shadow-xs' },
 ]
 
@@ -41,13 +41,13 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
         onClick={() => setIsOpen((prev) => !prev)}
         title="Megjelenített gyorsszűrők testreszabása"
         className={cn(
-          'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 cursor-pointer',
+          'flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-all shrink-0 cursor-pointer tabular-nums',
           isOpen
-            ? 'border-blue-500/50 bg-blue-500/15 text-blue-600 shadow-sm'
-            : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/40',
+            ? 'border-[#0071e3]/45 bg-[#0071e3]/12 text-[var(--status-info-fg)] shadow-sm'
+            : 'border-[var(--border-hairline)] bg-white/75 text-[#0b1220] hover:border-[#0071e3]/40',
         )}
       >
-        <SlidersHorizontal className="h-3.5 w-3.5 text-blue-600" />
+        <SlidersHorizontal className="h-3.5 w-3.5 text-[#0071e3]" />
         <span>
           Szűrők ({pinnedQuickFilters.length}/{QUICK_FILTER_OPTIONS.length})
         </span>
@@ -58,11 +58,11 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
           role="dialog"
           aria-label="Gyorsszűrők testreszabása"
           data-testid="quick-filter-selector-popover"
-          className="absolute right-0 top-full z-50 mt-1.5 w-80 sm:w-96 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 shadow-2xl backdrop-blur-md"
+          className="absolute right-0 top-full z-40 mt-1.5 w-96 rounded-2xl glass-elevated p-3"
         >
-          <div className="mb-2 flex items-center justify-between border-b border-[var(--border-color)] pb-1.5 text-[11px] font-bold text-[var(--text-secondary)]">
+          <div className="mb-2 flex items-center justify-between border-b border-[var(--border-hairline)] pb-1.5 text-[11px] font-bold text-[#42526b]">
             <span>Kitűzött szűrők & 3-állapotú mód</span>
-            <span>Összesen {QUICK_FILTER_OPTIONS.length} db</span>
+            <span className="tabular-nums">Összesen {QUICK_FILTER_OPTIONS.length} db</span>
           </div>
           <div className="space-y-1.5">
             {QUICK_FILTER_OPTIONS.map((opt) => {
@@ -73,14 +73,14 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
               return (
                 <div
                   key={opt.id}
-                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1 hover:bg-[var(--bg-input)]/70"
+                  className="flex items-center justify-between gap-2 rounded-xl px-2 py-1 hover:bg-white/60"
                 >
                   <label
                     className={cn(
                       'flex flex-1 min-w-0 items-center gap-2 text-xs font-semibold',
                       isDisabled
-                        ? 'cursor-not-allowed opacity-50 text-[var(--text-secondary)]'
-                        : 'cursor-pointer text-[var(--text-primary)]',
+                        ? 'cursor-not-allowed opacity-50 text-[#42526b]'
+                        : 'cursor-pointer text-[#0b1220]',
                     )}
                   >
                     <input
@@ -89,7 +89,7 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
                       checked={isChecked}
                       disabled={isDisabled}
                       onChange={() => onToggleFilter(opt.id)}
-                      className="h-3.5 w-3.5 shrink-0 rounded border-[var(--border-color)] accent-blue-600"
+                      className="h-3.5 w-3.5 shrink-0 rounded border-[var(--border-strong)] accent-[#0071e3]"
                     />
                     <span className="truncate">{opt.label}</span>
                   </label>
@@ -97,7 +97,7 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
                   <div
                     role="group"
                     aria-label={`${opt.label} állapota`}
-                    className="inline-flex shrink-0 items-center rounded-md border border-[var(--border-hairline)] bg-[var(--bg-input)] p-0.5 text-[10px] font-bold"
+                    className="inline-flex shrink-0 items-center rounded-full border border-[var(--border-hairline)] bg-white/75 p-0.5 text-[10px] font-bold"
                   >
                     {MODE_BUTTONS.map((btn) => {
                       const active = currentMode === btn.mode
@@ -109,10 +109,10 @@ export const QuickFilterPopover: FC<QuickFilterPopoverProps> = ({
                           aria-pressed={active}
                           onClick={() => setTriStateMode(opt.id, btn.mode)}
                           className={cn(
-                            'rounded px-1.5 py-0.5 transition-colors cursor-pointer',
+                            'rounded-full px-2 py-0.5 transition-colors cursor-pointer',
                             active
                               ? btn.activeClass
-                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                              : 'text-[#42526b] hover:text-[#0b1220]',
                           )}
                         >
                           {btn.label}

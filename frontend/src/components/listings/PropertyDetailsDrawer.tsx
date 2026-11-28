@@ -68,18 +68,18 @@ const DrawerCategoryHeader: FC<{ item: IngatlanItem }> = ({ item }) => {
   return (
     <div className="flex flex-col gap-1.5 pb-3 border-b border-[var(--border-hairline)]">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-          <Tag className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
+        <div className="flex items-center gap-1.5 font-semibold text-[#42526b]">
+          <Tag className="h-3.5 w-3.5 text-[#0071e3]" aria-hidden="true" />
           <span>Besorolás és Kategória</span>
         </div>
         {hasMarketPosition && (
           <span
             data-testid="drawer-market-position"
             className={cn(
-              'rounded-md border px-2 py-0.5 text-[10px] font-bold tabular-nums',
+              'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tabular-nums',
               isBelow
                 ? 'border-emerald-500/30 bg-[var(--status-bargain-bg)] text-[var(--status-bargain-fg)]'
-                : 'border-[var(--border-hairline)] bg-[var(--bg-card)] text-[var(--text-secondary)]',
+                : 'border-[var(--border-hairline)] bg-white/75 text-[#42526b]',
             )}
           >
             {isBelow
@@ -94,7 +94,7 @@ const DrawerCategoryHeader: FC<{ item: IngatlanItem }> = ({ item }) => {
       <div className="flex flex-wrap items-center gap-2 pt-0.5">
         <PropertyTypeBadge propertyType={item.propertyType} />
         {item.details && (
-          <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg-card)] px-2 py-0.5 rounded border border-[var(--border-hairline)] truncate max-w-full">
+          <span className="text-[11px] text-[#42526b] bg-white/75 px-2.5 py-0.5 rounded-full border border-[var(--border-hairline)] truncate max-w-full">
             {item.details}
           </span>
         )}
@@ -174,7 +174,7 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
       data-testid="multi-source-drawer"
       data-drawer-component="property-details-drawer"
       className={cn(
-        'mt-3.5 flex flex-col gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-input)]/60 p-3.5 shadow-inner transition-all animate-in fade-in-50 duration-200 text-xs',
+        'mt-3.5 flex flex-col gap-3 rounded-2xl glass-surface p-3.5 transition-all animate-in fade-in-50 duration-200 text-xs',
         className,
       )}
     >
@@ -182,12 +182,12 @@ export const PropertyDetailsDrawer: FC<PropertyDetailsDrawerProps> = ({
 
       {isMultiSource && (
         <div data-testid="sources-list-section" className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-secondary)]">
-            <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
-              <Layers className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
+          <div className="flex items-center justify-between text-xs font-semibold text-[#42526b]">
+            <div className="flex items-center gap-1.5 text-[#0b1220]">
+              <Layers className="h-3.5 w-3.5 text-[#0071e3]" aria-hidden="true" />
               <span>Elérhető források ({sources.length})</span>
             </div>
-            <span className="text-[11px] text-[var(--text-secondary)]">
+            <span className="text-[11px] text-[#42526b]">
               Legalacsonyabb ár kiemelve
             </span>
           </div>

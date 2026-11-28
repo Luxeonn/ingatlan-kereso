@@ -204,6 +204,9 @@ describe('PriceScatterCorrelationChart (#277)', () => {
     expect(helpBtn.getAttribute('aria-expanded')).toBe('true')
     const popover = screen.getByTestId('category-help-popover')
     expect(popover).toBeTruthy()
+    expect(popover.className).toContain('glass-elevated')
+    expect(popover.className).toContain('z-40')
+    expect(popover.className).not.toContain('sm:w-96')
     expect(screen.getByText('Kategória besorolási szabályok')).toBeTruthy()
     expect(screen.getByText(/legalább 15%-kal olcsóbb fajlagos árú/)).toBeTruthy()
     expect(screen.getByText(/referenciaár -15% és \+25% közötti/)).toBeTruthy()
@@ -237,7 +240,7 @@ describe('PriceScatterCorrelationChart (#277)', () => {
     )
 
     const tooltipWrapper = screen.getByTestId('recharts-tooltip-wrapper')
-    expect(tooltipWrapper.style.zIndex).toBe('100')
+    expect(tooltipWrapper.style.zIndex).toBe('30')
 
     expect(screen.getByText('Teszt lakás')).toBeTruthy()
     expect(screen.getByText('60 m²')).toBeTruthy()
@@ -283,5 +286,22 @@ describe('PriceScatterCorrelationChart (#277)', () => {
     expect(
       screen.getByText('Nincs megjeleníthető hirdetés a kiválasztott szegmensben.')
     ).toBeTruthy()
+  })
+
+  it('applies Liquid Glass surfaces, tabular-nums, and zero dark/responsive classes', () => {
+    const { container } = render(<PriceScatterCorrelationChart scatterData={mockScatterData} />)
+
+    const rootCard = container.firstElementChild as HTMLElement
+    expect(rootCard.className).toContain('glass-surface')
+
+    const segmentBar = screen.getByRole('button', { name: /Összes \(3\)/i }).parentElement as HTMLElement
+    expect(segmentBar.className).toContain('glass-capsule')
+    expect(segmentBar.className).toContain('tabular-nums')
+
+    const tooltipCard = screen.getByText('Teszt lakás').closest('div.glass-elevated')
+    expect(tooltipCard).toBeTruthy()
+    expect(tooltipCard?.className).toContain('tabular-nums')
+
+    expect(container.innerHTML).not.toMatch(/\b(dark|sm|md|lg):|font-mono\b/)
   })
 })

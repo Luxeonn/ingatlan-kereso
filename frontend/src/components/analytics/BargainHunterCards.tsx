@@ -23,13 +23,13 @@ const HoverThumbnailPreview: FC<{
   return (
     <div
       data-testid="bargain-hover-thumbnail"
-      className="pointer-events-none absolute -top-3 right-3 z-40 -translate-y-full w-48 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+      className="pointer-events-none absolute -top-3 right-3 z-30 -translate-y-full w-48 overflow-hidden rounded-2xl glass-elevated p-1.5 animate-in fade-in zoom-in-95 duration-150"
     >
       <img
         src={imageUrl}
         alt={item.title || 'Ingatlan előnézeti kép'}
         onError={onImageError}
-        className="h-28 w-full rounded-lg object-cover bg-[var(--bg-input)]"
+        className="h-28 w-full rounded-xl object-cover bg-white/70"
       />
       <div className="mt-1 flex items-center justify-between gap-1 px-1 text-[10px] text-[var(--text-secondary)]">
         <span className="truncate font-semibold text-[var(--text-primary)]">
@@ -69,7 +69,7 @@ export const BelowMarketDealCard: FC<BelowMarketDealCardProps> = ({
       onMouseLeave={() => onHoverChange(false)}
       onFocus={() => onHoverChange(true)}
       onBlur={() => onHoverChange(false)}
-      className="group relative flex flex-col justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card-hover)]/40 p-4 transition-all hover:z-30 hover:border-emerald-500/50 hover:shadow-lg"
+      className="group relative flex flex-col justify-between rounded-[20px] glass-surface p-4 transition-all hover:z-30 focus-within:z-30 hover:border-emerald-500/45! hover:bg-white/85!"
     >
       <HoverThumbnailPreview
         item={item}
@@ -80,13 +80,13 @@ export const BelowMarketDealCard: FC<BelowMarketDealCardProps> = ({
 
       <div>
         <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-[var(--status-bargain-fg)] border border-emerald-500/30">
-            <TrendingDown className="h-3 w-3" />
+          <span className="flex items-center gap-1 rounded-full bg-[var(--status-bargain-bg)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--status-bargain-fg)] border border-emerald-500/30 tabular-nums">
+            <TrendingDown className="h-3 w-3" aria-hidden="true" />
             <span>-{discountPercent}% a városi átlaghoz képest</span>
           </span>
           {isListingNew(item) && (
-            <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-600">
-              <Sparkles className="h-3 w-3" /> Új
+            <span className="flex items-center gap-1 rounded-full bg-[#0071e3]/12 border border-[#0071e3]/20 px-2 py-0.5 text-[10px] font-bold text-[#005bb5]">
+              <Sparkles className="h-3 w-3" aria-hidden="true" /> Új
             </span>
           )}
         </div>
@@ -94,11 +94,11 @@ export const BelowMarketDealCard: FC<BelowMarketDealCardProps> = ({
         <h4 className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 group-hover:text-[var(--status-bargain-fg)] transition-colors">
           {item.title}
         </h4>
-        <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+        <p className="text-[11px] text-[var(--text-secondary)] mt-1 tabular-nums">
           {item.city || item.location} • {area ? `${area} m²` : 'N/A'} • {item.portal}
         </p>
 
-        <div className="mt-3 rounded-lg bg-[var(--bg-input)]/70 p-2.5 text-xs space-y-1 tabular-nums">
+        <div className="mt-3 rounded-xl border border-[var(--border-hairline)] bg-white/55 p-3 text-xs space-y-1 tabular-nums">
           <div className="flex justify-between">
             <span className="text-[var(--text-secondary)]">Kínálati ár:</span>
             <span className="font-extrabold text-[var(--text-primary)]">
@@ -111,7 +111,7 @@ export const BelowMarketDealCard: FC<BelowMarketDealCardProps> = ({
               {itemSqmPrice ? formatPricePerSqm(itemSqmPrice) : 'N/A'}
             </span>
           </div>
-          <div className="flex justify-between text-[11px] text-[var(--text-secondary)] border-t border-[var(--border-color)]/50 pt-1">
+          <div className="flex justify-between text-[11px] text-[var(--text-secondary)] border-t border-[var(--border-hairline)] pt-1">
             <span>Városi átlag ({item.city}):</span>
             <span>{formatPricePerSqm(cityAvgSqmPrice)}</span>
           </div>
@@ -122,18 +122,18 @@ export const BelowMarketDealCard: FC<BelowMarketDealCardProps> = ({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-color)]/60 pt-3">
+      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-hairline)] pt-3">
         <button
           type="button"
           onClick={onOpen}
           className="flex items-center gap-1 text-xs font-semibold text-[var(--status-bargain-fg)] hover:opacity-80 transition-opacity cursor-pointer"
         >
           <span>Hirdetés megnyitása</span>
-          <ExternalLink className="h-3.5 w-3.5" />
+          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
         {item.viewed && (
           <span className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
-            <Eye className="h-3 w-3" /> Megtekintve
+            <Eye className="h-3 w-3" aria-hidden="true" /> Megtekintve
           </span>
         )}
       </div>
@@ -167,7 +167,7 @@ export const PriceDropDealCard: FC<PriceDropDealCardProps> = ({
       onMouseLeave={() => onHoverChange(false)}
       onFocus={() => onHoverChange(true)}
       onBlur={() => onHoverChange(false)}
-      className="group relative flex flex-col justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-card-hover)]/40 p-4 transition-all hover:z-30 hover:border-blue-500/50 hover:shadow-lg"
+      className="group relative flex flex-col justify-between rounded-[20px] glass-surface p-4 transition-all hover:z-30 focus-within:z-30 hover:border-[#0071e3]/45! hover:bg-white/85!"
     >
       <HoverThumbnailPreview
         item={item}
@@ -178,25 +178,25 @@ export const PriceDropDealCard: FC<PriceDropDealCardProps> = ({
 
       <div>
         <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="flex items-center gap-1 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[11px] font-bold text-blue-600 border border-blue-500/30 tabular-nums">
-            <Tag className="h-3 w-3" />
+          <span className="flex items-center gap-1 rounded-full bg-[#0071e3]/12 px-2.5 py-0.5 text-[11px] font-bold text-[#005bb5] border border-[#0071e3]/25 tabular-nums">
+            <Tag className="h-3 w-3" aria-hidden="true" />
             <span>Árcsökkenés: {priceDelta.toLocaleString('hu-HU')} Ft</span>
           </span>
           {isListingNew(item) && (
-            <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-[var(--status-bargain-fg)]">
-              <Sparkles className="h-3 w-3" /> Új
+            <span className="flex items-center gap-1 rounded-full bg-[var(--status-bargain-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-bargain-fg)]">
+              <Sparkles className="h-3 w-3" aria-hidden="true" /> Új
             </span>
           )}
         </div>
 
-        <h4 className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 group-hover:text-blue-600 transition-colors">
+        <h4 className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 group-hover:text-[#0071e3] transition-colors">
           {item.title}
         </h4>
-        <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+        <p className="text-[11px] text-[var(--text-secondary)] mt-1 tabular-nums">
           {item.city || item.location} • {item.portal}
         </p>
 
-        <div className="mt-3 rounded-lg bg-[var(--bg-input)]/70 p-2.5 text-xs space-y-1 tabular-nums">
+        <div className="mt-3 rounded-xl border border-[var(--border-hairline)] bg-white/55 p-3 text-xs space-y-1 tabular-nums">
           <div className="flex justify-between">
             <span className="text-[var(--text-secondary)]">Jelenlegi ár:</span>
             <span className="font-extrabold text-[var(--text-primary)]">
@@ -210,7 +210,7 @@ export const PriceDropDealCard: FC<PriceDropDealCardProps> = ({
             </div>
           )}
           {item.lastPriceChangeAt && (
-            <div className="flex justify-between text-[11px] text-[var(--text-secondary)] border-t border-[var(--border-color)]/50 pt-1">
+            <div className="flex justify-between text-[11px] text-[var(--text-secondary)] border-t border-[var(--border-hairline)] pt-1">
               <span>Leárazva:</span>
               <span>{new Date(item.lastPriceChangeAt).toLocaleDateString('hu-HU')}</span>
             </div>
@@ -218,18 +218,18 @@ export const PriceDropDealCard: FC<PriceDropDealCardProps> = ({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-color)]/60 pt-3">
+      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-hairline)] pt-3">
         <button
           type="button"
           onClick={onOpen}
-          className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-600 transition-colors cursor-pointer"
+          className="flex items-center gap-1 text-xs font-semibold text-[#0071e3] hover:text-[#0077ed] transition-colors cursor-pointer"
         >
           <span>Hirdetés megnyitása</span>
-          <ExternalLink className="h-3.5 w-3.5" />
+          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
         {item.viewed && (
           <span className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
-            <Eye className="h-3 w-3" /> Megtekintve
+            <Eye className="h-3 w-3" aria-hidden="true" /> Megtekintve
           </span>
         )}
       </div>

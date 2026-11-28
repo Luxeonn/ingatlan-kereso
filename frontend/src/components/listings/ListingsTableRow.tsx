@@ -36,12 +36,12 @@ function getMedianPillConfig(item: IngatlanItem): { label: string; className: st
   if (pct >= 0) {
     return {
       label,
-      className: 'border-emerald-500/20 bg-emerald-500/5 text-[var(--status-bargain-fg)]',
+      className: 'border-emerald-500/20 bg-emerald-500/8 text-[var(--status-bargain-fg)]',
     }
   }
   return {
     label,
-    className: 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)]',
+    className: 'border-[var(--border-hairline)] bg-white/70 text-[#42526b]',
   }
 }
 
@@ -71,17 +71,19 @@ const TableTitleLocationCell: FC<{ item: IngatlanItem; onOpenExternal: () => voi
         <button
           type="button"
           onClick={onOpenExternal}
-          className="truncate font-bold text-[var(--text-primary)] hover:text-blue-600 text-left cursor-pointer"
+          className="truncate font-bold text-[#0b1220] hover:text-[#0071e3] text-left cursor-pointer"
           title={item.title}
         >
           {item.title || 'Ingatlan hirdetés'}
         </button>
       </div>
-      <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] truncate">
+      <div className="flex items-center gap-1.5 text-[11px] text-[#42526b] truncate">
         <span>{item.city}</span>
         {hasDistinctLocation && <span className="truncate">· {item.location}</span>}
         {item.portal && (
-          <span className="rounded bg-[var(--bg-input)] px-1.5 py-0.2 text-[10px]">{item.portal}</span>
+          <span className="rounded-full border border-[var(--border-hairline)] bg-white/75 px-1.5 py-0.2 text-[10px] text-[#0b1220]">
+            {item.portal}
+          </span>
         )}
       </div>
     </td>
@@ -112,10 +114,10 @@ const TableRowActionsCell: FC<TableRowActionsCellProps> = ({
         onClick={onToggleStar}
         aria-label={isStarred ? 'Eltávolítás a kedvencekből' : 'Hozzáadás a kedvencekhez'}
         className={cn(
-          'rounded-lg border p-1.5 transition-colors cursor-pointer',
+          'rounded-full border p-1.5 transition-colors cursor-pointer',
           isStarred
             ? 'border-amber-500/40 bg-[var(--status-warn-bg)] text-amber-700'
-            : 'border-[var(--border-hairline)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-amber-700',
+            : 'border-[var(--border-hairline)] bg-white/75 text-[#42526b] hover:text-amber-700',
         )}
       >
         <Star className={cn('h-3.5 w-3.5', isStarred && 'fill-amber-500 text-amber-700')} />
@@ -125,7 +127,7 @@ const TableRowActionsCell: FC<TableRowActionsCellProps> = ({
           type="button"
           onClick={onRestore}
           aria-label="Hirdetés visszaállítása"
-          className="rounded-lg border border-purple-500/40 bg-purple-500/15 p-1.5 text-purple-700 hover:bg-purple-500/25 cursor-pointer"
+          className="rounded-full border border-purple-500/40 bg-purple-500/12 p-1.5 text-purple-700 hover:bg-purple-500/20 cursor-pointer"
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
@@ -135,7 +137,7 @@ const TableRowActionsCell: FC<TableRowActionsCellProps> = ({
           type="button"
           onClick={onHide}
           aria-label="Hirdetés elrejtése"
-          className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-[var(--text-secondary)] hover:text-rose-700 cursor-pointer"
+          className="rounded-full border border-[var(--border-hairline)] bg-white/75 p-1.5 text-[#42526b] hover:text-rose-700 cursor-pointer"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -144,7 +146,7 @@ const TableRowActionsCell: FC<TableRowActionsCellProps> = ({
         type="button"
         onClick={onOpenExternal}
         aria-label="Megnyitás új lapon"
-        className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] p-1.5 text-[var(--text-secondary)] hover:text-blue-600 cursor-pointer"
+        className="rounded-full border border-[var(--border-hairline)] bg-white/75 p-1.5 text-[#42526b] hover:text-[#0071e3] cursor-pointer"
       >
         <ExternalLink className="h-3.5 w-3.5" />
       </button>
@@ -160,7 +162,7 @@ const TableNumericMetricsCells: FC<{ item: IngatlanItem }> = ({ item }) => {
 
   return (
     <>
-      <td className="px-3 py-2.5 text-right whitespace-nowrap font-extrabold text-blue-600">
+      <td className="px-3 py-2.5 text-right whitespace-nowrap font-extrabold text-[#0071e3] tabular-nums">
         <div>{formatRowPriceLabel(item)}</div>
         {spread && (
           <div className="text-[10px] font-semibold text-[var(--status-info-fg)]">
@@ -168,22 +170,22 @@ const TableNumericMetricsCells: FC<{ item: IngatlanItem }> = ({ item }) => {
           </div>
         )}
       </td>
-      <td className="px-3 py-2.5 text-right whitespace-nowrap text-[var(--text-secondary)]">
+      <td className="px-3 py-2.5 text-right whitespace-nowrap text-[#42526b] tabular-nums">
         {sqmPrice ? formatPricePerSqm(sqmPrice) : '—'}
       </td>
-      <td className="px-3 py-2.5 text-right whitespace-nowrap font-semibold text-[var(--text-primary)]">
+      <td className="px-3 py-2.5 text-right whitespace-nowrap font-semibold text-[#0b1220] tabular-nums">
         {area ? formatArea(area) : '—'}
       </td>
-      <td className="px-3 py-2.5 text-center whitespace-nowrap text-[var(--text-secondary)]">
+      <td className="px-3 py-2.5 text-center whitespace-nowrap text-[#42526b] tabular-nums">
         {item.detailsInfo?.roomCount || '—'}
       </td>
-      <td className="px-3 py-2.5 text-right whitespace-nowrap">
+      <td className="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">
         {medianConfig ? (
-          <span className={cn('rounded-md border px-1.5 py-0.5 text-[10px] font-bold', medianConfig.className)}>
+          <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-bold', medianConfig.className)}>
             {medianConfig.label}
           </span>
         ) : (
-          <span className="text-[var(--text-secondary)]">—</span>
+          <span className="text-[#42526b]">—</span>
         )}
       </td>
     </>
@@ -228,8 +230,8 @@ export const ListingsTableRow: FC<ListingsTableRowProps> = ({
         }
       }}
       className={cn(
-        'transition-colors hover:bg-[var(--bg-surface-hover)]',
-        isSelected && 'bg-[var(--accent-soft)]',
+        'transition-colors hover:bg-white/60',
+        isSelected && 'bg-[#0071e3]/[0.08]',
         isDimmed && 'opacity-75',
       )}
     >
@@ -246,8 +248,8 @@ export const ListingsTableRow: FC<ListingsTableRowProps> = ({
           className={cn(
             'mx-auto flex h-4.5 w-4.5 items-center justify-center rounded border transition-colors cursor-pointer',
             isSelected
-              ? 'border-blue-500 bg-blue-600 text-white'
-              : 'border-[var(--border-strong)] bg-[var(--bg-input)] text-transparent hover:border-blue-400',
+              ? 'border-[#0071e3] bg-[#0071e3] text-white'
+              : 'border-[var(--border-strong)] bg-white/80 text-transparent hover:border-[#0071e3]',
           )}
         >
           <Check className="h-3 w-3 stroke-[3]" />
@@ -257,7 +259,7 @@ export const ListingsTableRow: FC<ListingsTableRowProps> = ({
       <td className="px-3 py-2.5 whitespace-nowrap">
         <span
           className={cn(
-            'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold',
+            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold',
             typeConfig.colorClasses.badge,
           )}
         >
@@ -270,7 +272,7 @@ export const ListingsTableRow: FC<ListingsTableRowProps> = ({
           type="button"
           data-testid="table-row-inspect-button"
           onClick={onInspect}
-          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-input)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] hover:border-blue-500/40 hover:text-blue-600 cursor-pointer"
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--border-hairline)] bg-white/75 px-2.5 py-1 text-[11px] font-semibold text-[#42526b] hover:border-[#0071e3]/40 hover:text-[#0071e3] cursor-pointer tabular-nums"
         >
           <Info className="h-3 w-3" />
           <span>{sourcesCount > 1 ? `${sourcesCount} forrás` : 'Részletek'}</span>

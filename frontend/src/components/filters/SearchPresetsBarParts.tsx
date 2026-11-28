@@ -99,7 +99,7 @@ export const PresetEditForm: FC<PresetEditFormProps> = ({
         }
       }}
       autoFocus
-      className="w-36 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
+      className="min-w-0 flex-1 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
     />
     <button
       type="submit"
@@ -146,10 +146,10 @@ export const PresetChip: FC<PresetChipProps> = ({
         onSelect(preset)
       }
     }}
-    className={`group inline-flex flex-1 min-w-[200px] cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
+    className={`group inline-flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all ${
       isActive
-        ? 'border-blue-500 bg-blue-500/15 text-blue-700 ring-1 ring-blue-500/20 shadow-sm'
-        : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:border-blue-500/50 hover:text-blue-700 shadow-xs'
+        ? 'border-[#0071e3] bg-[#0071e3]/12 text-[#005bb5] ring-1 ring-[#0071e3]/20 shadow-xs'
+        : 'border-[var(--border-color)] bg-white/80 text-[var(--text-primary)] hover:border-[#0071e3]/50 hover:text-[#005bb5] shadow-xs'
     }`}
   >
     <span className="flex-1 text-center truncate">{preset.name}</span>
@@ -191,7 +191,7 @@ export const PresetCreateForm: FC<PresetCreateFormProps> = ({
 }) => (
   <form
     onSubmit={onSave}
-    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500 bg-[var(--bg-input)] px-2 py-1 shadow-md"
+    className="inline-flex w-full items-center gap-1.5 rounded-lg border border-[#0071e3] bg-[var(--bg-input)] px-2 py-1 shadow-sm"
   >
     <input
       type="text"
@@ -206,7 +206,7 @@ export const PresetCreateForm: FC<PresetCreateFormProps> = ({
       }}
       placeholder="Sablon neve"
       autoFocus
-      className="w-44 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
+      className="min-w-0 flex-1 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
     />
     <button
       type="submit"
