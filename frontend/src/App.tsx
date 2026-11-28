@@ -237,7 +237,7 @@ export const App: FC = () => {
   const medianPricePerSqm = resolveMedianSqmPrice(searchState.data)
 
   return (
-    <div className="min-h-screen text-[var(--text-primary)]">
+    <div className="min-h-screen w-full overflow-x-clip flex flex-col text-[var(--text-primary)]">
       <TopNavBar
         totalInDb={systemStatus?.totalInDb}
         portalStatuses={searchState.data?.portalStatuses}
@@ -264,7 +264,7 @@ export const App: FC = () => {
         onSelectAnalytics={() => ui.setDashboardTab('analytics')}
       />
 
-      <div className="mx-auto flex max-w-[1640px] items-start gap-5 px-6 py-5">
+      <div className="mx-auto flex w-full max-w-[1640px] items-start gap-5 px-6 py-5">
         {!ui.isFiltersCollapsed && (
           <FilterSidebar
             onSearch={handleSearch}

@@ -164,7 +164,7 @@ export const MarketStatsBar: FC<MarketStatsBarProps> = ({
       aria-label="Piaci gyorsösszegző szűrők"
       className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl glass-surface px-3.5 py-2"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <KpiPillButton
           testId="kpi-filter-all"
           label="Összes Találat"

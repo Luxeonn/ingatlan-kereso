@@ -91,10 +91,17 @@ const ListingsViewportBody: FC<ListingsViewportBodyProps> = (props) => {
   const rowCount = Math.ceil(visibleItems.length / columns)
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
-    estimateSize: () => (viewMode === 'list' ? 160 : 320),
+    estimateSize: () => (viewMode === 'list' ? 160 : 460),
+    gap: viewMode === 'list' ? 12 : GRID_GAP_PX,
     overscan: 4,
     scrollMargin,
   })
+
+  useEffect(() => {
+    if (typeof virtualizer.measure === 'function') {
+      virtualizer.measure()
+    }
+  }, [virtualizer, columns, viewMode])
 
   return (
     <div className="space-y-4">

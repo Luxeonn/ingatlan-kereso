@@ -75,7 +75,7 @@ const NavTabCapsule: FC<{ tabs: CapsuleTabItem[] }> = ({ tabs }) => (
         aria-pressed={tab.isActive}
         onClick={tab.onClick}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer select-none whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071e3]/50',
+          'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all cursor-pointer select-none whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071e3]/50',
           tab.isActive
             ? 'bg-[#0071e3] text-white shadow-sm'
             : 'text-[var(--text-secondary)] hover:bg-white/60 hover:text-[var(--text-primary)]',
@@ -237,8 +237,8 @@ export const TopNavBar: FC<TopNavBarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 h-[56px] w-full border-b border-[var(--border-hairline)] glass-chrome">
-      <div className="mx-auto flex h-full max-w-[1640px] items-center justify-between gap-4 px-6">
-        <div className="flex items-center gap-3 shrink-0">
+      <div className="mx-auto flex h-full max-w-[1640px] items-center justify-between gap-3 px-5">
+        <div className="flex items-center gap-2.5 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#0071e3] to-[#005bb5] text-white shadow-sm">
               <Home className="h-4 w-4" />

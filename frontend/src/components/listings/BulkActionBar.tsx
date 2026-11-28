@@ -111,7 +111,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
   return (
     <>
       <div className="relative z-30 space-y-2.5 rounded-[20px] glass-surface p-3.5">
-        <div className="flex items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-1.5 rounded-full glass-capsule px-3 py-1.5 text-xs font-bold text-[#0b1220] shrink-0 tabular-nums">
             <span>{formatResultCount(items.length, totalRawCount, totalSourceListingsCount)}</span>
             {items.length !== totalRawCount && (
@@ -121,7 +121,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
             )}
           </div>
 
-          <div className="relative flex-1 min-w-[180px]">
+          <div className="relative flex-1 min-w-[140px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#42526b]" />
             <input
               type="text"
@@ -143,7 +143,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <div className="flex items-center gap-1.5 text-xs shrink-0">
               <ArrowUpDown className="h-3.5 w-3.5 text-[#42526b] shrink-0" />
               <label htmlFor="bulk-sort-select" className="text-[#42526b] font-medium">
@@ -159,7 +159,7 @@ export const BulkActionBar: FC<BulkActionBarProps> = ({
                     setSortOption(val)
                   }
                 }}
-                className="rounded-full border border-[var(--border-hairline)] bg-white/75 px-3 py-1.5 text-xs font-semibold text-[#0b1220] focus:border-[#0071e3] focus:outline-none cursor-pointer"
+                className="max-w-[215px] truncate rounded-full border border-[var(--border-hairline)] bg-white/75 px-3 py-1.5 text-xs font-semibold text-[#0b1220] focus:border-[#0071e3] focus:outline-none cursor-pointer"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
